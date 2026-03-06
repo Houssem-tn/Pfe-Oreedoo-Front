@@ -36,7 +36,7 @@ export class UsersListComponent implements OnInit {
     { value: '', label: 'All roles' },
     { value: 'ROLE_ADMIN', label: 'Admin' },
     { value: 'ROLE_STT', label: 'STT' },
-    { value: 'ROLE_TECHNICIEN_STT', label: 'Technicien STT' },
+    { value: 'ROLE_TECH', label: 'Technicien STT' },
     { value: 'ROLE_CRM_BOUTIQUE', label: 'CRM Boutique' },
     { value: 'ROLE_ZM', label: 'ZM' }
   ];
