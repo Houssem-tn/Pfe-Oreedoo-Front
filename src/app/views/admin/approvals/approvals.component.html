@@ -1,0 +1,98 @@
+<c-row>
+  <c-col xs="12">
+    <c-card>
+      <c-card-body>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <h4 class="mb-0">Pending approvals</h4>
+            <div class="text-body-secondary">Approve or reject new accounts</div>
+          </div>
+
+          <button cButton color="secondary" variant="outline" (click)="refresh()" [disabled]="loading">
+            Refresh
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="py-4 text-center">
+          <c-spinner></c-spinner>
+        </div>
+
+        <!-- Error (only when not loading) -->
+        <div *ngIf="!loading && error" class="alert alert-danger py-2 mb-3">
+          {{ error }}
+        </div>
+
+        <!-- Empty (only when not loading and no error) -->
+        <div *ngIf="!loading && !error && items.length === 0" class="alert alert-info mb-0">
+          No pending users.
+        </div>
+
+        <!-- Table (only when not loading and no error) -->
+        <table
+          *ngIf="!loading && !error && items.length > 0"
+          cTable
+          [striped]="true"
+          [hover]="true"
+          [responsive]="true"
+          class="align-middle"
+        >
+          <thead>
+            <tr>
+              <th>Full name</th>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let u of items; trackBy: trackById">
+              <td>{{ u.fullName }}</td>
+              <td>{{ u.username || '-' }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.phone || '-' }}</td>
+
+              <td>
+                <span class="badge bg-secondary">
+                  {{ u.roleRequested || u.role || '-' }}
+                </span>
+              </td>
+
+              <td>
+                <span class="badge bg-warning text-dark">{{ u.status }}</span>
+              </td>
+
+              <td class="text-end">
+                <button
+                  cButton
+                  color="success"
+                  size="sm"
+                  class="me-2"
+                  (click)="approve(u.id)"
+                  [disabled]="isActionLoading(u.id)"
+                >
+                  {{ isActionLoading(u.id) ? '...' : 'Approve' }}
+                </button>
+
+                <button
+                  cButton
+                  color="danger"
+                  variant="outline"
+                  size="sm"
+                  (click)="reject(u.id)"
+                  [disabled]="isActionLoading(u.id)"
+                >
+                  {{ isActionLoading(u.id) ? '...' : 'Reject' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>

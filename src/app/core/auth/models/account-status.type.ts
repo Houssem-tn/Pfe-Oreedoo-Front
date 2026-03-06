@@ -1,0 +1,1 @@
+export type AccountStatus = 'PENDING' | 'APPROVED' | 'REJECTED';

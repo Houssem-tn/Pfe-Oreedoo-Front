@@ -1,0 +1,260 @@
+<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
+  <c-container>
+    <c-row class="justify-content-center">
+      <c-col lg="7" md="9" xl="6">
+        <c-card class="mx-4">
+          <c-card-body class="p-4">
+            <form cForm (ngSubmit)="submit()">
+              <h1>Create account</h1>
+              <p class="text-body-secondary">
+                Register with your details to access the platform
+              </p>
+
+              <!-- ✅ Success -->
+              <div class="alert alert-success py-2" *ngIf="success">
+                {{ success }}
+              </div>
+
+              <!-- ✅ Error -->
+              <div class="alert alert-danger py-2" *ngIf="error">
+                {{ error }}
+              </div>
+
+              <!-- Full name -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilUser"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Full name"
+                  name="fullName"
+                  [(ngModel)]="form.fullName"
+                  required
+                />
+              </c-input-group>
+
+              <!-- ✅ Username -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilUser"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Username"
+                  name="username"
+                  [(ngModel)]="form.username"
+                  required
+                />
+              </c-input-group>
+
+              <!-- Email -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>&#64;</span>
+                <input
+                  cFormControl
+                  placeholder="Email"
+                  type="email"
+                  name="email"
+                  [(ngModel)]="form.email"
+                  required
+                />
+              </c-input-group>
+
+              <!-- ✅ Phone (optional) -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilPhone"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Phone (optional)"
+                  name="phone"
+                  [(ngModel)]="form.phone"
+                />
+              </c-input-group>
+
+              <!-- Role -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilBadge"></svg>
+                </span>
+                <select cFormControl name="role" [(ngModel)]="form.role" required>
+                  <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+                </select>
+              </c-input-group>
+
+              <!-- Password -->
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilLockLocked"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Password"
+                  type="password"
+                  name="password"
+                  [(ngModel)]="form.password"
+                  required
+                  minlength="4"
+                />
+              </c-input-group>
+
+              <!-- Confirm Password -->
+              <c-input-group class="mb-4">
+                <span cInputGroupText>
+                  <svg cIcon name="cilLockLocked"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Repeat password"
+                  type="password"
+                  name="confirmPassword"
+                  [(ngModel)]="form.confirmPassword"
+                  required
+                />
+              </c-input-group>
+
+              <div class="d-grid">
+                <button cButton color="success" type="submit" [disabled]="loading">
+                  {{ loading ? 'Creating...' : 'Create account' }}
+                </button>
+              </div>
+
+              <div class="d-grid mt-2">
+                <button
+                  cButton
+                  color="secondary"
+                  variant="outline"
+                  type="button"
+                  (click)="router.navigate(['/login'])"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </c-container>
+</div>
+
+
+
+
+<!--
+<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
+  <c-container>
+    <c-row class="justify-content-center">
+      <c-col lg="7" md="9" xl="6">
+        <c-card class="mx-4">
+          <c-card-body class="p-4">
+            <form cForm (ngSubmit)="submit()">
+              <h1>Create account</h1>
+              <p class="text-body-secondary">
+                Register with your details to access the platform
+              </p>
+
+               Full name 
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilUser"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Full name"
+                  name="fullName"
+                  [(ngModel)]="form.fullName"
+                  required
+                />
+              </c-input-group>
+
+               Email 
+              <c-input-group class="mb-3">
+                <span cInputGroupText>&#64;</span>
+                <input
+                  cFormControl
+                  placeholder="Email"
+                  type="email"
+                  name="email"
+                  [(ngModel)]="form.email"
+                  required
+                />
+              </c-input-group>
+
+               Role (keep it if backend supports role on register) 
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilBadge"></svg>
+                </span>
+                <select
+                  cFormControl
+                  name="role"
+                  [(ngModel)]="form.role"
+                  required
+                >
+                  <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+                </select>
+              </c-input-group>
+
+               Password 
+              <c-input-group class="mb-3">
+                <span cInputGroupText>
+                  <svg cIcon name="cilLockLocked"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Password"
+                  type="password"
+                  name="password"
+                  [(ngModel)]="form.password"
+                  required
+                  minlength="4"
+                />
+              </c-input-group>
+
+               Confirm Password 
+              <c-input-group class="mb-4">
+                <span cInputGroupText>
+                  <svg cIcon name="cilLockLocked"></svg>
+                </span>
+                <input
+                  cFormControl
+                  placeholder="Repeat password"
+                  type="password"
+                  name="confirmPassword"
+                  [(ngModel)]="form.confirmPassword"
+                  required
+                />
+              </c-input-group>
+
+              <div class="alert alert-danger py-2" *ngIf="error">
+                {{ error }}
+              </div>
+
+              <div class="d-grid">
+                <button cButton color="success" type="submit" [disabled]="loading">
+                  {{ loading ? 'Creating...' : 'Create account' }}
+                </button>
+              </div>
+
+              <div class="d-grid mt-2">
+                <button
+                  cButton
+                  color="secondary"
+                  variant="outline"
+                  type="button"
+                  (click)="router.navigate(['/login'])"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </c-container>
+</div>
+-->
