@@ -1,6 +1,7 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet, DatePipe } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterLink, RouterLinkActive,Router } from '@angular/router';
+
 
 import {
   AvatarComponent,
@@ -23,15 +24,39 @@ import {
 } from '@coreui/angular';
 
 import { IconDirective } from '@coreui/icons-angular';
+import { NotificationStoreService } from '../../../core/notifications/notification-store.service';
+import { NotificationItem } from '../../../core/notifications/models/notification.model';
 
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
-  imports: [ContainerComponent, HeaderTogglerDirective, SidebarToggleDirective, IconDirective, HeaderNavComponent, NavItemComponent, NavLinkDirective, RouterLink, RouterLinkActive, NgTemplateOutlet, BreadcrumbRouterComponent, DropdownComponent, DropdownToggleDirective, AvatarComponent, DropdownMenuDirective, DropdownHeaderDirective, DropdownItemDirective, BadgeComponent, DropdownDividerDirective]
+  imports: [
+    ContainerComponent,
+    HeaderTogglerDirective,
+    SidebarToggleDirective,
+    IconDirective,
+    HeaderNavComponent,
+    NavItemComponent,
+    NavLinkDirective,
+    RouterLink,
+    RouterLinkActive,
+    NgTemplateOutlet,
+    BreadcrumbRouterComponent,
+    DropdownComponent,
+    DropdownToggleDirective,
+    AvatarComponent,
+    DropdownMenuDirective,
+    DropdownHeaderDirective,
+    DropdownItemDirective,
+    BadgeComponent,
+    DropdownDividerDirective,
+    DatePipe
+  ]
 })
 export class DefaultHeaderComponent extends HeaderComponent {
-
   readonly #colorModeService = inject(ColorModeService);
+  readonly notificationStore = inject(NotificationStoreService);
+readonly router = inject(Router);
   readonly colorMode = this.#colorModeService.colorMode;
 
   readonly colorModes = [
@@ -45,11 +70,82 @@ export class DefaultHeaderComponent extends HeaderComponent {
     return this.colorModes.find(mode => mode.name === currentMode)?.icon ?? 'cilSun';
   });
 
+  readonly unreadCount = this.notificationStore.unreadCount;
+  readonly notifications = this.notificationStore.latestFirst;
+
   constructor() {
     super();
   }
 
   sidebarId = input('sidebar1');
+
+  trackByNotificationId(_: number, item: NotificationItem): string {
+    return item.id;
+  }
+
+   handleNotificationClick(notification: NotificationItem, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+
+    this.markOneAsRead(notification, event);
+
+    if (notification.eventType === 'USER_REGISTERED') {
+      this.router.navigate(['/admin/approvals']);
+    }
+  }
+
+markOneAsRead(notification: NotificationItem, event?: Event): void {
+  event?.stopPropagation();
+  event?.preventDefault();
+
+  if (!notification.read) {
+    this.notificationStore.markAsRead(notification.id);
+  }
+}
+
+  markAllAsRead(event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    this.notificationStore.markAllAsRead();
+  }
+
+  getNotificationIcon(eventType?: string): string {
+  switch (eventType) {
+    case 'USER_REGISTERED':
+      return 'cilUserFollow';
+    case 'USER_APPROVED':
+      return 'cilCheckCircle';
+    case 'USER_REJECTED':
+      return 'cilXCircle';
+    case 'INTERVENTION_CREATED':
+      return 'cilSettings';
+    case 'INTERVENTION_ASSIGNED':
+      return 'cilTask';
+    case 'STOCK_ALERT':
+      return 'cilWarning';
+    default:
+      return 'cilBell';
+  }
+}
+
+getNotificationBadgeColor(eventType?: string): string {
+  switch (eventType) {
+    case 'USER_REGISTERED':
+      return 'info';
+    case 'USER_APPROVED':
+      return 'success';
+    case 'USER_REJECTED':
+      return 'danger';
+    case 'INTERVENTION_CREATED':
+      return 'primary';
+    case 'INTERVENTION_ASSIGNED':
+      return 'warning';
+    case 'STOCK_ALERT':
+      return 'danger';
+    default:
+      return 'secondary';
+  }
+}
 
   public newMessages = [
     {
@@ -125,5 +221,4 @@ export class DefaultHeaderComponent extends HeaderComponent {
     { id: 3, title: 'Add new layouts', value: 75, color: 'info' },
     { id: 4, title: 'Angular Version', value: 100, color: 'success' }
   ];
-
 }
