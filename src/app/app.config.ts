@@ -18,17 +18,16 @@ import { API_BASE_URL } from './core/http/api.config';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideRouter(
-      routes,
-      withRouterConfig({ onSameUrlNavigation: 'reload' }),
-      withInMemoryScrolling({
-        scrollPositionRestoration: 'top',
-        anchorScrolling: 'enabled'
-      }),
-      withEnabledBlockingInitialNavigation(),
-      withViewTransitions(),
-      withHashLocation()
-    ),
+   provideRouter(
+  routes,
+  withRouterConfig({ onSameUrlNavigation: 'reload' }),
+  withInMemoryScrolling({
+    scrollPositionRestoration: 'top',
+    anchorScrolling: 'enabled'
+  }),
+  withEnabledBlockingInitialNavigation(),
+  withViewTransitions()
+),
 
     // ✅ Provide your backend base URL token
     { provide: API_BASE_URL, useValue: 'http://localhost:8080' },

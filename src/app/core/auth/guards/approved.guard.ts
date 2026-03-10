@@ -8,11 +8,10 @@ export const approvedGuard: CanActivateFn = () => {
 
   const status = store.status();
 
-  // If status is not present in JWT, don't block (backend is authority)
+  // If status is absent in JWT/store, do not block here
   if (!status) return true;
 
   if (status === 'APPROVED') return true;
 
-  // If PENDING or REJECTED → block access
-  return router.parseUrl('/auth/login');
+  return router.parseUrl('/login');
 };
