@@ -1,6 +1,5 @@
 import { Injectable, inject } from '@angular/core';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-//import SockJS from 'sockjs-client/dist/sockjs';
 import SockJS from 'sockjs-client';
 import { Subject } from 'rxjs';
 
@@ -9,7 +8,6 @@ import { AuthStore } from '../auth/auth.store';
 import { TokenService } from '../auth/token.service';
 import { Role } from '../auth/models/roles.type';
 import { NotificationItem } from './models/notification.model';
-import { buildNotificationTopic } from './models/notification-topic.util';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationWsService {
@@ -18,7 +16,8 @@ export class NotificationWsService {
   private readonly authStore = inject(AuthStore);
 
   private client: Client | null = null;
-  private subscription: StompSubscription | null = null;
+  private roleSubscription: StompSubscription | null = null;
+  private userSubscription: StompSubscription | null = null;
 
   private readonly notificationSubject = new Subject<NotificationItem>();
   readonly notifications$ = this.notificationSubject.asObservable();
@@ -26,8 +25,9 @@ export class NotificationWsService {
   connect(): void {
     const token = this.tokenService.get();
     const role = this.authStore.role();
+    const email = this.authStore.user()?.email?.trim().toLowerCase();
 
-    if (!token || !role) {
+    if (!token || !role || !email) {
       return;
     }
 
@@ -47,7 +47,7 @@ export class NotificationWsService {
     });
 
     this.client.onConnect = () => {
-      this.subscribeToRoleTopic(role);
+      this.subscribeToTopics(role, email);
     };
 
     this.client.onStompError = (frame) => {
@@ -63,8 +63,10 @@ export class NotificationWsService {
   }
 
   disconnect(): void {
-    this.subscription?.unsubscribe();
-    this.subscription = null;
+    this.roleSubscription?.unsubscribe();
+    this.userSubscription?.unsubscribe();
+    this.roleSubscription = null;
+    this.userSubscription = null;
 
     if (this.client) {
       this.client.deactivate();
@@ -77,22 +79,40 @@ export class NotificationWsService {
     this.connect();
   }
 
-  private subscribeToRoleTopic(role: Role): void {
+  private subscribeToTopics(role: Role, email: string): void {
     if (!this.client || !this.client.connected) {
       return;
     }
 
-    this.subscription?.unsubscribe();
+    this.roleSubscription?.unsubscribe();
+    this.userSubscription?.unsubscribe();
 
-    const topic = buildNotificationTopic(role);
+    const roleTopic = this.buildRoleTopic(role);
+    const userTopic = this.buildUserTopic(email);
 
-    this.subscription = this.client.subscribe(topic, (message: IMessage) => {
-      try {
-        const payload = JSON.parse(message.body) as NotificationItem;
-        this.notificationSubject.next(payload);
-      } catch (error) {
-        console.error('[Notification WS] Failed to parse message', error, message.body);
-      }
+    this.roleSubscription = this.client.subscribe(roleTopic, (message: IMessage) => {
+      this.handleIncomingMessage(message);
     });
+
+    this.userSubscription = this.client.subscribe(userTopic, (message: IMessage) => {
+      this.handleIncomingMessage(message);
+    });
+  }
+
+  private handleIncomingMessage(message: IMessage): void {
+    try {
+      const payload = JSON.parse(message.body) as NotificationItem;
+      this.notificationSubject.next(payload);
+    } catch (error) {
+      console.error('[Notification WS] Failed to parse message', error, message.body);
+    }
+  }
+
+  private buildRoleTopic(role: Role): string {
+    return `/topic/notifications/${role}`;
+  }
+
+  private buildUserTopic(email: string): string {
+    return `/topic/notifications/user/${email.trim().toLowerCase()}`;
   }
 }

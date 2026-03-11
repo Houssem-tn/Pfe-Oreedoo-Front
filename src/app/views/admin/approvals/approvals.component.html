@@ -35,7 +35,7 @@
           <input
             type="text"
             class="form-control"
-            placeholder="Search by full name, username or email"
+            placeholder="Search by full name or email"
             [(ngModel)]="searchTerm"
             (ngModelChange)="onFiltersChange()"
           />
@@ -89,7 +89,7 @@
           <thead class="table-light">
             <tr>
               <th>Full name</th>
-              <th>Username</th>
+              
               <th>Email</th>
               <th>Phone</th>
               <th>Role</th>
@@ -105,9 +105,7 @@
                 <div class="fw-semibold text-dark">{{ u.fullName }}</div>
               </td>
 
-              <td>
-                <span class="text-body-secondary">{{ u.username || '—' }}</span>
-              </td>
+              
 
               <td>
                 <span class="text-body-secondary">{{ u.email }}</span>
@@ -151,7 +149,7 @@
 
                 <button
                   class="btn btn-outline-danger btn-sm"
-                  (click)="reject(u.id)"
+                  (click)="reject(u)"
                   [disabled]="isActionLoading(u.id)"
                 >
                   <svg cIcon name="cilXCircle" class="me-1"></svg>
@@ -174,7 +172,10 @@
         </table>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mt-4" *ngIf="filteredItems.length > 0">
+      <div
+        class="d-flex justify-content-between align-items-center mt-4"
+        *ngIf="filteredItems.length > 0"
+      >
         <small class="text-body-secondary">
           Page {{ currentPage }} / {{ totalPages }}
         </small>

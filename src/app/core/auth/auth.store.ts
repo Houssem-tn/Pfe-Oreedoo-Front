@@ -7,7 +7,6 @@ import { AccountStatus } from '../auth/models/account-status.type';
 export class AuthStore {
   private readonly _user = signal<AuthUser | null>(null);
 
-  // ---- public readonly signals ----
   readonly user = this._user.asReadonly();
 
   readonly isAuthenticated = computed(() => !!this._user());
@@ -24,7 +23,6 @@ export class AuthStore {
     return this._user()?.status === 'APPROVED';
   });
 
-  // ---- mutators ----
   setUser(user: AuthUser | null) {
     if (!user) {
       this._user.set(null);
@@ -33,6 +31,7 @@ export class AuthStore {
 
     this._user.set({
       username: user.username,
+      email: user.email,
       role: user.role,
       status: user.status,
     });

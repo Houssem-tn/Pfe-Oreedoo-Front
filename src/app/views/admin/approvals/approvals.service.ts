@@ -15,14 +15,14 @@ export interface PendingApprovalUser {
   role: Role;
   status: AccountStatus;
   createdAt?: string;
+  assignedSttId?: string;
+  assignedSttEmail?: string;
 }
-
 
 @Injectable({ providedIn: 'root' })
 export class ApprovalsService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
-  
 
   listPending(): Observable<PendingApprovalUser[]> {
     return this.http.get<PendingApprovalUser[]>(
@@ -36,12 +36,11 @@ export class ApprovalsService {
       {}
     );
   }
- 
 
-  reject(id: string): Observable<void> {
+  reject(id: string, reason: string): Observable<void> {
     return this.http.post<void>(
       `${this.baseUrl}/api/v1/approvals/${id}/reject`,
-      {}
+      { reason }
     );
   }
 }

@@ -105,6 +105,11 @@ readonly authStore = inject(AuthStore);
 
   if (role === 'ROLE_ZM') {
     this.router.navigate(['/zm/approvals']);
+    return;
+  }
+
+  if (role === 'ROLE_STT') {
+    this.router.navigate(['/stt/approvals']);
   }
 }
 

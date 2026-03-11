@@ -37,7 +37,11 @@ export class NotificationStoreService {
       return;
     }
 
-    if (!this.authStore.isAuthenticated() || !this.authStore.role()) {
+    const isAuthenticated = this.authStore.isAuthenticated();
+    const role = this.authStore.role();
+    const email = this.authStore.user()?.email;
+
+    if (!isAuthenticated || !role || !email) {
       return;
     }
 
@@ -64,6 +68,7 @@ export class NotificationStoreService {
     this.ws.disconnect();
     this._initialized.set(false);
     this._items.set([]);
+    this._loading.set(false);
   }
 
   refresh(): void {

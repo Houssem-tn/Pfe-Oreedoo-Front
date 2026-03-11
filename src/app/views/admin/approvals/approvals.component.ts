@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
+import Swal from 'sweetalert2';
 
 import {
   CardBodyComponent,
@@ -75,25 +76,30 @@ export class ApprovalsComponent implements OnInit {
         })
       )
       .subscribe({
-        next: (rows) => {
+        next: (rows: PendingApprovalUser[]) => {
           this.items = rows ?? [];
           this.currentPage = 1;
         },
-        error: (e) => {
+        error: (e: any) => {
           this.error = e?.error?.message ?? 'Failed to load pending approvals';
         }
       });
   }
 
   approve(userId: string): void {
+    const user = this.items.find((u) => u.id === userId);
+    const approvedUserName = user?.fullName ?? 'User';
+
     this.actionLoadingId = userId;
     this.error = null;
 
     this.api.approve(userId)
-      .pipe(finalize(() => {
-        this.actionLoadingId = null;
-        this.zone.run(() => this.cdr.detectChanges());
-      }))
+      .pipe(
+        finalize(() => {
+          this.actionLoadingId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
       .subscribe({
         next: () => {
           this.items = this.items.filter((u) => u.id !== userId);
@@ -101,31 +107,85 @@ export class ApprovalsComponent implements OnInit {
           if (this.currentPage > this.totalPages) {
             this.currentPage = this.totalPages || 1;
           }
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Account approved',
+            text: `${approvedUserName} has been approved successfully.`,
+            confirmButtonText: 'OK',
+            timer: 2200,
+            timerProgressBar: true
+          });
         },
-        error: (e) => {
+        error: (e: any) => {
           this.error = e?.error?.message ?? 'Approve failed';
         }
       });
   }
 
-  reject(userId: string): void {
-    this.actionLoadingId = userId;
+  async reject(user: PendingApprovalUser): Promise<void> {
+    const result = await Swal.fire<string>({
+      title: 'Reject account',
+      text: `Provide a rejection reason for ${user.fullName}`,
+      input: 'textarea',
+      inputLabel: 'Rejection reason',
+      inputPlaceholder: 'Enter the rejection reason...',
+      inputAttributes: {
+        'aria-label': 'Rejection reason'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Reject',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d9534f',
+      inputValidator: (value: string) => {
+        const trimmed = value?.trim() ?? '';
+
+        if (!trimmed) {
+          return 'Rejection reason is required';
+        }
+
+        if (trimmed.length > 500) {
+          return 'Rejection reason must be at most 500 characters';
+        }
+
+        return undefined;
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) {
+      return;
+    }
+
+    const reason = result.value.trim();
+
+    this.actionLoadingId = user.id;
     this.error = null;
 
-    this.api.reject(userId)
-      .pipe(finalize(() => {
-        this.actionLoadingId = null;
-        this.zone.run(() => this.cdr.detectChanges());
-      }))
+    this.api.reject(user.id, reason)
+      .pipe(
+        finalize(() => {
+          this.actionLoadingId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
       .subscribe({
         next: () => {
-          this.items = this.items.filter((u) => u.id !== userId);
+          this.items = this.items.filter((u) => u.id !== user.id);
 
           if (this.currentPage > this.totalPages) {
             this.currentPage = this.totalPages || 1;
           }
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Account rejected',
+            text: `${user.fullName} has been rejected successfully.`,
+            confirmButtonText: 'OK',
+            timer: 2400,
+            timerProgressBar: true
+          });
         },
-        error: (e) => {
+        error: (e: any) => {
           this.error = e?.error?.message ?? 'Reject failed';
         }
       });
@@ -139,9 +199,9 @@ export class ApprovalsComponent implements OnInit {
 
       const matchesSearch =
         !term ||
-        u.fullName?.toLowerCase().includes(term) ||
-        u.email?.toLowerCase().includes(term) ||
-        u.username?.toLowerCase().includes(term);
+        (u.fullName ?? '').toLowerCase().includes(term) ||
+        (u.email ?? '').toLowerCase().includes(term) ||
+        (u.username ?? '').toLowerCase().includes(term);
 
       const matchesRole =
         !this.selectedRole || effectiveRole === this.selectedRole;
@@ -186,7 +246,7 @@ export class ApprovalsComponent implements OnInit {
     return role ? role.replace('ROLE_', '').replaceAll('_', ' ') : '—';
   }
 
-  statusBadgeClass(status?: string): string {
+  statusBadgeClass(status?: string | null): string {
     switch (status) {
       case 'APPROVED':
         return 'bg-success-subtle text-success-emphasis';
@@ -198,5 +258,7 @@ export class ApprovalsComponent implements OnInit {
     }
   }
 
-  trackById = (_: number, u: PendingApprovalUser) => u.id;
+  trackById(_index: number, user: PendingApprovalUser): string {
+    return user.id;
+  }
 }
