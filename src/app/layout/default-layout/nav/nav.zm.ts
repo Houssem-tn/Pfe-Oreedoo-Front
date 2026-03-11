@@ -7,6 +7,11 @@ export const navZm: INavData[] = [
     iconComponent: { name: 'cilSpeedometer' }
   },
   {
+    name: 'Approvals',
+    url: '/zm/approvals',
+    iconComponent: { name: 'cilCheckCircle' }
+  },
+  {
     name: 'Validation Queue',
     url: '/zm/validations',
     iconComponent: { name: 'cilTask' }

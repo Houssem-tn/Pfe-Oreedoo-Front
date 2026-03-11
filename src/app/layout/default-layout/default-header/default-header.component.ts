@@ -1,6 +1,7 @@
 import { NgTemplateOutlet, DatePipe } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink, RouterLinkActive,Router } from '@angular/router';
+import { AuthStore } from '../../../core/auth/auth.store';
 
 
 import {
@@ -57,6 +58,8 @@ export class DefaultHeaderComponent extends HeaderComponent {
   readonly #colorModeService = inject(ColorModeService);
   readonly notificationStore = inject(NotificationStoreService);
 readonly router = inject(Router);
+
+readonly authStore = inject(AuthStore);
   readonly colorMode = this.#colorModeService.colorMode;
 
   readonly colorModes = [
@@ -84,15 +87,31 @@ readonly router = inject(Router);
   }
 
    handleNotificationClick(notification: NotificationItem, event?: Event): void {
-    event?.stopPropagation();
-    event?.preventDefault();
+  event?.stopPropagation();
+  event?.preventDefault();
 
-    this.markOneAsRead(notification, event);
+  this.markOneAsRead(notification, event);
 
-    if (notification.eventType === 'USER_REGISTERED') {
-      this.router.navigate(['/admin/approvals']);
-    }
+  if (notification.eventType !== 'USER_REGISTERED') {
+    return;
   }
+
+  const role = this.authStore.role();
+
+  if (role === 'ROLE_ADMIN') {
+    this.router.navigate(['/admin/approvals']);
+    return;
+  }
+
+  if (role === 'ROLE_ZM') {
+    this.router.navigate(['/zm/approvals']);
+    return;
+  }
+
+  if (role === 'ROLE_STT') {
+    this.router.navigate(['/stt/approvals']);
+  }
+}
 
 markOneAsRead(notification: NotificationItem, event?: Event): void {
   event?.stopPropagation();

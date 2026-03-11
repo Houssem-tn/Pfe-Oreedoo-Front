@@ -2,21 +2,28 @@ import { Role } from './roles.type';
 import { AccountStatus } from './account-status.enum';
 
 export interface LoginRequest {
-  email: string; // email OR username (align with backend)
+  email: string;
   password: string;
 }
 
 export interface RegisterRequest {
-  fullName: string;
-  username: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
   password: string;
   role: Role;
+  sttId?: string;
+}
+
+export interface PublicSttOption {
+  id: string;
+  fullName: string;
+  email: string;
 }
 
 export interface AuthResponse {
-  accessToken: string; // or "token" -> adjust mapping in AuthService
+  accessToken: string;
 }
 
 export interface AuthUser {
@@ -30,8 +37,8 @@ export interface AuthUser {
 export interface JwtClaims {
   sub: string;
   role?: Role;
-  roles?: Role[];          // support both
-  status?: AccountStatus;  // if you include it in JWT
+  roles?: Role[];
+  status?: AccountStatus;
   exp?: number;
   iat?: number;
 }

@@ -79,11 +79,11 @@ export class AuthService {
     if (!role) return null;
 
     return {
-      username: claims.sub,
-      role,
-      // support both status keys
-      status: (claims as any).status ?? (claims as any).accountStatus,
-    };
+  username: claims.sub,
+  email: claims.sub,
+  role,
+  status: (claims as any).status ?? (claims as any).accountStatus,
+};
   }
 
   private extractRole(claims: JwtClaims): Role | null {

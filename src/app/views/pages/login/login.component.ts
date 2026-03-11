@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import {
   ButtonDirective,
@@ -16,6 +16,7 @@ import {
 } from '@coreui/angular';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
@@ -27,6 +28,7 @@ import { AuthService } from '../../../core/auth/auth.service';
     ContainerComponent,
     RowComponent,
     ColComponent,
+    RouterLink,
     CardGroupComponent,
     CardComponent,
     CardBodyComponent,
@@ -42,9 +44,10 @@ import { AuthService } from '../../../core/auth/auth.service';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   form = {
-    identifier: '', // user types email here
+    identifier: '',
     password: '',
   };
 
@@ -56,29 +59,34 @@ export class LoginComponent {
 
     this.error = null;
     this.loading = true;
+    this.cdr.detectChanges();
 
-    // ✅ Backend expects "email", not "identifier"
     const payload = {
       email: this.form.identifier?.trim(),
       password: this.form.password,
     };
 
-    this.auth.login(payload).subscribe({
-      next: () => {
-        this.loading = false;
-        this.router.navigateByUrl('/dashboard');
-      },
-      error: (e) => {
-        this.loading = false;
+    this.auth.login(payload)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.router.navigateByUrl('/dashboard');
+        },
+        error: (e) => {
+          const msg =
+            e?.error?.message ??
+            e?.error?.error ??
+            (typeof e?.error === 'string' ? e.error : null) ??
+            'Login failed';
 
-        const msg =
-          e?.error?.message ??
-          e?.error?.error ??
-          (typeof e?.error === 'string' ? e.error : null) ??
-          'Login failed';
-
-        this.error = msg;
-      },
-    });
+          this.error = msg;
+          this.cdr.detectChanges();
+        },
+      });
   }
 }
