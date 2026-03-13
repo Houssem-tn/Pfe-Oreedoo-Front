@@ -45,14 +45,19 @@ export class NotificationStoreService {
       return;
     }
 
+    this._initialized.set(true);
     this._loading.set(true);
 
+    // bind realtime first
+    this.bindRealtime();
+
+    // connect websocket first so we do not miss fresh notifications
+    this.ws.connect();
+
+    // then load initial list from REST
     this.api.getMyRoleNotifications().subscribe({
       next: (notifications) => {
         this._items.set(this.sortByDateDesc(notifications));
-        this.bindRealtime();
-        this.ws.connect();
-        this._initialized.set(true);
         this._loading.set(false);
       },
       error: (error) => {
@@ -130,6 +135,8 @@ export class NotificationStoreService {
 
     this.wsSubscription = this.ws.notifications$.subscribe({
       next: (incoming) => {
+        console.log('[Notification Store] Realtime notification received:', incoming);
+
         this._items.update(items => {
           const exists = items.some(item => item.id === incoming.id);
 

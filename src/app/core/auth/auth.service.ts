@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { API_BASE_URL } from '../http/api.config';
 import { TokenService } from './token.service';
 import { AuthStore } from './auth.store';
+import { NotificationStoreService } from '../notifications/notification-store.service';
 import {
   AuthResponse,
   JwtClaims,
@@ -21,6 +22,7 @@ export class AuthService {
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly tokenService = inject(TokenService);
   private readonly authStore = inject(AuthStore);
+  private readonly notificationStore = inject(NotificationStoreService);
 
   initFromStorage(): void {
     const token = this.tokenService.get();
@@ -28,8 +30,13 @@ export class AuthService {
       this.logout();
       return;
     }
+
     const user = this.userFromToken(token);
     this.authStore.setUser(user);
+
+    if (user) {
+      this.notificationStore.init();
+    }
   }
 
   login(body: LoginRequest): Observable<void> {
@@ -39,8 +46,16 @@ export class AuthService {
         tap((res: any) => {
           const token = res?.accessToken ?? res?.token;
           if (!token) throw new Error('Token missing in login response');
+
           this.tokenService.set(token);
-          this.authStore.setUser(this.userFromToken(token));
+
+          const user = this.userFromToken(token);
+          this.authStore.setUser(user);
+
+          if (user) {
+            this.notificationStore.destroy();
+            this.notificationStore.init();
+          }
         }),
         map(() => void 0)
       );
@@ -51,6 +66,7 @@ export class AuthService {
   }
 
   logout(): void {
+    this.notificationStore.destroy();
     this.tokenService.clear();
     this.authStore.clear();
   }
@@ -66,11 +82,9 @@ export class AuthService {
   }
 
   isApproved(): boolean {
-    // Works only if status is in JWT, otherwise rely on backend.
     return this.authStore.status() === 'APPROVED';
   }
 
-  // ---------- helpers ----------
   private userFromToken(token: string): AuthUser | null {
     const claims = decodeJwt<JwtClaims>(token);
     if (!claims) return null;
@@ -79,22 +93,20 @@ export class AuthService {
     if (!role) return null;
 
     return {
-  username: claims.sub,
-  email: claims.sub,
-  role,
-  status: (claims as any).status ?? (claims as any).accountStatus,
-};
+      username: claims.sub,
+      email: claims.sub,
+      role,
+      status: (claims as any).status ?? (claims as any).accountStatus,
+    };
   }
 
   private extractRole(claims: JwtClaims): Role | null {
-    // support different backends
     const direct = (claims as any).role as Role | undefined;
     if (direct) return direct;
 
     const rolesArray = (claims as any).roles as Role[] | undefined;
     if (Array.isArray(rolesArray) && rolesArray.length) return rolesArray[0];
 
-    // common Spring Security style: authorities: ["ROLE_ADMIN"]
     const authorities = (claims as any).authorities as string[] | undefined;
     if (Array.isArray(authorities) && authorities.length) return authorities[0] as Role;
 

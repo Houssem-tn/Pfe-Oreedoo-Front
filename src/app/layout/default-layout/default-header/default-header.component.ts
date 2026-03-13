@@ -1,8 +1,7 @@
 import { NgTemplateOutlet, DatePipe } from '@angular/common';
-import { Component, computed, inject, input } from '@angular/core';
-import { RouterLink, RouterLinkActive,Router } from '@angular/router';
+import { Component, computed, inject, input, OnInit, OnDestroy } from '@angular/core';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthStore } from '../../../core/auth/auth.store';
-
 
 import {
   AvatarComponent,
@@ -54,12 +53,12 @@ import { NotificationItem } from '../../../core/notifications/models/notificatio
     DatePipe
   ]
 })
-export class DefaultHeaderComponent extends HeaderComponent {
+export class DefaultHeaderComponent extends HeaderComponent implements OnInit, OnDestroy {
   readonly #colorModeService = inject(ColorModeService);
   readonly notificationStore = inject(NotificationStoreService);
-readonly router = inject(Router);
+  readonly router = inject(Router);
+  readonly authStore = inject(AuthStore);
 
-readonly authStore = inject(AuthStore);
   readonly colorMode = this.#colorModeService.colorMode;
 
   readonly colorModes = [
@@ -80,47 +79,55 @@ readonly authStore = inject(AuthStore);
     super();
   }
 
+  ngOnInit(): void {
+    this.notificationStore.init();
+  }
+
+  ngOnDestroy(): void {
+    this.notificationStore.destroy();
+  }
+
   sidebarId = input('sidebar1');
 
   trackByNotificationId(_: number, item: NotificationItem): string {
     return item.id;
   }
 
-   handleNotificationClick(notification: NotificationItem, event?: Event): void {
-  event?.stopPropagation();
-  event?.preventDefault();
+  handleNotificationClick(notification: NotificationItem, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
 
-  this.markOneAsRead(notification, event);
+    this.markOneAsRead(notification, event);
 
-  if (notification.eventType !== 'USER_REGISTERED') {
-    return;
+    if (notification.eventType !== 'USER_REGISTERED') {
+      return;
+    }
+
+    const role = this.authStore.role();
+
+    if (role === 'ROLE_ADMIN') {
+      this.router.navigate(['/admin/approvals']);
+      return;
+    }
+
+    if (role === 'ROLE_ZM') {
+      this.router.navigate(['/zm/approvals']);
+      return;
+    }
+
+    if (role === 'ROLE_STT') {
+      this.router.navigate(['/stt/approvals']);
+    }
   }
 
-  const role = this.authStore.role();
+  markOneAsRead(notification: NotificationItem, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
 
-  if (role === 'ROLE_ADMIN') {
-    this.router.navigate(['/admin/approvals']);
-    return;
+    if (!notification.read) {
+      this.notificationStore.markAsRead(notification.id);
+    }
   }
-
-  if (role === 'ROLE_ZM') {
-    this.router.navigate(['/zm/approvals']);
-    return;
-  }
-
-  if (role === 'ROLE_STT') {
-    this.router.navigate(['/stt/approvals']);
-  }
-}
-
-markOneAsRead(notification: NotificationItem, event?: Event): void {
-  event?.stopPropagation();
-  event?.preventDefault();
-
-  if (!notification.read) {
-    this.notificationStore.markAsRead(notification.id);
-  }
-}
 
   markAllAsRead(event?: Event): void {
     event?.stopPropagation();
@@ -129,42 +136,42 @@ markOneAsRead(notification: NotificationItem, event?: Event): void {
   }
 
   getNotificationIcon(eventType?: string): string {
-  switch (eventType) {
-    case 'USER_REGISTERED':
-      return 'cilUserFollow';
-    case 'USER_APPROVED':
-      return 'cilCheckCircle';
-    case 'USER_REJECTED':
-      return 'cilXCircle';
-    case 'INTERVENTION_CREATED':
-      return 'cilSettings';
-    case 'INTERVENTION_ASSIGNED':
-      return 'cilTask';
-    case 'STOCK_ALERT':
-      return 'cilWarning';
-    default:
-      return 'cilBell';
+    switch (eventType) {
+      case 'USER_REGISTERED':
+        return 'cilUserFollow';
+      case 'USER_APPROVED':
+        return 'cilCheckCircle';
+      case 'USER_REJECTED':
+        return 'cilXCircle';
+      case 'INTERVENTION_CREATED':
+        return 'cilSettings';
+      case 'INTERVENTION_ASSIGNED':
+        return 'cilTask';
+      case 'STOCK_ALERT':
+        return 'cilWarning';
+      default:
+        return 'cilBell';
+    }
   }
-}
 
-getNotificationBadgeColor(eventType?: string): string {
-  switch (eventType) {
-    case 'USER_REGISTERED':
-      return 'info';
-    case 'USER_APPROVED':
-      return 'success';
-    case 'USER_REJECTED':
-      return 'danger';
-    case 'INTERVENTION_CREATED':
-      return 'primary';
-    case 'INTERVENTION_ASSIGNED':
-      return 'warning';
-    case 'STOCK_ALERT':
-      return 'danger';
-    default:
-      return 'secondary';
+  getNotificationBadgeColor(eventType?: string): string {
+    switch (eventType) {
+      case 'USER_REGISTERED':
+        return 'info';
+      case 'USER_APPROVED':
+        return 'success';
+      case 'USER_REJECTED':
+        return 'danger';
+      case 'INTERVENTION_CREATED':
+        return 'primary';
+      case 'INTERVENTION_ASSIGNED':
+        return 'warning';
+      case 'STOCK_ALERT':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
   }
-}
 
   public newMessages = [
     {

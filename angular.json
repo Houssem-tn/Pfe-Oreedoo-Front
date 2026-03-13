@@ -29,6 +29,9 @@
             "polyfills": [
               "@angular/localize/init"
             ],
+            "define": {
+              "global": "globalThis"
+            },
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "preserveSymlinks": true,
@@ -73,6 +76,14 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "prebundle": {
+              "exclude": [
+                "@stomp/stompjs",
+                "sockjs-client"
+              ]
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "coreui-free-angular-admin-template:build:production"

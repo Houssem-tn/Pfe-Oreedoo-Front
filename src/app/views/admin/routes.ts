@@ -2,14 +2,12 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
 
-  // ✅ Admin dashboard (optional)
   {
     path: 'dashboard',
     redirectTo: '/dashboard',
     pathMatch: 'full'
   },
 
-  // ✅ User management
   {
     path: 'users',
     loadComponent: () =>
@@ -26,11 +24,24 @@ export const routes: Routes = [
       import('../pages/register/register.component').then(m => m.RegisterComponent)
   },
 
-  // ✅ NEW: Approval management page
   {
     path: 'approvals',
     loadComponent: () =>
       import('./approvals/approvals.component').then(m => m.ApprovalsComponent)
+  },
+
+  // Audit home
+  {
+    path: 'audits',
+    loadComponent: () =>
+      import('./audits/audits.component').then(m => m.AuditsComponent)
+  },
+
+  // Users auditing
+  {
+    path: 'audits/users',
+    loadComponent: () =>
+      import('./audits/users-audit/users-audit.component').then(m => m.UsersAuditComponent)
   },
 
   { path: '', redirectTo: 'users', pathMatch: 'full' }

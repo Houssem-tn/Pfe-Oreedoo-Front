@@ -1,0 +1,273 @@
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+    <div>
+      <h5 class="mb-0 fw-semibold">Users Auditing</h5>
+      <small class="text-body-secondary">
+        Follow approvals, rejections, validators, and rejection reasons
+      </small>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary btn-sm" [routerLink]="['/admin/audits']">
+        <svg cIcon name="cilArrowLeft" class="me-1"></svg>
+        Audit Center
+      </a>
+
+      <button
+        class="btn btn-outline-secondary btn-sm"
+        (click)="loadAuditData()"
+        [disabled]="loading"
+      >
+        <svg cIcon name="cilReload" class="me-1"></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div *ngIf="loading" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+      Loading users audit...
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger mb-0">
+      {{ error }}
+    </div>
+
+    <ng-container *ngIf="!loading && !error">
+      <div class="row g-4 mb-4">
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <div class="text-body-secondary small text-uppercase fw-semibold">Total Users</div>
+                  <div class="fs-3 fw-bold">{{ totalUsers }}</div>
+                </div>
+                <div class="rounded-circle bg-primary-subtle text-primary p-3 d-flex align-items-center justify-content-center">
+                  <svg cIcon name="cilPeople" width="22"></svg>
+                </div>
+              </div>
+              <small class="text-body-secondary">All registered users</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <div class="text-body-secondary small text-uppercase fw-semibold">Pending</div>
+                  <div class="fs-3 fw-bold">{{ pendingUsersCount }}</div>
+                </div>
+                <div class="rounded-circle bg-warning-subtle text-warning p-3 d-flex align-items-center justify-content-center">
+                  <svg cIcon name="cilClock" width="22"></svg>
+                </div>
+              </div>
+              <small class="text-body-secondary">Waiting for validation</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <div class="text-body-secondary small text-uppercase fw-semibold">Approved</div>
+                  <div class="fs-3 fw-bold">{{ approvedUsersCount }}</div>
+                </div>
+                <div class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center">
+                  <svg cIcon name="cilCheckCircle" width="22"></svg>
+                </div>
+              </div>
+              <small class="text-body-secondary">Approval rate: {{ approvalRate }}%</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <div class="text-body-secondary small text-uppercase fw-semibold">Rejected</div>
+                  <div class="fs-3 fw-bold">{{ rejectedUsersCount }}</div>
+                </div>
+                <div class="rounded-circle bg-danger-subtle text-danger p-3 d-flex align-items-center justify-content-center">
+                  <svg cIcon name="cilXCircle" width="22"></svg>
+                </div>
+              </div>
+              <small class="text-body-secondary">Rejection rate: {{ rejectionRate }}%</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">
+            <svg cIcon name="cilSearch" class="me-1"></svg>
+            Search
+          </label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Search by full name or email"
+            [(ngModel)]="searchTerm"
+          />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">
+            <svg cIcon name="cilFilter" class="me-1"></svg>
+            Status
+          </label>
+          <select class="form-select" [(ngModel)]="selectedStatus">
+            <option *ngFor="let status of statusOptions" [value]="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">
+            <svg cIcon name="cilReload" class="me-1"></svg>
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-xl-7">
+          <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3">
+              <h6 class="mb-0 fw-semibold">Recent Validation Activity</h6>
+              <small class="text-body-secondary">
+                Click a rejected user to inspect only that rejection on the right
+              </small>
+            </div>
+
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>User</th>
+                      <th>Requested Role</th>
+                      <th>Status</th>
+                      <th>By</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="let u of recentValidationActivity; trackBy: trackById"
+                      (click)="selectAuditUser(u)"
+                      style="cursor: pointer;"
+                      [class.table-active]="isSelectedRejectedUser(u)"
+                    >
+                      <td>
+                        <div class="fw-semibold">{{ u.fullName }}</div>
+                        <small class="text-body-secondary">{{ u.email }}</small>
+                      </td>
+
+                      <td>
+                        <span class="badge rounded-pill bg-info-subtle text-info-emphasis px-3 py-2">
+                          {{ formatRole(u.roleRequested || u.role) }}
+                        </span>
+                      </td>
+
+                      <td>
+                        <span class="badge rounded-pill px-3 py-2" [ngClass]="actionBadgeClass(u.status)">
+                          {{ auditActionLabel(u) }}
+                        </span>
+                      </td>
+
+                      <td>{{ u.validatedBy || '—' }}</td>
+
+                      <td>
+                        {{ u.validatedAt ? (u.validatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="recentValidationActivity.length === 0">
+                      <td colspan="5" class="text-center py-5">
+                        <div class="text-body-secondary">No matching validation activity found</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-5">
+          <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0 fw-semibold">
+                  {{ selectedRejectedUser ? 'Selected Rejected User' : 'Rejected Users with Reason' }}
+                </h6>
+                <small class="text-body-secondary">
+                  {{ selectedRejectedUser ? 'Details for the clicked rejected registration' : 'Filtered rejected registrations' }}
+                </small>
+              </div>
+
+              <button
+                *ngIf="selectedRejectedUser"
+                class="btn btn-sm btn-outline-secondary"
+                (click)="clearRejectedSelection()"
+                type="button"
+              >
+                <svg cIcon name="cilX" class="me-1"></svg>
+                Clear
+              </button>
+            </div>
+
+            <div class="card-body">
+              <div *ngIf="displayedRejectedUsers.length === 0" class="text-center py-5">
+                <div class="text-body-secondary">No rejected users found</div>
+              </div>
+
+              <div *ngFor="let u of displayedRejectedUsers; trackBy: trackById" class="border rounded-3 p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <div class="fw-semibold">{{ u.fullName }}</div>
+                    <small class="text-body-secondary">{{ u.email }}</small>
+                  </div>
+
+                  <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis px-3 py-2">
+                    Rejected
+                  </span>
+                </div>
+
+                <div class="mb-2">
+                  <small class="text-body-secondary d-block">Requested role</small>
+                  <span>{{ formatRole(u.roleRequested || u.role) }}</span>
+                </div>
+
+                <div class="mb-2">
+                  <small class="text-body-secondary d-block">Rejected by</small>
+                  <span>{{ u.validatedBy || '—' }}</span>
+                </div>
+
+                <div class="mb-2">
+                  <small class="text-body-secondary d-block">Rejected at</small>
+                  <span>{{ u.validatedAt ? (u.validatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}</span>
+                </div>
+
+                <div>
+                  <small class="text-body-secondary d-block">Reason</small>
+                  <span>{{ u.rejectionReason || 'No reason provided' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>
