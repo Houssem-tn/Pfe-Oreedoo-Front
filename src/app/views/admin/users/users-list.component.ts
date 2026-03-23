@@ -11,7 +11,8 @@ import { UserService } from '../../../core/users/user.service';
 @Component({
   standalone: true,
   imports: [CommonModule, RouterLink, DatePipe, FormsModule, IconDirective],
-  templateUrl: './users-list.component.html'
+  templateUrl: './users-list.component.html',
+  styleUrl: './users-list.component.scss'
 })
 export class UsersListComponent implements OnInit {
   private readonly usersSvc = inject(UserService);
@@ -52,6 +53,25 @@ export class UsersListComponent implements OnInit {
     { value: 'APPROVED', label: 'Approved' },
     { value: 'REJECTED', label: 'Rejected' }
   ];
+
+  expandedAssignRowId: string | null = null;
+
+openAssignCard(user: any): void {
+  this.expandedAssignRowId = user.id;
+  this.selectedZmBySttId[user.id] = user.assignedZmId || '';
+}
+
+closeAssignCard(): void {
+  this.expandedAssignRowId = null;
+}
+
+isAssignCardOpen(userId: string): boolean {
+  return this.expandedAssignRowId === userId;
+}
+
+saveAssignFromCard(user: any): void {
+  this.assignZm(user);
+}
 
   ngOnInit(): void {
     this.refresh();
@@ -141,6 +161,7 @@ export class UsersListComponent implements OnInit {
           this.users = this.users.map(u => u.id === updated.id ? updated : u);
           this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
           this.assignSuccess = `ZM assigned successfully to ${updated.fullName}.`;
+          this.expandedAssignRowId = null;
         },
         error: (err) => {
           console.error('Error assigning ZM:', err);

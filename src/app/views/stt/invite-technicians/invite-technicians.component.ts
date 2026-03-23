@@ -50,7 +50,7 @@ export class InviteTechniciansComponent implements OnInit {
         },
         error: (err) => {
           console.error('Failed to load invitations:', err);
-          this.errorMessage = err?.error?.message || 'Failed to load invitations';
+          this.errorMessage = this.extractErrorMessage(err, 'Failed to load invitations');
           this.zone.run(() => this.cdr.detectChanges());
         }
       });
@@ -67,7 +67,11 @@ export class InviteTechniciansComponent implements OnInit {
     }
 
     const email = this.form.value.email?.trim() ?? '';
-    if (!email) return;
+    if (!email) {
+      this.errorMessage = 'Please enter a valid email.';
+      this.zone.run(() => this.cdr.detectChanges());
+      return;
+    }
 
     this.submitting = true;
 
@@ -80,7 +84,10 @@ export class InviteTechniciansComponent implements OnInit {
       )
       .subscribe({
         next: (message) => {
-          this.successMessage = message || 'Invitation sent successfully';
+          this.successMessage = typeof message === 'string'
+            ? message
+            : 'Invitation sent successfully';
+
           this.form.reset();
 
           this.invitationService.getMySttInvitations()
@@ -96,14 +103,17 @@ export class InviteTechniciansComponent implements OnInit {
               },
               error: (err) => {
                 console.error('Failed to reload invitations after send:', err);
-                this.errorMessage = err?.error?.message || 'Invitation sent, but failed to refresh list';
+                this.errorMessage = this.extractErrorMessage(
+                  err,
+                  'Invitation sent, but failed to refresh list'
+                );
                 this.zone.run(() => this.cdr.detectChanges());
               }
             });
         },
         error: (err) => {
           console.error('Failed to send invitation:', err);
-          this.errorMessage = err?.error?.message || err?.error || 'Failed to send invitation';
+          this.errorMessage = this.extractErrorMessage(err, 'Failed to send invitation');
           this.zone.run(() => this.cdr.detectChanges());
         }
       });
@@ -128,5 +138,18 @@ export class InviteTechniciansComponent implements OnInit {
 
   protected trackByInvitation(index: number, item: TechInvitation): string {
     return item.id ?? item.email ?? index.toString();
+  }
+
+  private extractErrorMessage(err: any, fallback: string): string {
+    if (typeof err?.error === 'string') {
+      try {
+        const parsed = JSON.parse(err.error);
+        return parsed?.message || err.error || fallback;
+      } catch {
+        return err.error || fallback;
+      }
+    }
+
+    return err?.error?.message || err?.message || fallback;
   }
 }
