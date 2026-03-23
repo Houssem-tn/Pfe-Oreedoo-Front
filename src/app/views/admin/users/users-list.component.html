@@ -21,8 +21,11 @@
       {{ error }}
     </div>
 
+    <div *ngIf="assignSuccess" class="alert alert-success">
+      {{ assignSuccess }}
+    </div>
+
     <ng-container *ngIf="!loading && !error">
-      <!-- Filters -->
       <div class="row g-3 mb-4">
         <div class="col-md-4">
           <label class="form-label fw-semibold">
@@ -78,7 +81,6 @@
         </div>
       </div>
 
-      <!-- Summary -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <small class="text-body-secondary">
           Showing {{ paginatedUsers.length }} of {{ filteredUsers.length }} filtered users
@@ -94,7 +96,6 @@
         </div>
       </div>
 
-      <!-- Table -->
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 users-table">
           <thead class="table-light">
@@ -104,8 +105,9 @@
               <th>Role</th>
               <th>Status</th>
               <th>Enabled</th>
+              <th>Assigned ZM</th>
               <th>Created at</th>
-              <th class="text-end" style="width: 180px;">Actions</th>
+              <th class="text-end" style="width: 260px;">Actions</th>
             </tr>
           </thead>
 
@@ -145,6 +147,37 @@
               </td>
 
               <td>
+                <ng-container *ngIf="u.role === 'ROLE_STT'; else noAssignment">
+                  <div class="small fw-semibold mb-1">
+                    {{ getFilteredAssignedZmName(u) }}
+                  </div>
+                  <div *ngIf="canAssignZm(u)" class="d-flex gap-2">
+                    <select
+                      class="form-select form-select-sm"
+                      [(ngModel)]="selectedZmBySttId[u.id]"
+                    >
+                      <option value="">Select ZM</option>
+                      <option *ngFor="let zm of approvedZmUsers" [value]="zm.id">
+                        {{ zm.fullName }}
+                      </option>
+                    </select>
+
+                    <button
+  class="btn btn-outline-primary btn-sm"
+  (click)="assignZm(u)"
+  [disabled]="isAssigning(u.id)"
+>
+  {{ isAssigning(u.id) ? 'Saving...' : (u.assignedZmId ? 'Change' : 'Save') }}
+</button>
+                  </div>
+                </ng-container>
+
+                <ng-template #noAssignment>
+                  <span class="text-body-secondary">—</span>
+                </ng-template>
+              </td>
+
+              <td>
                 <span class="text-body-secondary">
                   {{ u.createdAt ? (u.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}
                 </span>
@@ -171,7 +204,7 @@
             </tr>
 
             <tr *ngIf="paginatedUsers.length === 0">
-              <td colspan="7" class="text-center py-5">
+              <td colspan="8" class="text-center py-5">
                 <div class="d-flex flex-column align-items-center">
                   <div class="mb-2 fs-5 text-body-secondary">No matching users found</div>
                   <small class="text-body-secondary">
@@ -184,7 +217,6 @@
         </table>
       </div>
 
-      <!-- Pagination -->
       <div class="d-flex justify-content-between align-items-center mt-4" *ngIf="filteredUsers.length > 0">
         <small class="text-body-secondary">
           Page {{ currentPage }} / {{ totalPages }}

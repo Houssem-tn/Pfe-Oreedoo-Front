@@ -15,6 +15,8 @@ import { Role } from './models/roles.type';
 import { decodeJwt, isJwtExpired } from './jwt.util';
 import { map, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import { TechInvitationValidationResponse } from './models/tech-invitation-validation-response.model';
+import { TechRegisterRequest } from './models/tech-register-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -63,6 +65,18 @@ export class AuthService {
 
   register(body: RegisterRequest): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/api/v1/auth/register`, body);
+  }
+
+  validateTechInvitation(token: string): Observable<TechInvitationValidationResponse> {
+    return this.http.get<TechInvitationValidationResponse>(
+      `${this.baseUrl}/api/v1/tech-invitations/validate?token=${encodeURIComponent(token)}`
+    );
+  }
+
+  registerTechInvitation(body: TechRegisterRequest): Observable<void> {
+    return this.http
+      .post<any>(`${this.baseUrl}/api/v1/auth/register-tech-by-invitation`, body)
+      .pipe(map(() => void 0));
   }
 
   logout(): void {

@@ -21,7 +21,9 @@ export class UsersListComponent implements OnInit {
   users: AppUser[] = [];
   loading = false;
   deletingId: string | null = null;
+  assigningSttId: string | null = null;
   error: string | null = null;
+  assignSuccess: string | null = null;
 
   // filters
   searchTerm = '';
@@ -32,11 +34,14 @@ export class UsersListComponent implements OnInit {
   currentPage = 1;
   pageSize = 5;
 
+  // assign ZM state
+  selectedZmBySttId: Record<string, string> = {};
+
   readonly roleOptions = [
     { value: '', label: 'All roles' },
     { value: 'ROLE_ADMIN', label: 'Admin' },
     { value: 'ROLE_STT', label: 'STT' },
-    { value: 'ROLE_TECH', label: 'Technicien STT' },
+    { value: 'ROLE_TECH', label: 'Technician STT' },
     { value: 'ROLE_CRM_BOUTIQUE', label: 'CRM Boutique' },
     { value: 'ROLE_ZM', label: 'ZM' }
   ];
@@ -57,6 +62,7 @@ export class UsersListComponent implements OnInit {
 
     this.loading = true;
     this.error = null;
+    this.assignSuccess = null;
 
     this.usersSvc.getAll()
       .pipe(
@@ -69,6 +75,7 @@ export class UsersListComponent implements OnInit {
         next: (data) => {
           this.users = data ?? [];
           this.currentPage = 1;
+          this.initializeZmSelections();
         },
         error: (err) => {
           console.error('Error loading users:', err);
@@ -82,6 +89,7 @@ export class UsersListComponent implements OnInit {
 
     this.deletingId = id;
     this.error = null;
+    this.assignSuccess = null;
 
     this.usersSvc.delete(id)
       .pipe(
@@ -105,12 +113,80 @@ export class UsersListComponent implements OnInit {
       });
   }
 
+  assignZm(stt: AppUser): void {
+    const zmId = this.selectedZmBySttId[stt.id];
+
+    if (!zmId) {
+      this.error = 'Please select a ZM before saving.';
+      this.assignSuccess = null;
+      return;
+    }
+
+    this.assigningSttId = stt.id;
+    this.error = null;
+    this.assignSuccess = null;
+
+    this.usersSvc.assignSttToZm({
+      sttId: stt.id,
+      zmId
+    })
+      .pipe(
+        finalize(() => {
+          this.assigningSttId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.users = this.users.map(u => u.id === updated.id ? updated : u);
+          this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
+          this.assignSuccess = `ZM assigned successfully to ${updated.fullName}.`;
+        },
+        error: (err) => {
+          console.error('Error assigning ZM:', err);
+          this.error = err?.error?.message ?? 'Failed to assign ZM';
+        }
+      });
+  }
+
+  initializeZmSelections(): void {
+    for (const u of this.users) {
+      if (u.id) {
+        this.selectedZmBySttId[u.id] = u.assignedZmId ?? '';
+      }
+    }
+  }
+
+  get approvedZmUsers(): AppUser[] {
+    return this.users
+      .filter(u => u.role === 'ROLE_ZM' && u.status === 'APPROVED' && u.enabled)
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }
+
+ canAssignZm(u: AppUser): boolean {
+  return u.role === 'ROLE_STT' && u.status === 'APPROVED' && !!u.enabled;
+}
+
+hasAssignedZm(u: AppUser): boolean {
+  return !!u.assignedZmId;
+}
+
+  isAssigning(sttId: string): boolean {
+    return this.assigningSttId === sttId;
+  }
+
   isDeleting(id: string): boolean {
     return this.deletingId === id;
   }
 
   formatRole(role?: string | null): string {
     return role ? role.replace('ROLE_', '').replaceAll('_', ' ') : '—';
+  }
+
+  getFilteredAssignedZmName(u: AppUser): string {
+    if (!u.assignedZmId) return '—';
+    const zm = this.users.find(user => user.id === u.assignedZmId);
+    return zm?.fullName || u.assignedZmEmail || 'Assigned';
   }
 
   get filteredUsers(): AppUser[] {
@@ -163,7 +239,7 @@ export class UsersListComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  statusBadgeClass(status?: string): string {
+  statusBadgeClass(status?: string | null): string {
     switch (status) {
       case 'APPROVED':
         return 'bg-success-subtle text-success-emphasis';
@@ -175,7 +251,7 @@ export class UsersListComponent implements OnInit {
     }
   }
 
-  enabledBadgeClass(enabled?: boolean): string {
+  enabledBadgeClass(enabled?: boolean | null): string {
     return enabled
       ? 'bg-success-subtle text-success-emphasis'
       : 'bg-secondary-subtle text-secondary-emphasis';

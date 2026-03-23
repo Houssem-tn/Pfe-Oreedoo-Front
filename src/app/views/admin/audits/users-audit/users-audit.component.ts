@@ -8,6 +8,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { AppUser } from '../../../../core/users/user.model';
 import { UserService } from '../../../../core/users/user.service';
 
+
 @Component({
   standalone: true,
   selector: 'app-users-audit',
@@ -32,7 +33,7 @@ export class UsersAuditComponent implements OnInit {
     { value: '', label: 'All statuses' },
     { value: 'APPROVED', label: 'Approved' },
     { value: 'REJECTED', label: 'Rejected' },
-    { value: 'PENDING', label: 'Pending' }
+    
   ];
 
   ngOnInit(): void {
@@ -156,7 +157,7 @@ export class UsersAuditComponent implements OnInit {
     return 'Pending';
   }
 
-  actionBadgeClass(status?: string): string {
+  actionBadgeClass(status?: string | null): string {
     switch (status) {
       case 'APPROVED':
         return 'bg-success-subtle text-success-emphasis';
@@ -181,11 +182,17 @@ export class UsersAuditComponent implements OnInit {
     this.selectedRejectedUser = stillVisible ?? null;
   }
 
-  private toTime(value?: string): number {
+  private toTime(value?: string | null): number {
     if (!value) return 0;
     const time = new Date(value).getTime();
     return Number.isNaN(time) ? 0 : time;
   }
 
   trackById = (_: number, u: AppUser) => u.id;
+
+  loginBadgeClass(user: AppUser): string {
+  return user.lastLoginAt
+    ? 'bg-success-subtle text-success-emphasis'
+    : 'bg-secondary-subtle text-secondary-emphasis';
+}
 }

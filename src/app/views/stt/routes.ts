@@ -16,5 +16,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./my-technicians/my-technicians.component').then(m => m.MyTechniciansComponent)
   },
+  {
+    path: 'invite-technicians',
+    loadComponent: () =>
+      import('./invite-technicians/invite-technicians.component').then(m => m.InviteTechniciansComponent)
+  },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
 ];

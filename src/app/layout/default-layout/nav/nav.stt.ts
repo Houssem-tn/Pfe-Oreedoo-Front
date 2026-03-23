@@ -7,6 +7,11 @@ export const navStt: INavData[] = [
     iconComponent: { name: 'cilSpeedometer' }
   },
   {
+    name: 'Invite Technicians',
+    url: '/stt/invite-technicians',
+    iconComponent: { name: 'cilEnvelopeOpen' }
+  },
+  {
     name: 'Approvals',
     url: '/stt/approvals',
     iconComponent: { name: 'cilCheckCircle' }

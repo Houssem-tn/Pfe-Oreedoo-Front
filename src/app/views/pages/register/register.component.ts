@@ -1,8 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 
 import { IconDirective } from '@coreui/icons-angular';
 import {
@@ -20,13 +19,12 @@ import {
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { Role } from '../../../core/auth/models/roles.type';
-import { PublicSttOption } from '../../../core/auth/models/auth.models';
-import { API_BASE_URL } from '../../../core/http/api.config';
 
 @Component({
   selector: 'app-register',
   standalone: true,
   templateUrl: './register.component.html',
+  styleUrls: ['./register.component.scss'],
   imports: [
     CommonModule,
     FormsModule,
@@ -43,47 +41,71 @@ import { API_BASE_URL } from '../../../core/http/api.config';
     ButtonDirective
   ]
 })
-export class RegisterComponent implements OnInit {
+export class RegisterComponent {
   private readonly auth = inject(AuthService);
-  private readonly http = inject(HttpClient);
-  private readonly apiBaseUrl = inject(API_BASE_URL);
   readonly router = inject(Router);
 
   roles: Role[] = [
     'ROLE_STT',
-    'ROLE_TECH',
     'ROLE_ZM'
   ];
 
-  sttOptions: PublicSttOption[] = [];
-  sttLoading = false;
-
-  form = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  phone: '',
-  role: 'ROLE_TECH' as Role,
-  sttId: '',
-  password: '',
-  confirmPassword: ''
-};
+  form: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    role: Role;
+    password: string;
+    confirmPassword: string;
+  } = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: 'ROLE_STT',
+    password: '',
+    confirmPassword: ''
+  };
 
   error: string | null = null;
   success: string | null = null;
   loading = false;
 
-  ngOnInit(): void {
-    this.loadPublicStts();
+  selectRole(role: Role): void {
+    this.form.role = role;
   }
 
-  get requiresSttSelection(): boolean {
-    return this.form.role === 'ROLE_TECH';
+  formatRoleLabel(role: Role): string {
+    switch (role) {
+      case 'ROLE_ZM':
+        return 'ZM';
+      case 'ROLE_STT':
+        return 'STT';
+      default:
+        return role;
+    }
   }
 
-  onRoleChange(): void {
-    if (!this.requiresSttSelection) {
-      this.form.sttId = '';
+  getRoleDescription(role: Role): string {
+    switch (role) {
+      case 'ROLE_ZM':
+        return 'Zone manager access';
+      case 'ROLE_STT':
+        return 'STT supervisor access';
+      default:
+        return 'Platform access';
+    }
+  }
+
+  getRoleIcon(role: Role): string {
+    switch (role) {
+      case 'ROLE_ZM':
+        return 'cilUser';
+      case 'ROLE_STT':
+        return 'cilPeople';
+      default:
+        return 'cilBadge';
     }
   }
 
@@ -92,14 +114,14 @@ export class RegisterComponent implements OnInit {
     this.success = null;
 
     if (!this.form.firstName.trim()) {
-  this.error = 'First name is required';
-  return;
-}
+      this.error = 'First name is required';
+      return;
+    }
 
-if (!this.form.lastName.trim()) {
-  this.error = 'Last name is required';
-  return;
-}
+    if (!this.form.lastName.trim()) {
+      this.error = 'Last name is required';
+      return;
+    }
 
     if (!this.form.email.trim()) {
       this.error = 'Email is required';
@@ -111,58 +133,38 @@ if (!this.form.lastName.trim()) {
       return;
     }
 
-    if (this.form.password !== this.form.confirmPassword) {
-      this.error = 'Passwords do not match';
+    if (this.form.password.length < 6) {
+      this.error = 'Password must contain at least 6 characters';
       return;
     }
 
-    if (this.requiresSttSelection && !this.form.sttId) {
-      this.error = 'Please choose an STT';
+    if (this.form.password !== this.form.confirmPassword) {
+      this.error = 'Passwords do not match';
       return;
     }
 
     this.loading = true;
 
     this.auth.register({
-  firstName: this.form.firstName.trim(),
-  lastName: this.form.lastName.trim(),
-  email: this.form.email.trim().toLowerCase(),
-  phone: this.form.phone?.trim() || undefined,
-  password: this.form.password,
-  role: this.form.role,
-  sttId: this.requiresSttSelection ? this.form.sttId : undefined
-}).subscribe({
+      firstName: this.form.firstName.trim(),
+      lastName: this.form.lastName.trim(),
+      email: this.form.email.trim().toLowerCase(),
+      phone: this.form.phone?.trim() || undefined,
+      password: this.form.password,
+      role: this.form.role,
+      sttId: undefined
+    }).subscribe({
       next: () => {
         this.loading = false;
-        this.success = this.requiresSttSelection
-          ? 'Account created. Waiting for the selected STT approval.'
-          : this.form.role === 'ROLE_STT'
-            ? 'Account created. Waiting for ZM approval.'
-            : 'Account created. Waiting for admin approval.';
+        this.success = this.form.role === 'ROLE_STT'
+          ? 'Account created. Waiting for ZM approval.'
+          : 'Account created. Waiting for admin approval.';
 
         setTimeout(() => this.router.navigateByUrl('/login'), 1000);
       },
       error: (err) => {
         this.loading = false;
         this.error = err?.error?.message ?? 'Register failed';
-      }
-    });
-  }
-
-  private loadPublicStts(): void {
-    this.sttLoading = true;
-
-    this.http.get<PublicSttOption[]>(
-      `${this.apiBaseUrl}/api/v1/public/stts`
-    ).subscribe({
-      next: (items) => {
-        this.sttOptions = items ?? [];
-        this.sttLoading = false;
-      },
-      error: (error) => {
-        console.error('[Register] Failed to load public STTs', error);
-        this.sttOptions = [];
-        this.sttLoading = false;
       }
     });
   }

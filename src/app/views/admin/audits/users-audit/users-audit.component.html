@@ -153,50 +153,51 @@
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                   <thead class="table-light">
-                    <tr>
-                      <th>User</th>
-                      <th>Requested Role</th>
-                      <th>Status</th>
-                      <th>By</th>
-                      <th>Date</th>
-                    </tr>
+                   <tr>
+                  <th>User</th>
+                  <th>Requested Role</th>
+                  <th>Status</th>
+                  <th>By</th>
+                  <th>Date</th>
+                  <th>Last Login</th>
+                  </tr>
                   </thead>
                   <tbody>
                     <tr
-                      *ngFor="let u of recentValidationActivity; trackBy: trackById"
-                      (click)="selectAuditUser(u)"
-                      style="cursor: pointer;"
-                      [class.table-active]="isSelectedRejectedUser(u)"
-                    >
-                      <td>
-                        <div class="fw-semibold">{{ u.fullName }}</div>
-                        <small class="text-body-secondary">{{ u.email }}</small>
-                      </td>
+  *ngFor="let u of recentValidationActivity; trackBy: trackById"
+  (click)="selectAuditUser(u)"
+  style="cursor: pointer;"
+  [class.table-active]="isSelectedRejectedUser(u)"
+>
+  <td>
+    <div class="fw-semibold">{{ u.fullName }}</div>
+    <small class="text-body-secondary">{{ u.email }}</small>
+  </td>
 
-                      <td>
-                        <span class="badge rounded-pill bg-info-subtle text-info-emphasis px-3 py-2">
-                          {{ formatRole(u.roleRequested || u.role) }}
-                        </span>
-                      </td>
+  <td>
+    <span class="badge rounded-pill bg-info-subtle text-info-emphasis px-3 py-2">
+      {{ formatRole(u.roleRequested || u.role) }}
+    </span>
+  </td>
 
-                      <td>
-                        <span class="badge rounded-pill px-3 py-2" [ngClass]="actionBadgeClass(u.status)">
-                          {{ auditActionLabel(u) }}
-                        </span>
-                      </td>
+  <td>
+    <span class="badge rounded-pill px-3 py-2" [ngClass]="actionBadgeClass(u.status)">
+      {{ auditActionLabel(u) }}
+    </span>
+  </td>
 
-                      <td>{{ u.validatedBy || '—' }}</td>
+  <td>{{ u.validatedBy || '—' }}</td>
 
-                      <td>
-                        {{ u.validatedAt ? (u.validatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}
-                      </td>
-                    </tr>
+  <td>
+    {{ u.validatedAt ? (u.validatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}
+  </td>
 
-                    <tr *ngIf="recentValidationActivity.length === 0">
-                      <td colspan="5" class="text-center py-5">
-                        <div class="text-body-secondary">No matching validation activity found</div>
-                      </td>
-                    </tr>
+  <td>
+    <span class="badge rounded-pill px-3 py-2" [ngClass]="loginBadgeClass(u)">
+      {{ u.lastLoginAt ? (u.lastLoginAt | date:'dd/MM/yyyy HH:mm') : 'Never logged in' }}
+    </span>
+  </td>
+</tr>
                   </tbody>
                 </table>
               </div>
@@ -271,3 +272,4 @@
     </ng-container>
   </div>
 </div>
+

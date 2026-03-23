@@ -12,26 +12,36 @@ export type AccountStatus =
 
 export interface AppUser {
   id: string;
-
   fullName: string;
-
   email: string;
+  phone?: string | null;
 
-  // assigned role (after approval)
+  role?: string | null;
+  roleRequested?: string | null;
+  status?: string | null;
+  enabled?: boolean;
+
+  assignedSttId?: string | null;
+  assignedSttEmail?: string | null;
+
+  assignedZmId?: string | null;
+  assignedZmEmail?: string | null;
+
+  validatedAt?: string | null;
+  validatedBy?: string | null;
+  rejectionReason?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  lastLoginAt?: string | null;
+}
+
+export interface UserAuditItem {
+  id: string;
+  fullName: string;
+  email: string;
   role: Role | null;
-
-  // role requested during registration
-  roleRequested?: Role;
-
-  // approval workflow
   status: AccountStatus;
-
   enabled: boolean;
-
- 
-  validatedAt?: string;
-  validatedBy?: string;
-  rejectionReason?: string;
-
   createdAt?: string;
+  lastLoginAt?: string;
 }
