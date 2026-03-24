@@ -1,0 +1,15 @@
+.tech-card {
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 10px;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.tech-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.card:hover {
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
+}

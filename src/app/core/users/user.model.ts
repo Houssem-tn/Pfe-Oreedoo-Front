@@ -33,6 +33,10 @@ export interface AppUser {
   createdAt?: string | null;
   updatedAt?: string | null;
   lastLoginAt?: string | null;
+
+  profileImageFileId?: string | null;
+  profileImageUrl?: string | null;
+  profileThumbnailUrl?: string | null;
 }
 
 export interface UserAuditItem {

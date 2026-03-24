@@ -126,4 +126,15 @@ export class AuthService {
 
     return null;
   }
+
+  uploadRegisterPhoto(email: string, file: File): Observable<void> {
+  const formData = new FormData();
+  formData.append('email', email);
+  formData.append('photo', file);
+
+  return this.http.post<void>(
+    `${this.baseUrl}/api/v1/auth/register-profile-photo`,
+    formData
+  );
+}
 }

@@ -37,12 +37,12 @@
                       <div>
                         <div class="fw-semibold">Secure access</div>
                         <small class="text-white text-opacity-75">
-                          Your account is protected and role-based
+                          Your account will be validated before activation
                         </small>
                       </div>
                     </div>
 
-                    <div class="d-flex align-items-start">
+                    <div class="d-flex align-items-start mb-3">
                       <div class="me-3 mt-1">
                         <svg cIcon name="cilPeople" width="18"></svg>
                       </div>
@@ -136,6 +136,47 @@
                             />
                           </c-input-group>
                         </div>
+
+                        <div class="col-12">
+                          <label class="form-label fw-semibold">Profile photo</label>
+
+                          <input
+                            #photoInput
+                            cFormControl
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            (change)="onPhotoSelected($event)"
+                          />
+
+                          <div class="form-text">
+                            Optional. Accepted formats: JPG, PNG, WEBP. Max size: 5 MB.
+                          </div>
+
+                          <div class="profile-photo-preview mt-3" *ngIf="photoPreviewUrl">
+                            <div class="d-flex align-items-center gap-3 p-3 border rounded-3 bg-light">
+                              <img
+                                [src]="photoPreviewUrl"
+                                alt="Profile preview"
+                                class="profile-photo-preview__image"
+                              />
+
+                              <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ selectedPhotoFile?.name }}</div>
+                                <small class="text-body-secondary">
+                                  {{ selectedPhotoFile ? ((selectedPhotoFile.size / 1024 / 1024).toFixed(2) + ' MB') : '' }}
+                                </small>
+                              </div>
+
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                (click)="removeSelectedPhoto(photoInput)"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -214,35 +255,24 @@
                               name="confirmPassword"
                               [(ngModel)]="form.confirmPassword"
                               required
+                              minlength="6"
                             />
                           </c-input-group>
                         </div>
                       </div>
                     </div>
 
-                    <div class="d-grid mb-2">
-                      <button
-                        cButton
-                        color="primary"
-                        type="submit"
-                        [disabled]="loading"
-                        class="py-2 fw-semibold rounded-3"
-                      >
-                        {{ loading ? 'Creating...' : 'Create account' }}
+                    <div class="d-grid">
+                      <button cButton color="primary" type="submit" [disabled]="loading">
+                        {{ loading ? 'Creating account...' : 'Create account' }}
                       </button>
                     </div>
 
-                    <div class="d-grid">
-                      <button
-                        cButton
-                        color="secondary"
-                        variant="outline"
-                        type="button"
-                        class="py-2 rounded-3"
-                        (click)="router.navigate(['/login'])"
-                      >
-                        Back to Login
-                      </button>
+                    <div class="text-center mt-4">
+                      <small class="text-body-secondary">
+                        Already have an account?
+                        <a routerLink="/login" class="text-decoration-none fw-semibold">Sign in</a>
+                      </small>
                     </div>
                   </form>
                 </div>

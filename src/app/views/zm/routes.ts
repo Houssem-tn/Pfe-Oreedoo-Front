@@ -16,5 +16,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./technician-approvals/technician-approvals.component').then(m => m.TechnicianApprovalsComponent)
   },
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+
+  {
+  path: 'my-team',
+  loadComponent: () =>
+    import('./my-team/my-team.component').then(m => m.MyTeamComponent),
+  data: { title: 'My Team' }
+}
 ];

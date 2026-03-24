@@ -72,6 +72,11 @@ export class RegisterComponent {
   success: string | null = null;
   loading = false;
 
+  selectedPhotoFile: File | null = null;
+  photoPreviewUrl: string | null = null;
+  readonly maxPhotoSizeBytes = 5 * 1024 * 1024;
+  readonly allowedPhotoTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
   selectRole(role: Role): void {
     this.form.role = role;
   }
@@ -109,21 +114,61 @@ export class RegisterComponent {
     }
   }
 
+  onPhotoSelected(event: Event): void {
+    this.error = null;
+
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    if (!file) {
+      this.clearSelectedPhoto();
+      return;
+    }
+
+    if (!this.allowedPhotoTypes.includes(file.type)) {
+      this.clearSelectedPhoto(input);
+      this.error = 'Only JPG, PNG, and WEBP images are allowed';
+      return;
+    }
+
+    if (file.size > this.maxPhotoSizeBytes) {
+      this.clearSelectedPhoto(input);
+      this.error = 'Photo size must not exceed 5 MB';
+      return;
+    }
+
+    this.selectedPhotoFile = file;
+
+    if (this.photoPreviewUrl) {
+      URL.revokeObjectURL(this.photoPreviewUrl);
+    }
+    this.photoPreviewUrl = URL.createObjectURL(file);
+  }
+
+  removeSelectedPhoto(fileInput?: HTMLInputElement): void {
+    this.clearSelectedPhoto(fileInput);
+  }
+
   submit(): void {
     this.error = null;
     this.success = null;
 
-    if (!this.form.firstName.trim()) {
+    const firstName = this.form.firstName.trim();
+    const lastName = this.form.lastName.trim();
+    const email = this.form.email.trim().toLowerCase();
+    const phone = this.form.phone?.trim() || undefined;
+
+    if (!firstName) {
       this.error = 'First name is required';
       return;
     }
 
-    if (!this.form.lastName.trim()) {
+    if (!lastName) {
       this.error = 'Last name is required';
       return;
     }
 
-    if (!this.form.email.trim()) {
+    if (!email) {
       this.error = 'Email is required';
       return;
     }
@@ -146,26 +191,55 @@ export class RegisterComponent {
     this.loading = true;
 
     this.auth.register({
-      firstName: this.form.firstName.trim(),
-      lastName: this.form.lastName.trim(),
-      email: this.form.email.trim().toLowerCase(),
-      phone: this.form.phone?.trim() || undefined,
+      firstName,
+      lastName,
+      email,
+      phone,
       password: this.form.password,
       role: this.form.role,
       sttId: undefined
     }).subscribe({
       next: () => {
-        this.loading = false;
-        this.success = this.form.role === 'ROLE_STT'
-          ? 'Account created. Waiting for ZM approval.'
-          : 'Account created. Waiting for admin approval.';
+        if (!this.selectedPhotoFile) {
+          this.handleRegisterSuccess();
+          return;
+        }
 
-        setTimeout(() => this.router.navigateByUrl('/login'), 1000);
+        this.auth.uploadRegisterPhoto(email, this.selectedPhotoFile).subscribe({
+          next: () => this.handleRegisterSuccess(),
+          error: () => {
+            this.loading = false;
+            this.success = 'Account created, but profile photo upload failed. You can upload it later.';
+            setTimeout(() => this.router.navigateByUrl('/login'), 1500);
+          }
+        });
       },
       error: (err) => {
         this.loading = false;
         this.error = err?.error?.message ?? 'Register failed';
       }
     });
+  }
+
+  private handleRegisterSuccess(): void {
+    this.loading = false;
+    this.success = this.form.role === 'ROLE_STT'
+      ? 'Account created. Waiting for ZM approval.'
+      : 'Account created. Waiting for admin approval.';
+
+    setTimeout(() => this.router.navigateByUrl('/login'), 1000);
+  }
+
+  private clearSelectedPhoto(fileInput?: HTMLInputElement): void {
+    this.selectedPhotoFile = null;
+
+    if (this.photoPreviewUrl) {
+      URL.revokeObjectURL(this.photoPreviewUrl);
+      this.photoPreviewUrl = null;
+    }
+
+    if (fileInput) {
+      fileInput.value = '';
+    }
   }
 }

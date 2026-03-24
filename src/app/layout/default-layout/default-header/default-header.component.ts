@@ -1,7 +1,8 @@
 import { NgTemplateOutlet, DatePipe } from '@angular/common';
-import { Component, computed, inject, input, OnInit, OnDestroy } from '@angular/core';
+import { Component, computed, inject, input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { UserService } from '../../../core/users/user.service';
 
 import {
   AvatarComponent,
@@ -58,6 +59,11 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   readonly notificationStore = inject(NotificationStoreService);
   readonly router = inject(Router);
   readonly authStore = inject(AuthStore);
+  private readonly userService = inject(UserService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  currentUserAvatarUrl: string | null = null;
+  readonly defaultAvatarUrl = 'assets/images/avatars/1.jpg';
 
   readonly colorMode = this.#colorModeService.colorMode;
 
@@ -81,6 +87,7 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
 
   ngOnInit(): void {
     this.notificationStore.init();
+    this.loadCurrentUserProfile();
   }
 
   ngOnDestroy(): void {
@@ -88,6 +95,33 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   }
 
   sidebarId = input('sidebar1');
+
+  private loadCurrentUserProfile(): void {
+    this.userService.getMe().subscribe({
+      next: (user) => {
+        const nextAvatarUrl =
+          user.profileThumbnailUrl ||
+          user.profileImageUrl ||
+          this.defaultAvatarUrl;
+
+        console.log('Current user profile:', user);
+        console.log('Resolved avatar URL:', nextAvatarUrl);
+
+        queueMicrotask(() => {
+          this.currentUserAvatarUrl = nextAvatarUrl;
+          this.cdr.detectChanges();
+        });
+      },
+      error: (err) => {
+        console.error('Failed to load current user profile', err);
+
+        queueMicrotask(() => {
+          this.currentUserAvatarUrl = this.defaultAvatarUrl;
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
 
   trackByNotificationId(_: number, item: NotificationItem): string {
     return item.id;

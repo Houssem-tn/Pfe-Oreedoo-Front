@@ -12,16 +12,10 @@ export interface AssignSttToZmRequest {
   providedIn: 'root'
 })
 export class UserService {
-
   private http = inject(HttpClient);
 
-  // ✅ base API
   private readonly baseUrl = 'http://localhost:8080/api/v1';
-
-  // ✅ users endpoints
   private readonly usersUrl = `${this.baseUrl}/users`;
-
-  // ---------------- USERS CRUD ----------------
 
   getAll(): Observable<AppUser[]> {
     return this.http.get<AppUser[]>(this.usersUrl);
@@ -29,6 +23,10 @@ export class UserService {
 
   getById(id: string): Observable<AppUser> {
     return this.http.get<AppUser>(`${this.usersUrl}/${id}`);
+  }
+
+  getMe(): Observable<AppUser> {
+    return this.http.get<AppUser>(`${this.usersUrl}/me`);
   }
 
   create(payload: any): Observable<AppUser> {
@@ -43,18 +41,32 @@ export class UserService {
     return this.http.delete<void>(`${this.usersUrl}/${id}`);
   }
 
-  // ---------------- AUDIT ----------------
-
   getAuditByRole(role: Role): Observable<UserAuditItem[]> {
     return this.http.get<UserAuditItem[]>(`${this.usersUrl}/audit/by-role/${role}`);
   }
-
-  // ---------------- ADMIN ACTION ----------------
 
   assignSttToZm(body: AssignSttToZmRequest): Observable<AppUser> {
     return this.http.put<AppUser>(
       `${this.baseUrl}/admin/assign-stt-to-zm`,
       body
+    );
+  }
+
+  getMyStts(): Observable<AppUser[]> {
+    return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts`);
+  }
+
+  getMySttTechs(sttId: string): Observable<AppUser[]> {
+    return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts/${sttId}/techs`);
+  }
+
+  uploadProfileImage(userId: string, file: File): Observable<AppUser> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http.post<AppUser>(
+      `${this.usersUrl}/${userId}/profile-image`,
+      formData
     );
   }
 }
