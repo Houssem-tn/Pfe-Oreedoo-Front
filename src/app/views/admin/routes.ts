@@ -30,6 +30,17 @@ export const routes: Routes = [
       import('./approvals/approvals.component').then(m => m.ApprovalsComponent)
   },
 
+  {
+    path: 'cases/activation',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent)
+  },
+  {
+    path: 'cases/activation/new',
+    loadComponent: () =>
+      import('../cases/create-activation-case.component').then(m => m.CreateActivationCaseComponent)
+  },
+
   // Audit home
   {
     path: 'audits',

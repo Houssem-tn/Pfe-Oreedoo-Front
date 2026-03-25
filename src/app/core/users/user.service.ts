@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { AppUser, Role, UserAuditItem } from './user.model';
 
 export interface AssignSttToZmRequest {
@@ -56,8 +57,26 @@ export class UserService {
     return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts`);
   }
 
+  getAllZmsForAssignment(): Observable<AppUser[]> {
+    return this.getAll().pipe(
+      map((users) => (users ?? []).filter((u) => u.role === 'ROLE_ZM' && u.status === 'APPROVED' && !!u.enabled))
+    );
+  }
+
+  getMySttsForZm(): Observable<AppUser[]> {
+    return this.getMyStts().pipe(
+      map((users) => (users ?? []).filter((u) => u.role === 'ROLE_STT' && u.status === 'APPROVED' && !!u.enabled))
+    );
+  }
+
   getMySttTechs(sttId: string): Observable<AppUser[]> {
     return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts/${sttId}/techs`);
+  }
+
+  getMyTechsForStt(sttId: string): Observable<AppUser[]> {
+    return this.getMySttTechs(sttId).pipe(
+      map((users) => (users ?? []).filter((u) => u.role === 'ROLE_TECH' && u.status === 'APPROVED' && !!u.enabled))
+    );
   }
 
   uploadProfileImage(userId: string, file: File): Observable<AppUser> {

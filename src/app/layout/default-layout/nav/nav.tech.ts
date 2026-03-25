@@ -7,6 +7,11 @@ export const navTech: INavData[] = [
     iconComponent: { name: 'cilSpeedometer' }
   },
   {
+    name: 'Activation Cases',
+    url: '/tech/cases/activation',
+    iconComponent: { name: 'cilFolder' }
+  },
+  {
     name: 'My Interventions',
     url: '/tech/interventions',
     iconComponent: { name: 'cilList' }

@@ -1,0 +1,98 @@
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+    <div>
+      <h5 class="mb-0 fw-semibold">Create Activation Case</h5>
+      <small class="text-body-secondary">Capture CRM activation case details for workflow execution</small>
+    </div>
+
+    <a class="btn btn-outline-secondary btn-sm" [routerLink]="listRoute">Back to cases</a>
+  </div>
+
+  <div class="card-body">
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">CRM Case</label>
+          <input type="text" class="form-control" formControlName="crmCase" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Date Creation CRM</label>
+          <input type="datetime-local" class="form-control" formControlName="dateCreationCrm" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Opening Date TIMOS</label>
+          <input type="datetime-local" class="form-control" formControlName="openingDateTimos" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Site Secteur</label>
+          <input type="text" class="form-control" formControlName="siteSecteur" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Offer</label>
+          <input type="text" class="form-control" formControlName="offre" />
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Pack</label>
+          <input type="text" class="form-control" formControlName="desPack" />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Client Name</label>
+          <input type="text" class="form-control" formControlName="clientName" />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Client Phone</label>
+          <input type="text" class="form-control" formControlName="clientPhone" />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">MSISDN</label>
+          <input type="text" class="form-control" formControlName="msisdn" />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Latitude</label>
+          <input type="text" class="form-control" formControlName="latitude" placeholder="34°25'31.09N" />
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Longitude</label>
+          <input type="text" class="form-control" formControlName="longitude" placeholder="8°46'53.84E" />
+        </div>
+
+        <div class="col-md-12">
+          <label class="form-label fw-semibold">Commentaire</label>
+          <textarea class="form-control" rows="3" formControlName="commentaire" placeholder="Additional CRM notes"></textarea>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Localite</label>
+          <input type="text" class="form-control" formControlName="localite" />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Delegation</label>
+          <input type="text" class="form-control" formControlName="delegation" />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Gouvernorat</label>
+          <input type="text" class="form-control" formControlName="gouvernorat" />
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex justify-content-end gap-2">
+        <a class="btn btn-outline-secondary" [routerLink]="listRoute">Cancel</a>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting">
+          {{ submitting ? 'Creating...' : 'Create case' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

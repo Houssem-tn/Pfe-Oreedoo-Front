@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { TechInvitation, TechInvitationService } from '../../../core/invitations/tech-invitation.service';
+import { SwalService } from '../../../core/ui/swal.service';
 
 @Component({
   selector: 'app-technician-approvals',
@@ -10,6 +11,7 @@ import { TechInvitation, TechInvitationService } from '../../../core/invitations
 })
 export class TechnicianApprovalsComponent implements OnInit {
   private readonly invitationService = inject(TechInvitationService);
+  private readonly swal = inject(SwalService);
 
   protected loading = false;
   protected actionLoadingId: string | null = null;
@@ -38,7 +40,18 @@ export class TechnicianApprovalsComponent implements OnInit {
     });
   }
 
-  protected decide(invitationId: string, approve: boolean): void {
+  protected async decide(invitationId: string, approve: boolean): Promise<void> {
+    const actionLabel = approve ? 'approve' : 'reject';
+    const confirm = await this.swal.confirmAction(
+      `${approve ? 'Approve' : 'Reject'} technician?`,
+      `Are you sure you want to ${actionLabel} this technician invitation?`,
+      approve ? 'Approve' : 'Reject'
+    );
+
+    if (!confirm.isConfirmed) {
+      return;
+    }
+
     this.actionLoadingId = invitationId;
     this.successMessage = '';
     this.errorMessage = '';
@@ -47,11 +60,16 @@ export class TechnicianApprovalsComponent implements OnInit {
       next: (message) => {
         this.successMessage = message || 'Decision saved successfully';
         this.actionLoadingId = null;
+        void this.swal.success(
+          approve ? 'Technician approved' : 'Technician rejected',
+          this.successMessage
+        );
         this.load();
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || err?.error || 'Failed to process decision';
         this.actionLoadingId = null;
+        void this.swal.error('Action failed', this.errorMessage);
       }
     });
   }

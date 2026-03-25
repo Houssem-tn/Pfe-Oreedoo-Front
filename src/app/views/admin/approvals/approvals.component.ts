@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
-import Swal from 'sweetalert2';
+import { SwalService } from '../../../core/ui/swal.service';
 
 import {
   CardBodyComponent,
@@ -36,6 +36,7 @@ import { ApprovalsService, PendingApprovalUser } from './approvals.service';
 })
 export class ApprovalsComponent implements OnInit {
   private readonly api = inject(ApprovalsService);
+  private readonly swal = inject(SwalService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
@@ -86,9 +87,19 @@ export class ApprovalsComponent implements OnInit {
       });
   }
 
-  approve(userId: string): void {
+  async approve(userId: string): Promise<void> {
     const user = this.items.find((u) => u.id === userId);
     const approvedUserName = user?.fullName ?? 'User';
+
+    const confirm = await this.swal.confirmAction(
+      'Approve account?',
+      `This will approve ${approvedUserName}.`,
+      'Approve'
+    );
+
+    if (!confirm.isConfirmed) {
+      return;
+    }
 
     this.actionLoadingId = userId;
     this.error = null;
@@ -108,49 +119,23 @@ export class ApprovalsComponent implements OnInit {
             this.currentPage = this.totalPages || 1;
           }
 
-          Swal.fire({
-            icon: 'success',
-            title: 'Account approved',
-            text: `${approvedUserName} has been approved successfully.`,
-            confirmButtonText: 'OK',
-            timer: 2200,
-            timerProgressBar: true
-          });
+          void this.swal.success('Account approved', `${approvedUserName} has been approved successfully.`);
         },
         error: (e: any) => {
-          this.error = e?.error?.message ?? 'Approve failed';
+          const message = e?.error?.message ?? 'Approve failed';
+          this.error = message;
+          void this.swal.error('Approval failed', message);
         }
       });
   }
 
   async reject(user: PendingApprovalUser): Promise<void> {
-    const result = await Swal.fire<string>({
-      title: 'Reject account',
-      text: `Provide a rejection reason for ${user.fullName}`,
-      input: 'textarea',
-      inputLabel: 'Rejection reason',
-      inputPlaceholder: 'Enter the rejection reason...',
-      inputAttributes: {
-        'aria-label': 'Rejection reason'
-      },
-      showCancelButton: true,
-      confirmButtonText: 'Reject',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#d9534f',
-      inputValidator: (value: string) => {
-        const trimmed = value?.trim() ?? '';
-
-        if (!trimmed) {
-          return 'Rejection reason is required';
-        }
-
-        if (trimmed.length > 500) {
-          return 'Rejection reason must be at most 500 characters';
-        }
-
-        return undefined;
-      }
-    });
+    const result = await this.swal.promptTextarea(
+      'Reject account',
+      `Provide a rejection reason for ${user.fullName}`,
+      'Rejection reason',
+      'Reject'
+    );
 
     if (!result.isConfirmed || !result.value) {
       return;
@@ -176,17 +161,12 @@ export class ApprovalsComponent implements OnInit {
             this.currentPage = this.totalPages || 1;
           }
 
-          Swal.fire({
-            icon: 'error',
-            title: 'Account rejected',
-            text: `${user.fullName} has been rejected successfully.`,
-            confirmButtonText: 'OK',
-            timer: 2400,
-            timerProgressBar: true
-          });
+          void this.swal.success('Account rejected', `${user.fullName} has been rejected successfully.`);
         },
         error: (e: any) => {
-          this.error = e?.error?.message ?? 'Reject failed';
+          const message = e?.error?.message ?? 'Reject failed';
+          this.error = message;
+          void this.swal.error('Rejection failed', message);
         }
       });
   }

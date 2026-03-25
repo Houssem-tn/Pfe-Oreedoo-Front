@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { TechInvitation, TechInvitationService } from '../../../core/invitations/tech-invitation.service';
+import { SwalService } from '../../../core/ui/swal.service';
 
 @Component({
   selector: 'app-invite-technicians',
@@ -13,6 +14,7 @@ import { TechInvitation, TechInvitationService } from '../../../core/invitations
 export class InviteTechniciansComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly invitationService = inject(TechInvitationService);
+  private readonly swal = inject(SwalService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
@@ -56,12 +58,13 @@ export class InviteTechniciansComponent implements OnInit {
       });
   }
 
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     this.successMessage = '';
     this.errorMessage = '';
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      void this.swal.error('Invalid form', 'Please enter a valid technician email.');
       this.zone.run(() => this.cdr.detectChanges());
       return;
     }
@@ -69,7 +72,18 @@ export class InviteTechniciansComponent implements OnInit {
     const email = this.form.value.email?.trim() ?? '';
     if (!email) {
       this.errorMessage = 'Please enter a valid email.';
+      void this.swal.error('Invalid email', this.errorMessage);
       this.zone.run(() => this.cdr.detectChanges());
+      return;
+    }
+
+    const confirm = await this.swal.confirmAction(
+      'Send invitation?',
+      `An invitation will be sent to ${email}.`,
+      'Send'
+    );
+
+    if (!confirm.isConfirmed) {
       return;
     }
 
@@ -87,6 +101,7 @@ export class InviteTechniciansComponent implements OnInit {
           this.successMessage = typeof message === 'string'
             ? message
             : 'Invitation sent successfully';
+          void this.swal.success('Invitation sent', this.successMessage);
 
           this.form.reset();
 
@@ -107,6 +122,7 @@ export class InviteTechniciansComponent implements OnInit {
                   err,
                   'Invitation sent, but failed to refresh list'
                 );
+                void this.swal.error('Refresh failed', this.errorMessage);
                 this.zone.run(() => this.cdr.detectChanges());
               }
             });
@@ -114,6 +130,7 @@ export class InviteTechniciansComponent implements OnInit {
         error: (err) => {
           console.error('Failed to send invitation:', err);
           this.errorMessage = this.extractErrorMessage(err, 'Failed to send invitation');
+          void this.swal.error('Send failed', this.errorMessage);
           this.zone.run(() => this.cdr.detectChanges());
         }
       });

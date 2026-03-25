@@ -1,0 +1,306 @@
+<div class="card shadow-sm border-0 page-card">
+  <div class="card-header bg-white py-3 border-0">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="icon-pill bg-primary-subtle text-primary-emphasis">
+            <svg cIcon name="cilDescription"></svg>
+          </span>
+          <h5 class="mb-0 fw-semibold">Activation Case Management</h5>
+        </div>
+        <small class="text-body-secondary">
+          Telecom field workflow: assignment, RDV, work execution, ZM validation and closure.
+        </small>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" (click)="loadCases()" [disabled]="loading">
+          <svg cIcon name="cilCloudDownload" class="me-1"></svg>
+          Refresh
+        </button>
+
+        <a *ngIf="canCreateCase" class="btn btn-primary btn-sm" [routerLink]="createRoute">
+          <svg cIcon name="cilFile" class="me-1"></svg>
+          New Case
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body pt-2">
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-xl-2" *ngFor="let stat of statsCards">
+        <div class="stat-card" [ngClass]="stat.className">
+          <div class="stat-icon"><svg cIcon [name]="stat.icon"></svg></div>
+          <div class="stat-value">{{ stat.value }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-wrap mb-3">
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-4">
+          <label class="form-label fw-semibold mb-1">Search</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><svg cIcon name="cilMagnifyingGlass"></svg></span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="CRM, client, assignment, offer, location"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="onFiltersChange()"
+            />
+          </div>
+        </div>
+
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label fw-semibold mb-1">Status</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedStatus" (ngModelChange)="onFiltersChange()">
+            <option *ngFor="let status of statusOptions" [value]="status.value">{{ status.label }}</option>
+          </select>
+        </div>
+
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label fw-semibold mb-1">Gouvernorat</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedGouvernorat" (ngModelChange)="onFiltersChange()">
+            <option value="">All</option>
+            <option *ngFor="let g of gouvernoratOptions" [value]="g">{{ g }}</option>
+          </select>
+        </div>
+
+        <div class="col-lg-2 col-md-4">
+          <label class="form-label fw-semibold mb-1">Delegation</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedDelegation" (ngModelChange)="onFiltersChange()">
+            <option value="">All</option>
+            <option *ngFor="let d of delegationOptions" [value]="d">{{ d }}</option>
+          </select>
+        </div>
+
+        <div class="col-lg-2">
+          <button class="btn btn-outline-secondary btn-sm w-100" (click)="resetFilters()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+      Loading activation cases...
+    </div>
+
+    <div *ngIf="error" class="alert alert-danger mb-3">
+      {{ error }}
+    </div>
+
+    <ng-container *ngIf="!loading && !error">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <small class="text-body-secondary">
+          Showing {{ paginatedCases.length }} of {{ filteredCases.length }} cases
+        </small>
+
+        <div class="d-flex align-items-center gap-2">
+          <label class="mb-0 text-body-secondary small">Rows</label>
+          <select class="form-select form-select-sm w-auto" [(ngModel)]="pageSize" (ngModelChange)="onFiltersChange()">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 cases-table">
+          <thead class="table-light">
+            <tr>
+              <th>Case</th>
+              <th>Client</th>
+              <th>Location / Offer</th>
+              <th>Assignment Chain</th>
+              <th>Status</th>
+              <th>Execution</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of paginatedCases; trackBy: trackById">
+              <td>
+                <div class="fw-semibold d-flex align-items-center gap-2">
+                  <svg cIcon name="cilDescription"></svg>
+                  {{ item.crmCase }}
+                </div>
+                <small class="text-body-secondary">{{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</small>
+              </td>
+
+              <td>
+                <div class="fw-semibold">{{ item.clientName }}</div>
+                <small class="text-body-secondary d-block">{{ item.clientPhone }}</small>
+                <small class="text-body-secondary">MSISDN: {{ item.msisdn }}</small>
+              </td>
+
+              <td>
+                <div class="small fw-semibold">{{ item.localite }}, {{ item.delegation }}</div>
+                <small class="text-body-secondary d-block">{{ item.gouvernorat }}</small>
+                <small class="text-body-secondary d-block">Offer: {{ item.offre || '-' }}</small>
+                <small class="text-body-secondary">Pack: {{ item.desPack || '-' }}</small>
+              </td>
+
+              <td>
+                <div class="chain-line">
+                  <span class="badge assignment-badge bg-primary-subtle text-primary-emphasis">ZM: {{ item.zmName || '-' }}</span>
+                </div>
+                <div class="chain-line">
+                  <span class="badge assignment-badge bg-info-subtle text-info-emphasis">STT: {{ item.sttName || '-' }}</span>
+                </div>
+                <div class="chain-line">
+                  <span class="badge assignment-badge bg-warning-subtle text-warning-emphasis">TECH: {{ item.techName || '-' }}</span>
+                </div>
+              </td>
+
+              <td>
+                <span class="badge rounded-pill px-3 py-2" [ngClass]="statusBadgeClass(item.status)">
+                  {{ statusLabel(item.status) }}
+                </span>
+              </td>
+
+              <td>
+                <div class="small d-flex align-items-center gap-1 mb-1">
+                  <svg cIcon name="cilCalendar"></svg>
+                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM/yyyy HH:mm') : 'RDV not set' }}</span>
+                </div>
+                <div class="small d-flex align-items-center gap-1 mb-1">
+                  <svg cIcon name="cilTask"></svg>
+                  <span>{{ item.repTravauxStt || 'Work not submitted' }}</span>
+                </div>
+                <div class="small d-flex align-items-center gap-1">
+                  <svg cIcon name="cilCheckCircle"></svg>
+                  <span>{{ item.repZm || 'Validation pending' }}</span>
+                </div>
+              </td>
+
+              <td class="text-end">
+                <div class="d-flex justify-content-end gap-1 flex-wrap">
+                  <button
+                    *ngIf="canAssignZm(item)"
+                    type="button"
+                    class="btn btn-outline-primary btn-sm action-btn"
+                    title="Assign/Change ZM"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openAssignZm(item)"
+                  >
+                    <svg cIcon name="cilUser"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canAssignStt(item)"
+                    type="button"
+                    class="btn btn-outline-info btn-sm action-btn"
+                    title="Assign/Change STT"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openAssignStt(item)"
+                  >
+                    <svg cIcon name="cilPeople"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canAssignTech(item)"
+                    type="button"
+                    class="btn btn-outline-warning btn-sm action-btn"
+                    title="Assign/Change TECH"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openAssignTech(item)"
+                  >
+                    <svg cIcon name="cilUserFollow"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canSetRdv(item)"
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm action-btn"
+                    title="Set RDV"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openRdvPopup(item)"
+                  >
+                    <svg cIcon name="cilCalendar"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canUpdateWork(item)"
+                    type="button"
+                    class="btn btn-outline-success btn-sm action-btn"
+                    title="Update Work"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openWorkPopup(item)"
+                  >
+                    <svg cIcon name="cilTask"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canValidateZm(item)"
+                    type="button"
+                    class="btn btn-outline-dark btn-sm action-btn"
+                    title="Validate Case"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openValidatePopup(item)"
+                  >
+                    <svg cIcon name="cilCheckCircle"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canCloseCase(item)"
+                    type="button"
+                    class="btn btn-outline-danger btn-sm action-btn"
+                    title="Close Case"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openClosePopup(item)"
+                  >
+                    <svg cIcon name="cilLockLocked"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canView(item)"
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm action-btn"
+                    title="View details"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openDetails(item)"
+                  >
+                    <svg cIcon name="cilMagnifyingGlass"></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="paginatedCases.length === 0">
+              <td colspan="7" class="text-center py-5">
+                <div class="fw-semibold mb-1">No activation cases found</div>
+                <small class="text-body-secondary">Try changing search or filters.</small>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-4" *ngIf="filteredCases.length > 0">
+        <small class="text-body-secondary">
+          Page {{ currentPage }} / {{ totalPages }}
+        </small>
+
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <button class="page-link" (click)="setPage(currentPage - 1)">Previous</button>
+            </li>
+
+            <li class="page-item" *ngFor="let page of pages" [class.active]="page === currentPage">
+              <button class="page-link" (click)="setPage(page)">{{ page }}</button>
+            </li>
+
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <button class="page-link" (click)="setPage(currentPage + 1)">Next</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </ng-container>
+  </div>
+</div>

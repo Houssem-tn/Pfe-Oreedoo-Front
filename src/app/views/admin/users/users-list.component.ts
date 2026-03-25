@@ -7,6 +7,7 @@ import { IconDirective } from '@coreui/icons-angular';
 
 import { AppUser } from '../../../core/users/user.model';
 import { UserService } from '../../../core/users/user.service';
+import { SwalService } from '../../../core/ui/swal.service';
 
 @Component({
   standalone: true,
@@ -16,6 +17,7 @@ import { UserService } from '../../../core/users/user.service';
 })
 export class UsersListComponent implements OnInit {
   private readonly usersSvc = inject(UserService);
+  private readonly swal = inject(SwalService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
@@ -24,7 +26,6 @@ export class UsersListComponent implements OnInit {
   deletingId: string | null = null;
   assigningSttId: string | null = null;
   error: string | null = null;
-  assignSuccess: string | null = null;
 
   // filters
   searchTerm = '';
@@ -54,25 +55,6 @@ export class UsersListComponent implements OnInit {
     { value: 'REJECTED', label: 'Rejected' }
   ];
 
-  expandedAssignRowId: string | null = null;
-
-openAssignCard(user: any): void {
-  this.expandedAssignRowId = user.id;
-  this.selectedZmBySttId[user.id] = user.assignedZmId || '';
-}
-
-closeAssignCard(): void {
-  this.expandedAssignRowId = null;
-}
-
-isAssignCardOpen(userId: string): boolean {
-  return this.expandedAssignRowId === userId;
-}
-
-saveAssignFromCard(user: any): void {
-  this.assignZm(user);
-}
-
   ngOnInit(): void {
     this.refresh();
   }
@@ -82,7 +64,6 @@ saveAssignFromCard(user: any): void {
 
     this.loading = true;
     this.error = null;
-    this.assignSuccess = null;
 
     this.usersSvc.getAll()
       .pipe(
@@ -104,12 +85,14 @@ saveAssignFromCard(user: any): void {
       });
   }
 
-  remove(id: string): void {
-    if (!confirm('Delete this user?')) return;
+  async remove(id: string): Promise<void> {
+    const confirm = await this.swal.confirmDelete('user');
+    if (!confirm.isConfirmed) {
+      return;
+    }
 
     this.deletingId = id;
     this.error = null;
-    this.assignSuccess = null;
 
     this.usersSvc.delete(id)
       .pipe(
@@ -125,26 +108,50 @@ saveAssignFromCard(user: any): void {
           if (this.currentPage > this.totalPages) {
             this.currentPage = this.totalPages || 1;
           }
+
+          void this.swal.success('User deleted', 'The user has been deleted successfully.');
         },
         error: (err) => {
           console.error('Error deleting user:', err);
-          this.error = err?.error?.message ?? 'Failed to delete user';
+          const message = err?.error?.message ?? 'Failed to delete user';
+          this.error = message;
+          void this.swal.error('Delete failed', message);
         }
       });
   }
 
-  assignZm(stt: AppUser): void {
-    const zmId = this.selectedZmBySttId[stt.id];
+  async openAssignZmModal(stt: AppUser): Promise<void> {
+    const options = this.approvedZmUsers.reduce<Record<string, string>>((acc, zm) => {
+      acc[zm.id] = zm.fullName;
+      return acc;
+    }, {});
 
-    if (!zmId) {
-      this.error = 'Please select a ZM before saving.';
-      this.assignSuccess = null;
+    if (Object.keys(options).length === 0) {
+      void this.swal.error('No ZM available', 'There are no approved ZM users available for assignment.');
       return;
     }
 
-    this.assigningSttId = stt.id;
+    const result = await this.swal.promptSelect(
+      `Assign ZM to ${stt.fullName}`,
+      'Select ZM',
+      options,
+      stt.assignedZmId ?? '',
+      stt.assignedZmId ? 'Change' : 'Assign'
+    );
+
+    if (!result.isConfirmed || !result.value) {
+      return;
+    }
+
+    this.assignZm(stt, result.value);
+  }
+
+  private assignZm(stt: AppUser, zmId: string): void {
+    this.selectedZmBySttId[stt.id] = zmId;
+
     this.error = null;
-    this.assignSuccess = null;
+
+    this.assigningSttId = stt.id;
 
     this.usersSvc.assignSttToZm({
       sttId: stt.id,
@@ -160,12 +167,13 @@ saveAssignFromCard(user: any): void {
         next: (updated) => {
           this.users = this.users.map(u => u.id === updated.id ? updated : u);
           this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
-          this.assignSuccess = `ZM assigned successfully to ${updated.fullName}.`;
-          this.expandedAssignRowId = null;
+          void this.swal.success('Assignment saved', `ZM assigned successfully to ${updated.fullName}.`);
         },
         error: (err) => {
           console.error('Error assigning ZM:', err);
-          this.error = err?.error?.message ?? 'Failed to assign ZM';
+          const message = err?.error?.message ?? 'Failed to assign ZM';
+          this.error = message;
+          void this.swal.error('Assignment failed', message);
         }
       });
   }
@@ -186,10 +194,6 @@ saveAssignFromCard(user: any): void {
 
  canAssignZm(u: AppUser): boolean {
   return u.role === 'ROLE_STT' && u.status === 'APPROVED' && !!u.enabled;
-}
-
-hasAssignedZm(u: AppUser): boolean {
-  return !!u.assignedZmId;
 }
 
   isAssigning(sttId: string): boolean {

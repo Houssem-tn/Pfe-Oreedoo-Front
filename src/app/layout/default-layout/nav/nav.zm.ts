@@ -17,6 +17,12 @@ export const navZm: INavData[] = [
     iconComponent: { name: 'cilUserFollow' }
   },
 
+  {
+    name: 'Activation Cases',
+    url: '/zm/cases/activation',
+    iconComponent: { name: 'cilFolder' }
+  },
+
    {
     name: 'My Team',
     url: '/zm/my-team',

@@ -1,0 +1,113 @@
+.page-card {
+  border-top: 3px solid #321fdb;
+}
+
+.icon-pill {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  background-color: #fff;
+  min-height: 92px;
+
+  .stat-icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.4rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--cui-secondary-color);
+    font-weight: 600;
+  }
+}
+
+.stat-neutral .stat-icon {
+  background: var(--cui-secondary-bg-subtle);
+  color: var(--cui-secondary-text-emphasis);
+}
+
+.stat-primary .stat-icon {
+  background: var(--cui-primary-bg-subtle);
+  color: var(--cui-primary-text-emphasis);
+}
+
+.stat-info .stat-icon {
+  background: var(--cui-info-bg-subtle);
+  color: var(--cui-info-text-emphasis);
+}
+
+.stat-warning .stat-icon {
+  background: var(--cui-warning-bg-subtle);
+  color: var(--cui-warning-text-emphasis);
+}
+
+.stat-success .stat-icon {
+  background: var(--cui-success-bg-subtle);
+  color: var(--cui-success-text-emphasis);
+}
+
+.stat-dark .stat-icon {
+  background: var(--cui-dark-bg-subtle);
+  color: var(--cui-dark-text-emphasis);
+}
+
+.filters-wrap {
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.75rem;
+  background: var(--cui-light-bg-subtle);
+  padding: 0.85rem;
+}
+
+.cases-table th,
+.cases-table td {
+  vertical-align: middle;
+}
+
+.assignment-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  max-width: 185px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chain-line {
+  margin-bottom: 0.2rem;
+}
+
+.action-btn {
+  min-width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+@media (max-width: 991px) {
+  .assignment-badge {
+    max-width: 140px;
+  }
+}
