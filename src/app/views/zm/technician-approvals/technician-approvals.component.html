@@ -1,0 +1,71 @@
+<div class="container-fluid">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="mb-1">Pending Technician Approvals</h5>
+        <small class="text-body-secondary">Approve or reject newly registered technicians.</small>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm" (click)="load()">Refresh</button>
+    </div>
+
+    <div class="card-body">
+      <div *ngIf="successMessage" class="alert alert-success">
+        {{ successMessage }}
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger">
+        {{ errorMessage }}
+      </div>
+
+      <div *ngIf="loading" class="text-center text-body-secondary py-4">
+        Loading pending approvals...
+      </div>
+
+      <div *ngIf="!loading && invitations.length === 0" class="text-center text-body-secondary py-4">
+        No pending technician approvals.
+      </div>
+
+      <div *ngIf="!loading && invitations.length > 0" class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Email</th>
+              <th>STT</th>
+              <th>Registered At</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of invitations">
+              <td>{{ item.email }}</td>
+              <td>{{ item.sttName }}</td>
+              <td>{{ item.registeredAt | date:'medium' }}</td>
+              <td>
+                <span class="badge bg-info text-dark">{{ item.status }}</span>
+              </td>
+              <td class="text-end">
+                <div class="btn-group">
+                  <button
+                    class="btn btn-sm btn-success"
+                    [disabled]="actionLoadingId === item.id"
+                    (click)="decide(item.id, true)"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    class="btn btn-sm btn-danger"
+                    [disabled]="actionLoadingId === item.id"
+                    (click)="decide(item.id, false)"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

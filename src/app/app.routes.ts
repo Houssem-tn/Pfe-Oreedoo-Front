@@ -4,26 +4,27 @@ import { approvedGuard } from './core/auth/guards/approved.guard';
 import { roleChildGuard } from './core/auth/guards/role.guard';
 
 export const routes: Routes = [
-  // ✅ Start at login
   { path: '', redirectTo: 'login', pathMatch: 'full' },
 
-  // ✅ Public pages (outside layout)
   {
     path: 'login',
     loadComponent: () =>
       import('./views/pages/login/login.component').then((m) => m.LoginComponent),
     data: { title: 'Login Page' },
   },
-
-  // ✅ Keep register PUBLIC only if you want that behavior.
-  // If register must be admin-only, REMOVE this route and expose it under /admin.
   {
     path: 'register',
     loadComponent: () =>
       import('./views/pages/register/register.component').then((m) => m.RegisterComponent),
     data: { title: 'Register Page' },
   },
-
+  {
+    path: 'register-tech',
+    loadComponent: () =>
+      import('./views/pages/register-tech-invitation/register-tech-invitation.component')
+        .then((m) => m.RegisterTechInvitationComponent),
+    data: { title: 'Technician Invitation Registration' },
+  },
   {
     path: '404',
     loadComponent: () =>
@@ -37,16 +38,16 @@ export const routes: Routes = [
     data: { title: 'Page 500' },
   },
 
-  // ✅ Main app shell (CoreUI layout) — PROTECTED
   {
     path: '',
     loadComponent: () => import('./layout').then((m) => m.DefaultLayoutComponent),
     data: { title: 'Home' },
     canActivate: [authGuard, approvedGuard],
     children: [
-      { path: 'dashboard', loadChildren: () => import('./views/dashboard/routes').then((m) => m.routes) },
-
-      // ✅ role areas (protect all children of each module)
+      {
+        path: 'dashboard',
+        loadChildren: () => import('./views/dashboard/routes').then((m) => m.routes),
+      },
       {
         path: 'admin',
         canActivateChild: [roleChildGuard],
@@ -62,7 +63,7 @@ export const routes: Routes = [
       {
         path: 'tech',
         canActivateChild: [roleChildGuard],
-        data: { roles: ['ROLE_TECHNICIEN_STT'] },
+        data: { roles: ['ROLE_TECH'] },
         loadChildren: () => import('./views/tech/routes').then((m) => m.routes),
       },
       {
@@ -72,11 +73,9 @@ export const routes: Routes = [
         loadChildren: () => import('./views/zm/routes').then((m) => m.routes),
       },
 
-      // ✅ fallback inside layout
       { path: '**', redirectTo: 'dashboard' },
     ],
   },
 
-  // ✅ global fallback
   { path: '**', redirectTo: 'login' },
 ];

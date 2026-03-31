@@ -22,7 +22,6 @@
     </div>
 
     <ng-container *ngIf="!loading && !error">
-      <!-- Filters -->
       <div class="row g-3 mb-4">
         <div class="col-md-4">
           <label class="form-label fw-semibold">
@@ -78,7 +77,6 @@
         </div>
       </div>
 
-      <!-- Summary -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <small class="text-body-secondary">
           Showing {{ paginatedUsers.length }} of {{ filteredUsers.length }} filtered users
@@ -94,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Table -->
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0 users-table">
           <thead class="table-light">
@@ -104,8 +101,9 @@
               <th>Role</th>
               <th>Status</th>
               <th>Enabled</th>
+              <th>Assigned ZM</th>
               <th>Created at</th>
-              <th class="text-end" style="width: 180px;">Actions</th>
+              <th class="text-end" style="width: 260px;">Actions</th>
             </tr>
           </thead>
 
@@ -143,6 +141,43 @@
                   {{ u.enabled ? 'Yes' : 'No' }}
                 </span>
               </td>
+<td>
+  <ng-container *ngIf="u.role === 'ROLE_STT'; else noAssignment">
+    <div class="d-flex align-items-center justify-content-between gap-2">
+      <div class="d-flex align-items-center gap-2 min-w-0">
+        <div
+          class="assignment-status-dot"
+          [class.assignment-status-dot--ok]="!!u.assignedZmId"
+          [class.assignment-status-dot--warn]="!u.assignedZmId"
+        ></div>
+
+        <div class="small fw-semibold text-truncate">
+          {{ u.assignedZmId ? getFilteredAssignedZmName(u) : 'Not assigned' }}
+        </div>
+      </div>
+
+      <button
+        *ngIf="canAssignZm(u)"
+        type="button"
+        class="btn btn-outline-primary btn-sm"
+        [disabled]="isAssigning(u.id)"
+        (click)="openAssignZmModal(u)"
+      >
+        <svg
+          cIcon
+          [name]="u.assignedZmId ? 'cilPencil' : 'cilPlus'"
+          class="me-1"
+        ></svg>
+        {{ isAssigning(u.id) ? 'Saving...' : (u.assignedZmId ? 'Change' : 'Assign') }}
+      </button>
+    </div>
+
+  </ng-container>
+
+  <ng-template #noAssignment>
+    <span class="text-body-secondary">—</span>
+  </ng-template>
+</td>
 
               <td>
                 <span class="text-body-secondary">
@@ -171,7 +206,7 @@
             </tr>
 
             <tr *ngIf="paginatedUsers.length === 0">
-              <td colspan="7" class="text-center py-5">
+              <td colspan="8" class="text-center py-5">
                 <div class="d-flex flex-column align-items-center">
                   <div class="mb-2 fs-5 text-body-secondary">No matching users found</div>
                   <small class="text-body-secondary">
@@ -184,7 +219,6 @@
         </table>
       </div>
 
-      <!-- Pagination -->
       <div class="d-flex justify-content-between align-items-center mt-4" *ngIf="filteredUsers.length > 0">
         <small class="text-body-secondary">
           Page {{ currentPage }} / {{ totalPages }}

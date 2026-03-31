@@ -1,0 +1,12 @@
+{
+  "files.exclude": {
+    "**/assets/**": true,
+    "**/images/**": true,
+    "**/*.png": true,
+    "**/*.jpg": true,
+    "**/*.jpeg": true,
+    "**/*.svg": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true
+  }
+}

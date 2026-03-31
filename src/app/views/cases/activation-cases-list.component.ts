@@ -1,0 +1,1539 @@
+import { CommonModule, DatePipe } from '@angular/common';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { finalize, firstValueFrom } from 'rxjs';
+import Swal from 'sweetalert2';
+import { IconDirective } from '@coreui/icons-angular';
+
+import { AuthStore } from '../../core/auth/auth.store';
+import { Role } from '../../core/auth/models/roles.type';
+import { SwalService } from '../../core/ui/swal.service';
+import { TechnicianListItem } from '../../core/stt/models/technician-list-item.model';
+import { SttTechnicianApiService } from '../../core/stt/stt-technician-api.service';
+import { UserService } from '../../core/users/user.service';
+import { CasesService } from '../../core/cases/cases.service';
+import {
+  CASE_STATUS_UI,
+  CaseMetrics,
+  CaseProofFile,
+  CaseRdv,
+  CaseResponse,
+  CaseSlaTracking,
+  CaseStatus,
+  CaseTimelineEvent,
+  CaseWork,
+  CaseZmValidation,
+  CompleteWorkRequest,
+  PerformanceSummaryResponse,
+  SetRdvRequest,
+  SlaStatus,
+  ValidateZmRequest
+} from '../../core/cases/models/case.model';
+import { NotificationStoreService } from '../../core/notifications/notification-store.service';
+import { NotificationItem } from '../../core/notifications/models/notification.model';
+
+type AssignableUser = { id: string; fullName: string; email: string };
+
+type StatCard = {
+  label: string;
+  value: number;
+  icon: string;
+  className: string;
+};
+
+type PerfCard = {
+  label: string;
+  value: string;
+  icon: string;
+  className: string;
+};
+
+@Component({
+  selector: 'app-activation-cases-list',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective],
+  templateUrl: './activation-cases-list.component.html',
+  styleUrl: './activation-cases-list.component.scss'
+})
+export class ActivationCasesListComponent implements OnInit, OnDestroy {
+  private static readonly LIVE_TICK_MS = 1000;
+  private static readonly BACKEND_RESYNC_MS = 30000;
+
+  private readonly casesService = inject(CasesService);
+  private readonly userService = inject(UserService);
+  private readonly sttTechApi = inject(SttTechnicianApiService);
+  private readonly authStore = inject(AuthStore);
+  private readonly swal = inject(SwalService);
+  private readonly notificationStore = inject(NotificationStoreService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly zone = inject(NgZone);
+
+  cases: CaseResponse[] = [];
+  loading = false;
+  performanceLoading = false;
+  actionLoadingCaseId: string | null = null;
+  error: string | null = null;
+
+  myPerformance: PerformanceSummaryResponse | null = null;
+  teamTechPerformance: PerformanceSummaryResponse[] = [];
+
+  searchTerm = '';
+  selectedStatus = '';
+  selectedGouvernorat = '';
+  selectedDelegation = '';
+
+  currentPage = 1;
+  pageSize = 10;
+
+  private nowEpochMs = Date.now();
+  private liveTickHandle: ReturnType<typeof setInterval> | null = null;
+  private resyncHandle: ReturnType<typeof setInterval> | null = null;
+  private readonly warningThresholdPercent = 50;
+
+  readonly statusOptions: Array<{ value: '' | CaseStatus; label: string }> = [
+    { value: '', label: 'All statuses' },
+    { value: 'CREATED', label: 'Created' },
+    { value: 'ASSIGNED_TO_ZM', label: 'Assigned to ZM' },
+    { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
+    { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
+    { value: 'RDV_SET', label: 'RDV set' },
+    { value: 'NOT_REACHABLE', label: 'Not reachable' },
+    { value: 'ABANDONED', label: 'Abandoned' },
+    { value: 'WORK_DONE', label: 'Work done' },
+    { value: 'VALIDATED_BY_ZM', label: 'Validated by ZM' },
+    { value: 'REJECTED_BY_ZM', label: 'Rejected by ZM' },
+    { value: 'CLOSED', label: 'Closed' }
+  ];
+
+  ngOnInit(): void {
+    this.loadCases();
+    this.loadPerformance();
+    this.startLiveTicker();
+    this.startBackendResync();
+  }
+
+  ngOnDestroy(): void {
+    this.stopLiveTicker();
+    this.stopBackendResync();
+  }
+
+  get currentRole(): Role | null {
+    return this.authStore.role();
+  }
+
+  get canCreateCase(): boolean {
+    return this.currentRole === 'ROLE_ADMIN';
+  }
+
+  get createRoute(): string {
+    return '/admin/cases/activation/new';
+  }
+
+  get accessibleCases(): CaseResponse[] {
+    return this.cases.filter((item) => this.canAccessCase(item));
+  }
+
+  get filteredCases(): CaseResponse[] {
+    const term = this.searchTerm.trim().toLowerCase();
+
+    return this.accessibleCases.filter((item) => {
+      const matchesSearch =
+        !term ||
+        item.crmCase.toLowerCase().includes(term) ||
+        item.clientName.toLowerCase().includes(term) ||
+        item.clientPhone.toLowerCase().includes(term) ||
+        (item.zmName ?? '').toLowerCase().includes(term) ||
+        (item.sttName ?? '').toLowerCase().includes(term) ||
+        (item.techName ?? '').toLowerCase().includes(term) ||
+        (item.offre ?? '').toLowerCase().includes(term) ||
+        item.localite.toLowerCase().includes(term) ||
+        item.delegation.toLowerCase().includes(term) ||
+        item.gouvernorat.toLowerCase().includes(term);
+
+      const matchesStatus = !this.selectedStatus || item.status === this.selectedStatus;
+      const matchesGouvernorat = !this.selectedGouvernorat || item.gouvernorat === this.selectedGouvernorat;
+      const matchesDelegation = !this.selectedDelegation || item.delegation === this.selectedDelegation;
+
+      return matchesSearch && matchesStatus && matchesGouvernorat && matchesDelegation;
+    });
+  }
+
+  get paginatedCases(): CaseResponse[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredCases.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredCases.length / this.pageSize));
+  }
+
+  get pages(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  get gouvernoratOptions(): string[] {
+    return [...new Set(this.accessibleCases.map((item) => item.gouvernorat).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  get delegationOptions(): string[] {
+    return [...new Set(this.accessibleCases.map((item) => item.delegation).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  get statsCards(): StatCard[] {
+    const source = this.accessibleCases;
+    const workDoneCount = source.filter((c) => ['WORK_DONE', 'VALIDATED_BY_ZM', 'CLOSED'].includes(c.status)).length;
+    const warningCount = source.filter((c) => this.getSlaStatus(c) === 'WARNING').length;
+    const breachCount = source.filter((c) => {
+      const status = this.getSlaStatus(c);
+      return status === 'BREACHED' || status === 'COMPLETED_LATE';
+    }).length;
+
+    return [
+      { label: 'Total Cases', value: source.length, icon: 'cilDescription', className: 'stat-neutral' },
+      { label: 'Assigned to ZM', value: source.filter((c) => !!c.zmId).length, icon: 'cilUser', className: 'stat-primary' },
+      { label: 'Assigned to STT', value: source.filter((c) => !!c.sttId).length, icon: 'cilPeople', className: 'stat-info' },
+      { label: 'Assigned to TECH', value: source.filter((c) => !!c.techId).length, icon: 'cilUserFollow', className: 'stat-warning' },
+      { label: 'SLA Warning', value: warningCount, icon: 'cilWarning', className: 'stat-warning' },
+      { label: 'SLA Breached', value: breachCount, icon: 'cilBan', className: 'stat-danger' },
+      { label: 'Work Done', value: workDoneCount, icon: 'cilTask', className: 'stat-success' },
+      { label: 'Closed', value: source.filter((c) => c.status === 'CLOSED').length, icon: 'cilLockLocked', className: 'stat-dark' }
+    ];
+  }
+
+  get performanceCards(): PerfCard[] {
+    if (!this.myPerformance) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'Active Tasks',
+        value: String(this.myPerformance.activeTasksCount),
+        icon: 'cilTask',
+        className: 'perf-primary'
+      },
+      {
+        label: 'RDV On-Time',
+        value: String(this.myPerformance.rdvOnTime),
+        icon: 'cilCheckCircle',
+        className: 'perf-success'
+      },
+      {
+        label: 'RDV Late',
+        value: String(this.myPerformance.rdvLate),
+        icon: 'cilClock',
+        className: 'perf-danger'
+      },
+      {
+        label: 'RDV On-Time Rate',
+        value: `${this.myPerformance.rdvOnTimeRate.toFixed(1)}%`,
+        icon: 'cilChart',
+        className: 'perf-success'
+      },
+      {
+        label: 'Avg RDV Response',
+        value: this.formatMinutes(this.myPerformance.averageResponseMinutes),
+        icon: 'cilSpeedometer',
+        className: 'perf-info'
+      },
+      {
+        label: 'SLA Warnings',
+        value: String(this.myPerformance.slaWarningCount),
+        icon: 'cilWarning',
+        className: 'perf-warning'
+      },
+      {
+        label: 'SLA Escalations',
+        value: String(this.myPerformance.slaEscalationCount),
+        icon: 'cilBan',
+        className: 'perf-danger'
+      },
+      {
+        label: 'Avg Overdue',
+        value: this.formatMinutes(this.myPerformance.averageOverdueMinutes),
+        icon: 'cilClock',
+        className: 'perf-warning'
+      },
+      {
+        label: 'Completion',
+        value: `${this.myPerformance.workCompletionProgress.toFixed(1)}%`,
+        icon: 'cilChartPie',
+        className: 'perf-dark'
+      }
+    ];
+  }
+
+  get operationalAlerts(): NotificationItem[] {
+    const events = new Set([
+      'CASE_ASSIGNED_TO_ZM',
+      'CASE_ASSIGNED_TO_STT',
+      'CASE_ASSIGNED_TO_TECH',
+      'SLA_WARNING',
+      'SLA_BREACHED',
+      'SLA_ESCALATED'
+    ]);
+
+    return this.notificationStore.latestFirst()
+      .filter((item) => events.has(item.eventType))
+      .slice(0, 4);
+  }
+
+  get topTechs(): PerformanceSummaryResponse[] {
+    return [...this.teamTechPerformance]
+      .sort((a, b) => b.workCompletionProgress - a.workCompletionProgress)
+      .slice(0, 3);
+  }
+
+  get alertSummaryCards(): StatCard[] {
+    const alerts = this.operationalAlerts;
+    const breached = alerts.filter((item) => item.eventType === 'SLA_BREACHED').length;
+    const warning = alerts.filter((item) => item.eventType === 'SLA_WARNING').length;
+    const escalated = alerts.filter((item) => item.eventType === 'SLA_ESCALATED').length;
+    const assignments = alerts.filter((item) =>
+      item.eventType === 'CASE_ASSIGNED_TO_ZM'
+      || item.eventType === 'CASE_ASSIGNED_TO_STT'
+      || item.eventType === 'CASE_ASSIGNED_TO_TECH'
+    ).length;
+    const unread = alerts.filter((item) => !item.read).length;
+
+    return [
+      { label: 'Critical Breach', value: breached, icon: 'cilBan', className: 'stat-danger' },
+      { label: 'Escalated', value: escalated, icon: 'cilWarning', className: 'stat-danger' },
+      { label: 'SLA Warning', value: warning, icon: 'cilWarning', className: 'stat-warning' },
+      { label: 'Assignments', value: assignments, icon: 'cilTask', className: 'stat-primary' },
+      { label: 'Unread Alerts', value: unread, icon: 'cilBell', className: 'stat-dark' }
+    ];
+  }
+
+  get techMobileCases(): CaseResponse[] {
+    return [...this.filteredCases].sort((left, right) => {
+      const leftScore = this.slaProgress(left);
+      const rightScore = this.slaProgress(right);
+      return leftScore - rightScore;
+    });
+  }
+
+  loadCases(): void {
+    if (this.loading) return;
+
+    this.loading = true;
+    this.error = null;
+
+    this.casesService.getActivationCases()
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (rows) => {
+          const previousPage = this.currentPage;
+          this.cases = rows ?? [];
+          this.currentPage = Math.min(Math.max(1, previousPage), this.totalPages);
+        },
+        error: (err) => {
+          console.error('Failed to load activation cases:', err);
+          this.error = err?.error?.message ?? 'Failed to load activation cases';
+        }
+      });
+  }
+
+  loadPerformance(): void {
+    if (this.performanceLoading) {
+      return;
+    }
+
+    this.performanceLoading = true;
+
+    this.casesService.getMyPerformance()
+      .pipe(finalize(() => {
+        this.performanceLoading = false;
+        this.zone.run(() => this.cdr.detectChanges());
+      }))
+      .subscribe({
+        next: (summary) => {
+          this.myPerformance = summary;
+        },
+        error: (err) => {
+          console.error('Failed to load my performance:', err);
+          this.myPerformance = null;
+        }
+      });
+
+    if (this.isAdmin || this.isZm || this.isStt) {
+      this.casesService.getTechPerformance().subscribe({
+        next: (rows) => {
+          this.teamTechPerformance = rows ?? [];
+        },
+        error: (err) => {
+          console.error('Failed to load team performance:', err);
+          this.teamTechPerformance = [];
+        }
+      });
+      return;
+    }
+
+    this.teamTechPerformance = [];
+  }
+
+  onFiltersChange(): void {
+    this.currentPage = 1;
+  }
+
+  setPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  resetFilters(): void {
+    this.searchTerm = '';
+    this.selectedStatus = '';
+    this.selectedGouvernorat = '';
+    this.selectedDelegation = '';
+    this.currentPage = 1;
+  }
+
+  statusBadgeClass(status: CaseStatus): string {
+    return CASE_STATUS_UI[status]?.badgeClass ?? 'bg-secondary-subtle text-secondary-emphasis';
+  }
+
+  statusLabel(status: CaseStatus): string {
+    return CASE_STATUS_UI[status]?.label ?? status;
+  }
+
+  getSlaStatus(item: CaseResponse): SlaStatus | null {
+    return this.resolveLiveSla(item).status;
+  }
+
+  slaStatusLabel(item: CaseResponse): string {
+    const status = this.getSlaStatus(item);
+
+    switch (status) {
+      case 'ON_TRACK':
+        return 'On Track';
+      case 'WARNING':
+        return 'Warning';
+      case 'BREACHED':
+        return 'Breached';
+      case 'COMPLETED_ON_TIME':
+        return 'Completed On Time';
+      case 'COMPLETED_LATE':
+        return 'Completed Late';
+      default:
+        return 'Not Started';
+    }
+  }
+
+  slaBadgeClass(item: CaseResponse): string {
+    const status = this.getSlaStatus(item);
+
+    switch (status) {
+      case 'ON_TRACK':
+        return 'bg-success-subtle text-success-emphasis';
+      case 'WARNING':
+        return 'bg-warning-subtle text-warning-emphasis';
+      case 'BREACHED':
+        return 'bg-danger-subtle text-danger-emphasis';
+      case 'COMPLETED_ON_TIME':
+        return 'bg-info-subtle text-info-emphasis';
+      case 'COMPLETED_LATE':
+        return 'bg-danger-subtle text-danger-emphasis';
+      default:
+        return 'bg-secondary-subtle text-secondary-emphasis';
+    }
+  }
+
+  slaProgressClass(item: CaseResponse): string {
+    const status = this.getSlaStatus(item);
+
+    switch (status) {
+      case 'ON_TRACK':
+        return 'sla-progress--safe';
+      case 'WARNING':
+        return 'sla-progress--warning';
+      case 'BREACHED':
+      case 'COMPLETED_LATE':
+        return 'sla-progress--breached';
+      case 'COMPLETED_ON_TIME':
+        return 'sla-progress--done';
+      default:
+        return 'sla-progress--idle';
+    }
+  }
+
+  slaProgress(item: CaseResponse): number {
+    return this.resolveLiveSla(item).progressPercent;
+  }
+
+  slaRemainingLabel(item: CaseResponse): string {
+    const sla = item.slaTracking;
+    if (!sla) {
+      return '-';
+    }
+
+    const live = this.resolveLiveSla(item);
+
+    if (live.status === 'COMPLETED_ON_TIME' || live.status === 'COMPLETED_LATE') {
+      if (live.responseDurationSeconds == null) {
+        return 'RDV captured';
+      }
+
+      return `Responded in ${this.formatSeconds(live.responseDurationSeconds)}`;
+    }
+
+    const remaining = live.remainingSeconds;
+    if (remaining == null) {
+      return '-';
+    }
+
+    if (remaining <= 0) {
+      return live.overdueSeconds > 0
+        ? `Overdue by ${this.formatSeconds(live.overdueSeconds)}`
+        : 'Overdue';
+    }
+
+    return `${this.formatSeconds(remaining)} left`;
+  }
+
+  alertClass(item: NotificationItem): string {
+    switch (item.eventType) {
+      case 'SLA_WARNING':
+        return 'op-alert op-alert--warning';
+      case 'SLA_BREACHED':
+      case 'SLA_ESCALATED':
+        return 'op-alert op-alert--breached';
+      case 'CASE_ASSIGNED_TO_ZM':
+      case 'CASE_ASSIGNED_TO_STT':
+      case 'CASE_ASSIGNED_TO_TECH':
+        return 'op-alert op-alert--assignment';
+      default:
+        return 'op-alert op-alert--neutral';
+    }
+  }
+
+  alertIcon(item: NotificationItem): string {
+    switch (item.eventType) {
+      case 'SLA_WARNING':
+        return 'cilWarning';
+      case 'SLA_BREACHED':
+      case 'SLA_ESCALATED':
+        return 'cilBan';
+      case 'CASE_ASSIGNED_TO_ZM':
+      case 'CASE_ASSIGNED_TO_STT':
+      case 'CASE_ASSIGNED_TO_TECH':
+        return 'cilTask';
+      default:
+        return 'cilBell';
+    }
+  }
+
+  alertCaseRef(item: NotificationItem): string {
+    const crmCase = item.data?.['crmCase'];
+    if (typeof crmCase === 'string' && crmCase.trim()) {
+      return crmCase;
+    }
+
+    return item.entityId ?? '-';
+  }
+
+  async openAlert(alert: NotificationItem): Promise<void> {
+    const caseIdRaw = alert.data?.['caseId'];
+    const caseId = typeof caseIdRaw === 'string' && caseIdRaw.trim()
+      ? caseIdRaw
+      : alert.entityId;
+
+    if (caseId) {
+      const local = this.cases.find((c) => c.id === caseId);
+      if (local) {
+        await this.openDetails(local);
+      }
+    }
+
+    if (!alert.read) {
+      this.notificationStore.markAsRead(alert.id);
+    }
+  }
+
+  markAlertRead(alert: NotificationItem, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!alert.read) {
+      this.notificationStore.markAsRead(alert.id);
+    }
+  }
+
+  canAssignZm(item: CaseResponse): boolean {
+    if (!this.isAdmin) return false;
+    return item.status !== 'CLOSED';
+  }
+
+  canAssignStt(item: CaseResponse): boolean {
+    if (!this.isZm || !this.isCaseOwnedByZm(item)) return false;
+    return ['ASSIGNED_TO_ZM', 'ASSIGNED_TO_STT'].includes(item.status);
+  }
+
+  canAssignTech(item: CaseResponse): boolean {
+    if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
+    return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH'].includes(item.status);
+  }
+
+  canSetRdv(item: CaseResponse): boolean {
+    const allowedStatuses = ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'];
+
+    if (this.isStt && this.isCaseOwnedByStt(item)) {
+      return allowedStatuses.includes(item.status);
+    }
+
+    if (this.isTech && this.isCaseOwnedByTech(item)) {
+      return allowedStatuses.includes(item.status);
+    }
+
+    return false;
+  }
+
+  canUpdateWork(item: CaseResponse): boolean {
+    if (!this.isTech || !this.isCaseOwnedByTech(item)) return false;
+    return ['RDV_SET', 'ASSIGNED_TO_TECH'].includes(item.status);
+  }
+
+  canValidateZm(item: CaseResponse): boolean {
+    if (!this.isZm || !this.isCaseOwnedByZm(item)) return false;
+    return item.status === 'WORK_DONE';
+  }
+
+  canCloseCase(item: CaseResponse): boolean {
+    if (!this.isZm || !this.isCaseOwnedByZm(item)) return false;
+    return item.status === 'VALIDATED_BY_ZM';
+  }
+
+  canView(item: CaseResponse): boolean {
+    return this.canAccessCase(item);
+  }
+
+  isBusy(caseId: string): boolean {
+    return this.actionLoadingCaseId === caseId;
+  }
+
+  trackById = (_index: number, item: CaseResponse) => item.id;
+
+  async openAssignZm(item: CaseResponse): Promise<void> {
+    this.actionLoadingCaseId = item.id;
+
+    try {
+      const zms = (await firstValueFrom(this.userService.getAllZmsForAssignment()))
+        .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+      if (!zms.length) {
+        await this.swal.error('No ZM available', 'No approved ZM users were found for assignment.');
+        return;
+      }
+
+      const result = await this.swal.promptSelect(
+        `Assign ZM to CRM ${item.crmCase}`,
+        'Choose ZM',
+        zms.reduce<Record<string, string>>((acc, zm) => {
+          acc[zm.id] = `${zm.fullName} (${zm.email})`;
+          return acc;
+        }, {}),
+        item.zmId ?? '',
+        item.zmId ? 'Change ZM' : 'Assign ZM'
+      );
+
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+
+      const selectedZmId = result.value;
+      await this.runAction(item.id, () => this.casesService.assignZm(item.id, selectedZmId), 'ZM assignment saved');
+      console.log('Assign ZM', { caseId: item.id, selectedZmId });
+    } catch (err: any) {
+      console.error('Failed to assign ZM:', err);
+      const message = err?.error?.message ?? 'Failed to assign ZM';
+      await this.swal.error('Assignment failed', message);
+    } finally {
+      this.actionLoadingCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+    }
+  }
+
+  async openAssignStt(item: CaseResponse): Promise<void> {
+    this.actionLoadingCaseId = item.id;
+
+    try {
+      const stts = await this.loadAssignableStts();
+
+      if (!stts.length) {
+        await this.swal.error('No STT available', 'No assignable STT was found for this case.');
+        return;
+      }
+
+      const result = await this.swal.promptSelect(
+        `Assign STT to CRM ${item.crmCase}`,
+        'Choose STT',
+        stts.reduce<Record<string, string>>((acc, stt) => {
+          acc[stt.id] = `${stt.fullName} (${stt.email})`;
+          return acc;
+        }, {}),
+        item.sttId ?? '',
+        item.sttId ? 'Change STT' : 'Assign STT'
+      );
+
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+
+      const selectedSttId = result.value;
+      await this.runAction(item.id, () => this.casesService.assignStt(item.id, selectedSttId), 'STT assignment saved');
+      console.log('Assign STT', { caseId: item.id, caseZmId: item.zmId, selectedSttId });
+    } catch (err: any) {
+      console.error('Failed to assign STT:', err);
+      const message = err?.error?.message ?? 'Failed to assign STT';
+      await this.swal.error('Assignment failed', message);
+    } finally {
+      this.actionLoadingCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+    }
+
+    
+  }
+
+  async openAssignTech(item: CaseResponse): Promise<void> {
+    this.actionLoadingCaseId = item.id;
+
+    try {
+      const techs = await this.loadAssignableTechs();
+
+      if (!techs.length) {
+        await this.swal.error('No TECH available', 'No assignable TECH was found for this case.');
+        return;
+      }
+
+      const result = await this.swal.promptSelect(
+        `Assign TECH to CRM ${item.crmCase}`,
+        'Choose TECH',
+        techs.reduce<Record<string, string>>((acc, tech) => {
+          acc[tech.id] = `${tech.fullName} (${tech.email})`;
+          return acc;
+        }, {}),
+        item.techId ?? '',
+        item.techId ? 'Change TECH' : 'Assign TECH'
+      );
+
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+
+      const selectedTechId = result.value;
+      await this.runAction(item.id, () => this.casesService.assignTech(item.id, selectedTechId), 'TECH assignment saved');
+      console.log('Assign TECH', { caseId: item.id, caseSttId: item.sttId, selectedTechId });
+    } catch (err: any) {
+      console.error('Failed to assign TECH:', err);
+      const message = err?.error?.message ?? 'Failed to assign TECH';
+      await this.swal.error('Assignment failed', message);
+    } finally {
+      this.actionLoadingCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+    }
+  }
+
+  async openRdvPopup(item: CaseResponse): Promise<void> {
+    const rdv = this.extractRdv(item);
+
+    const result = await Swal.fire<SetRdvRequest>({
+      title: `Set RDV - CRM ${this.escapeHtml(item.crmCase)}`,
+      width: 860,
+      html: `
+        <div class="case-op-modal">
+          <div class="case-op-grid case-op-grid-2">
+            <div class="case-op-field">
+              <label class="case-op-label">Joignable <span>*</span></label>
+              <select id="sw-rdv-joignable" class="swal2-input case-op-input">
+                <option value="true" ${rdv.joignable !== false ? 'selected' : ''}>Yes</option>
+                <option value="false" ${rdv.joignable === false ? 'selected' : ''}>No</option>
+              </select>
+            </div>
+
+            <div class="case-op-field">
+              <label class="case-op-label">Date & Time RDV <span>*</span></label>
+              <input id="sw-rdv-date" type="datetime-local" class="swal2-input case-op-input" value="${this.toDateTimeLocal(rdv.datePriseRdv)}" />
+            </div>
+          </div>
+
+          <div class="case-op-field">
+            <label class="case-op-label">Customer Reachability Cause</label>
+            <input id="sw-rdv-cause-inj" class="swal2-input case-op-input" value="${this.escapeHtml(rdv.causeInjoignabilite ?? '')}" placeholder="Required when joignable = No" />
+          </div>
+
+          <div class="case-op-grid case-op-grid-2">
+            <div class="case-op-field">
+              <label class="case-op-label">Operational Detail</label>
+              <textarea id="sw-rdv-detail" class="swal2-textarea case-op-textarea" placeholder="Customer/site detail for field team">${this.escapeHtml(rdv.detail ?? '')}</textarea>
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">RDV Comment</label>
+              <textarea id="sw-rdv-comment" class="swal2-textarea case-op-textarea" placeholder="Additional scheduling notes">${this.escapeHtml(rdv.cmtRdv ?? '')}</textarea>
+            </div>
+          </div>
+
+          <div class="case-op-divider"></div>
+
+          <div class="case-op-grid case-op-grid-2">
+            <div class="case-op-field">
+              <label class="case-op-label">Abandon</label>
+              <select id="sw-rdv-abandon" class="swal2-input case-op-input">
+                <option value="false" ${rdv.abandon ? '' : 'selected'}>No</option>
+                <option value="true" ${rdv.abandon ? 'selected' : ''}>Yes</option>
+              </select>
+            </div>
+
+            <div class="case-op-field">
+              <label class="case-op-label">Cause Abandon</label>
+              <input id="sw-rdv-cause-abandon" class="swal2-input case-op-input" value="${this.escapeHtml(rdv.causeAbandon ?? '')}" placeholder="Required when abandon = Yes" />
+            </div>
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: 'case-op-popup'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Save RDV',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#321fdb',
+      preConfirm: () => {
+        const joignable = this.getElementValue('sw-rdv-joignable') === 'true';
+        const datePriseRdv = this.toIso(this.getElementValue('sw-rdv-date'));
+        const causeInjoignabilite = this.toNullable(this.getElementValue('sw-rdv-cause-inj'));
+        const detail = this.getElementValue('sw-rdv-detail').trim();
+        const cmtRdv = this.getElementValue('sw-rdv-comment').trim();
+        const abandon = this.getElementValue('sw-rdv-abandon') === 'true';
+        const causeAbandon = this.toNullable(this.getElementValue('sw-rdv-cause-abandon'));
+
+        if (!datePriseRdv) {
+          Swal.showValidationMessage('Date RDV is required');
+          return undefined;
+        }
+
+        if (!joignable && !causeInjoignabilite) {
+          Swal.showValidationMessage('Cause injoignabilite is required when client is not joignable');
+          return undefined;
+        }
+
+        if (abandon && !causeAbandon) {
+          Swal.showValidationMessage('Cause abandon is required when abandon is true');
+          return undefined;
+        }
+
+        return {
+          joignable,
+          datePriseRdv,
+          causeInjoignabilite: joignable ? null : causeInjoignabilite,
+          detail,
+          cmtRdv,
+          abandon,
+          causeAbandon: abandon ? causeAbandon : null
+        };
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+    const rdvPayload = result.value;
+    await this.runAction(item.id, () => this.casesService.setRdv(item.id, rdvPayload), 'RDV saved');
+  }
+
+  async openWorkPopup(item: CaseResponse): Promise<void> {
+    const work = this.extractWork(item);
+    const metrics = this.extractMetrics(item);
+
+    const result = await Swal.fire<CompleteWorkRequest>({
+      title: `Update Work - CRM ${this.escapeHtml(item.crmCase)}`,
+      width: 760,
+      html: `
+        <div class="case-op-modal">
+          <div class="case-op-grid case-op-grid-2">
+            <div class="case-op-field">
+              <label class="case-op-label">Work Result <span>*</span></label>
+              <input id="sw-work-result" class="swal2-input case-op-input" value="${this.escapeHtml(work.repTravauxStt ?? '')}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">Date End Work <span>*</span></label>
+              <input id="sw-work-date" type="datetime-local" class="swal2-input case-op-input" value="${this.toDateTimeLocal(work.dateFinTrv)}" />
+            </div>
+          </div>
+
+          <div class="case-op-field">
+            <label class="case-op-label">Comment <span>*</span></label>
+            <textarea id="sw-work-comment" class="swal2-textarea case-op-textarea" placeholder="Summarize intervention outcome and observations">${this.escapeHtml(work.cmtTrvStt ?? '')}</textarea>
+          </div>
+
+          <div class="case-op-divider"></div>
+          <div class="case-op-subtitle">Technical Metrics</div>
+
+          <div class="case-op-grid case-op-grid-3">
+            <div class="case-op-field">
+              <label class="case-op-label">Metrage Cable</label>
+              <input id="sw-work-metrage" type="number" step="0.01" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.metrageCable)}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">Nombre PV</label>
+              <input id="sw-work-pv" type="number" step="1" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.nombrePv)}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">Debit DL</label>
+              <input id="sw-work-dl" type="number" step="0.01" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.debitDl)}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">Debit UL</label>
+              <input id="sw-work-ul" type="number" step="0.01" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.debitUl)}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">RSRP</label>
+              <input id="sw-work-rsrp" type="number" step="1" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.rsrp)}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">RSRQ</label>
+              <input id="sw-work-rsrq" type="number" step="1" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.rsrq)}" />
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">SINR</label>
+              <input id="sw-work-sinr" type="number" step="1" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.sinr)}" />
+            </div>
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: 'case-op-popup'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Submit Work',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#2eb85c',
+      preConfirm: () => {
+        const repTravauxStt = this.getElementValue('sw-work-result').trim();
+        const dateFinTrv = this.toIso(this.getElementValue('sw-work-date'));
+        const cmtTrvStt = this.getElementValue('sw-work-comment').trim();
+
+        if (!repTravauxStt || !dateFinTrv || !cmtTrvStt) {
+          Swal.showValidationMessage('Work result, date and comment are required');
+          return undefined;
+        }
+
+        return {
+          repTravauxStt,
+          dateFinTrv,
+          cmtTrvStt,
+          metrageCable: this.toMaybeNumber(this.getElementValue('sw-work-metrage')),
+          nombrePv: this.toMaybeNumber(this.getElementValue('sw-work-pv')),
+          debitDl: this.toMaybeNumber(this.getElementValue('sw-work-dl')),
+          debitUl: this.toMaybeNumber(this.getElementValue('sw-work-ul')),
+          rsrp: this.toMaybeNumber(this.getElementValue('sw-work-rsrp')),
+          rsrq: this.toMaybeNumber(this.getElementValue('sw-work-rsrq')),
+          sinr: this.toMaybeNumber(this.getElementValue('sw-work-sinr'))
+        };
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+    const workPayload = result.value;
+    await this.runAction(item.id, () => this.casesService.completeWork(item.id, workPayload), 'Work updated');
+  }
+
+  async openValidatePopup(item: CaseResponse): Promise<void> {
+    const validation = this.extractValidation(item);
+    const defaultApproved = validation.approved ?? true;
+
+    const result = await Swal.fire<ValidateZmRequest>({
+      title: `ZM Validation - CRM ${this.escapeHtml(item.crmCase)}`,
+      width: 720,
+      html: `
+        <div class="case-op-modal">
+          <div class="case-op-field">
+            <label class="case-op-label">Decision <span>*</span></label>
+            <select id="sw-zm-approved" class="swal2-input case-op-input">
+              <option value="true" ${defaultApproved ? 'selected' : ''}>Approve</option>
+              <option value="false" ${defaultApproved ? '' : 'selected'}>Reject</option>
+            </select>
+          </div>
+
+          <div class="case-op-field">
+            <label class="case-op-label">Validation Comment <span>*</span></label>
+            <textarea id="sw-zm-comment" class="swal2-textarea case-op-textarea" placeholder="Explain your validation decision for traceability">${this.escapeHtml(validation.comment ?? '')}</textarea>
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: 'case-op-popup'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Submit Validation',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#321fdb',
+      preConfirm: () => {
+        const approved = this.getElementValue('sw-zm-approved') === 'true';
+        const comment = this.getElementValue('sw-zm-comment').trim();
+
+        if (!comment) {
+          Swal.showValidationMessage('Comment is required');
+          return undefined;
+        }
+
+        return { approved, comment };
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+    const validationPayload = result.value;
+    await this.runAction(item.id, () => this.casesService.validateZm(item.id, validationPayload), 'Validation saved');
+  }
+
+  async openClosePopup(item: CaseResponse): Promise<void> {
+    const confirm = await this.swal.confirmAction(
+      'Close this case?',
+      `CRM ${item.crmCase} will be closed and cannot move forward.`,
+      'Close Case'
+    );
+
+    if (!confirm.isConfirmed) return;
+    await this.runAction(item.id, () => this.casesService.closeCase(item.id), 'Case closed');
+  }
+
+  async openDetails(item: CaseResponse): Promise<void> {
+    this.actionLoadingCaseId = item.id;
+
+    try {
+      const fullCase = await firstValueFrom(this.casesService.getCaseById(item.id));
+      const rdv = this.extractRdv(fullCase);
+      const work = this.extractWork(fullCase);
+      const metrics = this.extractMetrics(fullCase);
+      const validation = this.extractValidation(fullCase);
+      const timeline = this.extractTimeline(fullCase);
+      const proofs = this.extractProofs(fullCase);
+
+      await Swal.fire({
+        title: `Case Details - ${this.escapeHtml(fullCase.crmCase)}`,
+        width: 940,
+        html: `
+          <div class="text-start case-details-modal">
+            <div class="row g-2 mb-2">
+              <div class="col-md-6"><strong>Type:</strong> ${this.escapeHtml(fullCase.type || '-')}</div>
+              <div class="col-md-6"><strong>Status:</strong> ${this.escapeHtml(this.statusLabel(fullCase.status))}</div>
+              <div class="col-md-6"><strong>Client:</strong> ${this.escapeHtml(fullCase.clientName || '-')}</div>
+              <div class="col-md-6"><strong>Phone:</strong> ${this.escapeHtml(fullCase.clientPhone || '-')}</div>
+              <div class="col-md-6"><strong>MSISDN:</strong> ${this.escapeHtml(fullCase.msisdn || '-')}</div>
+              <div class="col-md-6"><strong>Offer:</strong> ${this.escapeHtml(fullCase.offre || '-')}</div>
+              <div class="col-md-6"><strong>Pack:</strong> ${this.escapeHtml(fullCase.desPack || '-')}</div>
+              <div class="col-md-6"><strong>Comment:</strong> ${this.escapeHtml(fullCase.commentaire || '-')}</div>
+              <div class="col-md-12"><strong>Location:</strong> ${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</div>
+            </div>
+
+            <hr />
+            <h6 class="mb-2">Assignment Chain</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-md-4"><strong>ZM:</strong> ${this.escapeHtml(this.personLabel(fullCase.zmName, fullCase.zmEmail))}</div>
+              <div class="col-md-4"><strong>STT:</strong> ${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</div>
+              <div class="col-md-4"><strong>TECH:</strong> ${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</div>
+            </div>
+
+            <hr />
+            <h6 class="mb-2">RDV</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-md-4"><strong>Joignable:</strong> ${rdv.joignable == null ? '-' : rdv.joignable ? 'Yes' : 'No'}</div>
+              <div class="col-md-4"><strong>Date:</strong> ${this.escapeHtml(this.asDateLabel(rdv.datePriseRdv))}</div>
+              <div class="col-md-4"><strong>Abandon:</strong> ${rdv.abandon == null ? '-' : rdv.abandon ? 'Yes' : 'No'}</div>
+              <div class="col-md-6"><strong>Cause Injoignabilite:</strong> ${this.escapeHtml(rdv.causeInjoignabilite || '-')}</div>
+              <div class="col-md-6"><strong>Cause Abandon:</strong> ${this.escapeHtml(rdv.causeAbandon || '-')}</div>
+              <div class="col-md-6"><strong>Detail:</strong> ${this.escapeHtml(rdv.detail || '-')}</div>
+              <div class="col-md-6"><strong>Comment:</strong> ${this.escapeHtml(rdv.cmtRdv || '-')}</div>
+            </div>
+
+            <hr />
+            <h6 class="mb-2">Work</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-md-4"><strong>Result:</strong> ${this.escapeHtml(work.repTravauxStt || '-')}</div>
+              <div class="col-md-4"><strong>Date End:</strong> ${this.escapeHtml(this.asDateLabel(work.dateFinTrv))}</div>
+              <div class="col-md-4"><strong>Comment:</strong> ${this.escapeHtml(work.cmtTrvStt || '-')}</div>
+            </div>
+
+            <hr />
+            <h6 class="mb-2">Work Proof</h6>
+            ${this.renderProofsHtml(proofs)}
+
+            <hr />
+            <h6 class="mb-2">Technical Metrics</h6>
+            <div class="row g-2 mb-2">
+              <div class="col-md-3"><strong>Cable:</strong> ${this.asMetric(metrics.metrageCable)}</div>
+              <div class="col-md-3"><strong>PV:</strong> ${this.asMetric(metrics.nombrePv)}</div>
+              <div class="col-md-3"><strong>DL:</strong> ${this.asMetric(metrics.debitDl)}</div>
+              <div class="col-md-3"><strong>UL:</strong> ${this.asMetric(metrics.debitUl)}</div>
+              <div class="col-md-4"><strong>RSRP:</strong> ${this.asMetric(metrics.rsrp)}</div>
+              <div class="col-md-4"><strong>RSRQ:</strong> ${this.asMetric(metrics.rsrq)}</div>
+              <div class="col-md-4"><strong>SINR:</strong> ${this.asMetric(metrics.sinr)}</div>
+            </div>
+
+            <hr />
+            <h6 class="mb-2">ZM Validation</h6>
+            <div class="row g-2">
+              <div class="col-md-4"><strong>Approved:</strong> ${validation.approved == null ? '-' : validation.approved ? 'Yes' : 'No'}</div>
+              <div class="col-md-8"><strong>Comment:</strong> ${this.escapeHtml(validation.comment || '-')}</div>
+            </div>
+
+            <hr />
+            <h6 class="mb-2">Case Timeline</h6>
+            ${this.renderTimelineHtml(timeline)}
+          </div>
+        `,
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#321fdb'
+      });
+    } catch (err: any) {
+      console.error('Failed to load case details:', err);
+      const message = err?.error?.message ?? 'Failed to load case details';
+      await this.swal.error('Details unavailable', message);
+    } finally {
+      this.actionLoadingCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+    }
+  }
+
+  private async runAction(caseId: string, action: () => any, successTitle: string): Promise<void> {
+    this.actionLoadingCaseId = caseId;
+
+    try {
+      await firstValueFrom(action());
+      await this.swal.success(successTitle, 'Operation completed successfully.');
+      this.loadCases();
+      this.loadPerformance();
+    } catch (err: any) {
+      console.error('Case action failed:', err);
+      const message = err?.error?.message ?? 'Operation failed';
+      await this.swal.error('Request failed', message);
+    } finally {
+      this.actionLoadingCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+    }
+  }
+
+  private canAccessCase(item: CaseResponse): boolean {
+    if (this.isAdmin) return true;
+    if (this.isZm) return this.isCaseOwnedByZm(item);
+    if (this.isStt) return this.isCaseOwnedByStt(item);
+    if (this.isTech) return this.isCaseOwnedByTech(item);
+    return false;
+  }
+
+  private get isAdmin(): boolean {
+    return this.currentRole === 'ROLE_ADMIN';
+  }
+
+  private get isZm(): boolean {
+    return this.currentRole === 'ROLE_ZM';
+  }
+
+  private get isStt(): boolean {
+    return this.currentRole === 'ROLE_STT';
+  }
+
+  private get isTech(): boolean {
+    return this.currentRole === 'ROLE_TECH';
+  }
+
+  private get currentUserEmail(): string {
+    return (this.authStore.user()?.email ?? '').trim().toLowerCase();
+  }
+
+  private isCaseOwnedByZm(item: CaseResponse): boolean {
+    return this.sameEmail(item.zmEmail, this.currentUserEmail);
+  }
+
+  private isCaseOwnedByStt(item: CaseResponse): boolean {
+    return this.sameEmail(item.sttEmail, this.currentUserEmail);
+  }
+
+  private isCaseOwnedByTech(item: CaseResponse): boolean {
+    return this.sameEmail(item.techEmail, this.currentUserEmail);
+  }
+
+  private sameEmail(left?: string | null, right?: string | null): boolean {
+    return (left ?? '').trim().toLowerCase() === (right ?? '').trim().toLowerCase();
+  }
+
+  private async loadAssignableStts(): Promise<AssignableUser[]> {
+    const users = await firstValueFrom(this.userService.getMySttsForZm());
+    return (users ?? [])
+      .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }))
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }
+
+  private async loadAssignableTechs(): Promise<AssignableUser[]> {
+    const myTechs = await firstValueFrom(this.sttTechApi.getMyTechnicians());
+    return (myTechs ?? [])
+      .filter((u: TechnicianListItem) => u.status === 'APPROVED' && u.enabled)
+      .map((u: TechnicianListItem) => ({ id: u.id, fullName: u.fullName, email: u.email }))
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }
+
+  private extractRdv(item: CaseResponse): CaseRdv {
+    if (item.rdv) return item.rdv;
+
+    return {
+      joignable: item.joignable,
+      datePriseRdv: item.datePriseRdv,
+      causeInjoignabilite: item.causeInjoignabilite,
+      detail: item.detail,
+      cmtRdv: item.cmtRdv,
+      abandon: item.abandon,
+      causeAbandon: item.causeAbandon
+    };
+  }
+
+  private extractWork(item: CaseResponse): CaseWork {
+    if (item.work) return item.work;
+
+    return {
+      repTravauxStt: item.repTravauxStt,
+      dateFinTrv: item.dateFinTrv,
+      cmtTrvStt: item.cmtTrvStt
+    };
+  }
+
+  private extractMetrics(item: CaseResponse): CaseMetrics {
+    if (item.metrics) return item.metrics;
+
+    return {
+      metrageCable: item.metrageCable,
+      nombrePv: item.nombrePv,
+      debitDl: item.debitDl,
+      debitUl: item.debitUl,
+      rsrp: item.rsrp,
+      rsrq: item.rsrq,
+      sinr: item.sinr
+    };
+  }
+
+  private extractValidation(item: CaseResponse): CaseZmValidation {
+    if (item.zmValidation) return item.zmValidation;
+
+    return {
+      approved: item.repZm === 'APPROVED' ? true : item.repZm === 'REJECTED' ? false : null,
+      comment: item.commentZm
+    };
+  }
+
+  private extractProofs(item: CaseResponse): CaseProofFile[] {
+    return [...(item.workProofs ?? [])];
+  }
+
+  private extractTimeline(item: CaseResponse): CaseTimelineEvent[] {
+    const timeline = item.timeline ?? [];
+
+    return [...timeline].sort((left, right) => {
+      const leftMs = Date.parse(left.occurredAt ?? '');
+      const rightMs = Date.parse(right.occurredAt ?? '');
+
+      return (Number.isNaN(rightMs) ? 0 : rightMs) - (Number.isNaN(leftMs) ? 0 : leftMs);
+    });
+  }
+
+  private renderTimelineHtml(timeline: CaseTimelineEvent[]): string {
+    if (!timeline.length) {
+      return '<div class="text-body-secondary small">No timeline events yet.</div>';
+    }
+
+    const rows = timeline.slice(0, 12).map((event) => {
+      const occurredAt = this.escapeHtml(this.asDateLabel(event.occurredAt));
+      const title = this.escapeHtml(event.title ?? event.eventType ?? 'Event');
+      const details = this.escapeHtml(event.details ?? '-');
+      const actor = this.escapeHtml(event.actor ?? 'SYSTEM');
+      const stateFrom = event.previousStatus ? this.statusLabel(event.previousStatus) : '-';
+      const stateTo = event.newStatus ? this.statusLabel(event.newStatus) : '-';
+
+      return `
+        <div class="case-timeline__item mb-2 pb-2 border-bottom">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="fw-semibold small">${title}</div>
+              <div class="x-small text-body-secondary">${details}</div>
+            </div>
+            <span class="x-small text-body-secondary">${occurredAt}</span>
+          </div>
+          <div class="x-small text-body-secondary mt-1">
+            Actor: ${actor} • State: ${this.escapeHtml(stateFrom)} -> ${this.escapeHtml(stateTo)}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `<div class="case-timeline">${rows}</div>`;
+  }
+
+  private renderProofsHtml(proofs: CaseProofFile[]): string {
+    if (!proofs.length) {
+      return '<div class="text-body-secondary small">No proof image uploaded yet.</div>';
+    }
+
+    const rows = proofs.map((proof) => {
+      const filename = this.escapeHtml(proof.originalFilename || 'Proof image');
+      const uploadedAt = this.escapeHtml(this.asDateLabel(proof.createdAt));
+      const uploadedBy = this.escapeHtml(proof.uploadedBy || '-');
+      const href = this.escapeHtml(proof.viewUrl || proof.downloadUrl || '#');
+
+      return `
+        <a
+          href="${href}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="d-flex gap-3 align-items-start text-decoration-none border rounded-3 p-2 mb-2"
+        >
+          <img
+            src="${href}"
+            alt="${filename}"
+            style="width: 112px; height: 84px; object-fit: cover; border-radius: 0.75rem; flex-shrink: 0;"
+          />
+          <div class="text-start">
+            <div class="fw-semibold text-body">${filename}</div>
+            <div class="small text-body-secondary">Uploaded: ${uploadedAt}</div>
+            <div class="small text-body-secondary">By: ${uploadedBy}</div>
+            <div class="small text-primary mt-1">Open image</div>
+          </div>
+        </a>
+      `;
+    }).join('');
+
+    return `<div class="case-proof-list">${rows}</div>`;
+  }
+
+  private personLabel(name?: string | null, email?: string | null): string {
+    const safeName = (name ?? '').trim();
+    const safeEmail = (email ?? '').trim();
+    if (!safeName && !safeEmail) return '-';
+    if (safeName && safeEmail) return `${safeName} (${safeEmail})`;
+    return safeName || safeEmail;
+  }
+
+  initialsFor(name?: string | null, email?: string | null): string {
+    const source = (name ?? '').trim() || (email ?? '').trim();
+    if (!source) return 'NA';
+
+    const words = source.split(/[\s@._-]+/).filter(Boolean);
+    if (!words.length) return 'NA';
+
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${words[0][0] ?? ''}${words[1][0] ?? ''}`.toUpperCase();
+  }
+
+  private asMetric(value?: number | null): string {
+    return value == null ? '-' : String(value);
+  }
+
+  private formatMinutes(value: number): string {
+    if (!Number.isFinite(value) || value <= 0) {
+      return '0m';
+    }
+
+    const rounded = Math.round(value * 10) / 10;
+    return `${rounded}m`;
+  }
+
+  private formatSeconds(totalSeconds: number): string {
+    if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+      return '0s';
+    }
+
+    const safeSeconds = Math.floor(totalSeconds);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
+  }
+
+  private resolveLiveSla(item: CaseResponse): {
+    status: SlaStatus | null;
+    progressPercent: number;
+    remainingSeconds: number | null;
+    overdueSeconds: number;
+    responseDurationSeconds: number | null;
+  } {
+    const fallback = this.fallbackSla(item.slaTracking);
+    const sla = item.slaTracking;
+    if (!sla) {
+      return fallback;
+    }
+
+    const baseStatus = sla.status ?? null;
+    if (baseStatus === 'COMPLETED_ON_TIME' || baseStatus === 'COMPLETED_LATE') {
+      return fallback;
+    }
+
+    const startedMs = this.toEpochMs(sla.startedAt);
+    const deadlineMs = this.toEpochMs(sla.deadlineAt);
+
+    if (startedMs == null || deadlineMs == null || deadlineMs <= startedMs) {
+      return fallback;
+    }
+
+    const durationMs = Math.max(1000, deadlineMs - startedMs);
+    const remainingMs = deadlineMs - this.nowEpochMs;
+    const clampedRemainingMs = Math.max(0, remainingMs);
+    const warningThresholdPercent = sla.warningThresholdPercent ?? this.warningThresholdPercent;
+
+    const remainingSeconds = Math.floor(clampedRemainingMs / 1000);
+    const overdueSeconds = Math.floor(Math.max(0, -remainingMs) / 1000);
+    const progressPercent = Math.max(0, Math.min(100, (clampedRemainingMs / durationMs) * 100));
+
+    let status: SlaStatus = 'ON_TRACK';
+    if (progressPercent <= 0) {
+      status = 'BREACHED';
+    } else if (progressPercent <= warningThresholdPercent) {
+      status = 'WARNING';
+    }
+
+    return {
+      status,
+      progressPercent,
+      remainingSeconds,
+      overdueSeconds,
+      responseDurationSeconds: sla.responseDurationSeconds ?? null
+    };
+  }
+
+  private fallbackSla(sla?: CaseSlaTracking | null): {
+    status: SlaStatus | null;
+    progressPercent: number;
+    remainingSeconds: number | null;
+    overdueSeconds: number;
+    responseDurationSeconds: number | null;
+  } {
+    const status = sla?.status ?? null;
+    const progressPercent = Math.max(0, Math.min(100, sla?.progressPercent ?? 0));
+    const remainingSeconds = sla?.remainingSeconds ?? null;
+
+    return {
+      status,
+      progressPercent,
+      remainingSeconds,
+      overdueSeconds: 0,
+      responseDurationSeconds: sla?.responseDurationSeconds ?? null
+    };
+  }
+
+  private toEpochMs(value?: string | null): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  private startLiveTicker(): void {
+    this.stopLiveTicker();
+
+    this.zone.runOutsideAngular(() => {
+      this.liveTickHandle = setInterval(() => {
+        this.nowEpochMs = Date.now();
+        this.zone.run(() => this.cdr.detectChanges());
+      }, ActivationCasesListComponent.LIVE_TICK_MS);
+    });
+  }
+
+  private stopLiveTicker(): void {
+    if (this.liveTickHandle != null) {
+      clearInterval(this.liveTickHandle);
+      this.liveTickHandle = null;
+    }
+  }
+
+  private startBackendResync(): void {
+    this.stopBackendResync();
+
+    this.zone.runOutsideAngular(() => {
+      this.resyncHandle = setInterval(() => {
+        this.zone.run(() => {
+          this.loadCases();
+          this.loadPerformance();
+        });
+      }, ActivationCasesListComponent.BACKEND_RESYNC_MS);
+    });
+  }
+
+  private stopBackendResync(): void {
+    if (this.resyncHandle != null) {
+      clearInterval(this.resyncHandle);
+      this.resyncHandle = null;
+    }
+  }
+
+  private asDateLabel(value?: string | null): string {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString();
+  }
+
+  private toDateTimeLocal(value?: string | null): string {
+    if (!value) return '';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  }
+
+  private toIso(value: string): string {
+    if (!value) return '';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    return date.toISOString();
+  }
+
+  private toNullable(value?: string | null): string | null {
+    const trimmed = (value ?? '').trim();
+    return trimmed ? trimmed : null;
+  }
+
+  private toMaybeNumber(value: string): number | undefined {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  private toInputNumber(value?: number | null): string {
+    return value == null ? '' : String(value);
+  }
+
+  private getElementValue(id: string): string {
+    const element = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+    return element?.value ?? '';
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+}

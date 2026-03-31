@@ -14,7 +14,7 @@ import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './core/auth/auth.interceptor';
 
-import { API_BASE_URL } from './core/http/api.config';
+import { API_BASE_URL, resolveApiBaseUrl } from './core/http/api.config';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,7 +30,7 @@ export const appConfig: ApplicationConfig = {
 ),
 
     // ✅ Provide your backend base URL token
-    { provide: API_BASE_URL, useValue: 'http://localhost:8080' },
+    { provide: API_BASE_URL, useFactory: resolveApiBaseUrl },
 
     // ✅ Http + interceptor
     provideHttpClient(withInterceptors([authInterceptor])),

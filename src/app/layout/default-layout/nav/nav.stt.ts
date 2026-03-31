@@ -7,9 +7,24 @@ export const navStt: INavData[] = [
     iconComponent: { name: 'cilSpeedometer' }
   },
   {
+    name: 'Invite Technicians',
+    url: '/stt/invite-technicians',
+    iconComponent: { name: 'cilEnvelopeOpen' }
+  },
+  {
     name: 'Approvals',
     url: '/stt/approvals',
     iconComponent: { name: 'cilCheckCircle' }
+  },
+  {
+    name: 'Activation Cases',
+    url: '/stt/cases/activation',
+    iconComponent: { name: 'cilFolder' }
+  },
+  {
+    name: 'My Technicians',
+    url: '/stt/my-technicians',
+    iconComponent: { name: 'cilPeople' }
   },
   {
     name: 'Create Intervention',

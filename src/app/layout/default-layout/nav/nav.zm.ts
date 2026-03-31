@@ -12,6 +12,23 @@ export const navZm: INavData[] = [
     iconComponent: { name: 'cilCheckCircle' }
   },
   {
+    name: 'Technician Approvals',
+    url: '/zm/technician-approvals',
+    iconComponent: { name: 'cilUserFollow' }
+  },
+
+  {
+    name: 'Activation Cases',
+    url: '/zm/cases/activation',
+    iconComponent: { name: 'cilFolder' }
+  },
+
+   {
+    name: 'My Team',
+    url: '/zm/my-team',
+    iconComponent: { name: 'cil-people' }
+  },
+  {
     name: 'Validation Queue',
     url: '/zm/validations',
     iconComponent: { name: 'cilTask' }

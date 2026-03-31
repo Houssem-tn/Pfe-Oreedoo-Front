@@ -1,0 +1,117 @@
+<div class="register-tech-page">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-7 col-xl-6">
+        <div class="card shadow-sm border-0">
+          <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+              <h2 class="fw-bold mb-2">Technician Registration</h2>
+              <p class="text-body-secondary mb-0">
+                Complete your registration using the invitation sent to you.
+              </p>
+            </div>
+
+            <div *ngIf="loadingValidation" class="text-center py-4">
+              <div class="spinner-border" role="status"></div>
+              <p class="mt-3 mb-0 text-body-secondary">Validating invitation...</p>
+            </div>
+
+            <div *ngIf="!loadingValidation && pageError" class="alert alert-danger">
+              {{ pageError }}
+            </div>
+
+            <ng-container *ngIf="!loadingValidation && canShowForm && invitation">
+              <div class="invitation-info mb-4 p-3 rounded bg-light border">
+                <div class="mb-2">
+                  <strong>Invited email:</strong>
+                  <span>{{ invitation.email }}</span>
+                </div>
+                <div>
+                  <strong>Supervisor (STT):</strong>
+                  <span>{{ invitation.sttName || 'Unknown STT' }}</span>
+                </div>
+              </div>
+
+              <div *ngIf="submitSuccess" class="alert alert-success">
+                {{ submitSuccess }}
+              </div>
+
+              <div *ngIf="submitError" class="alert alert-danger">
+                {{ submitError }}
+              </div>
+
+              <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+                <div class="mb-3">
+                  <label class="form-label">First name</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="firstName"
+                    placeholder="Enter your first name"
+                  />
+                  <div class="text-danger small mt-1" *ngIf="firstNameCtrl.touched && firstNameCtrl.invalid">
+                    <span *ngIf="firstNameCtrl.errors?.['required']">First name is required.</span>
+                    <span *ngIf="firstNameCtrl.errors?.['minlength']">First name must be at least 2 characters.</span>
+                    <span *ngIf="firstNameCtrl.errors?.['maxlength']">First name must be at most 60 characters.</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Last name</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="lastName"
+                    placeholder="Enter your last name"
+                  />
+                  <div class="text-danger small mt-1" *ngIf="lastNameCtrl.touched && lastNameCtrl.invalid">
+                    <span *ngIf="lastNameCtrl.errors?.['required']">Last name is required.</span>
+                    <span *ngIf="lastNameCtrl.errors?.['minlength']">Last name must be at least 2 characters.</span>
+                    <span *ngIf="lastNameCtrl.errors?.['maxlength']">Last name must be at most 60 characters.</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Phone</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="phone"
+                    placeholder="Enter your phone number"
+                  />
+                  <div class="text-danger small mt-1" *ngIf="phoneCtrl.touched && phoneCtrl.invalid">
+                    <span *ngIf="phoneCtrl.errors?.['maxlength']">Phone number is too long.</span>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Password</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    formControlName="password"
+                    placeholder="Enter your password"
+                  />
+                  <div class="text-danger small mt-1" *ngIf="passwordCtrl.touched && passwordCtrl.invalid">
+                    <span *ngIf="passwordCtrl.errors?.['required']">Password is required.</span>
+                    <span *ngIf="passwordCtrl.errors?.['minlength']">Password must be at least 6 characters.</span>
+                    <span *ngIf="passwordCtrl.errors?.['maxlength']">Password is too long.</span>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  class="btn btn-primary w-100"
+                  [disabled]="submitting"
+                >
+                  <span *ngIf="!submitting">Submit registration</span>
+                  <span *ngIf="submitting">Submitting...</span>
+                </button>
+              </form>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

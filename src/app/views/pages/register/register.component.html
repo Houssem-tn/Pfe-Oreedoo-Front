@@ -1,157 +1,283 @@
-<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
+<div class="register-page bg-light dark:bg-transparent min-vh-100 d-flex align-items-center py-4">
   <c-container>
     <c-row class="justify-content-center">
-      <c-col lg="7" md="9" xl="6">
-        <c-card class="mx-4">
-          <c-card-body class="p-4">
-            <form cForm (ngSubmit)="submit()">
-              <h1>Create account</h1>
-              <p class="text-body-secondary">
-                Register with your details to access the platform
-              </p>
+      <c-col lg="8" md="10" xl="7">
+        <c-card class="border-0 shadow-lg rounded-4 overflow-hidden">
+          <c-card-body class="p-0">
+            <div class="row g-0">
+              <div class="col-lg-5 d-none d-lg-flex">
+                <div class="w-100 h-100 bg-primary text-white p-4 p-xl-5 d-flex flex-column justify-content-center">
+                  <div class="mb-4">
+                    <div class="rounded-circle bg-white bg-opacity-25 d-inline-flex align-items-center justify-content-center p-3 mb-3">
+                      <svg cIcon name="cilUserFollow" width="28"></svg>
+                    </div>
+                    <h2 class="fw-bold mb-2">Join the platform</h2>
+                    <p class="mb-0 text-white text-opacity-75">
+                      Create your account to access the workspace, submit requests, and follow your approval status.
+                    </p>
+                  </div>
 
-              <div class="alert alert-success py-2" *ngIf="success">
-                {{ success }}
+                  <div class="mt-4">
+                    <div class="d-flex align-items-start mb-3">
+                      <div class="me-3 mt-1">
+                        <svg cIcon name="cilCheckCircle" width="18"></svg>
+                      </div>
+                      <div>
+                        <div class="fw-semibold">Simple registration</div>
+                        <small class="text-white text-opacity-75">
+                          Fill in your details in a few steps
+                        </small>
+                      </div>
+                    </div>
+
+                    <div class="d-flex align-items-start mb-3">
+                      <div class="me-3 mt-1">
+                        <svg cIcon name="cilShieldAlt" width="18"></svg>
+                      </div>
+                      <div>
+                        <div class="fw-semibold">Secure access</div>
+                        <small class="text-white text-opacity-75">
+                          Your account will be validated before activation
+                        </small>
+                      </div>
+                    </div>
+
+                    <div class="d-flex align-items-start mb-3">
+                      <div class="me-3 mt-1">
+                        <svg cIcon name="cilPeople" width="18"></svg>
+                      </div>
+                      <div>
+                        <div class="fw-semibold">Approval workflow</div>
+                        <small class="text-white text-opacity-75">
+                          Registration follows the correct validation process
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="alert alert-danger py-2" *ngIf="error">
-                {{ error }}
+              <div class="col-lg-7">
+                <div class="p-4 p-md-5">
+                  <form cForm (ngSubmit)="submit()">
+                    <div class="mb-4">
+                      <h1 class="fw-bold mb-2">Create account</h1>
+                      <p class="text-body-secondary mb-0">
+                        Register with your details to access the platform
+                      </p>
+                    </div>
+
+                    <div class="alert alert-success py-2 rounded-3" *ngIf="success">
+                      {{ success }}
+                    </div>
+
+                    <div class="alert alert-danger py-2 rounded-3" *ngIf="error">
+                      {{ error }}
+                    </div>
+
+                    <div class="mb-3">
+                      <h6 class="fw-semibold mb-3">Personal information</h6>
+
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <c-input-group>
+                            <span cInputGroupText>
+                              <svg cIcon name="cilUser"></svg>
+                            </span>
+                            <input
+                              cFormControl
+                              placeholder="First name"
+                              name="firstName"
+                              [(ngModel)]="form.firstName"
+                              required
+                            />
+                          </c-input-group>
+                        </div>
+
+                        <div class="col-md-6">
+                          <c-input-group>
+                            <span cInputGroupText>
+                              <svg cIcon name="cilUser"></svg>
+                            </span>
+                            <input
+                              cFormControl
+                              placeholder="Last name"
+                              name="lastName"
+                              [(ngModel)]="form.lastName"
+                              required
+                            />
+                          </c-input-group>
+                        </div>
+
+                        <div class="col-md-6">
+                          <c-input-group>
+                            <span cInputGroupText>
+                              <svg cIcon name="cilPhone"></svg>
+                            </span>
+                            <input
+                              cFormControl
+                              placeholder="Phone"
+                              name="phone"
+                              [(ngModel)]="form.phone"
+                            />
+                          </c-input-group>
+                        </div>
+
+                        <div class="col-md-6">
+                          <c-input-group>
+                            <span cInputGroupText>@</span>
+                            <input
+                              cFormControl
+                              placeholder="Email"
+                              type="email"
+                              name="email"
+                              [(ngModel)]="form.email"
+                              required
+                            />
+                          </c-input-group>
+                        </div>
+
+                        <div class="col-12">
+                          <label class="form-label fw-semibold">Profile photo</label>
+
+                          <input
+                            #photoInput
+                            cFormControl
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            (change)="onPhotoSelected($event)"
+                          />
+
+                          <div class="form-text">
+                            Optional. Accepted formats: JPG, PNG, WEBP. Max size: 5 MB.
+                          </div>
+
+                          <div class="profile-photo-preview mt-3" *ngIf="photoPreviewUrl">
+                            <div class="d-flex align-items-center gap-3 p-3 border rounded-3 bg-light">
+                              <img
+                                [src]="photoPreviewUrl"
+                                alt="Profile preview"
+                                class="profile-photo-preview__image"
+                              />
+
+                              <div class="flex-grow-1">
+                                <div class="fw-semibold">{{ selectedPhotoFile?.name }}</div>
+                                <small class="text-body-secondary">
+                                  {{ selectedPhotoFile ? ((selectedPhotoFile.size / 1024 / 1024).toFixed(2) + ' MB') : '' }}
+                                </small>
+                              </div>
+
+                              <button
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                (click)="removeSelectedPhoto(photoInput)"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mb-3 mt-4">
+                      <h6 class="fw-semibold mb-3">Account setup</h6>
+
+                      <div class="row g-3">
+                        <div class="col-12">
+                          <div class="mb-3">
+                            <label class="form-label fw-semibold">Choose your role</label>
+
+                            <div class="role-grid">
+                              <div
+                                *ngFor="let r of roles"
+                                class="role-card"
+                                [class.selected]="form.role === r"
+                                (click)="selectRole(r)"
+                              >
+                                <div class="role-icon">
+                                  <svg cIcon [name]="getRoleIcon(r)"></svg>
+                                </div>
+
+                                <div class="role-content">
+                                  <div class="role-title">
+                                    {{ formatRoleLabel(r) }}
+                                  </div>
+                                  <div class="role-description">
+                                    {{ getRoleDescription(r) }}
+                                  </div>
+                                </div>
+
+                                <div class="role-check" *ngIf="form.role === r">
+                                  ✓
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="small text-body-secondary mt-2 ps-1">
+                        STT accounts are approved by ZM. ZM accounts are approved by Admin.
+                      </div>
+                    </div>
+
+                    <div class="mb-4 mt-4">
+                      <h6 class="fw-semibold mb-3">Security</h6>
+
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <c-input-group>
+                            <span cInputGroupText>
+                              <svg cIcon name="cilLockLocked"></svg>
+                            </span>
+                            <input
+                              cFormControl
+                              placeholder="Password"
+                              type="password"
+                              name="password"
+                              [(ngModel)]="form.password"
+                              required
+                              minlength="6"
+                            />
+                          </c-input-group>
+                        </div>
+
+                        <div class="col-md-6">
+                          <c-input-group>
+                            <span cInputGroupText>
+                              <svg cIcon name="cilLockLocked"></svg>
+                            </span>
+                            <input
+                              cFormControl
+                              placeholder="Repeat password"
+                              type="password"
+                              name="confirmPassword"
+                              [(ngModel)]="form.confirmPassword"
+                              required
+                              minlength="6"
+                            />
+                          </c-input-group>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="d-grid">
+                      <button cButton color="primary" type="submit" [disabled]="loading">
+                        {{ loading ? 'Creating account...' : 'Create account' }}
+                      </button>
+                    </div>
+
+                    <div class="text-center mt-4">
+                      <small class="text-body-secondary">
+                        Already have an account?
+                        <a routerLink="/login" class="text-decoration-none fw-semibold">Sign in</a>
+                      </small>
+                    </div>
+                  </form>
+                </div>
               </div>
-
-              <c-input-group class="mb-3">
-  <span cInputGroupText>
-    <svg cIcon name="cilUser"></svg>
-  </span>
-  <input
-    cFormControl
-    placeholder="First name"
-    name="firstName"
-    [(ngModel)]="form.firstName"
-    required
-  />
-</c-input-group>
-
-<c-input-group class="mb-3">
-  <span cInputGroupText>
-    <svg cIcon name="cilUser"></svg>
-  </span>
-  <input
-    cFormControl
-    placeholder="Last name"
-    name="lastName"
-    [(ngModel)]="form.lastName"
-    required
-  />
-</c-input-group>
-
-<c-input-group class="mb-3">
-  <span cInputGroupText>
-    <svg cIcon name="cilPhone"></svg>
-  </span>
-  <input
-    cFormControl
-    placeholder="Phone"
-    name="phone"
-    [(ngModel)]="form.phone"
-  />
-</c-input-group>
-
-              <c-input-group class="mb-3">
-                <span cInputGroupText>&#64;</span>
-                <input
-                  cFormControl
-                  placeholder="Email"
-                  type="email"
-                  name="email"
-                  [(ngModel)]="form.email"
-                  required
-                />
-              </c-input-group>
-
-              <c-input-group class="mb-3">
-                <span cInputGroupText>
-                  <svg cIcon name="cilBadge"></svg>
-                </span>
-                <select
-                  cFormControl
-                  name="role"
-                  [(ngModel)]="form.role"
-                  (ngModelChange)="onRoleChange()"
-                  required
-                >
-                  <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
-                </select>
-              </c-input-group>
-
-              <c-input-group class="mb-3" *ngIf="requiresSttSelection">
-                <span cInputGroupText>
-                  <svg cIcon name="cilPeople"></svg>
-                </span>
-                <select
-                  cFormControl
-                  name="sttId"
-                  [(ngModel)]="form.sttId"
-                  [disabled]="sttLoading"
-                  required
-                >
-                  <option value="">Select your STT</option>
-                  <option *ngFor="let stt of sttOptions" [value]="stt.id">
-                    {{ stt.fullName }} — {{ stt.email }}
-                  </option>
-                </select>
-              </c-input-group>
-
-              <div class="small text-body-secondary mb-3" *ngIf="requiresSttSelection">
-                Your registration request will be sent only to the selected STT for approval.
-              </div>
-
-              <c-input-group class="mb-3">
-                <span cInputGroupText>
-                  <svg cIcon name="cilLockLocked"></svg>
-                </span>
-                <input
-                  cFormControl
-                  placeholder="Password"
-                  type="password"
-                  name="password"
-                  [(ngModel)]="form.password"
-                  required
-                  minlength="6"
-                />
-              </c-input-group>
-
-              <c-input-group class="mb-4">
-                <span cInputGroupText>
-                  <svg cIcon name="cilLockLocked"></svg>
-                </span>
-                <input
-                  cFormControl
-                  placeholder="Repeat password"
-                  type="password"
-                  name="confirmPassword"
-                  [(ngModel)]="form.confirmPassword"
-                  required
-                />
-              </c-input-group>
-
-              <div class="d-grid">
-                <button cButton color="success" type="submit" [disabled]="loading">
-                  {{ loading ? 'Creating...' : 'Create account' }}
-                </button>
-              </div>
-
-              <div class="d-grid mt-2">
-                <button
-                  cButton
-                  color="secondary"
-                  variant="outline"
-                  type="button"
-                  (click)="router.navigate(['/login'])"
-                >
-                  Back to Login
-                </button>
-              </div>
-            </form>
+            </div>
           </c-card-body>
         </c-card>
       </c-col>

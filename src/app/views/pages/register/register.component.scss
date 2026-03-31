@@ -1,0 +1,134 @@
+/* STT selection cards */
+
+.stt-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.stt-card {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e8ec;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.stt-card:hover {
+  border-color: #321fdb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
+
+.stt-card.selected {
+  border-color: #321fdb;
+  background: #f4f3ff;
+}
+
+.stt-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #edeaff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.stt-icon svg {
+  width: 18px;
+}
+
+.stt-info {
+  flex: 1;
+}
+
+.stt-name {
+  font-weight: 600;
+}
+
+.stt-email {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.stt-check {
+  font-weight: bold;
+  color: #321fdb;
+  font-size: 18px;
+}
+
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.role-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid #e6e8ec;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-card:hover {
+  border-color: #321fdb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+.role-card.selected {
+  border-color: #321fdb;
+  background: #f4f3ff;
+}
+
+.role-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #edeaff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.role-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.role-content {
+  flex: 1;
+}
+
+.role-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.role-description {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.role-check {
+  font-size: 18px;
+  font-weight: 700;
+  color: #321fdb;
+}
+
+@media (min-width: 768px) {
+  .role-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

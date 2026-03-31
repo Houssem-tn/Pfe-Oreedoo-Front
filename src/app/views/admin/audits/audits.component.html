@@ -1,0 +1,59 @@
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-white py-3">
+    <div>
+      <h5 class="mb-0 fw-semibold">Audit Center</h5>
+      <small class="text-body-secondary">
+        Choose an audit area to monitor and follow system activity
+      </small>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="row g-4">
+      <div class="col-md-6 col-xl-4" *ngFor="let module of modules">
+        <a
+          *ngIf="module.enabled; else disabledCard"
+          class="text-decoration-none"
+          [routerLink]="[module.route]"
+        >
+          <div class="card border-0 shadow-sm h-100 audit-module-card">
+            <div class="card-body text-center p-4">
+              <div
+                class="mx-auto mb-3 rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+                style="width: 72px; height: 72px;"
+              >
+                <svg cIcon [name]="module.icon" width="34"></svg>
+              </div>
+
+              <h6 class="fw-semibold mb-2 text-dark">{{ module.title }}</h6>
+              <p class="text-body-secondary mb-0 small">
+                {{ module.description }}
+              </p>
+            </div>
+          </div>
+        </a>
+
+        <ng-template #disabledCard>
+          <div class="card border-0 shadow-sm h-100 opacity-75">
+            <div class="card-body text-center p-4">
+              <div
+                class="mx-auto mb-3 rounded-3 bg-light text-body-secondary d-flex align-items-center justify-content-center"
+                style="width: 72px; height: 72px;"
+              >
+                <svg cIcon [name]="module.icon" width="34"></svg>
+              </div>
+
+              <h6 class="fw-semibold mb-2">{{ module.title }}</h6>
+              <p class="text-body-secondary mb-2 small">
+                {{ module.description }}
+              </p>
+              <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                Coming soon
+              </span>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>

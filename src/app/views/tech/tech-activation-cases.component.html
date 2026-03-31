@@ -1,0 +1,661 @@
+<div class="tech-tasks-page">
+  <section class="tech-tasks-hero">
+    <div class="tech-tasks-hero__content">
+      <div class="tech-eyebrow">TECH mobile board</div>
+      <h1>Field tasks built for the phone in your hand.</h1>
+      <p>
+        Urgent tasks rise to the top, RDV and work actions stay thumb-friendly, and proof photos can be captured
+        directly from the mobile camera before submission.
+      </p>
+    </div>
+
+    <div class="tech-tasks-hero__actions">
+      <a
+        routerLink="/tech/dashboard"
+        class="btn-tech btn-tech--ghost"
+      >
+        <svg cIcon name="cilGrid"></svg>
+        Dashboard
+      </a>
+      <button
+        type="button"
+        class="btn-tech btn-tech--primary"
+        (click)="refreshBoard()"
+      >
+        <svg cIcon name="cilCloudDownload"></svg>
+        {{ syncing ? 'Syncing...' : 'Sync now' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="tech-summary-grid">
+    <article class="tech-summary-card" [ngClass]="'tech-summary-card--' + card.tone" *ngFor="let card of summaryCards">
+      <div class="tech-summary-card__icon">
+        <svg cIcon [name]="card.icon"></svg>
+      </div>
+      <div class="tech-summary-card__value">{{ card.value }}</div>
+      <div class="tech-summary-card__label">{{ card.label }}</div>
+      <div class="tech-summary-card__helper">{{ card.helper }}</div>
+    </article>
+  </section>
+
+  <section class="tech-alerts" *ngIf="operationalAlerts.length > 0">
+    <div class="tech-section-header">
+      <div>
+        <div class="tech-section-header__title">Live alerts</div>
+        <div class="tech-section-header__hint">Critical updates stay visible above the queue.</div>
+      </div>
+      <span class="tech-section-header__meta">{{ operationalAlerts.length }} recent</span>
+    </div>
+
+    <div class="tech-alerts__grid">
+      <button
+        type="button"
+        class="tech-alert-card"
+        *ngFor="let alert of operationalAlerts; trackBy: trackByAlert"
+        (click)="openAlert(alert)"
+      >
+        <div class="tech-alert-card__top">
+          <div class="tech-alert-card__title">{{ alert.title }}</div>
+          <span class="tech-alert-card__time">{{ alert.createdAt | date:'shortTime' }}</span>
+        </div>
+        <div class="tech-alert-card__message">{{ alert.message }}</div>
+        <div class="tech-alert-card__footer">
+          <span class="tech-pill" [ngClass]="alert.read ? 'bg-secondary-subtle text-secondary-emphasis' : 'bg-danger-subtle text-danger-emphasis'">
+            {{ alert.read ? 'Read' : 'Needs action' }}
+          </span>
+          <span class="tech-alert-card__open">Open case</span>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <section class="tech-toolbar">
+    <label class="tech-search">
+      <span class="tech-search__icon">
+        <svg cIcon name="cilMagnifyingGlass"></svg>
+      </span>
+      <input
+        type="search"
+        [(ngModel)]="searchTerm"
+        placeholder="Search CRM, customer, phone, location or offer"
+      />
+    </label>
+
+    <div class="tech-filter-row">
+      <button
+        type="button"
+        class="tech-filter-chip"
+        [class.tech-filter-chip--active]="quickFilter === 'urgent'"
+        (click)="setQuickFilter('urgent')"
+      >
+        Urgent
+        <span>{{ urgentCount }}</span>
+      </button>
+      <button
+        type="button"
+        class="tech-filter-chip"
+        [class.tech-filter-chip--active]="quickFilter === 'rdv'"
+        (click)="setQuickFilter('rdv')"
+      >
+        RDV
+        <span>{{ rdvCount }}</span>
+      </button>
+      <button
+        type="button"
+        class="tech-filter-chip"
+        [class.tech-filter-chip--active]="quickFilter === 'work'"
+        (click)="setQuickFilter('work')"
+      >
+        Work
+        <span>{{ workCount }}</span>
+      </button>
+      <button
+        type="button"
+        class="tech-filter-chip"
+        [class.tech-filter-chip--active]="quickFilter === 'all'"
+        (click)="setQuickFilter('all')"
+      >
+        All
+        <span>{{ accessibleCases.length }}</span>
+      </button>
+    </div>
+
+    <div class="tech-toolbar__controls">
+      <select [(ngModel)]="statusFilter" class="tech-select">
+        <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
+      </select>
+      <div class="tech-toolbar__perf">{{ performanceLabel() }}</div>
+    </div>
+  </section>
+
+  <div *ngIf="banner" class="tech-banner" [ngClass]="'tech-banner--' + banner.tone">
+    {{ banner.text }}
+  </div>
+
+  <div *ngIf="loading" class="tech-loading-card">
+    <div class="spinner-border" role="status"></div>
+    <div>Loading your field queue...</div>
+  </div>
+
+  <div *ngIf="error" class="tech-banner tech-banner--danger">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <div class="tech-board">
+      <section class="tech-case-stack">
+        <div class="tech-section-header">
+          <div>
+            <div class="tech-section-header__title">Operational queue</div>
+            <div class="tech-section-header__hint">Sorted with urgent tasks first and primary actions within thumb reach.</div>
+          </div>
+          <span class="tech-section-header__meta">{{ visibleCases.length }} visible</span>
+        </div>
+
+        <article class="tech-case-card" *ngFor="let item of visibleCases; trackBy: trackById">
+          <div class="tech-case-card__header">
+            <div>
+              <div class="tech-case-card__crm">CRM {{ item.crmCase }}</div>
+              <h2>{{ item.clientName }}</h2>
+              <div class="tech-case-card__phone">
+                <svg cIcon name="cilPhone"></svg>
+                <a [href]="'tel:' + item.clientPhone">{{ item.clientPhone }}</a>
+                <span>MSISDN {{ item.msisdn }}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="tech-case-card__peek"
+              (click)="openPanel(item, 'details')"
+            >
+              <svg cIcon name="cilChevronRight"></svg>
+            </button>
+          </div>
+
+          <div class="tech-case-card__badges">
+            <span class="badge rounded-pill" [ngClass]="statusBadgeClass(item.status)">{{ statusLabel(item.status) }}</span>
+            <span class="badge rounded-pill" [ngClass]="slaBadgeClass(item)">{{ slaLabel(item) }}</span>
+            <span class="badge rounded-pill" *ngIf="hasPendingProof(item)" [ngClass]="proofStatusClass(item)">Proof pending</span>
+          </div>
+
+          <div class="tech-case-card__meta">
+            <div class="tech-case-card__meta-line">
+              <svg cIcon name="cilLocationPin"></svg>
+              <span>{{ caseLocation(item) }}</span>
+            </div>
+            <div class="tech-case-card__meta-line">
+              <svg cIcon name="cilDescription"></svg>
+              <span>{{ item.offre || 'Offer not set' }}<ng-container *ngIf="item.desPack"> • {{ item.desPack }}</ng-container></span>
+            </div>
+          </div>
+
+          <div class="tech-sla-card">
+            <div class="tech-sla-card__row">
+              <span>SLA window</span>
+              <strong>{{ slaRemaining(item) }}</strong>
+            </div>
+            <div class="tech-sla-track" [ngClass]="slaTrackClass(item)">
+              <div class="tech-sla-track__fill" [style.width.%]="slaProgress(item)"></div>
+            </div>
+          </div>
+
+          <div class="tech-case-card__facts">
+            <div class="tech-case-card__fact">
+              <span>RDV</span>
+              <strong>{{ rdvLabel(item) }}</strong>
+            </div>
+            <div class="tech-case-card__fact">
+              <span>Work</span>
+              <strong>{{ workLabel(item) }}</strong>
+            </div>
+          </div>
+
+          <div class="tech-case-card__actions">
+            <a class="btn-tech btn-tech--ghost" [href]="'tel:' + item.clientPhone">
+              <svg cIcon name="cilPhone"></svg>
+              Call
+            </a>
+
+            <button type="button" class="btn-tech btn-tech--ghost" (click)="openPanel(item, 'details')">
+              <svg cIcon name="cilMagnifyingGlass"></svg>
+              Details
+            </button>
+
+            <button
+              *ngIf="canSetRdv(item)"
+              type="button"
+              class="btn-tech btn-tech--soft"
+              (click)="openPanel(item, 'rdv')"
+            >
+              <svg cIcon name="cilCalendar"></svg>
+              RDV
+            </button>
+
+            <button
+              *ngIf="canSubmitWork(item)"
+              type="button"
+              class="btn-tech btn-tech--primary"
+              (click)="openPanel(item, 'work')"
+            >
+              <svg cIcon name="cilTask"></svg>
+              Submit work
+            </button>
+
+            <button
+              *ngIf="hasPendingProof(item)"
+              type="button"
+              class="btn-tech btn-tech--warning"
+              (click)="retryProofUpload(item)"
+              [disabled]="actionBusy"
+            >
+              <svg cIcon name="cilCloudDownload"></svg>
+              Retry proof
+            </button>
+
+            <button
+              *ngIf="!canSubmitWork(item) && !canSetRdv(item)"
+              type="button"
+              class="btn-tech btn-tech--primary"
+              (click)="openPrimaryAction(item)"
+            >
+              <svg cIcon name="cilChevronRight"></svg>
+              Open
+            </button>
+          </div>
+        </article>
+
+        <div class="tech-empty" *ngIf="visibleCases.length === 0">
+          <div class="tech-empty__title">No TECH tasks match the current filter.</div>
+          <div class="tech-empty__hint">Try switching from urgent to all, or broaden the search.</div>
+        </div>
+      </section>
+
+      <div class="tech-panel-backdrop" *ngIf="selectedCase" (click)="closePanel()"></div>
+
+      <aside class="tech-panel-shell" *ngIf="selectedCase as selected">
+        <section class="tech-panel">
+          <header class="tech-panel__header">
+            <button type="button" class="tech-panel__close" (click)="closePanel()">
+              <svg cIcon name="cilChevronLeft"></svg>
+              Back
+            </button>
+
+            <div class="tech-panel__identity">
+              <div class="tech-panel__eyebrow">CRM {{ selected.crmCase }}</div>
+              <div class="tech-panel__title">{{ selected.clientName }}</div>
+              <div class="tech-panel__subline">{{ caseLocation(selected) }}</div>
+            </div>
+          </header>
+
+          <div class="tech-panel__tabs">
+            <button
+              type="button"
+              class="tech-tab"
+              [class.tech-tab--active]="activePanel === 'details'"
+              (click)="switchPanel('details')"
+            >
+              Details
+            </button>
+            <button
+              type="button"
+              class="tech-tab"
+              [class.tech-tab--active]="activePanel === 'rdv'"
+              (click)="switchPanel('rdv')"
+              [disabled]="!canSetRdv(selected)"
+            >
+              RDV
+            </button>
+            <button
+              type="button"
+              class="tech-tab"
+              [class.tech-tab--active]="activePanel === 'work'"
+              (click)="switchPanel('work')"
+              [disabled]="!canSubmitWork(selected)"
+            >
+              Work + proof
+            </button>
+          </div>
+
+          <div *ngIf="panelLoading" class="tech-panel__loading">Refreshing the latest case data...</div>
+          <div *ngIf="panelError" class="tech-banner tech-banner--danger">{{ panelError }}</div>
+
+          <div class="tech-panel__content" *ngIf="activePanel === 'details'">
+            <div class="tech-quick-actions">
+              <a class="btn-tech btn-tech--ghost" [href]="'tel:' + selected.clientPhone">
+                <svg cIcon name="cilPhone"></svg>
+                Call customer
+              </a>
+              <a class="btn-tech btn-tech--ghost" [href]="customerMapLink(selected)" target="_blank" rel="noopener noreferrer">
+                <svg cIcon name="cilMap"></svg>
+                Open map
+              </a>
+              <button
+                *ngIf="hasPendingProof(selected)"
+                type="button"
+                class="btn-tech btn-tech--warning"
+                (click)="retryProofUpload(selected)"
+                [disabled]="actionBusy"
+              >
+                <svg cIcon name="cilCloudDownload"></svg>
+                Retry proof
+              </button>
+            </div>
+
+            <div class="tech-detail-grid">
+              <article class="tech-detail-card">
+                <div class="tech-detail-card__title">Customer</div>
+                <div class="tech-detail-card__body">
+                  <div><strong>Phone</strong><span>{{ selected.clientPhone }}</span></div>
+                  <div><strong>MSISDN</strong><span>{{ selected.msisdn }}</span></div>
+                  <div><strong>Offer</strong><span>{{ selected.offre || '-' }}</span></div>
+                  <div><strong>Pack</strong><span>{{ selected.desPack || '-' }}</span></div>
+                </div>
+              </article>
+
+              <article class="tech-detail-card">
+                <div class="tech-detail-card__title">SLA and status</div>
+                <div class="tech-detail-card__body">
+                  <div><strong>Status</strong><span>{{ statusLabel(selected.status) }}</span></div>
+                  <div><strong>SLA</strong><span>{{ slaLabel(selected) }}</span></div>
+                  <div><strong>Time left</strong><span>{{ slaRemaining(selected) }}</span></div>
+                  <div><strong>Assigned TECH</strong><span>{{ selected.techName || selected.techEmail || '-' }}</span></div>
+                </div>
+                <div class="tech-sla-track" [ngClass]="slaTrackClass(selected)">
+                  <div class="tech-sla-track__fill" [style.width.%]="slaProgress(selected)"></div>
+                </div>
+              </article>
+
+              <article class="tech-detail-card">
+                <div class="tech-detail-card__title">RDV summary</div>
+                <div class="tech-detail-card__body">
+                  <div><strong>Date</strong><span>{{ rdvLabel(selected) }}</span></div>
+                  <div><strong>Reachable</strong><span>{{ extractRdv(selected).joignable == null ? '-' : (extractRdv(selected).joignable ? 'Yes' : 'No') }}</span></div>
+                  <div><strong>Detail</strong><span>{{ extractRdv(selected).detail || '-' }}</span></div>
+                  <div><strong>Comment</strong><span>{{ extractRdv(selected).cmtRdv || '-' }}</span></div>
+                </div>
+              </article>
+
+              <article class="tech-detail-card">
+                <div class="tech-detail-card__title">Work summary</div>
+                <div class="tech-detail-card__body">
+                  <div><strong>Result</strong><span>{{ extractWork(selected).repTravauxStt || '-' }}</span></div>
+                  <div><strong>Ended at</strong><span>{{ extractWork(selected).dateFinTrv ? (extractWork(selected).dateFinTrv | date:'short') : '-' }}</span></div>
+                  <div><strong>Comment</strong><span>{{ extractWork(selected).cmtTrvStt || '-' }}</span></div>
+                  <div><strong>Queued proof</strong><span>{{ currentProofDraft ? proofCaption(currentProofDraft) : 'No local proof draft' }}</span></div>
+                  <div><strong>Uploaded proofs</strong><span>{{ uploadedProofs.length > 0 ? (uploadedProofs.length + ' available') : 'No uploaded proof yet' }}</span></div>
+                </div>
+              </article>
+            </div>
+
+            <article class="tech-detail-card" *ngIf="uploadedProofs.length > 0">
+              <div class="tech-detail-card__title">Submitted proof images</div>
+              <div class="tech-proof-gallery">
+                <a
+                  class="tech-proof-tile"
+                  *ngFor="let proof of uploadedProofs"
+                  [href]="proof.viewUrl || proof.downloadUrl || '#'"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img [src]="proof.viewUrl || ''" [alt]="proof.originalFilename || ('Proof for ' + selected.crmCase)" />
+                  <div class="tech-proof-tile__meta">
+                    <strong>{{ proof.originalFilename || 'Proof image' }}</strong>
+                    <span>{{ uploadedProofCaption(proof) }}</span>
+                  </div>
+                </a>
+              </div>
+            </article>
+
+            <article class="tech-detail-card tech-detail-card--metrics">
+              <div class="tech-detail-card__title">Technical metrics</div>
+              <div class="tech-metric-grid">
+                <div class="tech-metric" *ngFor="let metric of detailMetricEntries(selected)">
+                  <span>{{ metric.label }}</span>
+                  <strong>{{ metric.value }}</strong>
+                </div>
+              </div>
+            </article>
+
+            <article class="tech-detail-card">
+              <div class="tech-detail-card__title">Timeline</div>
+              <div class="tech-timeline" *ngIf="selectedTimeline.length > 0; else noTimeline">
+                <div class="tech-timeline__item" *ngFor="let event of selectedTimeline">
+                  <div class="tech-timeline__title">{{ event.title || event.eventType }}</div>
+                  <div class="tech-timeline__meta">{{ event.occurredAt | date:'short' }}</div>
+                  <div class="tech-timeline__detail">{{ event.details || 'No extra details' }}</div>
+                </div>
+              </div>
+
+              <ng-template #noTimeline>
+                <div class="tech-empty tech-empty--inline">
+                  <div class="tech-empty__hint">No timeline events yet.</div>
+                </div>
+              </ng-template>
+            </article>
+          </div>
+
+          <form class="tech-form" *ngIf="activePanel === 'rdv'" (ngSubmit)="saveRdv()">
+            <div class="tech-form__section">
+              <div class="tech-form__title">Reachability</div>
+              <div class="tech-toggle-row">
+                <button
+                  type="button"
+                  class="tech-toggle"
+                  [class.tech-toggle--active]="rdvForm.joignable"
+                  (click)="rdvForm.joignable = true"
+                >
+                  Reachable
+                </button>
+                <button
+                  type="button"
+                  class="tech-toggle"
+                  [class.tech-toggle--active]="!rdvForm.joignable"
+                  (click)="rdvForm.joignable = false"
+                >
+                  Not reachable
+                </button>
+              </div>
+
+              <label class="tech-field">
+                <span>RDV date and time</span>
+                <input type="datetime-local" name="rdvDatePriseRdv" [(ngModel)]="rdvForm.datePriseRdv" />
+              </label>
+
+              <label class="tech-field" *ngIf="!rdvForm.joignable">
+                <span>Non-reachability cause</span>
+                <input type="text" name="rdvCauseInjoignabilite" [(ngModel)]="rdvForm.causeInjoignabilite" placeholder="Why the client could not be reached" />
+              </label>
+            </div>
+
+            <div class="tech-form__section">
+              <div class="tech-form__title">Appointment notes</div>
+              <label class="tech-field">
+                <span>Operational detail</span>
+                <textarea name="rdvDetail" [(ngModel)]="rdvForm.detail" rows="3" placeholder="Access notes, address cues, building detail"></textarea>
+              </label>
+
+              <label class="tech-field">
+                <span>RDV comment</span>
+                <textarea name="rdvComment" [(ngModel)]="rdvForm.cmtRdv" rows="3" placeholder="What the next technician step should know"></textarea>
+              </label>
+            </div>
+
+            <div class="tech-form__section">
+              <div class="tech-form__title">Abandon flow</div>
+              <div class="tech-toggle-row">
+                <button
+                  type="button"
+                  class="tech-toggle"
+                  [class.tech-toggle--active]="!rdvForm.abandon"
+                  (click)="rdvForm.abandon = false"
+                >
+                  Continue
+                </button>
+                <button
+                  type="button"
+                  class="tech-toggle"
+                  [class.tech-toggle--active]="rdvForm.abandon"
+                  (click)="rdvForm.abandon = true"
+                >
+                  Abandon
+                </button>
+              </div>
+
+              <label class="tech-field" *ngIf="rdvForm.abandon">
+                <span>Abandon cause</span>
+                <input type="text" name="rdvCauseAbandon" [(ngModel)]="rdvForm.causeAbandon" placeholder="Why the intervention is being abandoned" />
+              </label>
+            </div>
+
+            <div class="tech-form__actions">
+              <button type="button" class="btn-tech btn-tech--ghost" (click)="switchPanel('details')">Cancel</button>
+              <button type="submit" class="btn-tech btn-tech--primary" [disabled]="actionBusy">
+                <svg cIcon name="cilSave"></svg>
+                {{ actionBusy ? 'Saving...' : 'Save RDV' }}
+              </button>
+            </div>
+          </form>
+
+          <form class="tech-form" *ngIf="activePanel === 'work'" (ngSubmit)="submitWork()">
+            <div class="tech-form__section">
+              <div class="tech-form__title">Photo proof</div>
+              <p class="tech-form__hint">
+                Proof photo is required for TECH submission. On mobile, “Use camera” opens the phone camera with the
+                rear lens preference when supported by the browser.
+              </p>
+
+              <div class="tech-proof-actions">
+                <label class="btn-tech btn-tech--primary">
+                  <svg cIcon name="cilMediaRecord"></svg>
+                  Use camera
+                  <input type="file" accept="image/*" capture="environment" hidden (change)="onProofFileSelected($event)" />
+                </label>
+
+                <label class="btn-tech btn-tech--ghost">
+                  <svg cIcon name="cilPaperclip"></svg>
+                  Choose existing
+                  <input type="file" accept="image/*" hidden (change)="onProofFileSelected($event)" />
+                </label>
+
+                <button
+                  *ngIf="currentProofDraft"
+                  type="button"
+                  class="btn-tech btn-tech--warning"
+                  (click)="clearProofDraft()"
+                >
+                  <svg cIcon name="cilTrash"></svg>
+                  Remove
+                </button>
+              </div>
+
+              <div class="tech-proof-preview" *ngIf="currentProofDraft as proof; else noProofPreview">
+                <img [src]="proof.dataUrl" [alt]="'Proof for ' + selected.crmCase" />
+                <div class="tech-proof-preview__meta">
+                  <strong>{{ proof.fileName }}</strong>
+                  <span>{{ proofCaption(proof) }}</span>
+                </div>
+              </div>
+
+              <ng-template #noProofPreview>
+                <div class="tech-empty tech-empty--inline">
+                  <div class="tech-empty__hint">No proof photo attached yet.</div>
+                </div>
+              </ng-template>
+
+              <div class="tech-proof-gallery tech-proof-gallery--compact" *ngIf="uploadedProofs.length > 0">
+                <a
+                  class="tech-proof-tile"
+                  *ngFor="let proof of uploadedProofs"
+                  [href]="proof.viewUrl || proof.downloadUrl || '#'"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img [src]="proof.viewUrl || ''" [alt]="proof.originalFilename || ('Proof for ' + selected.crmCase)" />
+                  <div class="tech-proof-tile__meta">
+                    <strong>{{ proof.originalFilename || 'Submitted proof' }}</strong>
+                    <span>{{ uploadedProofCaption(proof) }}</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            <div class="tech-form__section">
+              <div class="tech-form__title">Work closure</div>
+              <label class="tech-field">
+                <span>Work result</span>
+                <input type="text" name="workRepTravauxStt" [(ngModel)]="workForm.repTravauxStt" placeholder="Installed, fixed, postponed, customer absent..." />
+              </label>
+
+              <label class="tech-field">
+                <span>End date and time</span>
+                <input type="datetime-local" name="workDateFinTrv" [(ngModel)]="workForm.dateFinTrv" />
+              </label>
+
+              <label class="tech-field">
+                <span>Operational comment</span>
+                <textarea name="workCmtTrvStt" [(ngModel)]="workForm.cmtTrvStt" rows="4" placeholder="Describe what was done, any blockers, and what the proof photo shows"></textarea>
+              </label>
+            </div>
+
+            <div class="tech-form__section">
+              <div class="tech-form__title">Technical metrics</div>
+              <div class="tech-metric-input-grid">
+                <label class="tech-field">
+                  <span>Cable length</span>
+                  <input type="number" step="0.01" name="workMetrageCable" [(ngModel)]="workForm.metrageCable" />
+                </label>
+                <label class="tech-field">
+                  <span>PV count</span>
+                  <input type="number" step="1" name="workNombrePv" [(ngModel)]="workForm.nombrePv" />
+                </label>
+                <label class="tech-field">
+                  <span>DL</span>
+                  <input type="number" step="0.01" name="workDebitDl" [(ngModel)]="workForm.debitDl" />
+                </label>
+                <label class="tech-field">
+                  <span>UL</span>
+                  <input type="number" step="0.01" name="workDebitUl" [(ngModel)]="workForm.debitUl" />
+                </label>
+                <label class="tech-field">
+                  <span>RSRP</span>
+                  <input type="number" step="1" name="workRsrp" [(ngModel)]="workForm.rsrp" />
+                </label>
+                <label class="tech-field">
+                  <span>RSRQ</span>
+                  <input type="number" step="1" name="workRsrq" [(ngModel)]="workForm.rsrq" />
+                </label>
+                <label class="tech-field">
+                  <span>SINR</span>
+                  <input type="number" step="1" name="workSinr" [(ngModel)]="workForm.sinr" />
+                </label>
+              </div>
+            </div>
+
+            <div class="tech-form__actions">
+              <button type="button" class="btn-tech btn-tech--ghost" (click)="switchPanel('details')">Cancel</button>
+              <button type="submit" class="btn-tech btn-tech--primary" [disabled]="actionBusy">
+                <svg cIcon name="cilTask"></svg>
+                {{ actionBusy ? 'Submitting...' : 'Submit work + proof' }}
+              </button>
+            </div>
+          </form>
+        </section>
+      </aside>
+    </div>
+  </ng-container>
+
+  <nav class="tech-dock">
+    <a routerLink="/tech/dashboard" class="tech-dock__item">
+      <svg cIcon name="cilGrid"></svg>
+      Home
+    </a>
+    <button type="button" class="tech-dock__item tech-dock__item--active">
+      <svg cIcon name="cilTask"></svg>
+      Tasks
+    </button>
+    <button type="button" class="tech-dock__item" (click)="refreshBoard()">
+      <svg cIcon name="cilCloudDownload"></svg>
+      Sync
+    </button>
+  </nav>
+</div>

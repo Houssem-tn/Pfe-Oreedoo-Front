@@ -1,8 +1,9 @@
 import { NgTemplateOutlet, DatePipe } from '@angular/common';
-import { Component, computed, inject, input } from '@angular/core';
-import { RouterLink, RouterLinkActive,Router } from '@angular/router';
+import { Component, computed, inject, input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthStore } from '../../../core/auth/auth.store';
-
+import { UserService } from '../../../core/users/user.service';
+import { CasesService } from '../../../core/cases/cases.service';
 
 import {
   AvatarComponent,
@@ -31,6 +32,7 @@ import { NotificationItem } from '../../../core/notifications/models/notificatio
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
+  styleUrl: './default-header.component.scss',
   imports: [
     ContainerComponent,
     HeaderTogglerDirective,
@@ -54,12 +56,19 @@ import { NotificationItem } from '../../../core/notifications/models/notificatio
     DatePipe
   ]
 })
-export class DefaultHeaderComponent extends HeaderComponent {
+export class DefaultHeaderComponent extends HeaderComponent implements OnInit, OnDestroy {
   readonly #colorModeService = inject(ColorModeService);
   readonly notificationStore = inject(NotificationStoreService);
-readonly router = inject(Router);
+  readonly router = inject(Router);
+  readonly authStore = inject(AuthStore);
+  private readonly userService = inject(UserService);
+  private readonly casesService = inject(CasesService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
-readonly authStore = inject(AuthStore);
+  currentUserAvatarUrl: string | null = null;
+  readonly defaultAvatarUrl = 'assets/images/avatars/1.jpg';
+  activeTasksCount = 0;
+
   readonly colorMode = this.#colorModeService.colorMode;
 
   readonly colorModes = [
@@ -80,47 +89,90 @@ readonly authStore = inject(AuthStore);
     super();
   }
 
+  ngOnInit(): void {
+    this.notificationStore.init();
+    this.loadCurrentUserProfile();
+    this.loadPerformanceSnapshot();
+  }
+
+  ngOnDestroy(): void {
+    this.notificationStore.destroy();
+  }
+
   sidebarId = input('sidebar1');
+
+  private loadCurrentUserProfile(): void {
+    this.userService.getMe().subscribe({
+      next: (user) => {
+        const nextAvatarUrl =
+          user.profileThumbnailUrl ||
+          user.profileImageUrl ||
+          this.defaultAvatarUrl;
+
+        console.log('Current user profile:', user);
+        console.log('Resolved avatar URL:', nextAvatarUrl);
+
+        queueMicrotask(() => {
+          this.currentUserAvatarUrl = nextAvatarUrl;
+          this.cdr.detectChanges();
+        });
+      },
+      error: (err) => {
+        console.error('Failed to load current user profile', err);
+
+        queueMicrotask(() => {
+          this.currentUserAvatarUrl = this.defaultAvatarUrl;
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
 
   trackByNotificationId(_: number, item: NotificationItem): string {
     return item.id;
   }
 
-   handleNotificationClick(notification: NotificationItem, event?: Event): void {
-  event?.stopPropagation();
-  event?.preventDefault();
+  handleNotificationClick(notification: NotificationItem, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
 
-  this.markOneAsRead(notification, event);
+    this.markOneAsRead(notification, event);
 
-  if (notification.eventType !== 'USER_REGISTERED') {
-    return;
+    if (notification.eventType !== 'USER_REGISTERED') {
+      const roleRoute = this.getCaseListRouteByRole();
+
+      if (roleRoute && this.isCaseEvent(notification.eventType)) {
+        this.router.navigate([roleRoute]);
+      }
+
+      return;
+    }
+
+    const role = this.authStore.role();
+
+    if (role === 'ROLE_ADMIN') {
+      this.router.navigate(['/admin/approvals']);
+      return;
+    }
+
+    if (role === 'ROLE_ZM') {
+      this.router.navigate(['/zm/approvals']);
+      return;
+    }
+
+    if (role === 'ROLE_STT') {
+      this.router.navigate(['/stt/approvals']);
+    }
   }
 
-  const role = this.authStore.role();
+  markOneAsRead(notification: NotificationItem, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
 
-  if (role === 'ROLE_ADMIN') {
-    this.router.navigate(['/admin/approvals']);
-    return;
+    if (!notification.read) {
+      this.notificationStore.markAsRead(notification.id);
+    }
   }
-
-  if (role === 'ROLE_ZM') {
-    this.router.navigate(['/zm/approvals']);
-    return;
-  }
-
-  if (role === 'ROLE_STT') {
-    this.router.navigate(['/stt/approvals']);
-  }
-}
-
-markOneAsRead(notification: NotificationItem, event?: Event): void {
-  event?.stopPropagation();
-  event?.preventDefault();
-
-  if (!notification.read) {
-    this.notificationStore.markAsRead(notification.id);
-  }
-}
 
   markAllAsRead(event?: Event): void {
     event?.stopPropagation();
@@ -129,42 +181,102 @@ markOneAsRead(notification: NotificationItem, event?: Event): void {
   }
 
   getNotificationIcon(eventType?: string): string {
-  switch (eventType) {
-    case 'USER_REGISTERED':
-      return 'cilUserFollow';
-    case 'USER_APPROVED':
-      return 'cilCheckCircle';
-    case 'USER_REJECTED':
-      return 'cilXCircle';
-    case 'INTERVENTION_CREATED':
-      return 'cilSettings';
-    case 'INTERVENTION_ASSIGNED':
-      return 'cilTask';
-    case 'STOCK_ALERT':
-      return 'cilWarning';
-    default:
-      return 'cilBell';
+    switch (eventType) {
+      case 'USER_REGISTERED':
+        return 'cilUserFollow';
+      case 'CASE_ASSIGNED_TO_ZM':
+      case 'CASE_ASSIGNED_TO_STT':
+      case 'CASE_ASSIGNED_TO_TECH':
+        return 'cilTask';
+      case 'SLA_WARNING':
+        return 'cilWarning';
+      case 'SLA_BREACHED':
+      case 'SLA_ESCALATED':
+        return 'cilBan';
+      case 'USER_APPROVED':
+        return 'cilCheckCircle';
+      case 'USER_REJECTED':
+        return 'cilXCircle';
+      case 'INTERVENTION_CREATED':
+        return 'cilSettings';
+      case 'INTERVENTION_ASSIGNED':
+        return 'cilTask';
+      case 'STOCK_ALERT':
+        return 'cilWarning';
+      default:
+        return 'cilBell';
+    }
   }
-}
 
-getNotificationBadgeColor(eventType?: string): string {
-  switch (eventType) {
-    case 'USER_REGISTERED':
-      return 'info';
-    case 'USER_APPROVED':
-      return 'success';
-    case 'USER_REJECTED':
-      return 'danger';
-    case 'INTERVENTION_CREATED':
-      return 'primary';
-    case 'INTERVENTION_ASSIGNED':
-      return 'warning';
-    case 'STOCK_ALERT':
-      return 'danger';
-    default:
-      return 'secondary';
+  getNotificationBadgeColor(eventType?: string): string {
+    switch (eventType) {
+      case 'USER_REGISTERED':
+        return 'info';
+      case 'CASE_ASSIGNED_TO_ZM':
+      case 'CASE_ASSIGNED_TO_STT':
+      case 'CASE_ASSIGNED_TO_TECH':
+        return 'primary';
+      case 'SLA_WARNING':
+        return 'warning';
+      case 'SLA_BREACHED':
+      case 'SLA_ESCALATED':
+        return 'danger';
+      case 'USER_APPROVED':
+        return 'success';
+      case 'USER_REJECTED':
+        return 'danger';
+      case 'INTERVENTION_CREATED':
+        return 'primary';
+      case 'INTERVENTION_ASSIGNED':
+        return 'warning';
+      case 'STOCK_ALERT':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
   }
-}
+
+  private loadPerformanceSnapshot(): void {
+    this.casesService.getMyPerformance().subscribe({
+      next: (summary) => {
+        this.activeTasksCount = summary.activeTasksCount ?? 0;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.activeTasksCount = 0;
+      }
+    });
+  }
+
+  private isCaseEvent(eventType?: string): boolean {
+    if (!eventType) {
+      return false;
+    }
+
+    return eventType === 'CASE_ASSIGNED_TO_ZM'
+      || eventType === 'CASE_ASSIGNED_TO_STT'
+      || eventType === 'CASE_ASSIGNED_TO_TECH'
+      || eventType === 'SLA_WARNING'
+        || eventType === 'SLA_BREACHED'
+        || eventType === 'SLA_ESCALATED';
+  }
+
+  private getCaseListRouteByRole(): string | null {
+    const role = this.authStore.role();
+
+    switch (role) {
+      case 'ROLE_ADMIN':
+        return '/admin/cases/activation';
+      case 'ROLE_ZM':
+        return '/zm/cases/activation';
+      case 'ROLE_STT':
+        return '/stt/cases/activation';
+      case 'ROLE_TECH':
+        return '/tech/cases/activation';
+      default:
+        return null;
+    }
+  }
 
   public newMessages = [
     {

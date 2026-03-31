@@ -1,0 +1,97 @@
+<div class="container-fluid">
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-1">Invite Technician</h5>
+          <small class="text-body-secondary">Send a registration link to a technician by email.</small>
+        </div>
+
+        <div class="card-body">
+          <div *ngIf="successMessage" class="alert alert-success">
+            {{ successMessage }}
+          </div>
+
+          <div *ngIf="errorMessage" class="alert alert-danger">
+            {{ errorMessage }}
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <div class="mb-3">
+              <label class="form-label">Technician Email</label>
+              <input
+                type="email"
+                class="form-control"
+                formControlName="email"
+                placeholder="tech@example.com"
+              />
+              <div
+                class="text-danger small mt-1"
+                *ngIf="form.controls.email.touched && form.controls.email.invalid"
+              >
+                Please enter a valid email.
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="btn btn-primary w-100"
+              [disabled]="submitting"
+            >
+              {{ submitting ? 'Sending...' : 'Send Invitation' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="mb-1">My Invitations</h5>
+            <small class="text-body-secondary">Track registration and approval status.</small>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" (click)="loadInvitations()">
+            Refresh
+          </button>
+        </div>
+
+        <div class="card-body p-0">
+          <div *ngIf="loading" class="p-4 text-center text-body-secondary">
+            Loading invitations...
+          </div>
+
+          <div *ngIf="!loading && invitations.length === 0" class="p-4 text-center text-body-secondary">
+            No invitations found.
+          </div>
+
+          <div *ngIf="!loading && invitations.length > 0" class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>Registered At</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of invitations; trackBy: trackByInvitation">
+                  <td>{{ item.email }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="badgeClass(item.status)">
+                      {{ item.status }}
+                    </span>
+                  </td>
+                  <td>{{ item.createdAt | date:'medium' }}</td>
+                  <td>{{ item.registeredAt ? (item.registeredAt | date:'medium') : '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

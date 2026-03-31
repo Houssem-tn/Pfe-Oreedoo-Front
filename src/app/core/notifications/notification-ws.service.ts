@@ -1,6 +1,5 @@
 import { Injectable, inject } from '@angular/core';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { Subject } from 'rxjs';
 
 import { API_BASE_URL } from '../http/api.config';
@@ -28,31 +27,47 @@ export class NotificationWsService {
     const email = this.authStore.user()?.email?.trim().toLowerCase();
 
     if (!token || !role || !email) {
+      console.warn('[Notification WS] Missing token, role, or email. Connection skipped.');
       return;
     }
 
-    if (this.client?.active) {
+    if (this.client?.active || this.client?.connected) {
+      console.log('[Notification WS] Already active/connected. Skipping reconnect.');
       return;
     }
+
+    const brokerURL = this.buildWsUrl('/ws-notifications');
+    console.log('[Notification WS] Connecting to:', brokerURL);
+    console.log('[Notification WS] Role topic:', this.buildRoleTopic(role));
+    console.log('[Notification WS] User topic:', this.buildUserTopic(email));
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS(`${this.baseUrl}/ws-notifications`),
+      brokerURL,
       connectHeaders: {
         Authorization: `Bearer ${token}`
       },
-      reconnectDelay: 0,
+      reconnectDelay: 5000,
       debug: (msg: string) => {
         console.log('[Notification WS]', msg);
       }
     });
 
     this.client.onConnect = () => {
+      console.log('[Notification WS] Connected successfully');
       this.subscribeToTopics(role, email);
+    };
+
+    this.client.onDisconnect = () => {
+      console.log('[Notification WS] Disconnected');
     };
 
     this.client.onStompError = (frame) => {
       console.error('[Notification WS] Broker error:', frame.headers['message']);
       console.error('[Notification WS] Details:', frame.body);
+    };
+
+    this.client.onWebSocketClose = (event) => {
+      console.warn('[Notification WS] WebSocket closed:', event);
     };
 
     this.client.onWebSocketError = (event) => {
@@ -81,6 +96,7 @@ export class NotificationWsService {
 
   private subscribeToTopics(role: Role, email: string): void {
     if (!this.client || !this.client.connected) {
+      console.warn('[Notification WS] Cannot subscribe: client not connected');
       return;
     }
 
@@ -91,12 +107,17 @@ export class NotificationWsService {
     const userTopic = this.buildUserTopic(email);
 
     this.roleSubscription = this.client.subscribe(roleTopic, (message: IMessage) => {
+      console.log('[Notification WS] Role message received:', message.body);
       this.handleIncomingMessage(message);
     });
 
     this.userSubscription = this.client.subscribe(userTopic, (message: IMessage) => {
+      console.log('[Notification WS] User message received:', message.body);
       this.handleIncomingMessage(message);
     });
+
+    console.log('[Notification WS] Subscribed to role topic:', roleTopic);
+    console.log('[Notification WS] Subscribed to user topic:', userTopic);
   }
 
   private handleIncomingMessage(message: IMessage): void {
@@ -114,5 +135,11 @@ export class NotificationWsService {
 
   private buildUserTopic(email: string): string {
     return `/topic/notifications/user/${email.trim().toLowerCase()}`;
+  }
+
+  private buildWsUrl(path: string): string {
+    const httpUrl = new URL(this.baseUrl);
+    const protocol = httpUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${httpUrl.host}${path}`;
   }
 }

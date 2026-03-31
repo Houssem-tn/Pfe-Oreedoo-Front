@@ -134,15 +134,19 @@
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0" aria-label="Open user menu">
+    <button [caret]="false" cDropdownToggle class="py-0 pe-0 position-relative" aria-label="Open user menu">
       <c-avatar
         shape="rounded-1"
         size="md"
-        src="./assets/images/avatars/8.jpg"
+        [src]="currentUserAvatarUrl || defaultAvatarUrl"
         status="success"
         textColor="primary"
         alt="User avatar"
       />
+
+      @if (activeTasksCount > 0) {
+        <c-badge color="warning" class="avatar-task-badge">{{ activeTasksCount }}</c-badge>
+      }
     </button>
     <ul cDropdownMenu class="pt-0 w-auto">
       <li>
@@ -168,7 +172,7 @@
         <a cDropdownItem routerLink="">
           <svg cIcon class="me-2" name="cilTask"></svg>
           Tasks
-          <c-badge class="ms-2 float-end" color="danger">42</c-badge>
+          <c-badge class="ms-2 float-end" color="danger">{{ activeTasksCount }}</c-badge>
         </a>
       </li>
       <li>

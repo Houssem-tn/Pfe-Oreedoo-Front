@@ -1,0 +1,172 @@
+<section class="team-ops-header mb-4">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <h3 class="fw-semibold mb-1">My Team Operations</h3>
+      <p class="text-body-secondary mb-0">Monitor STT supervisors, field technician workload, and SLA pressure across your zone.</p>
+    </div>
+    <a class="btn btn-outline-primary btn-sm" routerLink="/zm/cases/activation">
+      <svg cIcon name="cilFolder" class="me-1"></svg>
+      Open Activation Cases
+    </a>
+  </div>
+
+  <div class="row g-2 mt-2">
+    <div class="col-6 col-lg-3">
+      <div class="team-kpi-card">
+        <div class="team-kpi-card__label">STT Supervisors</div>
+        <div class="team-kpi-card__value">{{ stts().length }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="team-kpi-card">
+        <div class="team-kpi-card__label">TECH Loaded</div>
+        <div class="team-kpi-card__value">{{ totalTechLoaded }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="team-kpi-card">
+        <div class="team-kpi-card__label">Active Tasks</div>
+        <div class="team-kpi-card__value">{{ totalActiveTasks }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="team-kpi-card">
+        <div class="team-kpi-card__label">Avg Completion</div>
+        <div class="team-kpi-card__value">{{ avgTeamCompletion | number:'1.0-1' }}%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div *ngIf="loading()" class="text-center py-5">
+  <div class="spinner-border text-primary"></div>
+</div>
+
+<div *ngIf="!loading() && error()" class="alert alert-danger mb-4">{{ error() }}</div>
+
+<div *ngIf="!loading() && stts().length === 0" class="card border-0 shadow-sm">
+  <div class="card-body text-center py-5">
+    <svg cIcon name="cilPeople" class="text-body-secondary mb-3" width="30" height="30"></svg>
+    <h5 class="mb-1">No STT assigned to this zone</h5>
+    <p class="text-body-secondary mb-0">Once assignments exist, your operational network will appear here.</p>
+  </div>
+</div>
+
+<div class="row g-3" *ngIf="!loading() && stts().length > 0">
+  <div class="col-12" *ngFor="let stt of stts()">
+    <article class="stt-ops-card">
+      <div class="stt-ops-card__accent"></div>
+
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div class="d-flex align-items-start gap-3">
+          <div class="person-avatar" [class.person-avatar--fallback]="!avatarUrl(stt)">
+            <img *ngIf="avatarUrl(stt)" [src]="avatarUrl(stt)" [alt]="stt.fullName" />
+            <span *ngIf="!avatarUrl(stt)">{{ initialsFor(stt) }}</span>
+          </div>
+
+          <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h5 class="mb-0 fw-semibold">{{ stt.fullName }}</h5>
+              <span class="badge bg-primary-subtle text-primary-emphasis">STT Supervisor</span>
+              <span class="badge" [ngClass]="accountStatusBadge(stt.status)">{{ stt.status || 'PENDING' }}</span>
+            </div>
+
+            <div class="small text-body-secondary mt-1 d-flex align-items-center gap-2">
+              <svg cIcon name="cilEnvelopeOpen" width="14" height="14"></svg>
+              {{ stt.email }}
+            </div>
+
+            <div class="small text-body-secondary d-flex align-items-center gap-2" *ngIf="stt.phone">
+              <svg cIcon name="cilPhone" width="14" height="14"></svg>
+              {{ stt.phone }}
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-sm btn-primary" (click)="toggleSttTechs(stt.id)">
+          <svg cIcon name="cilLayers" class="me-1"></svg>
+          {{ isExpanded(stt.id) ? 'Collapse Team' : 'Expand Team' }}
+        </button>
+      </div>
+
+      <div class="row g-2 stt-metric-strip mb-2">
+        <div class="col-6 col-lg-3">
+          <div class="stt-metric-item">
+            <div class="stt-metric-item__label">TECH Count</div>
+            <div class="stt-metric-item__value">{{ sttMetrics(stt.id).techCount }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stt-metric-item">
+            <div class="stt-metric-item__label">Active Tasks</div>
+            <div class="stt-metric-item__value">{{ sttMetrics(stt.id).activeTasks }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stt-metric-item">
+            <div class="stt-metric-item__label">SLA Risk</div>
+            <div class="stt-metric-item__value">{{ sttMetrics(stt.id).warnings }} W / {{ sttMetrics(stt.id).breaches }} B</div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stt-metric-item">
+            <div class="stt-metric-item__label">Avg Completion</div>
+            <div class="stt-metric-item__value">{{ sttMetrics(stt.id).avgCompletion | number:'1.0-1' }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="isExpanded(stt.id)" class="stt-tech-panel">
+        <div *ngIf="isTechLoading(stt.id)" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+
+        <div *ngIf="!isTechLoading(stt.id) && getTechs(stt.id).length === 0" class="text-body-secondary small py-2">
+          No technicians assigned to this STT.
+        </div>
+
+        <div class="row g-3" *ngIf="!isTechLoading(stt.id) && getTechs(stt.id).length > 0">
+          <div class="col-12 col-md-6 col-xl-4" *ngFor="let tech of getTechs(stt.id)">
+            <article class="tech-ops-card h-100">
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="person-avatar person-avatar--sm" [class.person-avatar--fallback]="!avatarUrl(tech)">
+                    <img *ngIf="avatarUrl(tech)" [src]="avatarUrl(tech)" [alt]="tech.fullName" />
+                    <span *ngIf="!avatarUrl(tech)">{{ initialsFor(tech) }}</span>
+                  </div>
+                  <div>
+                    <div class="fw-semibold small mb-0">{{ tech.fullName }}</div>
+                    <div class="x-small text-body-secondary">{{ tech.email }}</div>
+                  </div>
+                </div>
+
+                <span class="badge bg-success-subtle text-success-emphasis">TECH</span>
+              </div>
+
+              <div class="small text-body-secondary mb-2" *ngIf="tech.phone">{{ tech.phone }}</div>
+
+              <div class="tech-kpis" *ngIf="techPerformance(tech) as perf">
+                <div class="tech-kpis__row">
+                  <span>Active</span>
+                  <strong>{{ perf.activeTasksCount }}</strong>
+                </div>
+                <div class="tech-kpis__row">
+                  <span>On-time / Late</span>
+                  <strong>{{ perf.rdvOnTime }} / {{ perf.rdvLate }}</strong>
+                </div>
+                <div class="tech-kpis__row">
+                  <span>SLA W / B</span>
+                  <strong>{{ perf.slaWarningCount }} / {{ perf.slaBreachCount }}</strong>
+                </div>
+                <div class="tech-kpis__progress mt-2">
+                  <div class="tech-kpis__bar" [style.width.%]="perf.workCompletionProgress"></div>
+                </div>
+                <div class="x-small text-body-secondary mt-1">Completion {{ perf.workCompletionProgress | number:'1.0-1' }}%</div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
