@@ -20,6 +20,7 @@ import { DefaultFooterComponent, DefaultHeaderComponent } from './';
 import { getNavByRole } from './__nav';
 import { AuthStore } from '../../core/auth/auth.store';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
+import { NotificationToastStackComponent } from '../../core/notifications/notification-toast-stack.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -40,7 +41,8 @@ import { NotificationStoreService } from '../../core/notifications/notification-
     NgScrollbar,
     RouterOutlet,
     RouterLink,
-    ShadowOnScrollDirective
+    ShadowOnScrollDirective,
+    NotificationToastStackComponent
   ]
 })
 export class DefaultLayoutComponent implements OnInit, OnDestroy {

@@ -11,6 +11,7 @@ import {
   CompleteWorkRequest,
   CreateCaseRequest,
   CreateActivationCaseRequest,
+  PerformanceSummaryResponse,
   SetRdvRequest,
   ValidateZmRequest
 } from './models/case.model';
@@ -63,6 +64,13 @@ export class CasesService {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/work`, payload);
   }
 
+  uploadWorkProof(caseId: string, file: File): Observable<CaseResponse> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/work-proof`, formData);
+  }
+
   submitWork(caseId: string, payload: CompleteWorkRequest): Observable<CaseResponse> {
     return this.completeWork(caseId, payload);
   }
@@ -73,5 +81,13 @@ export class CasesService {
 
   closeCase(caseId: string): Observable<CaseResponse> {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/close`, {});
+  }
+
+  getMyPerformance(): Observable<PerformanceSummaryResponse> {
+    return this.http.get<PerformanceSummaryResponse>(`${this.casesUrl}/analytics/my-performance`);
+  }
+
+  getTechPerformance(): Observable<PerformanceSummaryResponse[]> {
+    return this.http.get<PerformanceSummaryResponse[]>(`${this.casesUrl}/analytics/tech-performance`);
   }
 }

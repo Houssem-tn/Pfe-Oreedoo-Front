@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AppUser, Role, UserAuditItem } from './user.model';
+import { API_BASE_URL } from '../http/api.config';
 
 export interface AssignSttToZmRequest {
   sttId: string;
@@ -14,8 +15,9 @@ export interface AssignSttToZmRequest {
 })
 export class UserService {
   private http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(API_BASE_URL);
 
-  private readonly baseUrl = 'http://localhost:8080/api/v1';
+  private readonly baseUrl = `${this.apiBaseUrl}/api/v1`;
   private readonly usersUrl = `${this.baseUrl}/users`;
 
   getAll(): Observable<AppUser[]> {

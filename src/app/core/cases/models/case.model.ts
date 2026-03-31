@@ -13,6 +13,13 @@ export type CaseStatus =
   | 'REJECTED_BY_ZM'
   | 'CLOSED';
 
+export type SlaStatus =
+  | 'ON_TRACK'
+  | 'WARNING'
+  | 'BREACHED'
+  | 'COMPLETED_ON_TIME'
+  | 'COMPLETED_LATE';
+
 export interface CaseResponse {
   id: string;
   type: CaseType;
@@ -70,6 +77,56 @@ export interface CaseResponse {
   createdBy?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  slaTracking?: CaseSlaTracking | null;
+  timeline?: CaseTimelineEvent[] | null;
+  workProofs?: CaseProofFile[] | null;
+}
+
+export interface CaseSlaTracking {
+  startedAt?: string | null;
+  deadlineAt?: string | null;
+  rdvSetAt?: string | null;
+  warningTriggeredAt?: string | null;
+  breachedAt?: string | null;
+  escalationTriggeredAt?: string | null;
+  status?: SlaStatus | null;
+  progressPercent?: number | null;
+  warningThresholdPercent?: number | null;
+  remainingSeconds?: number | null;
+  responseDurationSeconds?: number | null;
+  warningNotificationSent?: boolean;
+  breachNotificationSent?: boolean;
+  escalationNotificationSent?: boolean;
+}
+
+export interface PerformanceSummaryResponse {
+  userId?: string | null;
+  userName?: string | null;
+  userEmail?: string | null;
+  role: string;
+  assignedCases: number;
+  rdvOnTime: number;
+  rdvLate: number;
+  rdvOnTimeRate: number;
+  slaWarningCount: number;
+  slaBreachCount: number;
+  slaEscalationCount: number;
+  averageResponseMinutes: number;
+  averageOverdueMinutes: number;
+  workCompletionProgress: number;
+  activeTasksCount: number;
+}
+
+export interface CaseTimelineEvent {
+  id: string;
+  occurredAt: string;
+  eventType: string;
+  title?: string | null;
+  details?: string | null;
+  actor?: string | null;
+  previousStatus?: CaseStatus | null;
+  newStatus?: CaseStatus | null;
+  data?: Record<string, unknown>;
 }
 
 export interface CaseRdv {
@@ -101,6 +158,17 @@ export interface CaseMetrics {
 export interface CaseZmValidation {
   approved?: boolean | null;
   comment?: string | null;
+}
+
+export interface CaseProofFile {
+  fileId: string;
+  originalFilename?: string | null;
+  contentType?: string | null;
+  size?: number | null;
+  uploadedBy?: string | null;
+  createdAt?: string | null;
+  viewUrl?: string | null;
+  downloadUrl?: string | null;
 }
 
 export interface CreateCaseRequest {

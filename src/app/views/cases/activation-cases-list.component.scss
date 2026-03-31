@@ -1,5 +1,6 @@
 .page-card {
   border-top: 3px solid #321fdb;
+  border-radius: 0.9rem;
 }
 
 .icon-pill {
@@ -17,6 +18,7 @@
   padding: 0.65rem 0.75rem;
   background-color: #fff;
   min-height: 92px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 
   .stat-icon {
     width: 1.6rem;
@@ -67,6 +69,11 @@
   color: var(--cui-success-text-emphasis);
 }
 
+.stat-danger .stat-icon {
+  background: var(--cui-danger-bg-subtle);
+  color: var(--cui-danger-text-emphasis);
+}
+
 .stat-dark .stat-icon {
   background: var(--cui-dark-bg-subtle);
   color: var(--cui-dark-text-emphasis);
@@ -77,6 +84,7 @@
   border-radius: 0.75rem;
   background: var(--cui-light-bg-subtle);
   padding: 0.85rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
 .cases-table th,
@@ -85,7 +93,7 @@
 }
 
 .assignment-badge {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   max-width: 185px;
   overflow: hidden;
@@ -93,8 +101,57 @@
   white-space: nowrap;
 }
 
-.chain-line {
-  margin-bottom: 0.2rem;
+.assignment-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.24rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  max-width: 100%;
+}
+
+.assignment-person--zm {
+  background: var(--cui-primary-bg-subtle);
+  color: var(--cui-primary-text-emphasis);
+  border-color: rgba(13, 110, 253, 0.2);
+}
+
+.assignment-person--stt {
+  background: var(--cui-info-bg-subtle);
+  color: var(--cui-info-text-emphasis);
+  border-color: rgba(13, 202, 240, 0.24);
+}
+
+.assignment-person--tech {
+  background: var(--cui-warning-bg-subtle);
+  color: var(--cui-warning-text-emphasis);
+  border-color: rgba(255, 193, 7, 0.34);
+}
+
+.assignee-avatar {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  line-height: 1;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.assignee-avatar--zm {
+  background: rgba(13, 110, 253, 0.15);
+}
+
+.assignee-avatar--stt {
+  background: rgba(13, 202, 240, 0.22);
+}
+
+.assignee-avatar--tech {
+  background: rgba(255, 193, 7, 0.28);
 }
 
 .action-btn {
@@ -104,10 +161,86 @@
   align-items: center;
   justify-content: center;
   padding: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+:host ::ng-deep .case-op-popup {
+  border-radius: 1rem;
+}
+
+:host ::ng-deep .case-op-modal {
+  text-align: left;
+}
+
+:host ::ng-deep .case-op-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+:host ::ng-deep .case-op-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:host ::ng-deep .case-op-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+:host ::ng-deep .case-op-field {
+  margin-bottom: 0.65rem;
+}
+
+:host ::ng-deep .case-op-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #495057;
+  margin-bottom: 0.3rem;
+}
+
+:host ::ng-deep .case-op-label span {
+  color: #dc3545;
+}
+
+:host ::ng-deep .case-op-input,
+:host ::ng-deep .case-op-textarea {
+  width: 100%;
+  margin: 0;
+  border-radius: 0.65rem;
+  border: 1px solid #dbe0e7;
+  background: #fff;
+  min-height: 2.45rem;
+}
+
+:host ::ng-deep .case-op-textarea {
+  min-height: 5rem;
+}
+
+:host ::ng-deep .case-op-divider {
+  border-top: 1px dashed #dbe0e7;
+  margin: 0.45rem 0 0.85rem;
+}
+
+:host ::ng-deep .case-op-subtitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #556074;
+  margin-bottom: 0.6rem;
 }
 
 @media (max-width: 991px) {
   .assignment-badge {
     max-width: 140px;
+  }
+
+  :host ::ng-deep .case-op-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  :host ::ng-deep .case-op-grid-2,
+  :host ::ng-deep .case-op-grid-3 {
+    grid-template-columns: 1fr;
   }
 }

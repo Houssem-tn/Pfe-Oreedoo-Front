@@ -3,6 +3,7 @@ import { Component, computed, inject, input, OnInit, OnDestroy, ChangeDetectorRe
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { UserService } from '../../../core/users/user.service';
+import { CasesService } from '../../../core/cases/cases.service';
 
 import {
   AvatarComponent,
@@ -31,6 +32,7 @@ import { NotificationItem } from '../../../core/notifications/models/notificatio
 @Component({
   selector: 'app-default-header',
   templateUrl: './default-header.component.html',
+  styleUrl: './default-header.component.scss',
   imports: [
     ContainerComponent,
     HeaderTogglerDirective,
@@ -60,10 +62,12 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   readonly router = inject(Router);
   readonly authStore = inject(AuthStore);
   private readonly userService = inject(UserService);
+  private readonly casesService = inject(CasesService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   currentUserAvatarUrl: string | null = null;
   readonly defaultAvatarUrl = 'assets/images/avatars/1.jpg';
+  activeTasksCount = 0;
 
   readonly colorMode = this.#colorModeService.colorMode;
 
@@ -88,6 +92,7 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   ngOnInit(): void {
     this.notificationStore.init();
     this.loadCurrentUserProfile();
+    this.loadPerformanceSnapshot();
   }
 
   ngOnDestroy(): void {
@@ -134,6 +139,12 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     this.markOneAsRead(notification, event);
 
     if (notification.eventType !== 'USER_REGISTERED') {
+      const roleRoute = this.getCaseListRouteByRole();
+
+      if (roleRoute && this.isCaseEvent(notification.eventType)) {
+        this.router.navigate([roleRoute]);
+      }
+
       return;
     }
 
@@ -173,6 +184,15 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     switch (eventType) {
       case 'USER_REGISTERED':
         return 'cilUserFollow';
+      case 'CASE_ASSIGNED_TO_ZM':
+      case 'CASE_ASSIGNED_TO_STT':
+      case 'CASE_ASSIGNED_TO_TECH':
+        return 'cilTask';
+      case 'SLA_WARNING':
+        return 'cilWarning';
+      case 'SLA_BREACHED':
+      case 'SLA_ESCALATED':
+        return 'cilBan';
       case 'USER_APPROVED':
         return 'cilCheckCircle';
       case 'USER_REJECTED':
@@ -192,6 +212,15 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     switch (eventType) {
       case 'USER_REGISTERED':
         return 'info';
+      case 'CASE_ASSIGNED_TO_ZM':
+      case 'CASE_ASSIGNED_TO_STT':
+      case 'CASE_ASSIGNED_TO_TECH':
+        return 'primary';
+      case 'SLA_WARNING':
+        return 'warning';
+      case 'SLA_BREACHED':
+      case 'SLA_ESCALATED':
+        return 'danger';
       case 'USER_APPROVED':
         return 'success';
       case 'USER_REJECTED':
@@ -204,6 +233,48 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
         return 'danger';
       default:
         return 'secondary';
+    }
+  }
+
+  private loadPerformanceSnapshot(): void {
+    this.casesService.getMyPerformance().subscribe({
+      next: (summary) => {
+        this.activeTasksCount = summary.activeTasksCount ?? 0;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.activeTasksCount = 0;
+      }
+    });
+  }
+
+  private isCaseEvent(eventType?: string): boolean {
+    if (!eventType) {
+      return false;
+    }
+
+    return eventType === 'CASE_ASSIGNED_TO_ZM'
+      || eventType === 'CASE_ASSIGNED_TO_STT'
+      || eventType === 'CASE_ASSIGNED_TO_TECH'
+      || eventType === 'SLA_WARNING'
+        || eventType === 'SLA_BREACHED'
+        || eventType === 'SLA_ESCALATED';
+  }
+
+  private getCaseListRouteByRole(): string | null {
+    const role = this.authStore.role();
+
+    switch (role) {
+      case 'ROLE_ADMIN':
+        return '/admin/cases/activation';
+      case 'ROLE_ZM':
+        return '/zm/cases/activation';
+      case 'ROLE_STT':
+        return '/stt/cases/activation';
+      case 'ROLE_TECH':
+        return '/tech/cases/activation';
+      default:
+        return null;
     }
   }
 

@@ -3,6 +3,8 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
+import { ButtonDirective } from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
@@ -12,7 +14,7 @@ import { SwalService } from '../../core/ui/swal.service';
 @Component({
   selector: 'app-create-activation-case',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, IconDirective],
   templateUrl: './create-activation-case.component.html',
   styleUrl: './create-activation-case.component.scss'
 })
@@ -116,6 +118,29 @@ export class CreateActivationCaseComponent implements OnInit {
           await this.swal.error('Creation failed', message);
         }
       });
+  }
+
+  invalid(fieldName: string): boolean {
+    const control = this.form.get(fieldName);
+    return !!control && control.invalid && (control.touched || control.dirty);
+  }
+
+  errorFor(fieldName: string, label: string): string {
+    const control = this.form.get(fieldName);
+    if (!control || !this.invalid(fieldName)) {
+      return '';
+    }
+
+    if (control.hasError('required')) {
+      return `${label} is required.`;
+    }
+
+    if (control.hasError('maxlength')) {
+      const requiredLength = control.getError('maxlength')?.requiredLength;
+      return `${label} must be at most ${requiredLength} characters.`;
+    }
+
+    return `${label} is invalid.`;
   }
 
   private toIso(value: string): string {

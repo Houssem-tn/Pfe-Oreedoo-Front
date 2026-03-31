@@ -8,17 +8,23 @@ import { AuthStore } from '../auth/auth.store';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationStoreService {
+  private static readonly POPUP_TTL_MS = 8000;
+  private static readonly POPUP_LIMIT = 4;
+
   private readonly api = inject(NotificationApiService);
   private readonly ws = inject(NotificationWsService);
   private readonly authStore = inject(AuthStore);
 
   private wsSubscription: Subscription | null = null;
+  private readonly popupTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private readonly _items = signal<NotificationItem[]>([]);
+  private readonly _ephemeralAlerts = signal<NotificationItem[]>([]);
   private readonly _loading = signal(false);
   private readonly _initialized = signal(false);
 
   readonly items = this._items.asReadonly();
+  readonly ephemeralAlerts = this._ephemeralAlerts.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly initialized = this._initialized.asReadonly();
 
@@ -71,9 +77,19 @@ export class NotificationStoreService {
     this.wsSubscription?.unsubscribe();
     this.wsSubscription = null;
     this.ws.disconnect();
+    this.clearEphemeralAlerts();
     this._initialized.set(false);
     this._items.set([]);
     this._loading.set(false);
+  }
+
+  dismissEphemeralAlert(notificationId: string): void {
+    if (!notificationId) {
+      return;
+    }
+
+    this.clearPopupTimer(notificationId);
+    this._ephemeralAlerts.update(items => items.filter(item => item.id !== notificationId));
   }
 
   refresh(): void {
@@ -146,6 +162,7 @@ export class NotificationStoreService {
             );
           }
 
+          this.pushEphemeralAlert(incoming);
           return this.sortByDateDesc([incoming, ...items]);
         });
       },
@@ -159,5 +176,50 @@ export class NotificationStoreService {
     return [...items].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+  }
+
+  private pushEphemeralAlert(item: NotificationItem): void {
+    if (!this.isOperationalAlert(item)) {
+      return;
+    }
+
+    this._ephemeralAlerts.update((alerts) => {
+      const deduped = alerts.filter(alert => alert.id !== item.id);
+      const next = [item, ...deduped].slice(0, NotificationStoreService.POPUP_LIMIT);
+      return this.sortByDateDesc(next);
+    });
+
+    this.clearPopupTimer(item.id);
+    const timer = setTimeout(() => {
+      this._ephemeralAlerts.update(alerts => alerts.filter(alert => alert.id !== item.id));
+      this.clearPopupTimer(item.id);
+    }, NotificationStoreService.POPUP_TTL_MS);
+
+    this.popupTimers.set(item.id, timer);
+  }
+
+  private isOperationalAlert(item: NotificationItem): boolean {
+    return item.eventType === 'SLA_WARNING'
+      || item.eventType === 'SLA_BREACHED'
+      || item.eventType === 'SLA_ESCALATED'
+      || item.eventType === 'CASE_ASSIGNED_TO_TECH'
+      || item.eventType === 'CASE_ASSIGNED_TO_STT'
+      || item.eventType === 'CASE_ASSIGNED_TO_ZM';
+  }
+
+  private clearPopupTimer(notificationId: string): void {
+    const timer = this.popupTimers.get(notificationId);
+    if (!timer) {
+      return;
+    }
+
+    clearTimeout(timer);
+    this.popupTimers.delete(notificationId);
+  }
+
+  private clearEphemeralAlerts(): void {
+    this.popupTimers.forEach(timer => clearTimeout(timer));
+    this.popupTimers.clear();
+    this._ephemeralAlerts.set([]);
   }
 }

@@ -28,12 +28,101 @@
   </div>
 
   <div class="card-body pt-2">
+    <div class="operational-alerts mb-4" *ngIf="operationalAlerts.length > 0">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="icon-pill bg-danger-subtle text-danger-emphasis">
+            <svg cIcon name="cilBell"></svg>
+          </span>
+          <div>
+            <div class="fw-semibold">Operational Alerts Center</div>
+            <small class="text-body-secondary">Live SLA and assignment events for immediate action</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-xl-3" *ngFor="let stat of alertSummaryCards">
+          <div class="alert-summary-card" [ngClass]="stat.className">
+            <div class="alert-summary-card__icon"><svg cIcon [name]="stat.icon"></svg></div>
+            <div class="alert-summary-card__value">{{ stat.value }}</div>
+            <div class="alert-summary-card__label">{{ stat.label }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-2">
+        <div class="col-12 col-xl-6" *ngFor="let alert of operationalAlerts">
+          <article [ngClass]="alertClass(alert)">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <div class="d-flex align-items-start gap-2">
+                <span class="op-alert__icon"><svg cIcon [name]="alertIcon(alert)"></svg></span>
+                <div>
+                  <div class="fw-semibold">{{ alert.title }}</div>
+                  <div class="small text-body-secondary">{{ alert.message }}</div>
+                </div>
+              </div>
+              <div class="text-end">
+                <div class="small fw-semibold">{{ alertCaseRef(alert) }}</div>
+                <div class="x-small text-body-secondary">{{ alert.createdAt | date:'short' }}</div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+              <span class="badge rounded-pill" [ngClass]="alert.read ? 'bg-secondary-subtle text-secondary-emphasis' : 'bg-primary-subtle text-primary-emphasis'">
+                {{ alert.read ? 'Acknowledged' : 'Needs attention' }}
+              </span>
+
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-primary" (click)="openAlert(alert)">View</button>
+                <button *ngIf="!alert.read" class="btn btn-sm btn-outline-secondary" (click)="markAlertRead(alert, $event)">Dismiss</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+
     <div class="row g-3 mb-4">
       <div class="col-12 col-sm-6 col-xl-2" *ngFor="let stat of statsCards">
         <div class="stat-card" [ngClass]="stat.className">
           <div class="stat-icon"><svg cIcon [name]="stat.icon"></svg></div>
           <div class="stat-value">{{ stat.value }}</div>
           <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4" *ngIf="myPerformance">
+      <div class="col-12">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="icon-pill bg-info-subtle text-info-emphasis">
+            <svg cIcon name="cilChartPie"></svg>
+          </span>
+          <div>
+            <div class="fw-semibold">My Performance Snapshot</div>
+            <small class="text-body-secondary">Live SLA and workload summary for your current scope</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-sm-6 col-xl-2" *ngFor="let card of performanceCards">
+        <div class="perf-card" [ngClass]="card.className">
+          <div class="perf-card__icon"><svg cIcon [name]="card.icon"></svg></div>
+          <div class="perf-card__value">{{ card.value }}</div>
+          <div class="perf-card__label">{{ card.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="team-top mb-4" *ngIf="topTechs.length > 0">
+      <div class="team-top__header">Top Technician Progress</div>
+      <div class="row g-2">
+        <div class="col-12 col-md-4" *ngFor="let tech of topTechs">
+          <div class="team-chip">
+            <div class="fw-semibold text-truncate">{{ tech.userName || tech.userEmail || 'Technician' }}</div>
+            <div class="small text-body-secondary">{{ tech.workCompletionProgress }}% completion • {{ tech.activeTasksCount }} active</div>
+          </div>
         </div>
       </div>
     </div>
@@ -108,7 +197,51 @@
         </div>
       </div>
 
-      <div class="table-responsive">
+      <div class="tech-mobile-board d-lg-none mb-3" *ngIf="currentRole === 'ROLE_TECH'">
+        <div class="tech-mobile-card" *ngFor="let item of techMobileCases; trackBy: trackById">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+              <div class="fw-semibold d-flex align-items-center gap-1">
+                <svg cIcon name="cilDescription"></svg>
+                {{ item.crmCase }}
+              </div>
+              <small class="text-body-secondary">{{ item.clientName }} • {{ item.clientPhone }}</small>
+            </div>
+            <span class="badge rounded-pill" [ngClass]="statusBadgeClass(item.status)">{{ statusLabel(item.status) }}</span>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill" [ngClass]="slaBadgeClass(item)">{{ slaStatusLabel(item) }}</span>
+            <small class="text-body-secondary">{{ slaRemainingLabel(item) }}</small>
+          </div>
+
+          <div class="sla-track" [ngClass]="slaProgressClass(item)">
+            <div class="sla-track__fill" [style.width.%]="slaProgress(item)"></div>
+          </div>
+
+          <div class="small text-body-secondary mb-3">
+            {{ item.localite }}, {{ item.delegation }} • {{ item.gouvernorat }}
+          </div>
+
+          <div class="tech-mobile-actions">
+            <button *ngIf="canSetRdv(item)" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(item.id)" (click)="openRdvPopup(item)">
+              <svg cIcon name="cilCalendar" class="me-1"></svg>RDV
+            </button>
+            <button *ngIf="canUpdateWork(item)" class="btn btn-sm btn-outline-success" [disabled]="isBusy(item.id)" (click)="openWorkPopup(item)">
+              <svg cIcon name="cilTask" class="me-1"></svg>Work
+            </button>
+            <button class="btn btn-sm btn-outline-primary" [disabled]="isBusy(item.id)" (click)="openDetails(item)">
+              <svg cIcon name="cilMagnifyingGlass" class="me-1"></svg>Details
+            </button>
+          </div>
+        </div>
+
+        <div class="text-center text-body-secondary py-4" *ngIf="techMobileCases.length === 0">
+          No active field cases match your filters.
+        </div>
+      </div>
+
+      <div class="table-responsive" [class.d-none]="currentRole === 'ROLE_TECH'" [class.d-lg-block]="currentRole === 'ROLE_TECH'">
         <table class="table table-hover align-middle mb-0 cases-table">
           <thead class="table-light">
             <tr>
@@ -117,6 +250,7 @@
               <th>Location / Offer</th>
               <th>Assignment Chain</th>
               <th>Status</th>
+              <th>SLA</th>
               <th>Execution</th>
               <th class="text-end">Actions</th>
             </tr>
@@ -146,13 +280,22 @@
 
               <td>
                 <div class="chain-line">
-                  <span class="badge assignment-badge bg-primary-subtle text-primary-emphasis">ZM: {{ item.zmName || '-' }}</span>
+                  <div class="assignment-person assignment-person--zm">
+                    <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.zmName, item.zmEmail) }}</span>
+                    <span class="assignment-badge">ZM: {{ item.zmName || item.zmEmail || '-' }}</span>
+                  </div>
                 </div>
                 <div class="chain-line">
-                  <span class="badge assignment-badge bg-info-subtle text-info-emphasis">STT: {{ item.sttName || '-' }}</span>
+                  <div class="assignment-person assignment-person--stt">
+                    <span class="assignee-avatar assignee-avatar--stt">{{ initialsFor(item.sttName, item.sttEmail) }}</span>
+                    <span class="assignment-badge">STT: {{ item.sttName || item.sttEmail || '-' }}</span>
+                  </div>
                 </div>
                 <div class="chain-line">
-                  <span class="badge assignment-badge bg-warning-subtle text-warning-emphasis">TECH: {{ item.techName || '-' }}</span>
+                  <div class="assignment-person assignment-person--tech">
+                    <span class="assignee-avatar assignee-avatar--tech">{{ initialsFor(item.techName, item.techEmail) }}</span>
+                    <span class="assignment-badge">TECH: {{ item.techName || item.techEmail || '-' }}</span>
+                  </div>
                 </div>
               </td>
 
@@ -160,6 +303,19 @@
                 <span class="badge rounded-pill px-3 py-2" [ngClass]="statusBadgeClass(item.status)">
                   {{ statusLabel(item.status) }}
                 </span>
+              </td>
+
+              <td>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge rounded-pill" [ngClass]="slaBadgeClass(item)">
+                    {{ slaStatusLabel(item) }}
+                  </span>
+                  <small class="text-body-secondary">{{ slaRemainingLabel(item) }}</small>
+                </div>
+                <div class="sla-track" [ngClass]="slaProgressClass(item)">
+                  <div class="sla-track__fill" [style.width.%]="slaProgress(item)"></div>
+                </div>
+                <small class="text-body-secondary">{{ slaProgress(item) | number:'1.0-0' }}%</small>
               </td>
 
               <td>
@@ -271,7 +427,7 @@
             </tr>
 
             <tr *ngIf="paginatedCases.length === 0">
-              <td colspan="7" class="text-center py-5">
+              <td colspan="8" class="text-center py-5">
                 <div class="fw-semibold mb-1">No activation cases found</div>
                 <small class="text-body-secondary">Try changing search or filters.</small>
               </td>

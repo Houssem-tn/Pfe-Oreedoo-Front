@@ -5,7 +5,7 @@ export const routes: Routes = [
   {
     path: 'cases/activation',
     loadComponent: () =>
-      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent)
+      import('./tech-activation-cases.component').then(m => m.TechActivationCasesComponent)
   },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
 ];
