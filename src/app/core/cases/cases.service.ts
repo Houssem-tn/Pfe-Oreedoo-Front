@@ -64,9 +64,39 @@ export class CasesService {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/work`, payload);
   }
 
-  uploadWorkProof(caseId: string, file: File): Observable<CaseResponse> {
+  uploadWorkProof(
+    caseId: string,
+    file: File,
+    options?: {
+      locationLatitude?: number | null;
+      locationLongitude?: number | null;
+      locationCapturedAt?: string | null;
+      locationAccuracyMeters?: number | null;
+      captureSource?: string | null;
+    }
+  ): Observable<CaseResponse> {
     const formData = new FormData();
     formData.append('file', file, file.name);
+
+    if (options?.locationLatitude != null) {
+      formData.append('latitude', String(options.locationLatitude));
+    }
+
+    if (options?.locationLongitude != null) {
+      formData.append('longitude', String(options.locationLongitude));
+    }
+
+    if (options?.locationCapturedAt) {
+      formData.append('locationCapturedAt', options.locationCapturedAt);
+    }
+
+    if (options?.locationAccuracyMeters != null) {
+      formData.append('locationAccuracyMeters', String(options.locationAccuracyMeters));
+    }
+
+    if (options?.captureSource?.trim()) {
+      formData.append('captureSource', options.captureSource.trim());
+    }
 
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/work-proof`, formData);
   }

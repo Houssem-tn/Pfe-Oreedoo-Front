@@ -138,7 +138,10 @@ export class NotificationWsService {
   }
 
   private buildWsUrl(path: string): string {
-    const httpUrl = new URL(this.baseUrl);
+    const resolvedBaseUrl = this.baseUrl?.trim()
+      ? this.baseUrl
+      : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200');
+    const httpUrl = new URL(resolvedBaseUrl);
     const protocol = httpUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${httpUrl.host}${path}`;
   }

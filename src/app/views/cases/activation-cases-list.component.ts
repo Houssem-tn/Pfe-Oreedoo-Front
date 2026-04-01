@@ -1060,6 +1060,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
             </div>
 
             <hr />
+            <h6 class="mb-2">Work GPS</h6>
+            ${this.renderWorkLocationHtml(work)}
+
+            <hr />
             <h6 class="mb-2">Work Proof</h6>
             ${this.renderProofsHtml(proofs)}
 
@@ -1280,31 +1284,90 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       const filename = this.escapeHtml(proof.originalFilename || 'Proof image');
       const uploadedAt = this.escapeHtml(this.asDateLabel(proof.createdAt));
       const uploadedBy = this.escapeHtml(proof.uploadedBy || '-');
-      const href = this.escapeHtml(proof.viewUrl || proof.downloadUrl || '#');
+      const imageHref = this.escapeHtml(proof.viewUrl || proof.downloadUrl || '#');
+      const mapHref = this.buildMapLink(proof.locationLatitude, proof.locationLongitude);
+      const source = this.escapeHtml(this.proofSourceLabel(proof.captureSource));
+      const location = this.escapeHtml(this.coordinateLabel(proof.locationLatitude, proof.locationLongitude));
+      const capturedAt = this.escapeHtml(this.asDateLabel(proof.locationCapturedAt));
+      const accuracy = this.escapeHtml(this.accuracyLabel(proof.locationAccuracyMeters));
 
       return `
-        <a
-          href="${href}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="d-flex gap-3 align-items-start text-decoration-none border rounded-3 p-2 mb-2"
-        >
-          <img
-            src="${href}"
-            alt="${filename}"
-            style="width: 112px; height: 84px; object-fit: cover; border-radius: 0.75rem; flex-shrink: 0;"
-          />
+        <div class="d-flex gap-3 align-items-start border rounded-3 p-2 mb-2">
+          <a
+            href="${imageHref}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex-shrink-0"
+          >
+            <img
+              src="${imageHref}"
+              alt="${filename}"
+              style="width: 112px; height: 84px; object-fit: cover; border-radius: 0.75rem;"
+            />
+          </a>
           <div class="text-start">
             <div class="fw-semibold text-body">${filename}</div>
             <div class="small text-body-secondary">Uploaded: ${uploadedAt}</div>
             <div class="small text-body-secondary">By: ${uploadedBy}</div>
-            <div class="small text-primary mt-1">Open image</div>
+            <div class="small text-body-secondary">Source: ${source || '-'}</div>
+            <div class="small text-body-secondary">GPS: ${location}</div>
+            <div class="small text-body-secondary">Captured at: ${capturedAt}</div>
+            <div class="small text-body-secondary">Accuracy: ${accuracy}</div>
+            <div class="d-flex gap-2 flex-wrap mt-2">
+              <a
+                href="${imageHref}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="small text-primary text-decoration-none"
+              >
+                Open image
+              </a>
+              ${mapHref ? `
+                <a
+                  href="${this.escapeHtml(mapHref)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="small text-primary text-decoration-none"
+                >
+                  Open map
+                </a>
+              ` : ''}
+            </div>
           </div>
-        </a>
+        </div>
       `;
     }).join('');
 
     return `<div class="case-proof-list">${rows}</div>`;
+  }
+
+  private renderWorkLocationHtml(work: CaseWork): string {
+    const mapHref = this.buildMapLink(work.locationLatitude, work.locationLongitude);
+    const location = this.escapeHtml(this.coordinateLabel(work.locationLatitude, work.locationLongitude));
+    const capturedAt = this.escapeHtml(this.asDateLabel(work.locationCapturedAt));
+    const accuracy = this.escapeHtml(this.accuracyLabel(work.locationAccuracyMeters));
+
+    if (location === '-') {
+      return '<div class="text-body-secondary small">No work submission GPS saved yet.</div>';
+    }
+
+    return `
+      <div class="row g-2 mb-2">
+        <div class="col-md-5"><strong>Coordinates:</strong> ${location}</div>
+        <div class="col-md-4"><strong>Captured at:</strong> ${capturedAt}</div>
+        <div class="col-md-3"><strong>Accuracy:</strong> ${accuracy}</div>
+      </div>
+      ${mapHref ? `
+        <a
+          href="${this.escapeHtml(mapHref)}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="small text-primary text-decoration-none"
+        >
+          Open work location on map
+        </a>
+      ` : ''}
+    `;
   }
 
   private personLabel(name?: string | null, email?: string | null): string {
@@ -1331,6 +1394,61 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private asMetric(value?: number | null): string {
     return value == null ? '-' : String(value);
+  }
+
+  private proofSourceLabel(source?: string | null): string {
+    if (source === 'gallery') {
+      return 'Gallery';
+    }
+
+    if (source === 'camera') {
+      return 'Camera';
+    }
+
+    return '-';
+  }
+
+  private buildMapLink(latitude?: number | string | null, longitude?: number | string | null): string | null {
+    const normalizedLatitude = this.parseCoordinate(latitude);
+    const normalizedLongitude = this.parseCoordinate(longitude);
+
+    if (normalizedLatitude == null || normalizedLongitude == null) {
+      return null;
+    }
+
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${normalizedLatitude},${normalizedLongitude}`)}`;
+  }
+
+  private coordinateLabel(latitude?: number | string | null, longitude?: number | string | null): string {
+    const normalizedLatitude = this.parseCoordinate(latitude);
+    const normalizedLongitude = this.parseCoordinate(longitude);
+
+    if (normalizedLatitude == null || normalizedLongitude == null) {
+      return '-';
+    }
+
+    return `${normalizedLatitude.toFixed(6)}, ${normalizedLongitude.toFixed(6)}`;
+  }
+
+  private accuracyLabel(value?: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '-';
+    }
+
+    return `±${Math.round(value)} m`;
+  }
+
+  private parseCoordinate(value?: number | string | null): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value.trim());
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
   }
 
   private formatMinutes(value: number): string {

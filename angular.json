@@ -77,6 +77,8 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
+            "host": "0.0.0.0",
+            "allowedHosts": true,
             "prebundle": {
               "exclude": [
                 "@stomp/stompjs",

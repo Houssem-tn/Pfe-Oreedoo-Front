@@ -5,7 +5,7 @@
       <h1>Field tasks built for the phone in your hand.</h1>
       <p>
         Urgent tasks rise to the top, RDV and work actions stay thumb-friendly, and proof photos can be captured
-        directly from the mobile camera before submission.
+        from the mobile camera or gallery with GPS stamps before submission.
       </p>
     </div>
 
@@ -383,6 +383,51 @@
                   <div><strong>Comment</strong><span>{{ extractWork(selected).cmtTrvStt || '-' }}</span></div>
                   <div><strong>Queued proof</strong><span>{{ currentProofDraft ? proofCaption(currentProofDraft) : 'No local proof draft' }}</span></div>
                   <div><strong>Uploaded proofs</strong><span>{{ uploadedProofs.length > 0 ? (uploadedProofs.length + ' available') : 'No uploaded proof yet' }}</span></div>
+                  <div><strong>Work GPS</strong><span>{{ workLocationSummary(selected) }}</span></div>
+                </div>
+              </article>
+
+              <article class="tech-detail-card">
+                <div class="tech-detail-card__title">Field GPS trace</div>
+                <div class="tech-detail-card__body">
+                  <div>
+                    <strong>Case site</strong>
+                    <span>{{ selected.latitude && selected.longitude ? (selected.latitude + ', ' + selected.longitude) : 'No saved case coordinates' }}</span>
+                  </div>
+                  <div>
+                    <strong>Proof GPS</strong>
+                    <span>{{ currentProofDraft ? locationSummary(currentProofDraft.location) : (uploadedProofs.length > 0 ? proofLocationSummary(uploadedProofs[0]) : 'No saved proof GPS') }}</span>
+                  </div>
+                  <div>
+                    <strong>Work GPS</strong>
+                    <span>{{ workLocationSummary(selected) }}</span>
+                  </div>
+                </div>
+                <div class="tech-quick-actions">
+                  <a class="btn-tech btn-tech--ghost" [href]="customerMapLink(selected)" target="_blank" rel="noopener noreferrer">
+                    <svg cIcon name="cilMap"></svg>
+                    Site map
+                  </a>
+                  <a
+                    *ngIf="(currentProofDraft ? draftMapLink(currentProofDraft) : proofMapLink(uploadedProofs[0])) as proofLocationLink"
+                    class="btn-tech btn-tech--ghost"
+                    [href]="proofLocationLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <svg cIcon name="cilMap"></svg>
+                    Proof map
+                  </a>
+                  <a
+                    *ngIf="workMapLink(selected) as workLocationLink"
+                    class="btn-tech btn-tech--ghost"
+                    [href]="workLocationLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <svg cIcon name="cilMap"></svg>
+                    Work map
+                  </a>
                 </div>
               </article>
             </div>
@@ -401,6 +446,7 @@
                   <div class="tech-proof-tile__meta">
                     <strong>{{ proof.originalFilename || 'Proof image' }}</strong>
                     <span>{{ uploadedProofCaption(proof) }}</span>
+                    <span>{{ proofLocationSummary(proof) }}</span>
                   </div>
                 </a>
               </div>
@@ -520,22 +566,32 @@
             <div class="tech-form__section">
               <div class="tech-form__title">Photo proof</div>
               <p class="tech-form__hint">
-                Proof photo is required for TECH submission. On mobile, “Use camera” opens the phone camera with the
-                rear lens preference when supported by the browser.
+                Proof photo is required for TECH submission. On mobile, use the camera or gallery button below.
+                The camera or gallery opens first, then the app saves the photo GPS position so the responsible ZM can open the exact place on a map.
               </p>
 
               <div class="tech-proof-actions">
-                <label class="btn-tech btn-tech--primary">
+                <button
+                  type="button"
+                  class="btn-tech btn-tech--primary"
+                  (click)="startProofSelection(cameraProofInput, 'camera')"
+                  [disabled]="actionBusy || locationBusy"
+                >
                   <svg cIcon name="cilMediaRecord"></svg>
                   Use camera
-                  <input type="file" accept="image/*" capture="environment" hidden (change)="onProofFileSelected($event)" />
-                </label>
+                </button>
+                <input #cameraProofInput type="file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment" data-source="camera" hidden (change)="onProofFileSelected($event)" />
 
-                <label class="btn-tech btn-tech--ghost">
+                <button
+                  type="button"
+                  class="btn-tech btn-tech--ghost"
+                  (click)="startProofSelection(galleryProofInput, 'gallery')"
+                  [disabled]="actionBusy || locationBusy"
+                >
                   <svg cIcon name="cilPaperclip"></svg>
-                  Choose existing
-                  <input type="file" accept="image/*" hidden (change)="onProofFileSelected($event)" />
-                </label>
+                  Choose gallery
+                </button>
+                <input #galleryProofInput type="file" accept="image/*,.jpg,.jpeg,.png,.webp" data-source="gallery" hidden (change)="onProofFileSelected($event)" />
 
                 <button
                   *ngIf="currentProofDraft"
@@ -548,11 +604,25 @@
                 </button>
               </div>
 
+              <div class="tech-form__hint" *ngIf="locationBusy">Saving the current GPS position for this proof photo...</div>
+              <div class="tech-banner tech-banner--warning" *ngIf="locationError && !locationBusy">{{ locationError }}</div>
+
               <div class="tech-proof-preview" *ngIf="currentProofDraft as proof; else noProofPreview">
                 <img [src]="proof.dataUrl" [alt]="'Proof for ' + selected.crmCase" />
                 <div class="tech-proof-preview__meta">
                   <strong>{{ proof.fileName }}</strong>
                   <span>{{ proofCaption(proof) }}</span>
+                  <span>{{ locationSummary(proof.location) }}</span>
+                  <a
+                    *ngIf="draftMapLink(proof) as draftLocationLink"
+                    class="btn-tech btn-tech--ghost"
+                    [href]="draftLocationLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <svg cIcon name="cilMap"></svg>
+                    Open proof map
+                  </a>
                 </div>
               </div>
 
@@ -574,6 +644,7 @@
                   <div class="tech-proof-tile__meta">
                     <strong>{{ proof.originalFilename || 'Submitted proof' }}</strong>
                     <span>{{ uploadedProofCaption(proof) }}</span>
+                    <span>{{ proofLocationSummary(proof) }}</span>
                   </div>
                 </a>
               </div>
