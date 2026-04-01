@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, NgZone } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,14 @@ import { IconDirective } from '@coreui/icons-angular';
 import { AppUser } from '../../../core/users/user.model';
 import { UserService } from '../../../core/users/user.service';
 import { SwalService } from '../../../core/ui/swal.service';
+
+interface UserSummaryCard {
+  label: string;
+  helper: string;
+  value: string;
+  icon: string;
+  tone: 'primary' | 'accent' | 'success' | 'warning';
+}
 
 @Component({
   standalone: true,
@@ -27,23 +35,22 @@ export class UsersListComponent implements OnInit {
   assigningSttId: string | null = null;
   error: string | null = null;
 
-  // filters
   searchTerm = '';
   selectedRole = '';
   selectedStatus = '';
+  selectedUserId: string | null = null;
 
-  // pagination
   currentPage = 1;
   pageSize = 5;
 
-  // assign ZM state
   selectedZmBySttId: Record<string, string> = {};
 
+  readonly pageSizeOptions = [5, 10, 20];
   readonly roleOptions = [
     { value: '', label: 'All roles' },
     { value: 'ROLE_ADMIN', label: 'Admin' },
     { value: 'ROLE_STT', label: 'STT' },
-    { value: 'ROLE_TECH', label: 'Technician STT' },
+    { value: 'ROLE_TECH', label: 'TECH' },
     { value: 'ROLE_CRM_BOUTIQUE', label: 'CRM Boutique' },
     { value: 'ROLE_ZM', label: 'ZM' }
   ];
@@ -60,7 +67,9 @@ export class UsersListComponent implements OnInit {
   }
 
   refresh(): void {
-    if (this.loading) return;
+    if (this.loading) {
+      return;
+    }
 
     this.loading = true;
     this.error = null;
@@ -77,6 +86,7 @@ export class UsersListComponent implements OnInit {
           this.users = data ?? [];
           this.currentPage = 1;
           this.initializeZmSelections();
+          this.syncSelectedUser();
         },
         error: (err) => {
           console.error('Error loading users:', err);
@@ -103,10 +113,14 @@ export class UsersListComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.users = this.users.filter(u => u.id !== id);
+          this.users = this.users.filter((user) => user.id !== id);
 
           if (this.currentPage > this.totalPages) {
             this.currentPage = this.totalPages || 1;
+          }
+
+          if (this.selectedUserId === id) {
+            this.selectedUserId = null;
           }
 
           void this.swal.success('User deleted', 'The user has been deleted successfully.');
@@ -146,11 +160,27 @@ export class UsersListComponent implements OnInit {
     this.assignZm(stt, result.value);
   }
 
+  openDetails(user: AppUser): void {
+    this.selectedUserId = user.id;
+  }
+
+  closeDetails(): void {
+    this.selectedUserId = null;
+  }
+
+  setRoleFilter(role: string): void {
+    this.selectedRole = role;
+    this.currentPage = 1;
+  }
+
+  setStatusFilter(status: string): void {
+    this.selectedStatus = status;
+    this.currentPage = 1;
+  }
+
   private assignZm(stt: AppUser, zmId: string): void {
     this.selectedZmBySttId[stt.id] = zmId;
-
     this.error = null;
-
     this.assigningSttId = stt.id;
 
     this.usersSvc.assignSttToZm({
@@ -165,7 +195,7 @@ export class UsersListComponent implements OnInit {
       )
       .subscribe({
         next: (updated) => {
-          this.users = this.users.map(u => u.id === updated.id ? updated : u);
+          this.users = this.users.map((user) => user.id === updated.id ? updated : user);
           this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
           void this.swal.success('Assignment saved', `ZM assigned successfully to ${updated.fullName}.`);
         },
@@ -179,22 +209,66 @@ export class UsersListComponent implements OnInit {
   }
 
   initializeZmSelections(): void {
-    for (const u of this.users) {
-      if (u.id) {
-        this.selectedZmBySttId[u.id] = u.assignedZmId ?? '';
+    for (const user of this.users) {
+      if (user.id) {
+        this.selectedZmBySttId[user.id] = user.assignedZmId ?? '';
       }
     }
   }
 
   get approvedZmUsers(): AppUser[] {
     return this.users
-      .filter(u => u.role === 'ROLE_ZM' && u.status === 'APPROVED' && u.enabled)
-      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+      .filter((user) => user.role === 'ROLE_ZM' && user.status === 'APPROVED' && user.enabled)
+      .sort((left, right) => left.fullName.localeCompare(right.fullName));
   }
 
- canAssignZm(u: AppUser): boolean {
-  return u.role === 'ROLE_STT' && u.status === 'APPROVED' && !!u.enabled;
-}
+  get summaryCards(): UserSummaryCard[] {
+    const approvedStt = this.users.filter((user) => user.role === 'ROLE_STT' && user.status === 'APPROVED' && user.enabled);
+    const assignedSttCount = approvedStt.filter((user) => !!user.assignedZmId).length;
+
+    return [
+      {
+        label: 'Total users',
+        helper: 'All accounts currently available in the system',
+        value: String(this.users.length),
+        icon: 'cilPeople',
+        tone: 'primary'
+      },
+      {
+        label: 'Approved access',
+        helper: 'Active accounts cleared for operations',
+        value: String(this.countByStatus('APPROVED')),
+        icon: 'cilCheckCircle',
+        tone: 'success'
+      },
+      {
+        label: 'Pending review',
+        helper: 'Accounts still waiting for activation',
+        value: String(this.countByStatus('PENDING')),
+        icon: 'cilClock',
+        tone: 'warning'
+      },
+      {
+        label: 'STT mapped to ZM',
+        helper: 'Assigned STT supervision coverage',
+        value: `${assignedSttCount}/${approvedStt.length || 0}`,
+        icon: 'cilLayers',
+        tone: 'accent'
+      }
+    ];
+  }
+
+  get selectedUser(): AppUser | null {
+    if (!this.selectedUserId) {
+      return null;
+    }
+
+    return this.users.find((user) => user.id === this.selectedUserId) ?? null;
+  }
+
+  canAssignZm(user: AppUser): boolean {
+    return user.role === 'ROLE_STT' && user.status === 'APPROVED' && !!user.enabled;
+  }
 
   isAssigning(sttId: string): boolean {
     return this.assigningSttId === sttId;
@@ -204,32 +278,165 @@ export class UsersListComponent implements OnInit {
     return this.deletingId === id;
   }
 
-  formatRole(role?: string | null): string {
-    return role ? role.replace('ROLE_', '').replaceAll('_', ' ') : '—';
+  effectiveRole(user: AppUser): string {
+    return user.role || user.roleRequested || '';
   }
 
-  getFilteredAssignedZmName(u: AppUser): string {
-    if (!u.assignedZmId) return '—';
-    const zm = this.users.find(user => user.id === u.assignedZmId);
-    return zm?.fullName || u.assignedZmEmail || 'Assigned';
+  formatRole(role?: string | null): string {
+    switch (role) {
+      case 'ROLE_ADMIN':
+        return 'Admin';
+      case 'ROLE_STT':
+        return 'STT';
+      case 'ROLE_TECH':
+        return 'TECH';
+      case 'ROLE_CRM_BOUTIQUE':
+        return 'CRM Boutique';
+      case 'ROLE_ZM':
+        return 'ZM';
+      default:
+        return 'Not set';
+    }
+  }
+
+  formatStatus(status?: string | null): string {
+    switch (status) {
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'PENDING':
+      default:
+        return 'Pending review';
+    }
+  }
+
+  statusIcon(status?: string | null): string {
+    switch (status) {
+      case 'APPROVED':
+        return 'cilCheckCircle';
+      case 'REJECTED':
+        return 'cilXCircle';
+      case 'PENDING':
+      default:
+        return 'cilClock';
+    }
+  }
+
+  roleIcon(role?: string | null): string {
+    switch (role) {
+      case 'ROLE_ADMIN':
+        return 'cilShieldAlt';
+      case 'ROLE_STT':
+        return 'cilPeople';
+      case 'ROLE_TECH':
+        return 'cilTask';
+      case 'ROLE_CRM_BOUTIQUE':
+        return 'cilPhone';
+      case 'ROLE_ZM':
+        return 'cilLocationPin';
+      default:
+        return 'cilUser';
+    }
+  }
+
+  roleBadgeClass(role?: string | null): string {
+    switch (role) {
+      case 'ROLE_ADMIN':
+        return 'user-pill user-pill--admin';
+      case 'ROLE_STT':
+        return 'user-pill user-pill--stt';
+      case 'ROLE_TECH':
+        return 'user-pill user-pill--tech';
+      case 'ROLE_CRM_BOUTIQUE':
+        return 'user-pill user-pill--crm';
+      case 'ROLE_ZM':
+        return 'user-pill user-pill--zm';
+      default:
+        return 'user-pill user-pill--neutral';
+    }
+  }
+
+  statusBadgeClass(status?: string | null): string {
+    switch (status) {
+      case 'APPROVED':
+        return 'user-pill user-pill--approved';
+      case 'REJECTED':
+        return 'user-pill user-pill--rejected';
+      case 'PENDING':
+      default:
+        return 'user-pill user-pill--pending';
+    }
+  }
+
+  enabledBadgeClass(enabled?: boolean | null): string {
+    return enabled
+      ? 'user-pill user-pill--enabled'
+      : 'user-pill user-pill--disabled';
+  }
+
+  enabledLabel(enabled?: boolean | null): string {
+    return enabled ? 'Enabled' : 'Disabled';
+  }
+
+  initialsFor(user: AppUser): string {
+    const source = (user.fullName ?? user.email ?? '').trim();
+
+    if (!source) {
+      return 'NA';
+    }
+
+    const tokens = source.split(/\s+/).filter(Boolean);
+    if (tokens.length === 1) {
+      return tokens[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${tokens[0][0] ?? ''}${tokens[1][0] ?? ''}`.toUpperCase();
+  }
+
+  assignmentLabel(user: AppUser): string {
+    if (user.role !== 'ROLE_STT') {
+      return 'Not applicable';
+    }
+
+    if (!user.assignedZmId) {
+      return 'Not assigned';
+    }
+
+    return this.getFilteredAssignedZmName(user);
+  }
+
+  getFilteredAssignedZmName(user: AppUser): string {
+    if (!user.assignedZmId) {
+      return 'Not assigned';
+    }
+
+    const zm = this.users.find((candidate) => candidate.id === user.assignedZmId);
+    return zm?.fullName || user.assignedZmEmail || 'Assigned';
+  }
+
+  countByStatus(status: string): number {
+    return this.users.filter((user) => user.status === status).length;
+  }
+
+  countByRole(role: string): number {
+    return this.users.filter((user) => this.effectiveRole(user) === role).length;
   }
 
   get filteredUsers(): AppUser[] {
     const term = this.searchTerm.trim().toLowerCase();
 
-    return this.users.filter((u) => {
-      const effectiveRole = u.role || u.roleRequested || '';
+    return this.users.filter((user) => {
+      const effectiveRole = this.effectiveRole(user);
 
       const matchesSearch =
         !term ||
-        u.fullName.toLowerCase().includes(term) ||
-        u.email.toLowerCase().includes(term);
+        (user.fullName ?? '').toLowerCase().includes(term) ||
+        (user.email ?? '').toLowerCase().includes(term) ||
+        (user.phone ?? '').toLowerCase().includes(term);
 
-      const matchesRole =
-        !this.selectedRole || effectiveRole === this.selectedRole;
-
-      const matchesStatus =
-        !this.selectedStatus || u.status === this.selectedStatus;
+      const matchesRole = !this.selectedRole || effectiveRole === this.selectedRole;
+      const matchesStatus = !this.selectedStatus || user.status === this.selectedStatus;
 
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -245,7 +452,17 @@ export class UsersListComponent implements OnInit {
   }
 
   get pages(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  rangeLabel(): string {
+    if (this.filteredUsers.length === 0) {
+      return '0 of 0';
+    }
+
+    const start = (this.currentPage - 1) * this.pageSize + 1;
+    const end = Math.min(this.currentPage * this.pageSize, this.filteredUsers.length);
+    return `${start}-${end} of ${this.filteredUsers.length}`;
   }
 
   onFiltersChange(): void {
@@ -253,7 +470,10 @@ export class UsersListComponent implements OnInit {
   }
 
   setPage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
+    if (page < 1 || page > this.totalPages) {
+      return;
+    }
+
     this.currentPage = page;
   }
 
@@ -264,23 +484,16 @@ export class UsersListComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  statusBadgeClass(status?: string | null): string {
-    switch (status) {
-      case 'APPROVED':
-        return 'bg-success-subtle text-success-emphasis';
-      case 'REJECTED':
-        return 'bg-danger-subtle text-danger-emphasis';
-      case 'PENDING':
-      default:
-        return 'bg-warning-subtle text-warning-emphasis';
+  trackById = (_index: number, user: AppUser) => user.id;
+
+  private syncSelectedUser(): void {
+    if (!this.selectedUserId) {
+      return;
+    }
+
+    const stillExists = this.users.some((user) => user.id === this.selectedUserId);
+    if (!stillExists) {
+      this.selectedUserId = null;
     }
   }
-
-  enabledBadgeClass(enabled?: boolean | null): string {
-    return enabled
-      ? 'bg-success-subtle text-success-emphasis'
-      : 'bg-secondary-subtle text-secondary-emphasis';
-  }
-
-  trackById = (_: number, u: AppUser) => u.id;
 }

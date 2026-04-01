@@ -85,6 +85,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   currentPage = 1;
   pageSize = 10;
+  readonly pageSizeOptions = [5, 10, 20];
 
   private nowEpochMs = Date.now();
   private liveTickHandle: ReturnType<typeof setInterval> | null = null;
@@ -128,6 +129,36 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   get createRoute(): string {
     return '/admin/cases/activation/new';
+  }
+
+  get workspaceTitle(): string {
+    switch (this.currentRole) {
+      case 'ROLE_ADMIN':
+        return 'Ooredoo Activation Command Center';
+      case 'ROLE_ZM':
+        return 'Zone Activation Oversight';
+      case 'ROLE_STT':
+        return 'Partner Delivery Control';
+      case 'ROLE_TECH':
+        return 'Field Activation Queue';
+      default:
+        return 'Activation Case Management';
+    }
+  }
+
+  get workspaceSubtitle(): string {
+    switch (this.currentRole) {
+      case 'ROLE_ADMIN':
+        return 'Monitor the full CRM activation pipeline, from intake to closure, inside a branded operations workspace.';
+      case 'ROLE_ZM':
+        return 'Track zone ownership, SLA pressure, and downstream delivery decisions with faster visual scanning.';
+      case 'ROLE_STT':
+        return 'Keep STT assignments, technician execution, and SLA follow-up aligned in one operational board.';
+      case 'ROLE_TECH':
+        return 'Review assigned field cases, time pressure, and execution status in a more focused activation queue.';
+      default:
+        return 'Telecom field workflow: assignment, RDV, work execution, validation, and closure.';
+    }
   }
 
   get accessibleCases(): CaseResponse[] {
@@ -395,6 +426,16 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     this.selectedGouvernorat = '';
     this.selectedDelegation = '';
     this.currentPage = 1;
+  }
+
+  rangeLabel(): string {
+    if (this.filteredCases.length === 0) {
+      return '0 of 0';
+    }
+
+    const start = (this.currentPage - 1) * this.pageSize + 1;
+    const end = Math.min(this.currentPage * this.pageSize, this.filteredCases.length);
+    return `${start}-${end} of ${this.filteredCases.length}`;
   }
 
   statusBadgeClass(status: CaseStatus): string {

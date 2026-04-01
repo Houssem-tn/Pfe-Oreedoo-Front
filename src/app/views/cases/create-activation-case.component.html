@@ -1,141 +1,187 @@
-<div class="card shadow-sm border-0 page-card">
-  <div class="card-header bg-white py-3 border-0">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-      <div>
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="icon-pill bg-primary-subtle text-primary-emphasis">
-            <svg cIcon name="cilFile"></svg>
-          </span>
-          <h5 class="mb-0 fw-semibold">Create Activation Case</h5>
-        </div>
-        <small class="text-body-secondary">Capture CRM activation case details for assignment and field execution.</small>
+<div class="crm-create-shell">
+  <section class="crm-create-hero">
+    <div class="crm-create-hero__content">
+      <div class="crm-create-brand">
+        <span class="crm-create-brand__dot"></span>
+        Ooredoo CRM intake
       </div>
+      <h1>Create a new activation case with cleaner intake and stronger field context.</h1>
+      <p>
+        Capture the CRM reference, customer details, and location data in a more structured red-themed workflow
+        built for operational quality from the start.
+      </p>
+    </div>
 
-      <a cButton color="secondary" variant="outline" size="sm" [routerLink]="listRoute" class="d-inline-flex align-items-center gap-1">
+    <div class="crm-create-hero__actions">
+      <a class="crm-form-action crm-form-action--ghost" [routerLink]="listRoute">
         <svg cIcon name="cilArrowLeft"></svg>
         Back to cases
       </a>
     </div>
-  </div>
+  </section>
 
-  <div class="card-body pt-2">
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 section-title-wrap">
-        <h6 class="mb-0">Case Information</h6>
-        <small class="text-body-secondary"><span class="required-star">*</span> required fields</small>
+  <section class="crm-create-summary">
+    <article class="crm-create-summary__card">
+      <span>CRM reference</span>
+      <strong>{{ form.controls.crmCase.value || 'Waiting for CRM case' }}</strong>
+    </article>
+
+    <article class="crm-create-summary__card">
+      <span>Customer</span>
+      <strong>{{ form.controls.clientName.value || 'Customer not entered yet' }}</strong>
+    </article>
+
+    <article class="crm-create-summary__card">
+      <span>Location</span>
+      <strong>{{ form.controls.localite.value || 'Location pending' }}</strong>
+    </article>
+
+    <article class="crm-create-summary__card">
+      <span>Access rule</span>
+      <strong>Admin intake only</strong>
+    </article>
+  </section>
+
+  <form class="crm-create-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <section class="crm-form-panel">
+      <div class="crm-form-panel__header">
+        <div>
+          <div class="crm-form-panel__eyebrow">Step 1</div>
+          <div class="crm-form-panel__title">Case information</div>
+          <div class="crm-form-panel__hint">Core CRM identifiers and commercial references for the activation ticket.</div>
+        </div>
+        <div class="crm-required-note"><span>*</span> required fields</div>
       </div>
 
-      <div class="section-card mb-3">
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">CRM Case <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('crmCase')" formControlName="crmCase" />
-            <div class="invalid-feedback">{{ errorFor('crmCase', 'CRM Case') }}</div>
-          </div>
+      <div class="crm-form-grid">
+        <label class="crm-field">
+          <span>CRM Case <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('crmCase')" formControlName="crmCase" />
+          <small>{{ errorFor('crmCase', 'CRM Case') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Date Creation CRM <span class="required-star">*</span></label>
-            <input type="datetime-local" class="form-control" [class.is-invalid]="invalid('dateCreationCrm')" formControlName="dateCreationCrm" />
-            <div class="invalid-feedback">{{ errorFor('dateCreationCrm', 'Date Creation CRM') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Date Creation CRM <em>*</em></span>
+          <input type="datetime-local" [class.is-invalid]="invalid('dateCreationCrm')" formControlName="dateCreationCrm" />
+          <small>{{ errorFor('dateCreationCrm', 'Date Creation CRM') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Opening Date TIMOS <span class="required-star">*</span></label>
-            <input type="datetime-local" class="form-control" [class.is-invalid]="invalid('openingDateTimos')" formControlName="openingDateTimos" />
-            <div class="invalid-feedback">{{ errorFor('openingDateTimos', 'Opening Date TIMOS') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Opening Date TIMOS <em>*</em></span>
+          <input type="datetime-local" [class.is-invalid]="invalid('openingDateTimos')" formControlName="openingDateTimos" />
+          <small>{{ errorFor('openingDateTimos', 'Opening Date TIMOS') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Site Secteur</label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('siteSecteur')" formControlName="siteSecteur" />
-            <div class="invalid-feedback">{{ errorFor('siteSecteur', 'Site Secteur') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Site Secteur</span>
+          <input type="text" [class.is-invalid]="invalid('siteSecteur')" formControlName="siteSecteur" />
+          <small>{{ errorFor('siteSecteur', 'Site Secteur') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Offer</label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('offre')" formControlName="offre" />
-            <div class="invalid-feedback">{{ errorFor('offre', 'Offer') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Offer</span>
+          <input type="text" [class.is-invalid]="invalid('offre')" formControlName="offre" />
+          <small>{{ errorFor('offre', 'Offer') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Pack</label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('desPack')" formControlName="desPack" />
-            <div class="invalid-feedback">{{ errorFor('desPack', 'Pack') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Pack</span>
+          <input type="text" [class.is-invalid]="invalid('desPack')" formControlName="desPack" />
+          <small>{{ errorFor('desPack', 'Pack') }}</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="crm-form-panel">
+      <div class="crm-form-panel__header">
+        <div>
+          <div class="crm-form-panel__eyebrow">Step 2</div>
+          <div class="crm-form-panel__title">Customer and contact</div>
+          <div class="crm-form-panel__hint">Clean customer identity and reachable contact details for assignment and RDV follow-up.</div>
         </div>
       </div>
 
-      <h6 class="mb-3">Customer & Contact</h6>
-      <div class="section-card mb-3">
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Client Name <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('clientName')" formControlName="clientName" />
-            <div class="invalid-feedback">{{ errorFor('clientName', 'Client Name') }}</div>
-          </div>
+      <div class="crm-form-grid">
+        <label class="crm-field">
+          <span>Client Name <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('clientName')" formControlName="clientName" />
+          <small>{{ errorFor('clientName', 'Client Name') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Client Phone <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('clientPhone')" formControlName="clientPhone" />
-            <div class="invalid-feedback">{{ errorFor('clientPhone', 'Client Phone') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Client Phone <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('clientPhone')" formControlName="clientPhone" />
+          <small>{{ errorFor('clientPhone', 'Client Phone') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">MSISDN <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('msisdn')" formControlName="msisdn" />
-            <div class="invalid-feedback">{{ errorFor('msisdn', 'MSISDN') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>MSISDN <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('msisdn')" formControlName="msisdn" />
+          <small>{{ errorFor('msisdn', 'MSISDN') }}</small>
+        </label>
 
-          <div class="col-md-12">
-            <label class="form-label fw-semibold">Commentaire</label>
-            <textarea class="form-control" rows="3" [class.is-invalid]="invalid('commentaire')" formControlName="commentaire" placeholder="Additional CRM notes"></textarea>
-            <div class="invalid-feedback">{{ errorFor('commentaire', 'Commentaire') }}</div>
-          </div>
+        <label class="crm-field crm-field--wide">
+          <span>Commentaire</span>
+          <textarea rows="4" [class.is-invalid]="invalid('commentaire')" formControlName="commentaire" placeholder="Additional CRM notes, access details, or intake context"></textarea>
+          <small>{{ errorFor('commentaire', 'Commentaire') }}</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="crm-form-panel">
+      <div class="crm-form-panel__header">
+        <div>
+          <div class="crm-form-panel__eyebrow">Step 3</div>
+          <div class="crm-form-panel__title">Location details</div>
+          <div class="crm-form-panel__hint">Provide coordinates and area information early so downstream teams work with stronger field precision.</div>
         </div>
       </div>
 
-      <h6 class="mb-3">Location Details</h6>
-      <div class="section-card mb-4">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Latitude</label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('latitude')" formControlName="latitude" placeholder="34°25'31.09N" />
-            <div class="invalid-feedback">{{ errorFor('latitude', 'Latitude') }}</div>
-          </div>
+      <div class="crm-form-grid">
+        <label class="crm-field">
+          <span>Latitude</span>
+          <input type="text" [class.is-invalid]="invalid('latitude')" formControlName="latitude" placeholder="34°25'31.09N or decimal" />
+          <small>{{ errorFor('latitude', 'Latitude') }}</small>
+        </label>
 
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Longitude</label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('longitude')" formControlName="longitude" placeholder="8°46'53.84E" />
-            <div class="invalid-feedback">{{ errorFor('longitude', 'Longitude') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Longitude</span>
+          <input type="text" [class.is-invalid]="invalid('longitude')" formControlName="longitude" placeholder="8°46'53.84E or decimal" />
+          <small>{{ errorFor('longitude', 'Longitude') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Localite <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('localite')" formControlName="localite" />
-            <div class="invalid-feedback">{{ errorFor('localite', 'Localite') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Localite <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('localite')" formControlName="localite" />
+          <small>{{ errorFor('localite', 'Localite') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Delegation <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('delegation')" formControlName="delegation" />
-            <div class="invalid-feedback">{{ errorFor('delegation', 'Delegation') }}</div>
-          </div>
+        <label class="crm-field">
+          <span>Delegation <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('delegation')" formControlName="delegation" />
+          <small>{{ errorFor('delegation', 'Delegation') }}</small>
+        </label>
 
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Gouvernorat <span class="required-star">*</span></label>
-            <input type="text" class="form-control" [class.is-invalid]="invalid('gouvernorat')" formControlName="gouvernorat" />
-            <div class="invalid-feedback">{{ errorFor('gouvernorat', 'Gouvernorat') }}</div>
-          </div>
-        </div>
+        <label class="crm-field">
+          <span>Gouvernorat <em>*</em></span>
+          <input type="text" [class.is-invalid]="invalid('gouvernorat')" formControlName="gouvernorat" />
+          <small>{{ errorFor('gouvernorat', 'Gouvernorat') }}</small>
+        </label>
+      </div>
+    </section>
+
+    <div class="crm-form-footer">
+      <div class="crm-form-footer__note">
+        Keep CRM case, client phone, and MSISDN accurate here so assignment, RDV, and field execution stay reliable downstream.
       </div>
 
-      <div class="action-bar d-flex justify-content-end gap-2 flex-wrap">
-        <a cButton color="secondary" variant="outline" [routerLink]="listRoute">Cancel</a>
-        <button cButton color="primary" type="submit" [disabled]="submitting" class="d-inline-flex align-items-center gap-1">
+      <div class="crm-form-footer__actions">
+        <a class="crm-form-action crm-form-action--ghost" [routerLink]="listRoute">Cancel</a>
+        <button class="crm-form-action crm-form-action--primary" type="submit" [disabled]="submitting">
           <span class="spinner-border spinner-border-sm" role="status" *ngIf="submitting"></span>
           {{ submitting ? 'Creating case...' : 'Create case' }}
         </button>
       </div>
-    </form>
-  </div>
+    </div>
+  </form>
 </div>

@@ -3,7 +3,6 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import { ButtonDirective } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 
 import { AuthStore } from '../../core/auth/auth.store';
@@ -14,7 +13,7 @@ import { SwalService } from '../../core/ui/swal.service';
 @Component({
   selector: 'app-create-activation-case',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ButtonDirective, IconDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconDirective],
   templateUrl: './create-activation-case.component.html',
   styleUrl: './create-activation-case.component.scss'
 })
