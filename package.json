@@ -12,9 +12,13 @@
   },
   "scripts": {
     "ng": "ng",
+    "certs:https": "powershell -ExecutionPolicy Bypass -File .\\scripts\\generate-local-https.ps1 -LanHost 192.168.1.83",
     "start": "ng serve --host 0.0.0.0 --port 4200 -o",
     "start:local": "ng serve -o",
     "start:lan": "ng serve --host 0.0.0.0 --port 4200",
+    "start:proxy": "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json",
+    "start:https": "ng serve --host localhost --port 4200 --ssl true --ssl-cert ../dev-certs/local-https/dev-local.pem --ssl-key ../dev-certs/local-https/dev-local-key.pem -o",
+    "start:https:lan": "ng serve --host 0.0.0.0 --port 4200 --ssl true --ssl-cert ../dev-certs/local-https/dev-local.pem --ssl-key ../dev-certs/local-https/dev-local-key.pem",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "prebuild": "ng test --watch=false --browsers=ChromeHeadless",

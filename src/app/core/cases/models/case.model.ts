@@ -143,6 +143,10 @@ export interface CaseWork {
   repTravauxStt?: string | null;
   dateFinTrv?: string | null;
   cmtTrvStt?: string | null;
+  locationLatitude?: number | null;
+  locationLongitude?: number | null;
+  locationCapturedAt?: string | null;
+  locationAccuracyMeters?: number | null;
 }
 
 export interface CaseMetrics {
@@ -169,6 +173,11 @@ export interface CaseProofFile {
   createdAt?: string | null;
   viewUrl?: string | null;
   downloadUrl?: string | null;
+  locationLatitude?: number | null;
+  locationLongitude?: number | null;
+  locationCapturedAt?: string | null;
+  locationAccuracyMeters?: number | null;
+  captureSource?: string | null;
 }
 
 export interface CreateCaseRequest {
@@ -231,6 +240,10 @@ export interface CompleteWorkRequest {
   rsrp?: number;
   rsrq?: number;
   sinr?: number;
+  locationLatitude?: number;
+  locationLongitude?: number;
+  locationCapturedAt?: string;
+  locationAccuracyMeters?: number;
 }
 
 export interface ValidateZmRequest {

@@ -38,6 +38,7 @@ import {
 type TechQuickFilter = 'urgent' | 'rdv' | 'work' | 'all';
 type TechPanel = 'details' | 'rdv' | 'work';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
+type TechProofSource = 'camera' | 'gallery';
 
 interface TechBanner {
   tone: BannerTone;
@@ -75,12 +76,23 @@ interface TechWorkForm {
   sinr: string;
 }
 
+interface TechGeoSnapshot {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number | null;
+  capturedAt: string;
+}
+
+type LocationPermissionState = PermissionState | 'unsupported';
+
 interface TechProofDraft {
   caseId: string;
   fileName: string;
   mimeType: string;
   dataUrl: string;
   capturedAt: string;
+  captureSource: TechProofSource;
+  location: TechGeoSnapshot;
   lastError?: string | null;
 }
 
@@ -108,6 +120,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   error: string | null = null;
   panelError: string | null = null;
   banner: TechBanner | null = null;
+  locationBusy = false;
+  locationError: string | null = null;
 
   cases: CaseResponse[] = [];
   performance: PerformanceSummaryResponse | null = null;
@@ -124,6 +138,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   rdvForm: TechRdvForm = this.createEmptyRdvForm();
   workForm: TechWorkForm = this.createEmptyWorkForm();
   proofDrafts: Record<string, TechProofDraft> = {};
+  private pendingProofLocation: TechGeoSnapshot | null = null;
+  private pendingProofSource: TechProofSource | null = null;
 
   private routeIntentCaseId: string | null = null;
   private routeIntentPanel: TechPanel = 'details';
@@ -569,7 +585,19 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = this.buildWorkPayload();
+    if (!this.currentProofDraft.location) {
+      this.banner = { tone: 'danger', text: 'Attach a proof photo again so its GPS position can be saved.' };
+      return;
+    }
+
+    this.locationError = null;
+
+    const workLocation = await this.captureCurrentLocation('submit the work report', 'work');
+    if (!workLocation) {
+      return;
+    }
+
+    const payload = this.buildWorkPayload(workLocation);
     if (!payload) {
       return;
     }
@@ -624,11 +652,27 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     }
   }
 
+  async startProofSelection(input: HTMLInputElement, source: TechProofSource): Promise<void> {
+    if (!this.selectedCaseId || this.locationBusy || this.actionBusy) {
+      return;
+    }
+
+    this.banner = null;
+    this.locationError = null;
+    this.pendingProofLocation = null;
+    this.pendingProofSource = source;
+    input.value = '';
+    input.click();
+  }
+
   async onProofFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
+    const captureSource = this.pendingProofSource ?? (input?.dataset['source'] === 'gallery' ? 'gallery' : 'camera');
 
     if (!file || !this.selectedCaseId) {
+      this.pendingProofLocation = null;
+      this.pendingProofSource = null;
       if (input) {
         input.value = '';
       }
@@ -637,12 +681,29 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
     if (!file.type.startsWith('image/')) {
       this.banner = { tone: 'danger', text: 'Use an image file for proof.' };
+      this.pendingProofLocation = null;
+      this.pendingProofSource = null;
       input.value = '';
       return;
     }
 
     if (file.size > TechActivationCasesComponent.MAX_PHOTO_SIZE_BYTES) {
       this.banner = { tone: 'danger', text: 'Proof photo must stay under 8 MB for reliable mobile upload.' };
+      this.pendingProofLocation = null;
+      this.pendingProofSource = null;
+      input.value = '';
+      return;
+    }
+
+    this.locationError = null;
+    const location = this.pendingProofLocation ?? await this.captureCurrentLocation(
+      captureSource === 'camera' ? 'attach a camera proof photo' : 'attach a gallery proof photo',
+      'proof'
+    );
+
+    if (!location) {
+      this.pendingProofLocation = null;
+      this.pendingProofSource = null;
       input.value = '';
       return;
     }
@@ -655,10 +716,17 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       mimeType: file.type || 'image/jpeg',
       dataUrl,
       capturedAt: new Date().toISOString(),
+      captureSource,
+      location,
       lastError: null
     });
 
-    this.banner = { tone: 'info', text: 'Proof photo ready. It will be sent right after the work payload.' };
+    this.pendingProofLocation = null;
+    this.pendingProofSource = null;
+    this.banner = {
+      tone: 'success',
+      text: 'Proof photo and GPS position were saved. They will be sent right after the work payload.'
+    };
     input.value = '';
   }
 
@@ -714,15 +782,73 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   proofCaption(draft: TechProofDraft): string {
     const capturedAt = new Date(draft.capturedAt).toLocaleString();
+    const source = this.proofSourceLabel(draft.captureSource);
     return draft.lastError
-      ? `Captured ${capturedAt}. Pending backend sync.`
-      : `Captured ${capturedAt}. Ready to send.`;
+      ? `${source} proof captured ${capturedAt}. Pending backend sync.`
+      : `${source} proof captured ${capturedAt}. Ready to send.`;
   }
 
   uploadedProofCaption(proof: CaseProofFile): string {
     const uploadedAt = proof.createdAt ? new Date(proof.createdAt).toLocaleString() : 'unknown time';
     const uploadedBy = proof.uploadedBy?.trim() ? proof.uploadedBy : 'unknown user';
-    return `Uploaded ${uploadedAt} by ${uploadedBy}`;
+    const source = this.proofSourceLabel(proof.captureSource);
+    return `Uploaded ${uploadedAt} by ${uploadedBy}${source ? ` • ${source}` : ''}`;
+  }
+
+  proofSourceLabel(source?: string | null): string {
+    if (source === 'gallery') {
+      return 'Gallery';
+    }
+
+    if (source === 'camera') {
+      return 'Camera';
+    }
+
+    return '';
+  }
+
+  locationSummary(location?: TechGeoSnapshot | null): string {
+    if (!location) {
+      return 'GPS position not captured';
+    }
+
+    const capturedAt = new Date(location.capturedAt).toLocaleString();
+    const coords = this.coordinateLabel(location.latitude, location.longitude);
+    const accuracy = this.accuracyLabel(location.accuracyMeters);
+    return `${coords} • ${accuracy} • ${capturedAt}`;
+  }
+
+  proofLocationSummary(proof?: CaseProofFile | null): string {
+    if (!proof || proof.locationLatitude == null || proof.locationLongitude == null) {
+      return 'No saved GPS position';
+    }
+
+    const capturedAt = proof.locationCapturedAt ? new Date(proof.locationCapturedAt).toLocaleString() : 'capture time unavailable';
+    return `${this.coordinateLabel(proof.locationLatitude, proof.locationLongitude)} • ${this.accuracyLabel(proof.locationAccuracyMeters)} • ${capturedAt}`;
+  }
+
+  workLocationSummary(item: CaseResponse): string {
+    const work = extractWork(item);
+
+    if (work.locationLatitude == null || work.locationLongitude == null) {
+      return 'No work submission GPS saved';
+    }
+
+    const capturedAt = work.locationCapturedAt ? new Date(work.locationCapturedAt).toLocaleString() : 'submit time unavailable';
+    return `${this.coordinateLabel(work.locationLatitude, work.locationLongitude)} • ${this.accuracyLabel(work.locationAccuracyMeters)} • ${capturedAt}`;
+  }
+
+  draftMapLink(draft?: TechProofDraft | null): string | null {
+    return this.mapLinkForCoordinates(draft?.location?.latitude, draft?.location?.longitude);
+  }
+
+  proofMapLink(proof?: CaseProofFile | null): string | null {
+    return this.mapLinkForCoordinates(proof?.locationLatitude, proof?.locationLongitude);
+  }
+
+  workMapLink(item: CaseResponse): string | null {
+    const work = extractWork(item);
+    return this.mapLinkForCoordinates(work.locationLatitude, work.locationLongitude);
   }
 
   proofStatusClass(item: CaseResponse): string {
@@ -888,7 +1014,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     };
   }
 
-  private buildWorkPayload(): CompleteWorkRequest | null {
+  private buildWorkPayload(location: TechGeoSnapshot): CompleteWorkRequest | null {
     const repTravauxStt = this.workForm.repTravauxStt.trim();
     const dateFinTrv = toIso(this.workForm.dateFinTrv);
     const cmtTrvStt = this.workForm.cmtTrvStt.trim();
@@ -908,7 +1034,11 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       debitUl: toMaybeNumber(this.workForm.debitUl),
       rsrp: toMaybeNumber(this.workForm.rsrp),
       rsrq: toMaybeNumber(this.workForm.rsrq),
-      sinr: toMaybeNumber(this.workForm.sinr)
+      sinr: toMaybeNumber(this.workForm.sinr),
+      locationLatitude: location.latitude,
+      locationLongitude: location.longitude,
+      locationCapturedAt: location.capturedAt,
+      locationAccuracyMeters: location.accuracyMeters ?? undefined
     };
   }
 
@@ -927,7 +1057,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private loadProofDrafts(): void {
     try {
       const raw = localStorage.getItem(TechActivationCasesComponent.PROOF_STORAGE_KEY);
-      this.proofDrafts = raw ? JSON.parse(raw) : {};
+      const parsed = raw ? JSON.parse(raw) : {};
+      this.proofDrafts = this.normalizeProofDrafts(parsed);
     } catch {
       this.proofDrafts = {};
     }
@@ -958,13 +1089,19 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   private async uploadProofDraft(caseId: string): Promise<'uploaded' | 'queued'> {
     const draft = this.proofDrafts[caseId];
-    if (!draft) {
+    if (!draft || !draft.location) {
       return 'queued';
     }
 
     try {
       const file = this.dataUrlToFile(draft);
-      const updated = await firstValueFrom(this.casesService.uploadWorkProof(caseId, file));
+      const updated = await firstValueFrom(this.casesService.uploadWorkProof(caseId, file, {
+        locationLatitude: draft.location.latitude,
+        locationLongitude: draft.location.longitude,
+        locationCapturedAt: draft.location.capturedAt,
+        locationAccuracyMeters: draft.location.accuracyMeters ?? null,
+        captureSource: draft.captureSource
+      }));
       this.replaceCase(updated);
 
       if (this.selectedCaseId === updated.id) {
@@ -1015,6 +1152,204 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       reader.onerror = () => reject(reader.error ?? new Error('Unable to read image file'));
       reader.readAsDataURL(file);
     });
+  }
+
+  private async captureCurrentLocation(
+    actionLabel: string,
+    mode: 'proof' | 'work' = 'work'
+  ): Promise<TechGeoSnapshot | null> {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      const message = 'This browser cannot provide GPS coordinates for this action.';
+      this.locationError = message;
+      this.banner = { tone: 'danger', text: message };
+      return null;
+    }
+
+    const permissionState = await this.getLocationPermissionState();
+    if (permissionState === 'denied') {
+      const message = 'Location access is blocked for this site. Allow Location in the browser site settings, then try again.';
+      this.locationError = message;
+      this.banner = { tone: 'danger', text: message };
+      return null;
+    }
+
+    this.locationBusy = true;
+
+    try {
+      const attempts: PositionOptions[] = mode === 'proof'
+        ? [
+            {
+              enableHighAccuracy: false,
+              timeout: 6000,
+              maximumAge: 120000
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 12000,
+              maximumAge: 0
+            }
+          ]
+        : [
+            {
+              enableHighAccuracy: false,
+              timeout: 6000,
+              maximumAge: 30000
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 12000,
+              maximumAge: 0
+            }
+          ];
+
+      let lastError: unknown = null;
+
+      for (const attempt of attempts) {
+        try {
+          const position = await this.requestCurrentPosition(attempt);
+
+          return {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracyMeters: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+            capturedAt: new Date(position.timestamp || Date.now()).toISOString()
+          };
+        } catch (error: unknown) {
+          lastError = error;
+
+          if (this.isPermissionDeniedError(error)) {
+            break;
+          }
+        }
+      }
+
+      const message = this.geolocationErrorMessage(lastError, actionLabel);
+      this.locationError = message;
+      this.banner = { tone: 'danger', text: message };
+      return null;
+    } finally {
+      this.locationBusy = false;
+    }
+  }
+
+  private requestCurrentPosition(options: PositionOptions): Promise<GeolocationPosition> {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  }
+
+  private async getLocationPermissionState(): Promise<LocationPermissionState> {
+    if (typeof navigator === 'undefined' || !('permissions' in navigator) || !navigator.permissions?.query) {
+      return 'unsupported';
+    }
+
+    try {
+      const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+      return status.state;
+    } catch {
+      return 'unsupported';
+    }
+  }
+
+  private geolocationErrorMessage(error: unknown, actionLabel: string): string {
+    const base = `Location permission is required to ${actionLabel}.`;
+
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      return `${base} This page is not in a secure context. On phones, GPS usually works only on HTTPS or localhost.`;
+    }
+
+    if (typeof error === 'object' && error != null && 'code' in error) {
+      const code = Number((error as GeolocationPositionError).code);
+
+      if (code === 1) {
+        return `${base} Allow Location for this site in the browser prompt or site settings, then try again.`;
+      }
+
+      if (code === 2) {
+        return `${base} Turn on the device GPS/location service, then try again.`;
+      }
+
+      if (code === 3) {
+        return `${base} The location request timed out. Wait a few seconds for the phone to lock the position, then try again.`;
+      }
+    }
+
+    return `${base} Try again once location service is available on the device.`;
+  }
+
+  private isPermissionDeniedError(error: unknown): boolean {
+    return typeof error === 'object'
+      && error != null
+      && 'code' in error
+      && Number((error as GeolocationPositionError).code) === 1;
+  }
+
+  private mapLinkForCoordinates(latitude?: number | null, longitude?: number | null): string | null {
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`;
+  }
+
+  private coordinateLabel(latitude?: number | null, longitude?: number | null): string {
+    if (latitude == null || longitude == null) {
+      return '-';
+    }
+
+    return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+  }
+
+  private accuracyLabel(accuracyMeters?: number | null): string {
+    if (accuracyMeters == null || !Number.isFinite(accuracyMeters)) {
+      return 'accuracy unavailable';
+    }
+
+    return `±${Math.round(accuracyMeters)} m`;
+  }
+
+  private normalizeProofDrafts(raw: unknown): Record<string, TechProofDraft> {
+    if (!raw || typeof raw !== 'object') {
+      return {};
+    }
+
+    const normalized: Record<string, TechProofDraft> = {};
+
+    for (const [caseId, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (!value || typeof value !== 'object') {
+        continue;
+      }
+
+      const draft = value as Partial<TechProofDraft> & {
+        location?: Partial<TechGeoSnapshot>;
+      };
+
+      if (!draft.fileName || !draft.mimeType || !draft.dataUrl || !draft.capturedAt) {
+        continue;
+      }
+
+      if (!draft.location || typeof draft.location.latitude !== 'number' || typeof draft.location.longitude !== 'number') {
+        continue;
+      }
+
+      normalized[caseId] = {
+        caseId,
+        fileName: draft.fileName,
+        mimeType: draft.mimeType,
+        dataUrl: draft.dataUrl,
+        capturedAt: draft.capturedAt,
+        captureSource: draft.captureSource === 'gallery' ? 'gallery' : 'camera',
+        location: {
+          latitude: draft.location.latitude,
+          longitude: draft.location.longitude,
+          accuracyMeters: typeof draft.location.accuracyMeters === 'number' ? draft.location.accuracyMeters : null,
+          capturedAt: draft.location.capturedAt || draft.capturedAt
+        },
+        lastError: draft.lastError ?? null
+      };
+    }
+
+    return normalized;
   }
 
   private startClock(): void {

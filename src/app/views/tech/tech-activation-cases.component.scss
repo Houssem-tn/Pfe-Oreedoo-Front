@@ -816,6 +816,11 @@
   line-height: 1.4;
 }
 
+.tech-proof-preview__meta .btn-tech {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.8rem;
+}
+
 .tech-proof-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

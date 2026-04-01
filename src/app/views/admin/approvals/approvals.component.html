@@ -1,211 +1,365 @@
-<div class="card shadow-sm border-0">
-  <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-    <div>
-      <h5 class="mb-0 fw-semibold">Pending approvals</h5>
-      <small class="text-body-secondary">Approve or reject new accounts</small>
+<div class="approvals-shell">
+  <section class="approvals-hero">
+    <div class="approvals-hero__content">
+      <div class="approvals-eyebrow">
+        <svg cIcon name="cilShieldAlt"></svg>
+        Admin approval desk
+      </div>
+      <h1>Review new access requests with faster decisions and clearer context.</h1>
+      <p>
+        Pending accounts are grouped in a cleaner operational board with visual role cues, quick actions,
+        and search tools that help you process the queue without losing detail.
+      </p>
     </div>
 
-    <button
-      class="btn btn-outline-secondary btn-sm px-3"
-      (click)="refresh()"
-      [disabled]="loading"
+    <div class="approvals-hero__actions">
+      <button
+        type="button"
+        class="approval-button approval-button--ghost"
+        (click)="resetFilters()"
+      >
+        <svg cIcon name="cilReload"></svg>
+        Reset filters
+      </button>
+
+      <button
+        type="button"
+        class="approval-button approval-button--primary"
+        (click)="refresh()"
+        [disabled]="loading"
+      >
+        <svg cIcon name="cilReload"></svg>
+        {{ loading ? 'Refreshing...' : 'Refresh queue' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="approvals-summary-grid">
+    <article
+      class="approval-summary-card"
+      [ngClass]="'approval-summary-card--' + card.tone"
+      *ngFor="let card of summaryCards"
     >
-      <svg cIcon name="cilReload" class="me-1"></svg>
-      Refresh
-    </button>
+      <div class="approval-summary-card__icon">
+        <svg cIcon [name]="card.icon"></svg>
+      </div>
+      <div class="approval-summary-card__value">{{ card.value }}</div>
+      <div class="approval-summary-card__label">{{ card.label }}</div>
+      <div class="approval-summary-card__helper">{{ card.helper }}</div>
+    </article>
+  </section>
+
+  <section class="approvals-toolbar">
+    <div class="approvals-toolbar__top">
+      <label class="approvals-search">
+        <span class="approvals-search__icon">
+          <svg cIcon name="cilSearch"></svg>
+        </span>
+        <input
+          type="search"
+          placeholder="Search by full name, email, username, or phone"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onFiltersChange()"
+        />
+      </label>
+
+      <label class="approvals-select-field">
+        <span>
+          <svg cIcon name="cilFilter"></svg>
+          Role
+        </span>
+        <select
+          [(ngModel)]="selectedRole"
+          (ngModelChange)="onFiltersChange()"
+        >
+          <option *ngFor="let role of roleOptions" [value]="role.value">
+            {{ role.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="approvals-select-field approvals-select-field--small">
+        <span>
+          <svg cIcon name="cilList"></svg>
+          Rows
+        </span>
+        <select
+          [(ngModel)]="pageSize"
+          (ngModelChange)="onFiltersChange()"
+        >
+          <option *ngFor="let size of pageSizeOptions" [ngValue]="size">
+            {{ size }}
+          </option>
+        </select>
+      </label>
+    </div>
+
+    <div class="approvals-toolbar__chips">
+      <button
+        type="button"
+        class="approval-chip"
+        [class.approval-chip--active]="selectedRole === role.value"
+        *ngFor="let role of roleOptions"
+        (click)="setRoleFilter(role.value)"
+      >
+        {{ role.label }}
+      </button>
+    </div>
+
+    <div class="approvals-toolbar__footer">
+      <div class="approvals-toolbar__meta">
+        <strong>{{ rangeLabel() }}</strong>
+        <span>accounts shown in the current review window</span>
+      </div>
+
+      <div class="approvals-toolbar__meta approvals-toolbar__meta--soft">
+        <svg cIcon name="cilClock"></svg>
+        <span>{{ filteredItems.length }} pending under current filters</span>
+      </div>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="approvals-state approvals-state--loading">
+    <div class="spinner-border" role="status"></div>
+    <div>
+      <strong>Loading approval queue...</strong>
+      <span>Bringing in the latest pending accounts.</span>
+    </div>
   </div>
 
-  <div class="card-body">
-    <div *ngIf="loading" class="text-center py-4">
-      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-      Loading pending approvals...
+  <div *ngIf="error" class="approvals-state approvals-state--error">
+    <svg cIcon name="cilWarning"></svg>
+    <div>
+      <strong>Approval queue unavailable</strong>
+      <span>{{ error }}</span>
     </div>
+  </div>
 
-    <div *ngIf="error" class="alert alert-danger">
-      {{ error }}
-    </div>
+  <ng-container *ngIf="!loading && !error">
+    <div class="approvals-workspace" [class.approvals-workspace--with-drawer]="selectedApproval">
+      <section class="approvals-grid">
+        <article
+          class="approval-card"
+          [class.approval-card--selected]="selectedApprovalId === user.id"
+          *ngFor="let user of paginatedItems; trackBy: trackById"
+        >
+          <div class="approval-card__header">
+            <div class="approval-card__identity">
+              <div class="approval-card__avatar">{{ initialsFor(user) }}</div>
 
-    <ng-container *ngIf="!loading && !error">
-      <div class="row g-3 mb-4">
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">
-            <svg cIcon name="cilSearch" class="me-1"></svg>
-            Search
-          </label>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Search by full name or email"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onFiltersChange()"
-          />
-        </div>
+              <div class="approval-card__person">
+                <div class="approval-card__name">{{ user.fullName }}</div>
+                <div class="approval-card__subtitle">
+                  <span>
+                    <svg cIcon name="cilEnvelopeOpen"></svg>
+                    {{ user.email }}
+                  </span>
+                  <span>
+                    <svg cIcon name="cilUser"></svg>
+                    {{ user.username || 'No username' }}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">
-            <svg cIcon name="cilUser" class="me-1"></svg>
-            Role
-          </label>
-          <select
-            class="form-select"
-            [(ngModel)]="selectedRole"
-            (ngModelChange)="onFiltersChange()"
+            <div class="approval-card__badges">
+              <span [ngClass]="roleBadgeClass(effectiveRole(user))">
+                <svg cIcon [name]="roleIcon(effectiveRole(user))"></svg>
+                {{ formatRole(effectiveRole(user)) }}
+              </span>
+
+              <span [ngClass]="statusBadgeClass(user.status)">
+                <svg cIcon [name]="statusIcon(user.status)"></svg>
+                {{ statusLabel(user.status) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="approval-card__details">
+            <div class="approval-card__detail">
+              <span class="approval-card__detail-label">Phone</span>
+              <strong>{{ user.phone || 'Not provided' }}</strong>
+            </div>
+
+            <div class="approval-card__detail">
+              <span class="approval-card__detail-label">Requested role</span>
+              <strong>{{ formatRole(user.roleRequested || user.role) }}</strong>
+            </div>
+
+            <div class="approval-card__detail">
+              <span class="approval-card__detail-label">Created at</span>
+              <strong>{{ user.createdAt ? (user.createdAt | date:'dd MMM yyyy, HH:mm') : 'Not available' }}</strong>
+            </div>
+
+            <div class="approval-card__detail">
+              <span class="approval-card__detail-label">Review stage</span>
+              <strong>{{ approvalStageLabel(user) }}</strong>
+            </div>
+          </div>
+
+          <div class="approval-card__actions">
+            <button
+              type="button"
+              class="approval-button approval-button--soft"
+              (click)="openDetails(user)"
+            >
+              <svg cIcon name="cilMagnifyingGlass"></svg>
+              Review details
+            </button>
+
+            <button
+              type="button"
+              class="approval-button approval-button--approve"
+              (click)="approve(user.id)"
+              [disabled]="isActionLoading(user.id)"
+            >
+              <svg cIcon name="cilCheckCircle"></svg>
+              {{ isActionLoading(user.id) ? 'Working...' : 'Approve account' }}
+            </button>
+
+            <button
+              type="button"
+              class="approval-button approval-button--reject"
+              (click)="reject(user)"
+              [disabled]="isActionLoading(user.id)"
+            >
+              <svg cIcon name="cilXCircle"></svg>
+              {{ isActionLoading(user.id) ? 'Working...' : 'Reject account' }}
+            </button>
+          </div>
+        </article>
+
+        <article class="approvals-empty" *ngIf="paginatedItems.length === 0">
+          <div class="approvals-empty__icon">
+            <svg cIcon name="cilSearch"></svg>
+          </div>
+          <div class="approvals-empty__title">No pending accounts match your current filters.</div>
+          <div class="approvals-empty__hint">
+            Try broadening the search or switch back to all roles to reopen the full approval queue.
+          </div>
+        </article>
+      </section>
+
+      <aside class="approvals-drawer" *ngIf="selectedApproval as selected">
+        <div class="approvals-drawer__header">
+          <div>
+            <div class="approvals-drawer__eyebrow">
+              <svg cIcon name="cilSearch"></svg>
+              Review details
+            </div>
+            <div class="approvals-drawer__title">{{ selected.fullName }}</div>
+            <div class="approvals-drawer__subtitle">{{ selected.email }}</div>
+          </div>
+
+          <button
+            type="button"
+            class="approval-icon-button"
+            (click)="closeDetails()"
+            aria-label="Close approval details"
           >
-            <option *ngFor="let role of roleOptions" [value]="role.value">
-              {{ role.label }}
-            </option>
-          </select>
-        </div>
-
-        <div class="col-md-3 d-flex align-items-end">
-          <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">
-            <svg cIcon name="cilReload" class="me-1"></svg>
-            Reset
+            <svg cIcon name="cilX"></svg>
           </button>
         </div>
-      </div>
 
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <small class="text-body-secondary">
-          Showing {{ paginatedItems.length }} of {{ filteredItems.length }} pending users
-        </small>
-
-        <div class="d-flex align-items-center gap-2">
-          <label class="mb-0 text-body-secondary small">Rows:</label>
-          <select
-            class="form-select form-select-sm w-auto"
-            [(ngModel)]="pageSize"
-            (ngModelChange)="onFiltersChange()"
-          >
-            <option [ngValue]="5">5</option>
-            <option [ngValue]="10">10</option>
-            <option [ngValue]="20">20</option>
-          </select>
+        <div class="approvals-drawer__hero">
+          <div class="approvals-drawer__avatar">{{ initialsFor(selected) }}</div>
+          <div class="approvals-drawer__hero-copy">
+            <span [ngClass]="roleBadgeClass(effectiveRole(selected))">
+              <svg cIcon [name]="roleIcon(effectiveRole(selected))"></svg>
+              {{ formatRole(effectiveRole(selected)) }}
+            </span>
+            <span [ngClass]="statusBadgeClass(selected.status)">
+              <svg cIcon [name]="statusIcon(selected.status)"></svg>
+              {{ statusLabel(selected.status) }}
+            </span>
+          </div>
         </div>
+
+        <div class="approvals-drawer__grid">
+          <div class="approvals-drawer__fact">
+            <span>Phone</span>
+            <strong>{{ selected.phone || 'Not provided' }}</strong>
+          </div>
+          <div class="approvals-drawer__fact">
+            <span>Username</span>
+            <strong>{{ selected.username || 'Not provided' }}</strong>
+          </div>
+          <div class="approvals-drawer__fact">
+            <span>Requested role</span>
+            <strong>{{ formatRole(selected.roleRequested || selected.role) }}</strong>
+          </div>
+          <div class="approvals-drawer__fact">
+            <span>Created at</span>
+            <strong>{{ selected.createdAt ? (selected.createdAt | date:'dd MMM yyyy, HH:mm') : 'Not available' }}</strong>
+          </div>
+        </div>
+
+        <div class="approvals-drawer__note">
+          <svg cIcon name="cilCommentSquare"></svg>
+          <div>
+            <strong>Admin review note</strong>
+            <span>Use this side panel to review the request quickly, then approve or reject without leaving the queue.</span>
+          </div>
+        </div>
+
+        <div class="approvals-drawer__actions">
+          <button
+            type="button"
+            class="approval-button approval-button--approve"
+            (click)="approve(selected.id)"
+            [disabled]="isActionLoading(selected.id)"
+          >
+            <svg cIcon name="cilCheckCircle"></svg>
+            {{ isActionLoading(selected.id) ? 'Working...' : 'Approve account' }}
+          </button>
+
+          <button
+            type="button"
+            class="approval-button approval-button--reject"
+            (click)="reject(selected)"
+            [disabled]="isActionLoading(selected.id)"
+          >
+            <svg cIcon name="cilXCircle"></svg>
+            {{ isActionLoading(selected.id) ? 'Working...' : 'Reject account' }}
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <section class="approvals-pagination" *ngIf="filteredItems.length > 0">
+      <div class="approvals-pagination__meta">
+        Page {{ currentPage }} of {{ totalPages }}
       </div>
 
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 users-table">
-          <thead class="table-light">
-            <tr>
-              <th>Full name</th>
-              
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created at</th>
-              <th class="text-end" style="width: 210px;">Actions</th>
-            </tr>
-          </thead>
+      <div class="approvals-pagination__controls">
+        <button
+          type="button"
+          class="approval-page-button"
+          (click)="setPage(currentPage - 1)"
+          [disabled]="currentPage === 1"
+        >
+          Previous
+        </button>
 
-          <tbody>
-            <tr *ngFor="let u of paginatedItems; trackBy: trackById">
-              <td>
-                <div class="fw-semibold text-dark">{{ u.fullName }}</div>
-              </td>
+        <button
+          type="button"
+          class="approval-page-button"
+          [class.approval-page-button--active]="page === currentPage"
+          *ngFor="let page of pages"
+          (click)="setPage(page)"
+        >
+          {{ page }}
+        </button>
 
-              
-
-              <td>
-                <span class="text-body-secondary">{{ u.email }}</span>
-              </td>
-
-              <td>
-                <span class="text-body-secondary">{{ u.phone || '—' }}</span>
-              </td>
-
-              <td>
-                <span class="badge rounded-pill bg-info-subtle text-info-emphasis px-3 py-2">
-                  <svg cIcon name="cilBadge" class="me-1"></svg>
-                  {{ formatRole(u.roleRequested || u.role) }}
-                </span>
-              </td>
-
-              <td>
-                <span
-                  class="badge rounded-pill px-3 py-2"
-                  [ngClass]="statusBadgeClass(u.status)"
-                >
-                  {{ u.status }}
-                </span>
-              </td>
-
-              <td>
-                <span class="text-body-secondary">
-                  {{ u.createdAt ? (u.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}
-                </span>
-              </td>
-
-              <td class="text-end">
-                <button
-                  class="btn btn-success btn-sm me-2"
-                  (click)="approve(u.id)"
-                  [disabled]="isActionLoading(u.id)"
-                >
-                  <svg cIcon name="cilCheckCircle" class="me-1"></svg>
-                  {{ isActionLoading(u.id) ? '...' : 'Approve' }}
-                </button>
-
-                <button
-                  class="btn btn-outline-danger btn-sm"
-                  (click)="reject(u)"
-                  [disabled]="isActionLoading(u.id)"
-                >
-                  <svg cIcon name="cilXCircle" class="me-1"></svg>
-                  {{ isActionLoading(u.id) ? '...' : 'Reject' }}
-                </button>
-              </td>
-            </tr>
-
-            <tr *ngIf="paginatedItems.length === 0">
-              <td colspan="8" class="text-center py-5">
-                <div class="d-flex flex-column align-items-center">
-                  <div class="mb-2 fs-5 text-body-secondary">No matching pending users found</div>
-                  <small class="text-body-secondary">
-                    Try changing the search or filter values.
-                  </small>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <button
+          type="button"
+          class="approval-page-button"
+          (click)="setPage(currentPage + 1)"
+          [disabled]="currentPage === totalPages"
+        >
+          Next
+        </button>
       </div>
-
-      <div
-        class="d-flex justify-content-between align-items-center mt-4"
-        *ngIf="filteredItems.length > 0"
-      >
-        <small class="text-body-secondary">
-          Page {{ currentPage }} / {{ totalPages }}
-        </small>
-
-        <nav>
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item" [class.disabled]="currentPage === 1">
-              <button class="page-link" (click)="setPage(currentPage - 1)">
-                Previous
-              </button>
-            </li>
-
-            <li
-              class="page-item"
-              *ngFor="let page of pages"
-              [class.active]="page === currentPage"
-            >
-              <button class="page-link" (click)="setPage(page)">
-                {{ page }}
-              </button>
-            </li>
-
-            <li class="page-item" [class.disabled]="currentPage === totalPages">
-              <button class="page-link" (click)="setPage(currentPage + 1)">
-                Next
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </ng-container>
-  </div>
+    </section>
+  </ng-container>
 </div>
