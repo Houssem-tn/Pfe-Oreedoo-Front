@@ -7,9 +7,25 @@
   visible
 >
   <c-sidebar-header class="border-bottom">
-    <c-sidebar-brand [routerLink]="[]">
-      <svg [class]="{icon: false}" cIcon class="sidebar-brand-full" height="32" name="logo" title="CoreUI Logo"></svg>
-      <svg cIcon class="sidebar-brand-narrow" height="32" name="signet" title="CoreUI Logo"></svg>
+    <c-sidebar-brand [routerLink]="[]" class="app-sidebar-brand">
+      <span class="sidebar-brand-full app-sidebar-brand__full">
+        <img
+          alt="Ooredoo"
+          class="app-sidebar-brand__logo"
+          src="assets/images/Ooredoo-Tunisie.png"
+        />
+        <span class="app-sidebar-brand__text">
+          <span class="app-sidebar-brand__title">ooredoo</span>
+          <span class="app-sidebar-brand__subtitle">Field Service</span>
+        </span>
+      </span>
+      <span class="sidebar-brand-narrow app-sidebar-brand__narrow">
+        <img
+          alt="Ooredoo"
+          class="app-sidebar-brand__logo app-sidebar-brand__logo--narrow"
+          src="assets/images/Ooredoo-Tunisie.png"
+        />
+      </span>
     </c-sidebar-brand>
   </c-sidebar-header>
 

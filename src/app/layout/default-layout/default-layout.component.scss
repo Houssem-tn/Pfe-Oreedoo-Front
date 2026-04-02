@@ -18,6 +18,62 @@
   //}
 }
 
+.app-sidebar-brand {
+  align-items: center;
+  display: flex;
+  min-height: 4rem;
+  padding: 0.35rem 0.25rem;
+}
+
+.app-sidebar-brand__full,
+.app-sidebar-brand__narrow {
+  align-items: center;
+  display: inline-flex;
+}
+
+.app-sidebar-brand__full {
+  gap: 0.8rem;
+}
+
+.app-sidebar-brand__logo {
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(229, 36, 59, 0.24);
+  display: block;
+  height: 2.5rem;
+  object-fit: contain;
+  width: 2.5rem;
+}
+
+.app-sidebar-brand__logo--narrow {
+  border-radius: 12px;
+  height: 2.2rem;
+  width: 2.2rem;
+}
+
+.app-sidebar-brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  min-width: 0;
+}
+
+.app-sidebar-brand__title {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.app-sidebar-brand__subtitle {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin-top: 0.24rem;
+  text-transform: uppercase;
+}
+
 // ng-scrollbar css variables
 //.cui-scrollbar {
 //  --scrollbar-border-radius: 7px;
