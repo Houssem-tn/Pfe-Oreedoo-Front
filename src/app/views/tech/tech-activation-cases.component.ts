@@ -792,7 +792,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     const uploadedAt = proof.createdAt ? new Date(proof.createdAt).toLocaleString() : 'unknown time';
     const uploadedBy = proof.uploadedBy?.trim() ? proof.uploadedBy : 'unknown user';
     const source = this.proofSourceLabel(proof.captureSource);
-    return `Uploaded ${uploadedAt} by ${uploadedBy}${source ? ` • ${source}` : ''}`;
+    return `Uploaded ${uploadedAt} by ${uploadedBy}${source ? ` | ${source}` : ''}`;
   }
 
   proofSourceLabel(source?: string | null): string {
@@ -815,7 +815,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     const capturedAt = new Date(location.capturedAt).toLocaleString();
     const coords = this.coordinateLabel(location.latitude, location.longitude);
     const accuracy = this.accuracyLabel(location.accuracyMeters);
-    return `${coords} • ${accuracy} • ${capturedAt}`;
+    return `${coords} | ${accuracy} | ${capturedAt}`;
   }
 
   proofLocationSummary(proof?: CaseProofFile | null): string {
@@ -824,7 +824,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     }
 
     const capturedAt = proof.locationCapturedAt ? new Date(proof.locationCapturedAt).toLocaleString() : 'capture time unavailable';
-    return `${this.coordinateLabel(proof.locationLatitude, proof.locationLongitude)} • ${this.accuracyLabel(proof.locationAccuracyMeters)} • ${capturedAt}`;
+    return `${this.coordinateLabel(proof.locationLatitude, proof.locationLongitude)} | ${this.accuracyLabel(proof.locationAccuracyMeters)} | ${capturedAt}`;
   }
 
   workLocationSummary(item: CaseResponse): string {
@@ -835,7 +835,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     }
 
     const capturedAt = work.locationCapturedAt ? new Date(work.locationCapturedAt).toLocaleString() : 'submit time unavailable';
-    return `${this.coordinateLabel(work.locationLatitude, work.locationLongitude)} • ${this.accuracyLabel(work.locationAccuracyMeters)} • ${capturedAt}`;
+    return `${this.coordinateLabel(work.locationLatitude, work.locationLongitude)} | ${this.accuracyLabel(work.locationAccuracyMeters)} | ${capturedAt}`;
   }
 
   draftMapLink(draft?: TechProofDraft | null): string | null {
@@ -1305,7 +1305,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return 'accuracy unavailable';
     }
 
-    return `±${Math.round(accuracyMeters)} m`;
+    return `+/- ${Math.round(accuracyMeters)} m`;
   }
 
   private normalizeProofDrafts(raw: unknown): Record<string, TechProofDraft> {

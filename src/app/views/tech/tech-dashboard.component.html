@@ -1,11 +1,38 @@
 <div class="tech-home">
   <section class="tech-home__hero">
-    <div class="tech-home__eyebrow">TECH mobile cockpit</div>
-    <h1>Field operations with the next action always within reach.</h1>
+    <div class="tech-home__hero-top">
+      <div class="tech-home__eyebrow">
+        <svg cIcon name="cilGrid"></svg>
+        Ooredoo TECH field hub
+      </div>
+      <div class="tech-home__hero-chip">{{ activeCases.length }} live tasks</div>
+    </div>
+
+    <h1>Field operations designed for the technician on the move.</h1>
     <p>
-      This dashboard puts the on-site technician first: urgent tasks rise to the top, RDV and work flows are one tap
-      away, and the work form is prepared for proof capture on mobile.
+      Urgent interventions stay first, RDV and work closure stay within thumb reach, and the board stays clean enough
+      to use comfortably from a phone in the field.
     </p>
+
+    <div class="tech-home__hero-strip">
+      <article class="tech-hero-stat">
+        <span>Urgent now</span>
+        <strong>{{ urgentCases.length }}</strong>
+        <small>SLA-driven queue</small>
+      </article>
+
+      <article class="tech-hero-stat">
+        <span>RDV ready</span>
+        <strong>{{ rdvQueue.length }}</strong>
+        <small>Calls and appointments</small>
+      </article>
+
+      <article class="tech-hero-stat">
+        <span>Completed</span>
+        <strong>{{ performance?.completedCasesCount ?? 0 }}</strong>
+        <small>Closed interventions</small>
+      </article>
+    </div>
 
     <div class="tech-home__hero-actions">
       <a
@@ -14,7 +41,7 @@
         class="btn-tech btn-tech--primary"
       >
         <svg cIcon name="cilWarning"></svg>
-        Urgent tasks
+        Open urgent
       </a>
 
       <a
@@ -23,7 +50,7 @@
         class="btn-tech btn-tech--ghost"
       >
         <svg cIcon name="cilCalendar"></svg>
-        RDV queue
+        RDV flow
       </a>
 
       <a
@@ -35,9 +62,9 @@
         Submit work
       </a>
 
-      <button type="button" class="btn-tech btn-tech--ghost" (click)="refresh()">
+      <button type="button" class="btn-tech btn-tech--soft" (click)="refresh()">
         <svg cIcon name="cilCloudDownload"></svg>
-        Sync
+        Refresh
       </button>
     </div>
   </section>
@@ -64,9 +91,10 @@
     <section class="tech-home__alerts" *ngIf="recentAlerts.length > 0">
       <div class="tech-section-header">
         <div>
-          <div class="tech-section-header__title">Alerts that need attention</div>
-          <div class="tech-section-header__hint">SLA escalations and new assignments stay above the fold.</div>
+          <div class="tech-section-header__title">Live field alerts</div>
+          <div class="tech-section-header__hint">Escalations and new assignments stay visible before the task list.</div>
         </div>
+        <span class="tech-section-header__meta">{{ recentAlerts.length }} recent</span>
       </div>
 
       <div class="tech-alert-grid">
@@ -83,97 +111,129 @@
     <section class="tech-home__section">
       <div class="tech-section-header">
         <div>
-          <div class="tech-section-header__title">Urgent first</div>
-          <div class="tech-section-header__hint">The most time-sensitive tasks come before everything else.</div>
+          <div class="tech-section-header__title">Urgent missions first</div>
+          <div class="tech-section-header__hint">The highest-pressure interventions stay on top with the next action ready.</div>
         </div>
         <a routerLink="/tech/cases/activation" [queryParams]="{ focus: 'urgent' }" class="tech-section-link">
-          Open all
+          Open full queue
         </a>
       </div>
 
       <div class="tech-task-list">
         <article class="tech-task-card" *ngFor="let item of urgentCases; trackBy: trackByCase">
-          <div class="tech-task-card__header">
-            <div>
+          <div class="tech-task-card__top">
+            <div class="tech-task-card__identity">
               <div class="tech-task-card__crm">CRM {{ item.crmCase }}</div>
               <h2>{{ item.clientName }}</h2>
               <div class="tech-task-card__phone">{{ item.clientPhone }}</div>
             </div>
-            <span class="badge rounded-pill" [ngClass]="slaStatusClass(item)">{{ slaLabel(item) }}</span>
+
+            <div class="tech-task-card__priority">
+              <span class="badge rounded-pill" [ngClass]="slaStatusClass(item)">{{ slaLabel(item) }}</span>
+              <span class="badge rounded-pill" [ngClass]="slaStatusClass(item)">{{ remainingLabel(item) }}</span>
+            </div>
           </div>
 
-          <div class="tech-task-card__badges">
+          <div class="tech-task-card__status-row">
             <span class="badge rounded-pill" [ngClass]="statusClass(item)">{{ statusLabel(item) }}</span>
-            <span class="badge rounded-pill" [ngClass]="slaStatusClass(item)">{{ remainingLabel(item) }}</span>
+            <span class="tech-task-card__offer">{{ item.offre || 'Offer pending' }}</span>
           </div>
 
-          <div class="tech-task-card__meta">{{ caseLocation(item) }}</div>
+          <div class="tech-task-card__meta">
+            <span>
+              <svg cIcon name="cilLocationPin"></svg>
+              {{ caseLocation(item) }}
+            </span>
+          </div>
 
           <div class="tech-sla-track">
             <div class="tech-sla-track__fill" [style.width.%]="slaProgress(item)"></div>
           </div>
 
-          <a
-            routerLink="/tech/cases/activation"
-            [queryParams]="{ focus: 'urgent', caseId: item.id, panel: primaryPanel(item) }"
-            class="btn-tech btn-tech--primary tech-task-card__cta"
-          >
-            <svg cIcon [name]="primaryPanel(item) === 'work' ? 'cilTask' : primaryPanel(item) === 'rdv' ? 'cilCalendar' : 'cilMagnifyingGlass'"></svg>
-            {{ primaryPanel(item) === 'work' ? 'Submit work' : primaryPanel(item) === 'rdv' ? 'Set RDV' : 'Open details' }}
-          </a>
+          <div class="tech-task-card__actions">
+            <a class="btn-tech btn-tech--ghost" [href]="'tel:' + item.clientPhone">
+              <svg cIcon name="cilPhone"></svg>
+              Call
+            </a>
+
+            <a
+              routerLink="/tech/cases/activation"
+              [queryParams]="{ focus: 'urgent', caseId: item.id, panel: primaryPanel(item) }"
+              class="btn-tech btn-tech--primary"
+            >
+              <svg cIcon [name]="primaryPanel(item) === 'work' ? 'cilTask' : primaryPanel(item) === 'rdv' ? 'cilCalendar' : 'cilMagnifyingGlass'"></svg>
+              {{ primaryPanel(item) === 'work' ? 'Submit work' : primaryPanel(item) === 'rdv' ? 'Set RDV' : 'Open details' }}
+            </a>
+          </div>
         </article>
 
         <div class="tech-empty" *ngIf="urgentCases.length === 0">
           <div class="tech-empty__title">No urgent tasks right now.</div>
-          <div class="tech-empty__hint">The TECH queue is clear enough to move to RDV or work closing.</div>
+          <div class="tech-empty__hint">The queue is under control, so you can move directly to RDV and work closure.</div>
         </div>
       </div>
     </section>
 
-    <section class="tech-home__section" *ngIf="rdvQueue.length > 0 || workQueue.length > 0">
+    <section class="tech-home__section">
       <div class="tech-home__two-up">
         <div class="tech-lane">
           <div class="tech-section-header">
             <div>
-              <div class="tech-section-header__title">RDV to confirm</div>
-              <div class="tech-section-header__hint">Fast access for calls and appointment capture.</div>
+              <div class="tech-section-header__title">RDV queue</div>
+              <div class="tech-section-header__hint">Quick access to customer reachability and appointment capture.</div>
             </div>
           </div>
 
-          <article class="tech-mini-card" *ngFor="let item of rdvQueue; trackBy: trackByCase">
-            <div class="tech-mini-card__title">{{ item.crmCase }} • {{ item.clientName }}</div>
-            <div class="tech-mini-card__meta">{{ caseLocation(item) }}</div>
-            <a
-              routerLink="/tech/cases/activation"
-              [queryParams]="{ focus: 'rdv', caseId: item.id, panel: 'rdv' }"
-              class="btn-tech btn-tech--ghost"
-            >
-              <svg cIcon name="cilCalendar"></svg>
-              Open RDV flow
-            </a>
-          </article>
+          <ng-container *ngIf="rdvQueue.length > 0; else emptyRdvQueue">
+            <article class="tech-mini-card" *ngFor="let item of rdvQueue; trackBy: trackByCase">
+              <div class="tech-mini-card__title">{{ item.crmCase }} | {{ item.clientName }}</div>
+              <div class="tech-mini-card__meta">{{ caseLocation(item) }}</div>
+              <a
+                routerLink="/tech/cases/activation"
+                [queryParams]="{ focus: 'rdv', caseId: item.id, panel: 'rdv' }"
+                class="btn-tech btn-tech--ghost"
+              >
+                <svg cIcon name="cilCalendar"></svg>
+                Open RDV
+              </a>
+            </article>
+          </ng-container>
+
+          <ng-template #emptyRdvQueue>
+            <div class="tech-empty tech-empty--inline">
+              <div class="tech-empty__hint">No RDV action is waiting right now.</div>
+            </div>
+          </ng-template>
         </div>
 
         <div class="tech-lane">
           <div class="tech-section-header">
             <div>
               <div class="tech-section-header__title">Ready for work closure</div>
-              <div class="tech-section-header__hint">The work panel opens directly with proof capture.</div>
+              <div class="tech-section-header__hint">Open the work form directly with proof capture close at hand.</div>
             </div>
           </div>
 
-          <article class="tech-mini-card" *ngFor="let item of workQueue; trackBy: trackByCase">
-            <div class="tech-mini-card__title">{{ item.crmCase }} • {{ item.clientName }}</div>
-            <div class="tech-mini-card__meta">{{ remainingLabel(item) }}</div>
-            <a
-              routerLink="/tech/cases/activation"
-              [queryParams]="{ focus: 'work', caseId: item.id, panel: 'work' }"
-              class="btn-tech btn-tech--primary"
-            >
-              <svg cIcon name="cilTask"></svg>
-              Submit work
-            </a>
-          </article>
+          <ng-container *ngIf="workQueue.length > 0; else emptyWorkQueue">
+            <article class="tech-mini-card" *ngFor="let item of workQueue; trackBy: trackByCase">
+              <div class="tech-mini-card__title">{{ item.crmCase }} | {{ item.clientName }}</div>
+              <div class="tech-mini-card__meta">{{ remainingLabel(item) }}</div>
+              <a
+                routerLink="/tech/cases/activation"
+                [queryParams]="{ focus: 'work', caseId: item.id, panel: 'work' }"
+                class="btn-tech btn-tech--primary"
+              >
+                <svg cIcon name="cilTask"></svg>
+                Submit work
+              </a>
+            </article>
+          </ng-container>
+
+          <ng-template #emptyWorkQueue>
+            <div class="tech-empty tech-empty--inline">
+              <div class="tech-empty__hint">No work submission is pending at the moment.</div>
+            </div>
+          </ng-template>
         </div>
       </div>
     </section>
@@ -190,7 +250,7 @@
     </a>
     <button type="button" class="tech-dock__item" (click)="refresh()">
       <svg cIcon name="cilCloudDownload"></svg>
-      Sync
+      Refresh
     </button>
   </nav>
 </div>

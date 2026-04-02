@@ -7,10 +7,10 @@
       </a>
 
       <span class="users-audit-hero__eyebrow">Ooredoo Users Audit</span>
-      <h1 class="users-audit-hero__title">Follow every onboarding decision with a cleaner, operational audit trail.</h1>
+      <h1 class="users-audit-hero__title">Full user traceability and profile audit in one enterprise workspace.</h1>
       <p class="users-audit-hero__description">
-        Review approvals, rejected requests, validator actions, and the last access signals from one professional
-        audit workspace.
+        Inspect invitation history, approval chain, hierarchy ownership, lifecycle milestones, and operational metrics
+        without leaving the existing audit route.
       </p>
     </div>
 
@@ -62,7 +62,7 @@
       <div class="users-audit-filters__header">
         <div>
           <span class="users-audit-filters__eyebrow">Audit filters</span>
-          <h2 class="users-audit-filters__title">Refine the validation trail</h2>
+          <h2 class="users-audit-filters__title">Refine the profile traceability</h2>
         </div>
 
         <button *ngIf="hasFilters" class="users-audit-filters__reset" (click)="resetFilters()" type="button">
@@ -71,7 +71,7 @@
       </div>
 
       <div class="row g-3">
-        <div class="col-md-7">
+        <div class="col-lg-5">
           <label class="users-audit-field-label">
             <svg cIcon name="cilMagnifyingGlass" width="14"></svg>
             <span>Search user</span>
@@ -79,12 +79,24 @@
           <input
             type="text"
             class="form-control users-audit-field"
-            placeholder="Search by full name or email"
+            placeholder="Search by full name, email, or phone"
             [(ngModel)]="searchTerm"
           />
         </div>
 
-        <div class="col-md-5">
+        <div class="col-md-6 col-lg-3">
+          <label class="users-audit-field-label">
+            <svg cIcon name="cilUser" width="14"></svg>
+            <span>Role filter</span>
+          </label>
+          <select class="form-select users-audit-field" [(ngModel)]="selectedRole">
+            <option *ngFor="let role of roleOptions" [value]="role.value">
+              {{ role.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
           <label class="users-audit-field-label">
             <svg cIcon name="cilOptions" width="14"></svg>
             <span>Status filter</span>
@@ -102,152 +114,405 @@
           {{ filteredAuditUsers.length }} users match current filters
         </span>
         <span class="users-audit-chip users-audit-chip--soft">
-          Status: {{ selectedStatusLabel }}
+          Role: {{ selectedRoleLabel }}
         </span>
-        <span *ngIf="selectedRejectedUser" class="users-audit-chip users-audit-chip--danger">
-          Rejection focus enabled
+        <span class="users-audit-chip users-audit-chip--soft">
+          Status: {{ selectedStatusLabel }}
         </span>
       </div>
     </div>
 
-    <div class="users-audit-board">
-      <section class="users-audit-panel">
+    <div class="users-audit-board users-audit-board--profile">
+      <section class="users-audit-panel users-audit-panel--directory">
         <div class="users-audit-panel__header">
           <div>
-            <span class="users-audit-panel__eyebrow">Validation timeline</span>
-            <h2 class="users-audit-panel__title">Recent approval and rejection activity</h2>
+            <span class="users-audit-panel__eyebrow">Audit explorer</span>
+            <h2 class="users-audit-panel__title">Select a user to inspect full traceability</h2>
             <p class="users-audit-panel__description">
-              Select a rejected registration to focus the incident panel on the right.
+              This list stays broad and operational. The full invitation, approval, hierarchy, and activity trace
+              opens in the profile panel on the right.
             </p>
           </div>
 
-          <span class="users-audit-panel__badge">{{ recentValidationActivity.length }} events</span>
+          <span class="users-audit-panel__badge">{{ filteredAuditUsers.length }} profiles</span>
         </div>
 
-        <div *ngIf="recentValidationActivity.length === 0" class="users-audit-empty">
-          No validation events match the current audit filters.
+        <div *ngIf="filteredAuditUsers.length === 0" class="users-audit-empty">
+          No users match the current audit filters.
         </div>
 
         <button
-          *ngFor="let u of recentValidationActivity; trackBy: trackById"
-          class="audit-timeline-card"
-          [class.audit-timeline-card--selected]="isSelectedRejectedUser(u)"
-          (click)="selectAuditUser(u)"
+          *ngFor="let user of filteredAuditUsers; trackBy: trackById"
+          class="audit-directory-card"
+          [class.audit-directory-card--selected]="isSelectedUser(user)"
+          (click)="selectUser(user)"
           type="button"
         >
-          <div class="audit-timeline-card__avatar">
-            {{ userInitials(u) }}
+          <div class="audit-directory-card__avatar">
+            {{ userInitials(user) }}
           </div>
 
-          <div class="audit-timeline-card__content">
-            <div class="audit-timeline-card__top">
+          <div class="audit-directory-card__content">
+            <div class="audit-directory-card__top">
               <div>
-                <h3 class="audit-timeline-card__title">{{ u.fullName }}</h3>
-                <p class="audit-timeline-card__subtitle">{{ u.email }}</p>
+                <h3 class="audit-directory-card__title">{{ user.fullName }}</h3>
+                <p class="audit-directory-card__subtitle">{{ user.email }}</p>
               </div>
 
-              <span class="badge rounded-pill px-3 py-2" [ngClass]="actionBadgeClass(u.status)">
-                {{ auditActionLabel(u) }}
-              </span>
+              <div class="audit-directory-card__badges">
+                <span [ngClass]="roleBadgeClass(effectiveRole(user))">
+                  <svg cIcon [name]="roleIcon(effectiveRole(user))"></svg>
+                  {{ formatRole(effectiveRole(user)) }}
+                </span>
+
+                <span [ngClass]="statusBadgeClass(user.status)">
+                  <svg cIcon [name]="statusIcon(user.status)"></svg>
+                  {{ formatStatus(user.status) }}
+                </span>
+
+                <span [ngClass]="accessBadgeClass(user)">
+                  <svg cIcon [name]="user.enabled ? 'cilCheckCircle' : 'cilBan'"></svg>
+                  {{ accessLabel(user) }}
+                </span>
+              </div>
             </div>
 
-            <div class="audit-timeline-card__meta">
-              <span class="audit-timeline-card__meta-pill">
-                {{ formatRole(u.roleRequested || u.role) }}
-              </span>
-              <span class="audit-timeline-card__meta-text">
-                {{ u.validatedBy || 'No validator recorded' }}
-              </span>
-              <span class="audit-timeline-card__meta-text">
-                {{ u.validatedAt ? (u.validatedAt | date:'dd/MM/yyyy HH:mm') : 'No validation date' }}
-              </span>
-            </div>
-
-            <div class="audit-timeline-card__foot">
-              <span class="badge rounded-pill px-3 py-2" [ngClass]="loginBadgeClass(u)">
-                {{ u.lastLoginAt ? ('Last login ' + (u.lastLoginAt | date:'dd/MM/yyyy HH:mm')) : 'Never logged in' }}
-              </span>
-
-              <span *ngIf="u.status === 'REJECTED' && u.rejectionReason" class="audit-timeline-card__reason">
-                {{ u.rejectionReason }}
-              </span>
+            <div class="audit-directory-card__meta">
+              <span>{{ user.validatedBy || 'No validator yet' }}</span>
+              <span>{{ user.validatedAt ? formatDateTime(user.validatedAt) : 'No validation date' }}</span>
+              <span>{{ user.lastLoginAt ? ('Last login ' + formatDateTime(user.lastLoginAt)) : 'Never logged in' }}</span>
             </div>
           </div>
         </button>
       </section>
 
-      <section class="users-audit-panel users-audit-panel--side">
-        <div class="users-audit-panel__header">
-          <div>
-            <span class="users-audit-panel__eyebrow">Rejection inspector</span>
-            <h2 class="users-audit-panel__title">
-              {{ selectedRejectedUser ? 'Focused rejected request' : 'Rejected users with reasons' }}
-            </h2>
-            <p class="users-audit-panel__description">
-              {{ selectedRejectedUser ? 'Detailed view for the selected rejected registration.' : 'Review the latest rejected registrations and their reasons.' }}
-            </p>
-          </div>
-
-          <button *ngIf="selectedRejectedUser" class="users-audit-panel__clear" (click)="clearRejectedSelection()" type="button">
-            Clear focus
-          </button>
-        </div>
-
-        <div *ngIf="!selectedRejectedUser" class="users-audit-spotlight">
+      <section class="users-audit-panel users-audit-panel--profile">
+        <div *ngIf="!selectedUser" class="users-audit-spotlight users-audit-spotlight--large">
           <span class="users-audit-spotlight__eyebrow">Selection hint</span>
-          <h3 class="users-audit-spotlight__title">Pick a rejected activity from the timeline.</h3>
+          <h3 class="users-audit-spotlight__title">Choose any user from the directory.</h3>
           <p class="users-audit-spotlight__description">
-            The right panel will isolate that rejection so you can review the role, validator, date, and reason faster.
+            The right panel will show the full identity profile, approval chain, invitation trail, hierarchy ownership,
+            lifecycle milestones, and available operational metrics.
           </p>
         </div>
 
-        <div *ngIf="displayedRejectedUsers.length === 0" class="users-audit-empty">
-          No rejected users found for the current filter scope.
-        </div>
-
-        <div class="users-audit-rejection-list">
-          <article
-            *ngFor="let u of displayedRejectedUsers; trackBy: trackById"
-            class="users-audit-rejection-card"
-            [class.users-audit-rejection-card--focused]="isSelectedRejectedUser(u)"
-          >
-            <div class="users-audit-rejection-card__top">
-              <div>
-                <h3 class="users-audit-rejection-card__title">{{ u.fullName }}</h3>
-                <p class="users-audit-rejection-card__subtitle">{{ u.email }}</p>
-              </div>
-
-              <span class="users-audit-rejection-card__status">Rejected</span>
+        <ng-container *ngIf="selectedUser as selected">
+          <div class="users-audit-panel__header">
+            <div>
+              <span class="users-audit-panel__eyebrow">Profile traceability</span>
+              <h2 class="users-audit-panel__title">{{ selected.fullName }}</h2>
+              <p class="users-audit-panel__description">{{ selected.email }}</p>
             </div>
 
-            <div class="users-audit-rejection-card__grid">
-              <div>
-                <span class="users-audit-rejection-card__label">Requested role</span>
-                <strong>{{ formatRole(u.roleRequested || u.role) }}</strong>
+            <div class="users-audit-panel__actions">
+              <button class="users-audit-panel__clear" (click)="loadAuditDetails(selected.id, true)" [disabled]="detailLoading" type="button">
+                Refresh profile
+              </button>
+              <button class="users-audit-panel__clear" (click)="clearSelection()" type="button">
+                Clear focus
+              </button>
+            </div>
+          </div>
+
+          <div class="audit-profile">
+            <div class="audit-profile__hero">
+              <div class="audit-profile__hero-media">
+                <ng-container *ngIf="profileImageFor(selected) as heroImage; else auditAvatar">
+                  <img class="audit-profile__hero-image" [src]="heroImage" [alt]="selected.fullName" />
+                </ng-container>
+                <ng-template #auditAvatar>
+                  <div class="audit-profile__avatar">{{ userInitials(selected) }}</div>
+                </ng-template>
               </div>
 
-              <div>
-                <span class="users-audit-rejection-card__label">Rejected by</span>
-                <strong>{{ u.validatedBy || '—' }}</strong>
-              </div>
+              <div class="audit-profile__hero-copy">
+                <div class="audit-profile__badges">
+                  <span [ngClass]="roleBadgeClass(effectiveRole(selected))">
+                    <svg cIcon [name]="roleIcon(effectiveRole(selected))"></svg>
+                    {{ formatRole(effectiveRole(selected)) }}
+                  </span>
+                  <span [ngClass]="statusBadgeClass(selected.status)">
+                    <svg cIcon [name]="statusIcon(selected.status)"></svg>
+                    {{ formatStatus(selected.status) }}
+                  </span>
+                  <span [ngClass]="accessBadgeClass(selected)">
+                    <svg cIcon [name]="selected.enabled ? 'cilCheckCircle' : 'cilBan'"></svg>
+                    {{ accessLabel(selected) }}
+                  </span>
+                </div>
 
-              <div>
-                <span class="users-audit-rejection-card__label">Rejected at</span>
-                <strong>{{ u.validatedAt ? (u.validatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}</strong>
-              </div>
-
-              <div>
-                <span class="users-audit-rejection-card__label">Last login</span>
-                <strong>{{ u.lastLoginAt ? (u.lastLoginAt | date:'dd/MM/yyyy HH:mm') : 'Never' }}</strong>
+                <div class="audit-profile__hero-name">{{ selected.fullName }}</div>
+                <div class="audit-profile__hero-contact">
+                  <span>
+                    <svg cIcon name="cilEnvelopeOpen"></svg>
+                    {{ selected.email }}
+                  </span>
+                  <span *ngIf="selected.phone">
+                    <svg cIcon name="cilPhone"></svg>
+                    {{ selected.phone }}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div class="users-audit-rejection-card__reason-box">
-              <span class="users-audit-rejection-card__label">Rejection reason</span>
-              <p>{{ u.rejectionReason || 'No reason provided' }}</p>
+            <div class="audit-profile__note audit-profile__note--soft" *ngIf="detailLoading">
+              <svg cIcon name="cilReload"></svg>
+              <div>
+                <strong>Refreshing profile traceability</strong>
+                <span>Loading invitation, approval, hierarchy, and operational details for this account.</span>
+              </div>
             </div>
-          </article>
-        </div>
+
+            <div class="audit-profile__note audit-profile__note--danger" *ngIf="detailError">
+              <svg cIcon name="cilWarning"></svg>
+              <div>
+                <strong>Profile traceability unavailable</strong>
+                <span>{{ detailError }}</span>
+              </div>
+            </div>
+
+            <section class="audit-profile__section">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">Account overview</div>
+                  <div class="audit-profile__section-copy">Identity, account state, lifecycle dates, and direct assignment visibility.</div>
+                </div>
+              </div>
+
+              <div class="audit-profile__facts">
+                <div class="audit-profile__fact">
+                  <span>Phone</span>
+                  <strong>{{ selected.phone || 'Not provided' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Created at</span>
+                  <strong>{{ selected.createdAt ? formatDateTime(selected.createdAt) : 'Not recorded' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Updated at</span>
+                  <strong>{{ selected.updatedAt ? formatDateTime(selected.updatedAt) : 'Not recorded' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Validated at</span>
+                  <strong>{{ selected.validatedAt ? formatDateTime(selected.validatedAt) : 'Not validated yet' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Last login</span>
+                  <strong>{{ selected.lastLoginAt ? formatDateTime(selected.lastLoginAt) : 'No login yet' }}</strong>
+                </div>
+                <div class="audit-profile__fact" *ngIf="selectedAuditRole === 'ROLE_TECH'">
+                  <span>Assigned STT</span>
+                  <strong>{{ actorDisplayName(selectedUserAudit?.assignedStt, 'Not assigned') }}</strong>
+                </div>
+                <div class="audit-profile__fact" *ngIf="selectedAuditRole === 'ROLE_STT' || selectedAuditRole === 'ROLE_TECH'">
+                  <span>Assigned ZM</span>
+                  <strong>{{ actorDisplayName(selectedUserAudit?.assignedZm, 'Not assigned') }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="audit-profile__section" *ngIf="detailTraceCards.length > 0">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">Traceability chain</div>
+                  <div class="audit-profile__section-copy">Resolved invitation, approval, and current ownership actors for this profile.</div>
+                </div>
+              </div>
+
+              <div class="audit-profile__trace-grid">
+                <article
+                  *ngFor="let card of detailTraceCards"
+                  class="audit-profile__trace-card"
+                  [ngClass]="'audit-profile__trace-card--' + card.tone"
+                >
+                  <div class="audit-profile__trace-top">
+                    <div class="audit-profile__trace-avatar">{{ actorInitials(card.actor) }}</div>
+                    <div class="audit-profile__trace-icon">
+                      <svg cIcon [name]="card.icon"></svg>
+                    </div>
+                  </div>
+                  <div class="audit-profile__trace-label">{{ card.label }}</div>
+                  <div class="audit-profile__trace-name">{{ actorDisplayName(card.actor) }}</div>
+                  <div class="audit-profile__trace-meta">{{ actorDisplayMeta(card.actor) }}</div>
+                  <div class="audit-profile__trace-helper">{{ card.helper }}</div>
+                </article>
+              </div>
+            </section>
+
+            <section class="audit-profile__section" *ngIf="selectedAuditRole === 'ROLE_TECH'">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">Invitation audit</div>
+                  <div class="audit-profile__section-copy">Technician onboarding trace from original invitation through ZM decision.</div>
+                </div>
+
+                <span
+                  *ngIf="selectedUserAudit?.invitation as invitation"
+                  [ngClass]="invitationStatusClass(invitation.status)"
+                >
+                  <svg cIcon name="cilEnvelopeOpen"></svg>
+                  {{ formatInvitationStatus(invitation.status) }}
+                </span>
+              </div>
+
+              <div class="audit-profile__facts" *ngIf="selectedUserAudit?.invitation as invitation; else missingInvitation">
+                <div class="audit-profile__fact">
+                  <span>Invitation sent</span>
+                  <strong>{{ invitation.createdAt ? formatDateTime(invitation.createdAt) : 'Not recorded' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Registered at</span>
+                  <strong>{{ invitation.registeredAt ? formatDateTime(invitation.registeredAt) : 'Pending registration' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>ZM decision</span>
+                  <strong>{{ invitation.zmDecisionAt ? formatDateTime(invitation.zmDecisionAt) : 'No ZM decision yet' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Expires at</span>
+                  <strong>{{ invitation.expiresAt ? formatDateTime(invitation.expiresAt) : 'Not recorded' }}</strong>
+                </div>
+                <div class="audit-profile__fact">
+                  <span>Token usage</span>
+                  <strong>{{ invitation.used ? 'Used' : 'Unused' }}</strong>
+                </div>
+              </div>
+
+              <ng-template #missingInvitation>
+                <div class="audit-profile__note audit-profile__note--soft">
+                  <svg cIcon name="cilEnvelopeOpen"></svg>
+                  <div>
+                    <strong>No invitation trace found</strong>
+                    <span>No invitation document was resolved for this technician profile.</span>
+                  </div>
+                </div>
+              </ng-template>
+            </section>
+
+            <section class="audit-profile__section" *ngIf="detailMetricCards.length > 0">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">Operational metrics</div>
+                  <div class="audit-profile__section-copy">Role-aware workload, RDV, and SLA indicators sourced from the activation analytics scope.</div>
+                </div>
+              </div>
+
+              <div class="audit-profile__metrics-grid">
+                <article
+                  *ngFor="let card of detailMetricCards"
+                  class="audit-profile__metric-card"
+                  [ngClass]="'audit-profile__metric-card--' + card.tone"
+                >
+                  <div class="audit-profile__metric-icon">
+                    <svg cIcon [name]="card.icon"></svg>
+                  </div>
+                  <div class="audit-profile__metric-value">{{ card.value }}</div>
+                  <div class="audit-profile__metric-label">{{ card.label }}</div>
+                  <div class="audit-profile__metric-helper">{{ card.helper }}</div>
+                </article>
+              </div>
+            </section>
+
+            <section class="audit-profile__section" *ngIf="roleProfileEntries.length > 0">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">Role profile</div>
+                  <div class="audit-profile__section-copy">Operational profile attributes already stored on the user record.</div>
+                </div>
+              </div>
+
+              <div class="audit-profile__profile-list">
+                <article *ngFor="let entry of roleProfileEntries" class="audit-profile__profile-item">
+                  <div class="audit-profile__profile-icon">
+                    <svg cIcon [name]="entry.icon"></svg>
+                  </div>
+                  <div>
+                    <div class="audit-profile__profile-label">{{ entry.label }}</div>
+                    <div class="audit-profile__profile-value">{{ entry.value }}</div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="audit-profile__section" *ngIf="hasHierarchySection">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">{{ teamSectionTitle }}</div>
+                  <div class="audit-profile__section-copy">{{ teamSectionHint }}</div>
+                </div>
+              </div>
+
+              <div class="audit-profile__team-summary" *ngIf="selectedUserAudit?.hierarchy as hierarchy">
+                <div class="audit-profile__team-stat">
+                  <span>Direct reports</span>
+                  <strong>{{ hierarchy.directReportCount }}</strong>
+                </div>
+                <div class="audit-profile__team-stat" *ngIf="selectedAuditRole === 'ROLE_ZM'">
+                  <span>STT count</span>
+                  <strong>{{ hierarchy.sttCount }}</strong>
+                </div>
+                <div class="audit-profile__team-stat">
+                  <span>TECH count</span>
+                  <strong>{{ hierarchy.techCount }}</strong>
+                </div>
+              </div>
+
+              <div class="audit-profile__team-grid" *ngIf="visibleDirectReports.length > 0; else noReports">
+                <article *ngFor="let member of visibleDirectReports" class="audit-profile__team-card">
+                  <div class="audit-profile__team-avatar">{{ actorInitials(member) }}</div>
+                  <div class="audit-profile__team-copy">
+                    <div class="audit-profile__team-name">{{ actorDisplayName(member) }}</div>
+                    <div class="audit-profile__team-meta">{{ actorDisplayMeta(member) }}</div>
+                  </div>
+                </article>
+              </div>
+
+              <div class="audit-profile__team-more" *ngIf="remainingDirectReportCount > 0">
+                +{{ remainingDirectReportCount }} more team members in the current hierarchy.
+              </div>
+
+              <ng-template #noReports>
+                <div class="audit-profile__note audit-profile__note--soft">
+                  <svg cIcon name="cilPeople"></svg>
+                  <div>
+                    <strong>No direct reports yet</strong>
+                    <span>This account currently has no subordinate users attached through the existing hierarchy fields.</span>
+                  </div>
+                </div>
+              </ng-template>
+            </section>
+
+            <section class="audit-profile__section" *ngIf="lifecycleTimeline.length > 0">
+              <div class="audit-profile__section-head">
+                <div>
+                  <div class="audit-profile__section-title">Lifecycle timeline</div>
+                  <div class="audit-profile__section-copy">Chronological milestones across onboarding, validation, and activity.</div>
+                </div>
+              </div>
+
+              <div class="audit-profile__timeline">
+                <article *ngFor="let item of lifecycleTimeline" class="audit-profile__timeline-item">
+                  <div class="audit-profile__timeline-dot" [ngClass]="'audit-profile__timeline-dot--' + item.tone">
+                    <svg cIcon [name]="item.icon"></svg>
+                  </div>
+                  <div class="audit-profile__timeline-content">
+                    <div class="audit-profile__timeline-label">{{ item.label }}</div>
+                    <div class="audit-profile__timeline-date">{{ formatDateTime(item.timestamp) }}</div>
+                    <div class="audit-profile__timeline-helper">{{ item.helper }}</div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <div class="audit-profile__note audit-profile__note--danger" *ngIf="selected.rejectionReason">
+              <svg cIcon name="cilCommentSquare"></svg>
+              <div>
+                <strong>Rejection reason</strong>
+                <span>{{ selected.rejectionReason }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
       </section>
     </div>
   </ng-container>

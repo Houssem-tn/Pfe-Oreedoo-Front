@@ -79,6 +79,7 @@
           "options": {
             "host": "0.0.0.0",
             "allowedHosts": true,
+            "proxyConfig": "proxy.conf.json",
             "prebundle": {
               "exclude": [
                 "@stomp/stompjs",

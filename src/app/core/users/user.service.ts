@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { AppUser, Role, UserAuditItem } from './user.model';
+import { AppUser, Role, UserAuditDetailsResponse, UserAuditItem } from './user.model';
 import { API_BASE_URL } from '../http/api.config';
 
 export interface AssignSttToZmRequest {
@@ -26,6 +26,10 @@ export class UserService {
 
   getById(id: string): Observable<AppUser> {
     return this.http.get<AppUser>(`${this.usersUrl}/${id}`);
+  }
+
+  getAuditDetails(id: string): Observable<UserAuditDetailsResponse> {
+    return this.http.get<UserAuditDetailsResponse>(`${this.usersUrl}/${id}/audit-details`);
   }
 
   getMe(): Observable<AppUser> {

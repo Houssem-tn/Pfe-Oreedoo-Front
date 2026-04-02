@@ -1,12 +1,37 @@
 <div class="tech-tasks-page">
   <section class="tech-tasks-hero">
-    <div class="tech-tasks-hero__content">
-      <div class="tech-eyebrow">TECH mobile board</div>
-      <h1>Field tasks built for the phone in your hand.</h1>
-      <p>
-        Urgent tasks rise to the top, RDV and work actions stay thumb-friendly, and proof photos can be captured
-        from the mobile camera or gallery with GPS stamps before submission.
-      </p>
+    <div class="tech-tasks-hero__top">
+      <div class="tech-eyebrow">
+        <svg cIcon name="cilTask"></svg>
+        Ooredoo TECH mobile board
+      </div>
+      <div class="tech-tasks-hero__chip">{{ visibleCases.length }} in view</div>
+    </div>
+
+    <h1>One clean field board for urgent tasks, RDV, work closure, and proof.</h1>
+    <p>
+      Urgent cases stay first, proof capture stays close to the work form, and GPS traceability stays readable on a
+      phone without turning the board into a desktop-style admin page.
+    </p>
+
+    <div class="tech-tasks-hero__stats">
+      <article class="tech-hero-stat">
+        <span>Urgent now</span>
+        <strong>{{ urgentCount }}</strong>
+        <small>SLA-driven priority</small>
+      </article>
+
+      <article class="tech-hero-stat">
+        <span>Work ready</span>
+        <strong>{{ workCount }}</strong>
+        <small>Ready to close</small>
+      </article>
+
+      <article class="tech-hero-stat">
+        <span>Completed</span>
+        <strong>{{ performance?.completedCasesCount ?? 0 }}</strong>
+        <small>Closed interventions</small>
+      </article>
     </div>
 
     <div class="tech-tasks-hero__actions">
@@ -17,13 +42,15 @@
         <svg cIcon name="cilGrid"></svg>
         Dashboard
       </a>
+
       <button
         type="button"
         class="btn-tech btn-tech--primary"
         (click)="refreshBoard()"
+        [disabled]="syncing || loading"
       >
         <svg cIcon name="cilCloudDownload"></svg>
-        {{ syncing ? 'Syncing...' : 'Sync now' }}
+        {{ syncing ? 'Syncing...' : 'Refresh queue' }}
       </button>
     </div>
   </section>
@@ -42,8 +69,8 @@
   <section class="tech-alerts" *ngIf="operationalAlerts.length > 0">
     <div class="tech-section-header">
       <div>
-        <div class="tech-section-header__title">Live alerts</div>
-        <div class="tech-section-header__hint">Critical updates stay visible above the queue.</div>
+        <div class="tech-section-header__title">Live field alerts</div>
+        <div class="tech-section-header__hint">Critical updates stay visible before the queue so nothing urgent gets buried.</div>
       </div>
       <span class="tech-section-header__meta">{{ operationalAlerts.length }} recent</span>
     </div>
@@ -71,16 +98,22 @@
   </section>
 
   <section class="tech-toolbar">
-    <label class="tech-search">
-      <span class="tech-search__icon">
-        <svg cIcon name="cilMagnifyingGlass"></svg>
-      </span>
-      <input
-        type="search"
-        [(ngModel)]="searchTerm"
-        placeholder="Search CRM, customer, phone, location or offer"
-      />
-    </label>
+    <div class="tech-toolbar__top">
+      <label class="tech-search">
+        <span class="tech-search__icon">
+          <svg cIcon name="cilMagnifyingGlass"></svg>
+        </span>
+        <input
+          type="search"
+          [(ngModel)]="searchTerm"
+          placeholder="Search CRM, customer, phone, location or offer"
+        />
+      </label>
+
+      <select [(ngModel)]="statusFilter" class="tech-select">
+        <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
+      </select>
+    </div>
 
     <div class="tech-filter-row">
       <button
@@ -121,11 +154,12 @@
       </button>
     </div>
 
-    <div class="tech-toolbar__controls">
-      <select [(ngModel)]="statusFilter" class="tech-select">
-        <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
-      </select>
+    <div class="tech-toolbar__footer">
       <div class="tech-toolbar__perf">{{ performanceLabel() }}</div>
+      <div class="tech-toolbar__meta">
+        <span>{{ visibleCases.length }} visible</span>
+        <span>{{ pendingProofCount }} proof pending</span>
+      </div>
     </div>
   </section>
 
@@ -146,14 +180,14 @@
         <div class="tech-section-header">
           <div>
             <div class="tech-section-header__title">Operational queue</div>
-            <div class="tech-section-header__hint">Sorted with urgent tasks first and primary actions within thumb reach.</div>
+            <div class="tech-section-header__hint">Urgent tasks, RDV, and work-ready cases stay ordered with the next action close at hand.</div>
           </div>
           <span class="tech-section-header__meta">{{ visibleCases.length }} visible</span>
         </div>
 
         <article class="tech-case-card" *ngFor="let item of visibleCases; trackBy: trackById">
           <div class="tech-case-card__header">
-            <div>
+            <div class="tech-case-card__identity">
               <div class="tech-case-card__crm">CRM {{ item.crmCase }}</div>
               <h2>{{ item.clientName }}</h2>
               <div class="tech-case-card__phone">
@@ -176,6 +210,7 @@
             <span class="badge rounded-pill" [ngClass]="statusBadgeClass(item.status)">{{ statusLabel(item.status) }}</span>
             <span class="badge rounded-pill" [ngClass]="slaBadgeClass(item)">{{ slaLabel(item) }}</span>
             <span class="badge rounded-pill" *ngIf="hasPendingProof(item)" [ngClass]="proofStatusClass(item)">Proof pending</span>
+            <span class="badge rounded-pill bg-success-subtle text-success-emphasis tech-pill" *ngIf="hasUploadedProofs(item)">Proof sent</span>
           </div>
 
           <div class="tech-case-card__meta">
@@ -185,7 +220,7 @@
             </div>
             <div class="tech-case-card__meta-line">
               <svg cIcon name="cilDescription"></svg>
-              <span>{{ item.offre || 'Offer not set' }}<ng-container *ngIf="item.desPack"> • {{ item.desPack }}</ng-container></span>
+              <span>{{ item.offre || 'Offer not set' }}<ng-container *ngIf="item.desPack"> | {{ item.desPack }}</ng-container></span>
             </div>
           </div>
 
@@ -214,6 +249,11 @@
             <a class="btn-tech btn-tech--ghost" [href]="'tel:' + item.clientPhone">
               <svg cIcon name="cilPhone"></svg>
               Call
+            </a>
+
+            <a class="btn-tech btn-tech--ghost" [href]="customerMapLink(item)" target="_blank" rel="noopener noreferrer">
+              <svg cIcon name="cilMap"></svg>
+              Map
             </a>
 
             <button type="button" class="btn-tech btn-tech--ghost" (click)="openPanel(item, 'details')">
@@ -266,7 +306,7 @@
 
         <div class="tech-empty" *ngIf="visibleCases.length === 0">
           <div class="tech-empty__title">No TECH tasks match the current filter.</div>
-          <div class="tech-empty__hint">Try switching from urgent to all, or broaden the search.</div>
+          <div class="tech-empty__hint">Try switching from urgent to all, or broaden the search to reopen the queue.</div>
         </div>
       </section>
 
@@ -286,6 +326,12 @@
               <div class="tech-panel__subline">{{ caseLocation(selected) }}</div>
             </div>
           </header>
+
+          <div class="tech-panel__status-row">
+            <span class="badge rounded-pill" [ngClass]="statusBadgeClass(selected.status)">{{ statusLabel(selected.status) }}</span>
+            <span class="badge rounded-pill" [ngClass]="slaBadgeClass(selected)">{{ slaLabel(selected) }}</span>
+            <span class="badge rounded-pill" *ngIf="hasPendingProof(selected)" [ngClass]="proofStatusClass(selected)">Proof pending</span>
+          </div>
 
           <div class="tech-panel__tabs">
             <button
@@ -327,7 +373,7 @@
               </a>
               <a class="btn-tech btn-tech--ghost" [href]="customerMapLink(selected)" target="_blank" rel="noopener noreferrer">
                 <svg cIcon name="cilMap"></svg>
-                Open map
+                Site map
               </a>
               <button
                 *ngIf="hasPendingProof(selected)"
@@ -340,20 +386,10 @@
                 Retry proof
               </button>
             </div>
-
+            
             <div class="tech-detail-grid">
               <article class="tech-detail-card">
-                <div class="tech-detail-card__title">Customer</div>
-                <div class="tech-detail-card__body">
-                  <div><strong>Phone</strong><span>{{ selected.clientPhone }}</span></div>
-                  <div><strong>MSISDN</strong><span>{{ selected.msisdn }}</span></div>
-                  <div><strong>Offer</strong><span>{{ selected.offre || '-' }}</span></div>
-                  <div><strong>Pack</strong><span>{{ selected.desPack || '-' }}</span></div>
-                </div>
-              </article>
-
-              <article class="tech-detail-card">
-                <div class="tech-detail-card__title">SLA and status</div>
+                <div class="tech-detail-card__title">Mission snapshot</div>
                 <div class="tech-detail-card__body">
                   <div><strong>Status</strong><span>{{ statusLabel(selected.status) }}</span></div>
                   <div><strong>SLA</strong><span>{{ slaLabel(selected) }}</span></div>
@@ -362,6 +398,16 @@
                 </div>
                 <div class="tech-sla-track" [ngClass]="slaTrackClass(selected)">
                   <div class="tech-sla-track__fill" [style.width.%]="slaProgress(selected)"></div>
+                </div>
+              </article>
+
+              <article class="tech-detail-card">
+                <div class="tech-detail-card__title">Customer and service</div>
+                <div class="tech-detail-card__body">
+                  <div><strong>Phone</strong><span>{{ selected.clientPhone }}</span></div>
+                  <div><strong>MSISDN</strong><span>{{ selected.msisdn }}</span></div>
+                  <div><strong>Offer</strong><span>{{ selected.offre || '-' }}</span></div>
+                  <div><strong>Pack</strong><span>{{ selected.desPack || '-' }}</span></div>
                 </div>
               </article>
 
@@ -381,56 +427,55 @@
                   <div><strong>Result</strong><span>{{ extractWork(selected).repTravauxStt || '-' }}</span></div>
                   <div><strong>Ended at</strong><span>{{ extractWork(selected).dateFinTrv ? (extractWork(selected).dateFinTrv | date:'short') : '-' }}</span></div>
                   <div><strong>Comment</strong><span>{{ extractWork(selected).cmtTrvStt || '-' }}</span></div>
-                  <div><strong>Queued proof</strong><span>{{ currentProofDraft ? proofCaption(currentProofDraft) : 'No local proof draft' }}</span></div>
-                  <div><strong>Uploaded proofs</strong><span>{{ uploadedProofs.length > 0 ? (uploadedProofs.length + ' available') : 'No uploaded proof yet' }}</span></div>
                   <div><strong>Work GPS</strong><span>{{ workLocationSummary(selected) }}</span></div>
                 </div>
               </article>
-
-              <article class="tech-detail-card">
-                <div class="tech-detail-card__title">Field GPS trace</div>
-                <div class="tech-detail-card__body">
-                  <div>
-                    <strong>Case site</strong>
-                    <span>{{ selected.latitude && selected.longitude ? (selected.latitude + ', ' + selected.longitude) : 'No saved case coordinates' }}</span>
-                  </div>
-                  <div>
-                    <strong>Proof GPS</strong>
-                    <span>{{ currentProofDraft ? locationSummary(currentProofDraft.location) : (uploadedProofs.length > 0 ? proofLocationSummary(uploadedProofs[0]) : 'No saved proof GPS') }}</span>
-                  </div>
-                  <div>
-                    <strong>Work GPS</strong>
-                    <span>{{ workLocationSummary(selected) }}</span>
-                  </div>
-                </div>
-                <div class="tech-quick-actions">
-                  <a class="btn-tech btn-tech--ghost" [href]="customerMapLink(selected)" target="_blank" rel="noopener noreferrer">
-                    <svg cIcon name="cilMap"></svg>
-                    Site map
-                  </a>
-                  <a
-                    *ngIf="(currentProofDraft ? draftMapLink(currentProofDraft) : proofMapLink(uploadedProofs[0])) as proofLocationLink"
-                    class="btn-tech btn-tech--ghost"
-                    [href]="proofLocationLink"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <svg cIcon name="cilMap"></svg>
-                    Proof map
-                  </a>
-                  <a
-                    *ngIf="workMapLink(selected) as workLocationLink"
-                    class="btn-tech btn-tech--ghost"
-                    [href]="workLocationLink"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <svg cIcon name="cilMap"></svg>
-                    Work map
-                  </a>
-                </div>
-              </article>
             </div>
+
+            <article class="tech-detail-card">
+              <div class="tech-detail-card__title">Proof and GPS trace</div>
+              <div class="tech-detail-card__body">
+                <div>
+                  <strong>Queued proof</strong>
+                  <span>{{ currentProofDraft ? proofCaption(currentProofDraft) : 'No local proof draft' }}</span>
+                </div>
+                <div>
+                  <strong>Proof GPS</strong>
+                  <span>{{ currentProofDraft ? locationSummary(currentProofDraft.location) : (uploadedProofs.length > 0 ? proofLocationSummary(uploadedProofs[0]) : 'No saved proof GPS') }}</span>
+                </div>
+                <div>
+                  <strong>Site location</strong>
+                  <span>{{ selected.latitude && selected.longitude ? (selected.latitude + ', ' + selected.longitude) : 'No saved case coordinates' }}</span>
+                </div>
+              </div>
+
+              <div class="tech-quick-actions">
+                <a class="btn-tech btn-tech--ghost" [href]="customerMapLink(selected)" target="_blank" rel="noopener noreferrer">
+                  <svg cIcon name="cilMap"></svg>
+                  Site map
+                </a>
+                <a
+                  *ngIf="(currentProofDraft ? draftMapLink(currentProofDraft) : proofMapLink(uploadedProofs[0])) as proofLocationLink"
+                  class="btn-tech btn-tech--ghost"
+                  [href]="proofLocationLink"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg cIcon name="cilMap"></svg>
+                  Proof map
+                </a>
+                <a
+                  *ngIf="workMapLink(selected) as workLocationLink"
+                  class="btn-tech btn-tech--ghost"
+                  [href]="workLocationLink"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg cIcon name="cilMap"></svg>
+                  Work map
+                </a>
+              </div>
+            </article>
 
             <article class="tech-detail-card" *ngIf="uploadedProofs.length > 0">
               <div class="tech-detail-card__title">Submitted proof images</div>
@@ -481,8 +526,13 @@
           </div>
 
           <form class="tech-form" *ngIf="activePanel === 'rdv'" (ngSubmit)="saveRdv()">
+            <div class="tech-form__intro">
+              <div class="tech-form__title">RDV flow</div>
+              <div class="tech-form__hint">Keep the appointment update compact, clear, and ready to save from the phone.</div>
+            </div>
+
             <div class="tech-form__section">
-              <div class="tech-form__title">Reachability</div>
+              <div class="tech-form__section-title">Reachability</div>
               <div class="tech-toggle-row">
                 <button
                   type="button"
@@ -514,7 +564,7 @@
             </div>
 
             <div class="tech-form__section">
-              <div class="tech-form__title">Appointment notes</div>
+              <div class="tech-form__section-title">Appointment notes</div>
               <label class="tech-field">
                 <span>Operational detail</span>
                 <textarea name="rdvDetail" [(ngModel)]="rdvForm.detail" rows="3" placeholder="Access notes, address cues, building detail"></textarea>
@@ -527,7 +577,7 @@
             </div>
 
             <div class="tech-form__section">
-              <div class="tech-form__title">Abandon flow</div>
+              <div class="tech-form__section-title">Abandon flow</div>
               <div class="tech-toggle-row">
                 <button
                   type="button"
@@ -563,11 +613,18 @@
           </form>
 
           <form class="tech-form" *ngIf="activePanel === 'work'" (ngSubmit)="submitWork()">
+            <div class="tech-form__intro">
+              <div class="tech-form__title">Work and proof</div>
+              <div class="tech-form__hint">
+                Attach the proof photo, save its GPS position, then submit the work update in one clean mobile flow.
+              </div>
+            </div>
+
             <div class="tech-form__section">
-              <div class="tech-form__title">Photo proof</div>
+              <div class="tech-form__section-title">Photo proof</div>
               <p class="tech-form__hint">
-                Proof photo is required for TECH submission. On mobile, use the camera or gallery button below.
-                The camera or gallery opens first, then the app saves the photo GPS position so the responsible ZM can open the exact place on a map.
+                Proof photo is required for TECH submission. On mobile, use the camera or gallery button below. The app
+                saves the photo GPS position so the responsible ZM can open the exact place on a map.
               </p>
 
               <div class="tech-proof-actions">
@@ -651,7 +708,7 @@
             </div>
 
             <div class="tech-form__section">
-              <div class="tech-form__title">Work closure</div>
+              <div class="tech-form__section-title">Work closure</div>
               <label class="tech-field">
                 <span>Work result</span>
                 <input type="text" name="workRepTravauxStt" [(ngModel)]="workForm.repTravauxStt" placeholder="Installed, fixed, postponed, customer absent..." />
@@ -669,7 +726,7 @@
             </div>
 
             <div class="tech-form__section">
-              <div class="tech-form__title">Technical metrics</div>
+              <div class="tech-form__section-title">Technical metrics</div>
               <div class="tech-metric-input-grid">
                 <label class="tech-field">
                   <span>Cable length</span>
@@ -726,7 +783,7 @@
     </button>
     <button type="button" class="tech-dock__item" (click)="refreshBoard()">
       <svg cIcon name="cilCloudDownload"></svg>
-      Sync
+      Refresh
     </button>
   </nav>
 </div>
