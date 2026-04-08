@@ -28,9 +28,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error) => {
       // If backend returns 401 (invalid/expired token)
       if (error.status === 401) {
+        const message =
+          error?.error?.message ??
+          error?.error?.error ??
+          (typeof error?.error === 'string' ? error.error : null) ??
+          'Your session is no longer active.';
+
         tokenService.clear();
         authStore.clear();
-        router.navigateByUrl('/pages/login'); // adapt if your login route differs
+
+        try {
+          sessionStorage.setItem('auth.redirectError', message);
+        } catch {
+          // ignore storage errors
+        }
+
+        router.navigateByUrl('/login');
       }
       return throwError(() => error);
     })

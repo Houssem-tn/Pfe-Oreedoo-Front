@@ -33,12 +33,12 @@ export class UsersListComponent implements OnInit {
   loading = false;
   deletingId: string | null = null;
   assigningSttId: string | null = null;
+  togglingUserId: string | null = null;
   error: string | null = null;
 
   searchTerm = '';
   selectedRole = '';
   selectedStatus = '';
-  selectedUserId: string | null = null;
 
   currentPage = 1;
   pageSize = 5;
@@ -86,7 +86,6 @@ export class UsersListComponent implements OnInit {
           this.users = data ?? [];
           this.currentPage = 1;
           this.initializeZmSelections();
-          this.syncSelectedUser();
         },
         error: (err) => {
           console.error('Error loading users:', err);
@@ -117,10 +116,6 @@ export class UsersListComponent implements OnInit {
 
           if (this.currentPage > this.totalPages) {
             this.currentPage = this.totalPages || 1;
-          }
-
-          if (this.selectedUserId === id) {
-            this.selectedUserId = null;
           }
 
           void this.swal.success('User deleted', 'The user has been deleted successfully.');
@@ -160,12 +155,52 @@ export class UsersListComponent implements OnInit {
     this.assignZm(stt, result.value);
   }
 
-  openDetails(user: AppUser): void {
-    this.selectedUserId = user.id;
-  }
+  async toggleBan(user: AppUser): Promise<void> {
+    if (!this.canManageBan(user)) {
+      return;
+    }
 
-  closeDetails(): void {
-    this.selectedUserId = null;
+    const willEnable = !user.enabled;
+    const actionLabel = willEnable ? 'Unban' : 'Ban';
+    const confirm = await this.swal.confirmAction(
+      `${actionLabel} ${user.fullName}?`,
+      willEnable
+        ? 'This will restore access to the platform for this user.'
+        : 'This will immediately block this user from accessing the platform.',
+      actionLabel
+    );
+
+    if (!confirm.isConfirmed) {
+      return;
+    }
+
+    this.togglingUserId = user.id;
+    this.error = null;
+
+    this.usersSvc.update(user.id, { enabled: willEnable })
+      .pipe(
+        finalize(() => {
+          this.togglingUserId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.mergeUser(updated);
+          void this.swal.success(
+            willEnable ? 'User unbanned' : 'User banned',
+            willEnable
+              ? `${updated.fullName} can access the platform again.`
+              : `${updated.fullName} is now blocked from accessing the platform.`
+          );
+        },
+        error: (err) => {
+          console.error('Error updating user access:', err);
+          const message = err?.error?.message ?? 'Failed to update user access';
+          this.error = message;
+          void this.swal.error('Access update failed', message);
+        }
+      });
   }
 
   setRoleFilter(role: string): void {
@@ -195,8 +230,7 @@ export class UsersListComponent implements OnInit {
       )
       .subscribe({
         next: (updated) => {
-          this.users = this.users.map((user) => user.id === updated.id ? updated : user);
-          this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
+          this.mergeUser(updated);
           void this.swal.success('Assignment saved', `ZM assigned successfully to ${updated.fullName}.`);
         },
         error: (err) => {
@@ -258,16 +292,12 @@ export class UsersListComponent implements OnInit {
     ];
   }
 
-  get selectedUser(): AppUser | null {
-    if (!this.selectedUserId) {
-      return null;
-    }
-
-    return this.users.find((user) => user.id === this.selectedUserId) ?? null;
-  }
-
   canAssignZm(user: AppUser): boolean {
     return user.role === 'ROLE_STT' && user.status === 'APPROVED' && !!user.enabled;
+  }
+
+  canManageBan(user: AppUser): boolean {
+    return user.status === 'APPROVED';
   }
 
   isAssigning(sttId: string): boolean {
@@ -276,6 +306,10 @@ export class UsersListComponent implements OnInit {
 
   isDeleting(id: string): boolean {
     return this.deletingId === id;
+  }
+
+  isTogglingAccess(id: string): boolean {
+    return this.togglingUserId === id;
   }
 
   effectiveRole(user: AppUser): string {
@@ -326,7 +360,7 @@ export class UsersListComponent implements OnInit {
   roleIcon(role?: string | null): string {
     switch (role) {
       case 'ROLE_ADMIN':
-        return 'cilShieldAlt';
+        return 'cilSettings';
       case 'ROLE_STT':
         return 'cilPeople';
       case 'ROLE_TECH':
@@ -369,14 +403,30 @@ export class UsersListComponent implements OnInit {
     }
   }
 
-  enabledBadgeClass(enabled?: boolean | null): string {
-    return enabled
+  accessBadgeClass(user: AppUser): string {
+    if (user.status === 'APPROVED' && !user.enabled) {
+      return 'user-pill user-pill--rejected';
+    }
+
+    return user.enabled
       ? 'user-pill user-pill--enabled'
       : 'user-pill user-pill--disabled';
   }
 
-  enabledLabel(enabled?: boolean | null): string {
-    return enabled ? 'Enabled' : 'Disabled';
+  accessLabel(user: AppUser): string {
+    if (user.status === 'APPROVED' && !user.enabled) {
+      return 'Banned';
+    }
+
+    return user.enabled ? 'Enabled' : 'Disabled';
+  }
+
+  toggleAccessLabel(user: AppUser): string {
+    return user.enabled ? 'Ban user' : 'Unban user';
+  }
+
+  toggleAccessIcon(user: AppUser): string {
+    return user.enabled ? 'cilBan' : 'cilCheckCircle';
   }
 
   initialsFor(user: AppUser): string {
@@ -417,10 +467,6 @@ export class UsersListComponent implements OnInit {
 
   countByStatus(status: string): number {
     return this.users.filter((user) => user.status === status).length;
-  }
-
-  countByRole(role: string): number {
-    return this.users.filter((user) => this.effectiveRole(user) === role).length;
   }
 
   get filteredUsers(): AppUser[] {
@@ -486,14 +532,9 @@ export class UsersListComponent implements OnInit {
 
   trackById = (_index: number, user: AppUser) => user.id;
 
-  private syncSelectedUser(): void {
-    if (!this.selectedUserId) {
-      return;
-    }
+  private mergeUser(updated: AppUser): void {
+    this.users = this.users.map((user) => user.id === updated.id ? updated : user);
 
-    const stillExists = this.users.some((user) => user.id === this.selectedUserId);
-    if (!stillExists) {
-      this.selectedUserId = null;
-    }
+    this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
   }
 }

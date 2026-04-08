@@ -200,7 +200,7 @@ export class TechDashboardComponent implements OnInit, OnDestroy {
   private startTicker(): void {
     this.tickHandle = setInterval(() => {
       this.nowEpochMs = Date.now();
-    }, 15000);
+    }, 1000);
   }
 
   private loadData(): void {

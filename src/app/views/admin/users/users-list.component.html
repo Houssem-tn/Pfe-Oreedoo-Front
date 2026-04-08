@@ -3,11 +3,11 @@
     <div class="users-hero__content">
       <div class="users-eyebrow">
         <svg cIcon name="cilPeople"></svg>
-        Admin users desk
+        Ooredoo access control
       </div>
-      <h1>Manage accounts, activation state, and STT supervision from one cleaner workspace.</h1>
+      <h1>Manage accounts, platform access, and STT supervision in a sharper Ooredoo admin workspace.</h1>
       <p>
-        Search faster, scan roles and statuses visually, and keep assignment actions close to the user details that matter.
+        Keep this page focused on operational user management. Use the audit center when you need the full traceability and profile history.
       </p>
     </div>
 
@@ -170,11 +170,10 @@
   </div>
 
   <ng-container *ngIf="!loading && !error">
-    <div class="users-workspace" [class.users-workspace--with-drawer]="selectedUser">
+    <div class="users-workspace">
       <section class="users-grid">
         <article
           class="user-card"
-          [class.user-card--selected]="selectedUserId === user.id"
           *ngFor="let user of paginatedUsers; trackBy: trackById"
         >
           <div class="user-card__header">
@@ -207,9 +206,9 @@
                 {{ formatStatus(user.status) }}
               </span>
 
-              <span [ngClass]="enabledBadgeClass(user.enabled)">
-                <svg cIcon [name]="user.enabled ? 'cilCheckCircle' : 'cilXCircle'"></svg>
-                {{ enabledLabel(user.enabled) }}
+              <span [ngClass]="accessBadgeClass(user)">
+                <svg cIcon [name]="user.enabled ? 'cilCheckCircle' : 'cilBan'"></svg>
+                {{ accessLabel(user) }}
               </span>
             </div>
           </div>
@@ -258,13 +257,25 @@
           </div>
 
           <div class="user-card__actions">
-            <button
-              type="button"
-              class="user-button user-button--soft"
-              (click)="openDetails(user)"
+            <a
+              class="user-button user-button--primary"
+              [routerLink]="['/admin/audits/users']"
+              [queryParams]="{ user: user.id }"
             >
-              <svg cIcon name="cilMagnifyingGlass"></svg>
-              View details
+              <svg cIcon name="cilUser"></svg>
+              View profile
+            </a>
+
+            <button
+              *ngIf="canManageBan(user)"
+              type="button"
+              class="user-button"
+              [ngClass]="user.enabled ? 'user-button--danger' : 'user-button--soft'"
+              [disabled]="isTogglingAccess(user.id)"
+              (click)="toggleBan(user)"
+            >
+              <svg cIcon [name]="toggleAccessIcon(user)"></svg>
+              {{ isTogglingAccess(user.id) ? 'Saving...' : toggleAccessLabel(user) }}
             </button>
 
             <a
@@ -297,127 +308,6 @@
           </div>
         </article>
       </section>
-
-      <aside class="users-drawer" *ngIf="selectedUser as selected">
-        <div class="users-drawer__header">
-          <div>
-            <div class="users-drawer__eyebrow">
-              <svg cIcon name="cilUser"></svg>
-              User details
-            </div>
-            <div class="users-drawer__title">{{ selected.fullName }}</div>
-            <div class="users-drawer__subtitle">{{ selected.email }}</div>
-          </div>
-
-          <button
-            type="button"
-            class="user-icon-button"
-            (click)="closeDetails()"
-            aria-label="Close user details"
-          >
-            <svg cIcon name="cilX"></svg>
-          </button>
-        </div>
-
-        <div class="users-drawer__hero">
-          <div class="users-drawer__avatar">{{ initialsFor(selected) }}</div>
-          <div class="users-drawer__hero-copy">
-            <span [ngClass]="roleBadgeClass(effectiveRole(selected))">
-              <svg cIcon [name]="roleIcon(effectiveRole(selected))"></svg>
-              {{ formatRole(effectiveRole(selected)) }}
-            </span>
-
-            <span [ngClass]="statusBadgeClass(selected.status)">
-              <svg cIcon [name]="statusIcon(selected.status)"></svg>
-              {{ formatStatus(selected.status) }}
-            </span>
-
-            <span [ngClass]="enabledBadgeClass(selected.enabled)">
-              <svg cIcon [name]="selected.enabled ? 'cilCheckCircle' : 'cilXCircle'"></svg>
-              {{ enabledLabel(selected.enabled) }}
-            </span>
-          </div>
-        </div>
-
-        <div class="users-drawer__grid">
-          <div class="users-drawer__fact">
-            <span>Phone</span>
-            <strong>{{ selected.phone || 'Not provided' }}</strong>
-          </div>
-
-          <div class="users-drawer__fact">
-            <span>Assigned ZM</span>
-            <strong>{{ assignmentLabel(selected) }}</strong>
-          </div>
-
-          <div class="users-drawer__fact">
-            <span>Created at</span>
-            <strong>{{ selected.createdAt ? (selected.createdAt | date:'dd MMM yyyy, HH:mm') : 'Not available' }}</strong>
-          </div>
-
-          <div class="users-drawer__fact">
-            <span>Updated at</span>
-            <strong>{{ selected.updatedAt ? (selected.updatedAt | date:'dd MMM yyyy, HH:mm') : 'Not available' }}</strong>
-          </div>
-
-          <div class="users-drawer__fact">
-            <span>Validated at</span>
-            <strong>{{ selected.validatedAt ? (selected.validatedAt | date:'dd MMM yyyy, HH:mm') : 'Not validated yet' }}</strong>
-          </div>
-
-          <div class="users-drawer__fact">
-            <span>Last login</span>
-            <strong>{{ selected.lastLoginAt ? (selected.lastLoginAt | date:'dd MMM yyyy, HH:mm') : 'No login yet' }}</strong>
-          </div>
-        </div>
-
-        <div class="users-drawer__note" *ngIf="selected.rejectionReason">
-          <svg cIcon name="cilCommentSquare"></svg>
-          <div>
-            <strong>Rejection reason</strong>
-            <span>{{ selected.rejectionReason }}</span>
-          </div>
-        </div>
-
-        <div class="users-drawer__note" *ngIf="selected.role === 'ROLE_STT' && !selected.rejectionReason">
-          <svg cIcon name="cilLayers"></svg>
-          <div>
-            <strong>Supervision note</strong>
-            <span>STT accounts can be linked to a ZM directly from this panel when the account is approved and enabled.</span>
-          </div>
-        </div>
-
-        <div class="users-drawer__actions">
-          <button
-            *ngIf="canAssignZm(selected)"
-            type="button"
-            class="user-button user-button--soft"
-            [disabled]="isAssigning(selected.id)"
-            (click)="openAssignZmModal(selected)"
-          >
-            <svg cIcon [name]="selected.assignedZmId ? 'cilPencil' : 'cilPlus'"></svg>
-            {{ isAssigning(selected.id) ? 'Saving...' : (selected.assignedZmId ? 'Change ZM' : 'Assign ZM') }}
-          </button>
-
-          <a
-            class="user-button user-button--ghost"
-            [routerLink]="['/admin/users', selected.id]"
-          >
-            <svg cIcon name="cilPencil"></svg>
-            Edit user
-          </a>
-
-          <button
-            type="button"
-            class="user-button user-button--danger"
-            (click)="remove(selected.id)"
-            [disabled]="isDeleting(selected.id)"
-          >
-            <svg cIcon name="cilTrash"></svg>
-            {{ isDeleting(selected.id) ? 'Deleting...' : 'Delete user' }}
-          </button>
-        </div>
-      </aside>
     </div>
 
     <section class="users-pagination" *ngIf="filteredUsers.length > 0">

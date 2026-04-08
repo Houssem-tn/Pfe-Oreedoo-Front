@@ -10,6 +10,14 @@ export type AccountStatus =
   | 'APPROVED'
   | 'REJECTED';
 
+export type InvitationStatus =
+  | 'PENDING_REGISTRATION'
+  | 'REGISTERED_PENDING_ZM_APPROVAL'
+  | 'APPROVED_BY_ZM'
+  | 'REJECTED_BY_ZM'
+  | 'EXPIRED'
+  | 'CANCELLED';
+
 export interface AppUser {
   id: string;
   fullName: string;
@@ -48,4 +56,60 @@ export interface UserAuditItem {
   enabled: boolean;
   createdAt?: string;
   lastLoginAt?: string;
+}
+
+export interface UserAuditActor {
+  id?: string | null;
+  fullName?: string | null;
+  email?: string | null;
+  role?: Role | string | null;
+  status?: AccountStatus | string | null;
+  enabled?: boolean | null;
+  profileImageUrl?: string | null;
+  profileThumbnailUrl?: string | null;
+}
+
+export interface UserInvitationAudit {
+  id?: string | null;
+  status?: InvitationStatus | string | null;
+  createdAt?: string | null;
+  expiresAt?: string | null;
+  registeredAt?: string | null;
+  zmDecisionAt?: string | null;
+  used?: boolean | null;
+}
+
+export interface UserHierarchyAudit {
+  directReportCount: number;
+  sttCount: number;
+  techCount: number;
+  directReports: UserAuditActor[];
+}
+
+export interface UserRoleProfileDetails {
+  boutiqueName?: string | null;
+  boutiqueCode?: string | null;
+  boutiqueAddress?: string | null;
+  serviceCenter?: string | null;
+  department?: string | null;
+  matricule?: string | null;
+  skillSet?: string | null;
+  region?: string | null;
+  available?: boolean | null;
+  zoneName?: string | null;
+  zoneCode?: string | null;
+  coverage?: string | null;
+}
+
+export interface UserAuditDetailsResponse {
+  user: AppUser;
+  validator?: UserAuditActor | null;
+  assignedStt?: UserAuditActor | null;
+  assignedZm?: UserAuditActor | null;
+  invitedBy?: UserAuditActor | null;
+  invitationZm?: UserAuditActor | null;
+  invitation?: UserInvitationAudit | null;
+  hierarchy?: UserHierarchyAudit | null;
+  roleProfile?: UserRoleProfileDetails | null;
+  performance?: import('../cases/models/case.model').PerformanceSummaryResponse | null;
 }

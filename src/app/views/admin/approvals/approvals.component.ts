@@ -316,7 +316,7 @@ export class ApprovalsComponent implements OnInit {
       case 'ROLE_CRM_BOUTIQUE':
         return 'cilPhone';
       case 'ROLE_ADMIN':
-        return 'cilShieldAlt';
+        return 'cilSettings';
       default:
         return 'cilUser';
     }

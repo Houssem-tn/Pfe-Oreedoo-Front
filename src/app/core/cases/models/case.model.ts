@@ -115,6 +115,7 @@ export interface PerformanceSummaryResponse {
   averageOverdueMinutes: number;
   workCompletionProgress: number;
   activeTasksCount: number;
+  completedCasesCount: number;
 }
 
 export interface CaseTimelineEvent {
