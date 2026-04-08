@@ -1,95 +1,149 @@
-<div class="bg-light dark:bg-transparent min-vh-100 d-flex flex-row align-items-center">
-  <c-container breakpoint="md">
-    <c-row class="justify-content-center">
-      <c-col lg="10" xl="8">
-        <c-card-group>
-          <c-card class="p-4">
-            <c-card-body>
-              <!-- ✅ wire submit -->
-              <form cForm (ngSubmit)="submit()">
-                <h1>Login</h1>
-                <p class="text-body-secondary">Sign In to your account</p>
+<div class="login-page min-vh-100 d-flex align-items-center">
+  <c-container>
+    <c-row class="justify-content-center align-items-center login-page__row">
+      <c-col lg="11" xl="10">
+        <div class="login-shell">
+          <section class="login-shell__hero">
+            <div class="login-shell__brand">
+              <img
+                src="assets/images/Ooredoo-Tunisie.png"
+                alt="Ooredoo"
+                class="login-shell__brand-logo"
+              />
 
-                <!-- ✅ error message -->
-                <div *ngIf="error" class="alert alert-danger mb-3" role="alert">
-                  {{ error }}
+              <div class="login-shell__brand-copy">
+                <span class="login-shell__brand-title">ooredoo</span>
+                <span class="login-shell__brand-subtitle">Field Service Platform</span>
+              </div>
+            </div>
+
+            <span class="login-shell__eyebrow">Telecom Operations Workspace</span>
+
+            <h1 class="login-shell__title">Sign in to manage field service activity with confidence.</h1>
+
+            <p class="login-shell__description">
+              Access approvals, activation cases, technician operations, and audit visibility inside one
+              operational workspace built for Ooredoo teams.
+            </p>
+
+            <div class="login-shell__highlights">
+              <article class="login-shell__highlight">
+                <span class="login-shell__highlight-icon">
+                  <svg cIcon name="cilSpeedometer"></svg>
+                </span>
+                <div>
+                  <h2>Operational control</h2>
+                  <p>Track cases, KPIs, and escalations in real time.</p>
+                </div>
+              </article>
+
+              <article class="login-shell__highlight">
+                <span class="login-shell__highlight-icon">
+                  <svg cIcon name="cilTask"></svg>
+                </span>
+                <div>
+                  <h2>Field execution</h2>
+                  <p>Coordinate RDV, work proof, and technician progress seamlessly.</p>
+                </div>
+              </article>
+
+              <article class="login-shell__highlight">
+                <span class="login-shell__highlight-icon">
+                  <svg cIcon name="cilCheckCircle"></svg>
+                </span>
+                <div>
+                  <h2>Secure workflows</h2>
+                  <p>Approval and role validation stay aligned with your business process.</p>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="login-shell__panel">
+            <c-card class="login-card">
+              <c-card-body class="login-card__body">
+                <div class="login-card__intro">
+                  <span class="login-card__kicker">Welcome Back</span>
+                  <h2 class="login-card__title">Sign in</h2>
+                  <p class="login-card__subtitle">Use your email or username to access the platform.</p>
                 </div>
 
-                <c-input-group class="mb-3">
-                  <span cInputGroupText>
-                    <svg cIcon name="cilUser"></svg>
-                  </span>
-                  <input
-                    autoComplete="username"
-                    cFormControl
-                    placeholder="Email or Username"
-                    name="identifier"
-                    [(ngModel)]="form.identifier"
-                    required
-                  />
-                </c-input-group>
+                <form cForm class="login-form" (ngSubmit)="submit()">
+                  <div *ngIf="error" class="alert alert-danger login-form__alert" role="alert">
+                    {{ error }}
+                  </div>
 
-                <c-input-group class="mb-4">
-                  <span cInputGroupText>
-                    <svg cIcon name="cilLockLocked"></svg>
-                  </span>
-                  <input
-                    autoComplete="current-password"
-                    cFormControl
-                    placeholder="Password"
-                    type="password"
-                    name="password"
-                    [(ngModel)]="form.password"
-                    required
-                  />
-                </c-input-group>
+                  <c-input-group class="login-form__group">
+                    <span cInputGroupText class="login-form__icon">
+                      <svg cIcon name="cilUser"></svg>
+                    </span>
+                    <input
+                      autoComplete="username"
+                      cFormControl
+                      class="login-form__control"
+                      placeholder="Email or Username"
+                      name="identifier"
+                      [(ngModel)]="form.identifier"
+                      required
+                    />
+                  </c-input-group>
 
-                <c-row>
-                  <c-col xs="6">
-                    <button cButton class="px-4" color="primary" type="submit" [disabled]="loading">
+                  <c-input-group class="login-form__group">
+                    <span cInputGroupText class="login-form__icon">
+                      <svg cIcon name="cilLockLocked"></svg>
+                    </span>
+                    <input
+                      autoComplete="current-password"
+                      cFormControl
+                      class="login-form__control"
+                      placeholder="Password"
+                      type="password"
+                      name="password"
+                      [(ngModel)]="form.password"
+                      required
+                    />
+                  </c-input-group>
+
+                  <div class="login-form__actions">
+                    <button
+                      cButton
+                      class="login-form__submit"
+                      color="primary"
+                      type="submit"
+                      [disabled]="loading"
+                    >
                       {{ loading ? 'Logging in...' : 'Login' }}
                     </button>
-                  </c-col>
 
-                  <c-col class="text-end" xs="6">
-                    <button cButton class="px-0" color="link" type="button">
+                    <button cButton class="login-form__forgot" color="link" type="button">
                       Forgot password?
                     </button>
-                  </c-col>
-                </c-row>
-              </form>
-            </c-card-body>
-          </c-card>
+                  </div>
+                </form>
 
-          <c-card [style.minWidth.%]="44" class="text-white bg-primary py-5">
-            <c-card-body class="text-center">
-              <div>
-                <h2>Sign up</h2>
-                <p>
-                  Your account will be created with status <b>PENDING</b> and must be approved by an admin
-                  before you can log in.
-                </p>
+                <div class="login-card__signup">
+                  <div>
+                    <span class="login-card__signup-label">Need an account?</span>
+                    <p class="login-card__signup-text">
+                      Register and follow the normal validation process before activation.
+                    </p>
+                  </div>
 
-                <!-- ✅ route matches your app.routes.ts -->
-                <button cButton class="mt-3" color="light" [routerLink]="['/register']" type="button">
-  Register Now!
-</button>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-card-group>
+                  <button
+                    cButton
+                    class="login-card__signup-button"
+                    color="light"
+                    [routerLink]="['/register']"
+                    type="button"
+                  >
+                    Register now
+                  </button>
+                </div>
+              </c-card-body>
+            </c-card>
+          </section>
+        </div>
       </c-col>
     </c-row>
   </c-container>
 </div>
-
-
-
-
-
-
-
-
-
-
-

@@ -554,7 +554,12 @@
 
               <label class="tech-field">
                 <span>RDV date and time</span>
-                <input type="datetime-local" name="rdvDatePriseRdv" [(ngModel)]="rdvForm.datePriseRdv" />
+                <input
+                  type="datetime-local"
+                  name="rdvDatePriseRdv"
+                  [(ngModel)]="rdvForm.datePriseRdv"
+                  (input)="rdvForm.datePriseRdv = $any($event.target).value"
+                />
               </label>
 
               <label class="tech-field" *ngIf="!rdvForm.joignable">
@@ -716,7 +721,12 @@
 
               <label class="tech-field">
                 <span>End date and time</span>
-                <input type="datetime-local" name="workDateFinTrv" [(ngModel)]="workForm.dateFinTrv" />
+                <input
+                  type="datetime-local"
+                  name="workDateFinTrv"
+                  [(ngModel)]="workForm.dateFinTrv"
+                  (input)="workForm.dateFinTrv = $any($event.target).value"
+                />
               </label>
 
               <label class="tech-field">

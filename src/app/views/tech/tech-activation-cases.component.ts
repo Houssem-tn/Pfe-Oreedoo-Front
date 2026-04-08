@@ -140,6 +140,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   proofDrafts: Record<string, TechProofDraft> = {};
   private pendingProofLocation: TechGeoSnapshot | null = null;
   private pendingProofSource: TechProofSource | null = null;
+  private backgroundProofSyncCaseId: string | null = null;
+  private backgroundRdvSyncCaseId: string | null = null;
 
   private routeIntentCaseId: string | null = null;
   private routeIntentPanel: TechPanel = 'details';
@@ -530,42 +532,45 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const datePriseRdv = toIso(this.rdvForm.datePriseRdv);
-    if (!datePriseRdv) {
-      this.banner = { tone: 'danger', text: 'RDV date and time are required.' };
-      return;
-    }
-
-    if (!this.rdvForm.joignable && !this.rdvForm.causeInjoignabilite.trim()) {
-      this.banner = { tone: 'danger', text: 'Add the non-reachability cause before saving the RDV.' };
-      return;
-    }
-
-    if (this.rdvForm.abandon && !this.rdvForm.causeAbandon.trim()) {
-      this.banner = { tone: 'danger', text: 'Add the abandon cause before saving the RDV.' };
-      return;
-    }
-
-    const payload: SetRdvRequest = {
-      joignable: this.rdvForm.joignable,
-      datePriseRdv,
-      causeInjoignabilite: this.rdvForm.joignable ? null : this.toNullable(this.rdvForm.causeInjoignabilite),
-      detail: this.rdvForm.detail.trim(),
-      cmtRdv: this.rdvForm.cmtRdv.trim(),
-      abandon: this.rdvForm.abandon,
-      causeAbandon: this.rdvForm.abandon ? this.toNullable(this.rdvForm.causeAbandon) : null
-    };
-
+    await this.flushPendingFormChanges();
     this.actionBusy = true;
     this.banner = null;
 
     try {
-      const updated = await firstValueFrom(this.casesService.setRdv(target.id, payload));
-      this.replaceCase(updated);
-      this.selectedCaseDetails = updated;
-      this.banner = { tone: 'success', text: 'RDV saved. The task card and SLA block are now updated.' };
+      const datePriseRdv = toIso(this.rdvForm.datePriseRdv);
+      if (!datePriseRdv) {
+        this.banner = { tone: 'danger', text: 'RDV date and time are required.' };
+        return;
+      }
+
+      if (!this.rdvForm.joignable && !this.rdvForm.causeInjoignabilite.trim()) {
+        this.banner = { tone: 'danger', text: 'Add the non-reachability cause before saving the RDV.' };
+        return;
+      }
+
+      if (this.rdvForm.abandon && !this.rdvForm.causeAbandon.trim()) {
+        this.banner = { tone: 'danger', text: 'Add the abandon cause before saving the RDV.' };
+        return;
+      }
+
+      const payload: SetRdvRequest = {
+        joignable: this.rdvForm.joignable,
+        datePriseRdv,
+        causeInjoignabilite: this.rdvForm.joignable ? null : this.toNullable(this.rdvForm.causeInjoignabilite),
+        detail: this.rdvForm.detail.trim(),
+        cmtRdv: this.rdvForm.cmtRdv.trim(),
+        abandon: this.rdvForm.abandon,
+        causeAbandon: this.rdvForm.abandon ? this.toNullable(this.rdvForm.causeAbandon) : null
+      };
+
+      const previousSnapshot = this.cloneCase(target);
+      const optimisticCase = this.buildOptimisticRdvCase(target, payload);
+
+      this.replaceCase(optimisticCase);
+      this.selectedCaseDetails = optimisticCase;
       this.activePanel = 'details';
-      this.loadPerformance();
+      this.banner = { tone: 'info', text: 'RDV saved locally. Syncing the final confirmation in the background...' };
+      void this.syncRdvAfterLocalSave(target.id, payload, previousSnapshot);
     } catch (err: any) {
       console.error('Failed to save TECH RDV', err);
       this.banner = { tone: 'danger', text: err?.error?.message ?? 'Unable to save the RDV.' };
@@ -580,50 +585,48 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.currentProofDraft) {
-      this.banner = { tone: 'danger', text: 'Attach a proof photo before submitting work.' };
-      return;
-    }
-
-    if (!this.currentProofDraft.location) {
-      this.banner = { tone: 'danger', text: 'Attach a proof photo again so its GPS position can be saved.' };
-      return;
-    }
-
-    this.locationError = null;
-
-    const workLocation = await this.captureCurrentLocation('submit the work report', 'work');
-    if (!workLocation) {
-      return;
-    }
-
-    const payload = this.buildWorkPayload(workLocation);
-    if (!payload) {
-      return;
-    }
-
+    await this.flushPendingFormChanges();
     this.actionBusy = true;
-    this.banner = null;
+    this.banner = { tone: 'info', text: 'Capturing the current GPS position and submitting the work report...' };
 
     try {
+      if (!this.currentProofDraft) {
+        this.banner = { tone: 'danger', text: 'Attach a proof photo before submitting work.' };
+        return;
+      }
+
+      if (!this.currentProofDraft.location) {
+        this.banner = { tone: 'danger', text: 'Attach a proof photo again so its GPS position can be saved.' };
+        return;
+      }
+
+      this.locationError = null;
+
+      const workLocation = await this.captureCurrentLocation(
+        'submit the work report',
+        'work',
+        this.currentProofDraft.location
+      );
+      if (!workLocation) {
+        return;
+      }
+
+      const payload = this.buildWorkPayload(workLocation);
+      if (!payload) {
+        return;
+      }
+
       const updated = await firstValueFrom(this.casesService.completeWork(target.id, payload));
       this.replaceCase(updated);
       this.selectedCaseDetails = updated;
-
-      const proofResult = await this.uploadProofDraft(target.id);
-
-      if (proofResult === 'uploaded') {
-        this.banner = { tone: 'success', text: 'Work and proof photo submitted successfully.' };
-      } else {
-        this.banner = {
-          tone: 'warning',
-          text: 'Work was submitted, but the proof photo is still queued on this device because the proof endpoint did not accept it yet.'
-        };
-      }
-
       this.activePanel = 'details';
       this.loadPerformance();
       this.loadCaseDetails(target.id);
+      this.banner = {
+        tone: 'success',
+        text: 'Work submitted. Proof photo is syncing in the background so the field user does not have to wait.'
+      };
+      void this.syncProofAfterWork(target.id);
     } catch (err: any) {
       console.error('Failed to submit TECH work', err);
       this.banner = { tone: 'danger', text: err?.error?.message ?? 'Unable to submit the work update.' };
@@ -1046,6 +1049,44 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return value == null ? '-' : String(value);
   }
 
+  private buildOptimisticRdvCase(item: CaseResponse, payload: SetRdvRequest): CaseResponse {
+    const nextStatus: CaseStatus = !payload.joignable
+      ? 'NOT_REACHABLE'
+      : payload.abandon
+        ? 'ABANDONED'
+        : 'RDV_SET';
+
+    const currentRdv = extractRdv(item);
+    const nextUpdatedAt = new Date().toISOString();
+
+    return {
+      ...item,
+      status: nextStatus,
+      updatedAt: nextUpdatedAt,
+      joignable: payload.joignable,
+      datePriseRdv: payload.datePriseRdv,
+      causeInjoignabilite: payload.causeInjoignabilite ?? undefined,
+      detail: payload.detail,
+      cmtRdv: payload.cmtRdv,
+      abandon: payload.abandon,
+      causeAbandon: payload.causeAbandon ?? undefined,
+      rdv: {
+        ...currentRdv,
+        joignable: payload.joignable,
+        datePriseRdv: payload.datePriseRdv,
+        causeInjoignabilite: payload.causeInjoignabilite ?? undefined,
+        detail: payload.detail,
+        cmtRdv: payload.cmtRdv,
+        abandon: payload.abandon,
+        causeAbandon: payload.causeAbandon ?? undefined
+      }
+    };
+  }
+
+  private cloneCase(item: CaseResponse): CaseResponse {
+    return JSON.parse(JSON.stringify(item)) as CaseResponse;
+  }
+
   private replaceCase(updated: CaseResponse): void {
     this.cases = this.cases.map((item) => item.id === updated.id ? updated : item);
 
@@ -1122,6 +1163,70 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async syncProofAfterWork(caseId: string): Promise<void> {
+    if (this.backgroundProofSyncCaseId === caseId) {
+      return;
+    }
+
+    this.backgroundProofSyncCaseId = caseId;
+
+    try {
+      const result = await this.uploadProofDraft(caseId);
+
+      if (result === 'uploaded') {
+        this.banner = { tone: 'success', text: 'Work submitted and proof photo synced successfully.' };
+        this.loadCaseDetails(caseId);
+      } else {
+        this.banner = {
+          tone: 'warning',
+          text: 'Work was submitted, but the proof photo is still queued on this device because the proof endpoint did not accept it yet.'
+        };
+      }
+    } finally {
+      if (this.backgroundProofSyncCaseId === caseId) {
+        this.backgroundProofSyncCaseId = null;
+      }
+    }
+  }
+
+  private async syncRdvAfterLocalSave(
+    caseId: string,
+    payload: SetRdvRequest,
+    previousSnapshot: CaseResponse
+  ): Promise<void> {
+    if (this.backgroundRdvSyncCaseId === caseId) {
+      return;
+    }
+
+    this.backgroundRdvSyncCaseId = caseId;
+
+    try {
+      const updated = await firstValueFrom(this.casesService.setRdv(caseId, payload));
+      this.replaceCase(updated);
+
+      if (this.selectedCaseId === updated.id) {
+        this.selectedCaseDetails = updated;
+      }
+
+      this.banner = { tone: 'success', text: 'RDV saved. The task card and SLA block are now updated.' };
+      this.loadPerformance();
+    } catch (err: any) {
+      console.error('Failed to save TECH RDV in background sync', err);
+      this.replaceCase(previousSnapshot);
+
+      if (this.selectedCaseId === previousSnapshot.id) {
+        this.selectedCaseDetails = previousSnapshot;
+        this.activePanel = 'rdv';
+      }
+
+      this.banner = { tone: 'danger', text: err?.error?.message ?? 'Unable to save the RDV.' };
+    } finally {
+      if (this.backgroundRdvSyncCaseId === caseId) {
+        this.backgroundRdvSyncCaseId = null;
+      }
+    }
+  }
+
   private dataUrlToFile(draft: TechProofDraft): File {
     const [metadata, data] = draft.dataUrl.split(',');
     const mimeMatch = metadata.match(/data:(.*?);base64/);
@@ -1156,7 +1261,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   private async captureCurrentLocation(
     actionLabel: string,
-    mode: 'proof' | 'work' = 'work'
+    mode: 'proof' | 'work' = 'work',
+    fallbackLocation: TechGeoSnapshot | null = null
   ): Promise<TechGeoSnapshot | null> {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       const message = 'This browser cannot provide GPS coordinates for this action.';
@@ -1180,25 +1286,25 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         ? [
             {
               enableHighAccuracy: false,
-              timeout: 6000,
+              timeout: 5000,
               maximumAge: 120000
             },
             {
               enableHighAccuracy: true,
-              timeout: 12000,
+              timeout: 9000,
               maximumAge: 0
             }
           ]
         : [
             {
               enableHighAccuracy: false,
-              timeout: 6000,
-              maximumAge: 30000
+              timeout: 2500,
+              maximumAge: 300000
             },
             {
               enableHighAccuracy: true,
-              timeout: 12000,
-              maximumAge: 0
+              timeout: 5000,
+              maximumAge: 60000
             }
           ];
 
@@ -1223,12 +1329,90 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         }
       }
 
+      if (mode === 'work' && fallbackLocation && !this.isPermissionDeniedError(lastError)) {
+        return fallbackLocation;
+      }
+
       const message = this.geolocationErrorMessage(lastError, actionLabel);
       this.locationError = message;
       this.banner = { tone: 'danger', text: message };
       return null;
     } finally {
       this.locationBusy = false;
+    }
+  }
+
+  private async flushPendingFormChanges(): Promise<void> {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (
+      !(activeElement instanceof HTMLInputElement)
+      && !(activeElement instanceof HTMLTextAreaElement)
+      && !(activeElement instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
+
+    this.syncPendingFieldValue(activeElement.name, activeElement.value);
+    activeElement.blur();
+
+    await new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), 0);
+    });
+  }
+
+  private syncPendingFieldValue(fieldName: string, fieldValue: string): void {
+    switch (fieldName) {
+      case 'rdvDatePriseRdv':
+        this.rdvForm.datePriseRdv = fieldValue;
+        break;
+      case 'rdvCauseInjoignabilite':
+        this.rdvForm.causeInjoignabilite = fieldValue;
+        break;
+      case 'rdvDetail':
+        this.rdvForm.detail = fieldValue;
+        break;
+      case 'rdvComment':
+        this.rdvForm.cmtRdv = fieldValue;
+        break;
+      case 'rdvCauseAbandon':
+        this.rdvForm.causeAbandon = fieldValue;
+        break;
+      case 'workRepTravauxStt':
+        this.workForm.repTravauxStt = fieldValue;
+        break;
+      case 'workDateFinTrv':
+        this.workForm.dateFinTrv = fieldValue;
+        break;
+      case 'workCmtTrvStt':
+        this.workForm.cmtTrvStt = fieldValue;
+        break;
+      case 'workMetrageCable':
+        this.workForm.metrageCable = fieldValue;
+        break;
+      case 'workNombrePv':
+        this.workForm.nombrePv = fieldValue;
+        break;
+      case 'workDebitDl':
+        this.workForm.debitDl = fieldValue;
+        break;
+      case 'workDebitUl':
+        this.workForm.debitUl = fieldValue;
+        break;
+      case 'workRsrp':
+        this.workForm.rsrp = fieldValue;
+        break;
+      case 'workRsrq':
+        this.workForm.rsrq = fieldValue;
+        break;
+      case 'workSinr':
+        this.workForm.sinr = fieldValue;
+        break;
+      default:
+        break;
     }
   }
 
