@@ -5,7 +5,6 @@ import { RouterLink } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
-
 import { AuthStore } from '../../core/auth/auth.store';
 import { Role } from '../../core/auth/models/roles.type';
 import { SwalService } from '../../core/ui/swal.service';
@@ -1058,82 +1057,107 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       await Swal.fire({
         title: `Case Details - ${this.escapeHtml(fullCase.crmCase)}`,
         width: 940,
+        didOpen: (modal) => {
+          modal.classList.add('case-details-swal');
+        },
         html: `
           <div class="text-start case-details-modal">
-            <div class="row g-2 mb-2">
-              <div class="col-md-6"><strong>Type:</strong> ${this.escapeHtml(fullCase.type || '-')}</div>
-              <div class="col-md-6"><strong>Status:</strong> ${this.escapeHtml(this.statusLabel(fullCase.status))}</div>
-              <div class="col-md-6"><strong>Client:</strong> ${this.escapeHtml(fullCase.clientName || '-')}</div>
-              <div class="col-md-6"><strong>Phone:</strong> ${this.escapeHtml(fullCase.clientPhone || '-')}</div>
-              <div class="col-md-6"><strong>MSISDN:</strong> ${this.escapeHtml(fullCase.msisdn || '-')}</div>
-              <div class="col-md-6"><strong>Offer:</strong> ${this.escapeHtml(fullCase.offre || '-')}</div>
-              <div class="col-md-6"><strong>Pack:</strong> ${this.escapeHtml(fullCase.desPack || '-')}</div>
-              <div class="col-md-6"><strong>Comment:</strong> ${this.escapeHtml(fullCase.commentaire || '-')}</div>
-              <div class="col-md-12"><strong>Location:</strong> ${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Case Information</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Type:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.type || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Status:</span> <span class="case-detail-value">${this.escapeHtml(this.statusLabel(fullCase.status))}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Client:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.clientName || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Phone:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.clientPhone || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">MSISDN:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.msisdn || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Offer:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.offre || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Pack:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.desPack || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.commentaire || '-')}</span></div></div>
+                <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Location:</span> <span class="case-detail-value">${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">Assignment Chain</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-4"><strong>ZM:</strong> ${this.escapeHtml(this.personLabel(fullCase.zmName, fullCase.zmEmail))}</div>
-              <div class="col-md-4"><strong>STT:</strong> ${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</div>
-              <div class="col-md-4"><strong>TECH:</strong> ${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Assignment Chain</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">ZM:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.zmName, fullCase.zmEmail))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">STT:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">RDV</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-4"><strong>Joignable:</strong> ${rdv.joignable == null ? '-' : rdv.joignable ? 'Yes' : 'No'}</div>
-              <div class="col-md-4"><strong>Date:</strong> ${this.escapeHtml(this.asDateLabel(rdv.datePriseRdv))}</div>
-              <div class="col-md-4"><strong>Abandon:</strong> ${rdv.abandon == null ? '-' : rdv.abandon ? 'Yes' : 'No'}</div>
-              <div class="col-md-6"><strong>Cause Injoignabilite:</strong> ${this.escapeHtml(rdv.causeInjoignabilite || '-')}</div>
-              <div class="col-md-6"><strong>Cause Abandon:</strong> ${this.escapeHtml(rdv.causeAbandon || '-')}</div>
-              <div class="col-md-6"><strong>Detail:</strong> ${this.escapeHtml(rdv.detail || '-')}</div>
-              <div class="col-md-6"><strong>Comment:</strong> ${this.escapeHtml(rdv.cmtRdv || '-')}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">RDV (Appointment)</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Joignable:</span> <span class="case-detail-value">${rdv.joignable == null ? '-' : rdv.joignable ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Date:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(rdv.datePriseRdv))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Abandon:</span> <span class="case-detail-value">${rdv.abandon == null ? '-' : rdv.abandon ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Cause Injoignabilite:</span> <span class="case-detail-value">${this.escapeHtml(rdv.causeInjoignabilite || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Cause Abandon:</span> <span class="case-detail-value">${this.escapeHtml(rdv.causeAbandon || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Detail:</span> <span class="case-detail-value">${this.escapeHtml(rdv.detail || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(rdv.cmtRdv || '-')}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">Work</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-4"><strong>Result:</strong> ${this.escapeHtml(work.repTravauxStt || '-')}</div>
-              <div class="col-md-4"><strong>Date End:</strong> ${this.escapeHtml(this.asDateLabel(work.dateFinTrv))}</div>
-              <div class="col-md-4"><strong>Comment:</strong> ${this.escapeHtml(work.cmtTrvStt || '-')}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Work</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Result:</span> <span class="case-detail-value">${this.escapeHtml(work.repTravauxStt || '-')}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Date End:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(work.dateFinTrv))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(work.cmtTrvStt || '-')}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">Work GPS</h6>
-            ${this.renderWorkLocationHtml(work)}
-
-            <hr />
-            <h6 class="mb-2">Work Proof</h6>
-            ${this.renderProofsHtml(proofs)}
-
-            <hr />
-            <h6 class="mb-2">Technical Metrics</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-3"><strong>Cable:</strong> ${this.asMetric(metrics.metrageCable)}</div>
-              <div class="col-md-3"><strong>PV:</strong> ${this.asMetric(metrics.nombrePv)}</div>
-              <div class="col-md-3"><strong>DL:</strong> ${this.asMetric(metrics.debitDl)}</div>
-              <div class="col-md-3"><strong>UL:</strong> ${this.asMetric(metrics.debitUl)}</div>
-              <div class="col-md-4"><strong>RSRP:</strong> ${this.asMetric(metrics.rsrp)}</div>
-              <div class="col-md-4"><strong>RSRQ:</strong> ${this.asMetric(metrics.rsrq)}</div>
-              <div class="col-md-4"><strong>SINR:</strong> ${this.asMetric(metrics.sinr)}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Work GPS Location</h6>
+              ${this.renderWorkLocationHtml(work)}
             </div>
 
-            <hr />
-            <h6 class="mb-2">ZM Validation</h6>
-            <div class="row g-2">
-              <div class="col-md-4"><strong>Approved:</strong> ${validation.approved == null ? '-' : validation.approved ? 'Yes' : 'No'}</div>
-              <div class="col-md-8"><strong>Comment:</strong> ${this.escapeHtml(validation.comment || '-')}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Work Proof</h6>
+              ${this.renderProofsHtml(proofs)}
             </div>
 
-            <hr />
-            <h6 class="mb-2">Case Timeline</h6>
-            ${this.renderTimelineHtml(timeline)}
+            <div class="case-details-section">
+              <h6 class="case-details-title">Technical Metrics</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">Cable:</span> <span class="case-detail-value">${this.asMetric(metrics.metrageCable)}</span></div></div>
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">PV:</span> <span class="case-detail-value">${this.asMetric(metrics.nombrePv)}</span></div></div>
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">DL:</span> <span class="case-detail-value">${this.asMetric(metrics.debitDl)}</span></div></div>
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">UL:</span> <span class="case-detail-value">${this.asMetric(metrics.debitUl)}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">RSRP:</span> <span class="case-detail-value">${this.asMetric(metrics.rsrp)}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">RSRQ:</span> <span class="case-detail-value">${this.asMetric(metrics.rsrq)}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">SINR:</span> <span class="case-detail-value">${this.asMetric(metrics.sinr)}</span></div></div>
+              </div>
+            </div>
+
+            <div class="case-details-section">
+              <h6 class="case-details-title">ZM Validation</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Approved:</span> <span class="case-detail-value">${validation.approved == null ? '-' : validation.approved ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                <div class="col-md-8"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(validation.comment || '-')}</span></div></div>
+              </div>
+            </div>
+
+            <div class="case-details-section">
+              <h6 class="case-details-title">Case Timeline</h6>
+              ${this.renderTimelineHtml(timeline)}
+            </div>
           </div>
         `,
+        denyButtonText: 'Download',
+        cancelButtonText: 'Download',
+        showDenyButton: true,
         confirmButtonText: 'Close',
-        confirmButtonColor: '#321fdb'
+        confirmButtonColor: '#e30613',
+        denyButtonColor: '#1b9aaa',
+        preConfirm: () => {
+          return true;
+        },
+        preDeny: () => {
+          void this.onCaseDetailsDownload(fullCase);
+          return false;
+        }
       });
     } catch (err: any) {
       console.error('Failed to load case details:', err);
@@ -1143,6 +1167,64 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       this.actionLoadingCaseId = null;
       this.zone.run(() => this.cdr.detectChanges());
     }
+  }
+
+  async onCaseDetailsDownload(caseData: CaseResponse): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.casesService.downloadCasePdf(caseData.id));
+      const blob = response.body;
+
+      if (!blob) {
+        throw new Error('Empty PDF response');
+      }
+
+      const filename = this.extractDownloadFilename(response.headers.get('content-disposition'))
+        ?? this.buildCasePdfFilename(caseData);
+
+      this.saveBlob(blob, filename);
+    } catch (err: any) {
+      console.error('Failed to download case PDF:', err);
+      const message = err?.error?.message ?? err?.message ?? 'Failed to download case report';
+      await this.swal.error('Download failed', message);
+    }
+  }
+
+  private buildCasePdfFilename(caseData: CaseResponse): string {
+    const crmCase = (caseData.crmCase ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^[-.]+|[-.]+$/g, '');
+
+    return `case-${crmCase || caseData.id}.pdf`;
+  }
+
+  private extractDownloadFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) {
+      return null;
+    }
+
+    const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+
+    const plainMatch = /filename="([^"]+)"|filename=([^;]+)/i.exec(contentDisposition);
+    const raw = plainMatch?.[1] ?? plainMatch?.[2];
+    return raw?.trim() || null;
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
   private async runAction(caseId: string, action: () => any, successTitle: string): Promise<void> {

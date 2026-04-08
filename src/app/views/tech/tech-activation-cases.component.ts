@@ -129,6 +129,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   searchTerm = '';
   statusFilter: '' | CaseStatus = '';
   quickFilter: TechQuickFilter = 'urgent';
+  currentPage = 1;
+  readonly pageSize = 4;
 
   selectedCaseId: string | null = null;
   selectedCaseDetails: CaseResponse | null = null;
@@ -275,6 +277,48 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       .sort((left, right) => this.priorityScore(left) - this.priorityScore(right));
   }
 
+  get totalVisibleCases(): number {
+    return this.visibleCases.length;
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.totalVisibleCases / this.pageSize));
+  }
+
+  get pageStart(): number {
+    if (!this.totalVisibleCases) {
+      return 0;
+    }
+
+    return ((this.currentPageValue - 1) * this.pageSize) + 1;
+  }
+
+  get pageEnd(): number {
+    return Math.min(this.currentPageValue * this.pageSize, this.totalVisibleCases);
+  }
+
+  get paginatedCases(): CaseResponse[] {
+    const start = (this.currentPageValue - 1) * this.pageSize;
+    return this.visibleCases.slice(start, start + this.pageSize);
+  }
+
+  get selectedCasePosition(): number {
+    if (!this.selectedCaseId) {
+      return 0;
+    }
+
+    const index = this.visibleCases.findIndex((item) => item.id === this.selectedCaseId);
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  get canGoToPreviousCase(): boolean {
+    return this.selectedCasePosition > 1;
+  }
+
+  get canGoToNextCase(): boolean {
+    return this.selectedCasePosition > 0 && this.selectedCasePosition < this.totalVisibleCases;
+  }
+
   get selectedCase(): CaseResponse | null {
     if (!this.selectedCaseId) {
       return null;
@@ -321,6 +365,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         next: (rows) => {
           this.cases = rows ?? [];
           this.applyRouteIntent();
+          this.syncCurrentPage();
 
           if (this.selectedCaseId) {
             const stillVisible = this.cases.some((item) => item.id === this.selectedCaseId);
@@ -373,6 +418,45 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   setQuickFilter(filter: TechQuickFilter): void {
     this.quickFilter = filter;
+    this.currentPage = 1;
+    this.syncCurrentPage();
+  }
+
+  updateSearchTerm(value: string): void {
+    this.searchTerm = value;
+    this.currentPage = 1;
+    this.syncCurrentPage();
+  }
+
+  updateStatusFilter(value: '' | CaseStatus): void {
+    this.statusFilter = value;
+    this.currentPage = 1;
+    this.syncCurrentPage();
+  }
+
+  goToPreviousPage(): void {
+    this.currentPage = this.currentPageValue - 1;
+    this.syncCurrentPage();
+  }
+
+  goToNextPage(): void {
+    this.currentPage = this.currentPageValue + 1;
+    this.syncCurrentPage();
+  }
+
+  openAdjacentCase(offset: -1 | 1): void {
+    if (!this.selectedCaseId) {
+      return;
+    }
+
+    const currentIndex = this.visibleCases.findIndex((item) => item.id === this.selectedCaseId);
+    const target = currentIndex >= 0 ? this.visibleCases[currentIndex + offset] : null;
+    if (!target) {
+      return;
+    }
+
+    this.focusCasePage(target.id);
+    this.openPanel(target, this.activePanel);
   }
 
   trackById = (_index: number, item: CaseResponse) => item.id;
@@ -483,9 +567,34 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.openPanel(item, 'details');
   }
 
+  primaryActionLabel(item: CaseResponse): string {
+    if (this.canSubmitWork(item) && item.status === 'RDV_SET') {
+      return 'Submit work';
+    }
+
+    if (this.canSetRdv(item)) {
+      return 'Set RDV';
+    }
+
+    return 'Open task';
+  }
+
+  primaryActionIcon(item: CaseResponse): string {
+    if (this.canSubmitWork(item) && item.status === 'RDV_SET') {
+      return 'cilTask';
+    }
+
+    if (this.canSetRdv(item)) {
+      return 'cilCalendar';
+    }
+
+    return 'cilChevronRight';
+  }
+
   openPanel(item: CaseResponse, panel: TechPanel): void {
     this.banner = null;
     this.panelError = null;
+    this.focusCasePage(item.id);
     this.selectedCaseId = item.id;
     this.activePanel = panel;
     this.selectedCaseDetails = this.selectedCaseDetails?.id === item.id ? this.selectedCaseDetails : null;
@@ -1093,6 +1202,30 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     if (!this.cases.some((item) => item.id === updated.id)) {
       this.cases = [updated, ...this.cases];
     }
+
+    this.syncCurrentPage();
+  }
+
+  private get currentPageValue(): number {
+    return this.clampPage(this.currentPage, this.totalVisibleCases);
+  }
+
+  private syncCurrentPage(): void {
+    this.currentPage = this.clampPage(this.currentPage, this.totalVisibleCases);
+  }
+
+  private focusCasePage(caseId: string): void {
+    const caseIndex = this.visibleCases.findIndex((item) => item.id === caseId);
+    if (caseIndex < 0) {
+      return;
+    }
+
+    this.currentPage = Math.floor(caseIndex / this.pageSize) + 1;
+  }
+
+  private clampPage(page: number, visibleCount: number): number {
+    const totalPages = Math.max(1, Math.ceil(visibleCount / this.pageSize));
+    return Math.min(Math.max(page, 1), totalPages);
   }
 
   private loadProofDrafts(): void {

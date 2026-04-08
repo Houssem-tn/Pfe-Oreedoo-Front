@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../http/api.config';
@@ -28,6 +28,13 @@ export class CasesService {
 
   getCaseById(id: string): Observable<CaseResponse> {
     return this.http.get<CaseResponse>(`${this.casesUrl}/${id}`);
+  }
+
+  downloadCasePdf(id: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.casesUrl}/${id}/pdf`, {
+      observe: 'response',
+      responseType: 'blob'
+    });
   }
 
   createCase(payload: CreateCaseRequest): Observable<CaseResponse> {

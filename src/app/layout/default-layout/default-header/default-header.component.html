@@ -25,83 +25,7 @@
     </c-header-nav>
 
     <c-header-nav class="d-none d-md-flex ms-auto">
-      <!-- Notifications -->
-      <c-dropdown alignment="end" variant="nav-item">
-        <button [caret]="false" cDropdownToggle class="position-relative" aria-label="Open notifications">
-          <svg cIcon class="my-1" name="cilBell" size="lg"></svg>
-
-          @if (unreadCount() > 0) {
-            <c-badge
-              class="position-absolute top-0 start-100 translate-middle rounded-pill"
-              color="danger"
-            >
-              {{ unreadCount() }}
-            </c-badge>
-          }
-        </button>
-
-        <div cDropdownMenu class="pt-0" style="min-width: 360px; max-width: 420px;">
-          <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-            <div>
-              <div class="fw-semibold">Notifications</div>
-              <small class="text-body-secondary">
-                {{ unreadCount() }} unread
-              </small>
-            </div>
-
-            <button
-              class="btn btn-sm btn-link text-decoration-none"
-              type="button"
-              (click)="markAllAsRead($event)"
-              [disabled]="unreadCount() === 0"
-            >
-              Mark all as read
-            </button>
-          </div>
-
-          @if (notifications().length === 0) {
-            <div class="px-3 py-3 text-body-secondary small">
-              No notifications yet.
-            </div>
-          } @else {
-            <div style="max-height: 420px; overflow-y: auto;">
-              @for (item of notifications().slice(0, 10); track item.id) {
-                <button
-                  cDropdownItem
-                  type="button"
-                  class="d-block text-start border-bottom py-3"
-                  (click)="handleNotificationClick(item, $event)"
-                >
-                  <div class="d-flex justify-content-between align-items-start gap-3">
-  <div class="flex-shrink-0 mt-1">
-    <c-badge [color]="getNotificationBadgeColor(item.eventType)" shape="rounded-pill">
-      <svg cIcon [name]="getNotificationIcon(item.eventType)"></svg>
-    </c-badge>
-  </div>
-
-  <div class="flex-grow-1">
-    <div class="fw-semibold d-flex align-items-center gap-2">
-      <span>{{ item.title }}</span>
-      @if (!item.read) {
-        <c-badge color="danger">New</c-badge>
-      }
-    </div>
-
-    <div class="small text-body-secondary mt-1">
-      {{ item.message }}
-    </div>
-
-    <div class="small text-body-tertiary mt-1">
-      {{ item.createdAt | date:'medium' }}
-    </div>
-  </div>
-</div>
-                </button>
-              }
-            </div>
-          }
-        </div>
-      </c-dropdown>
+      <ng-container *ngTemplateOutlet="notificationDropdown" />
 
       <a cNavLink>
         <svg cIcon class="my-1" name="cilList" size="lg"></svg>
@@ -111,13 +35,16 @@
       </a>
     </c-header-nav>
 
-    <c-header-nav class="ms-auto ms-md-0">
+    <c-header-nav class="ms-auto ms-md-0 align-items-center">
+      <div class="d-md-none">
+        <ng-container *ngTemplateOutlet="notificationDropdown" />
+      </div>
       <div class="nav-item py-1">
-        <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+        <div class="vr h-100 mx-2 text-body text-opacity-75 d-none d-md-block"></div>
       </div>
       <ng-container *ngTemplateOutlet="themeDropdown" />
       <div class="nav-item py-1">
-        <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+        <div class="vr h-100 mx-2 text-body text-opacity-75 d-none d-md-block"></div>
       </div>
     </c-header-nav>
 
@@ -131,6 +58,90 @@
   </c-container>
 </ng-container>
 <!--</c-header>-->
+
+<ng-template #notificationDropdown>
+  <c-dropdown alignment="end" variant="nav-item">
+    <button
+      [caret]="false"
+      cDropdownToggle
+      class="header-notification-toggle position-relative"
+      aria-label="Open notifications"
+    >
+      <svg cIcon class="my-1" name="cilBell" size="lg"></svg>
+
+      @if (unreadCount() > 0) {
+        <c-badge
+          class="header-notification-badge position-absolute top-0 start-100 translate-middle rounded-pill"
+          color="danger"
+        >
+          {{ unreadCount() }}
+        </c-badge>
+      }
+    </button>
+
+    <div cDropdownMenu class="header-notification-menu pt-0">
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+        <div>
+          <div class="fw-semibold">Notifications</div>
+          <small class="text-body-secondary">
+            {{ unreadCount() }} unread
+          </small>
+        </div>
+
+        <button
+          class="btn btn-sm btn-link text-decoration-none"
+          type="button"
+          (click)="markAllAsRead($event)"
+          [disabled]="unreadCount() === 0"
+        >
+          Mark all as read
+        </button>
+      </div>
+
+      @if (notifications().length === 0) {
+        <div class="px-3 py-3 text-body-secondary small">
+          No notifications yet.
+        </div>
+      } @else {
+        <div class="header-notification-menu__list">
+          @for (item of notifications().slice(0, 10); track item.id) {
+            <button
+              cDropdownItem
+              type="button"
+              class="d-block text-start border-bottom py-3"
+              (click)="handleNotificationClick(item, $event)"
+            >
+              <div class="d-flex justify-content-between align-items-start gap-3">
+                <div class="flex-shrink-0 mt-1">
+                  <c-badge [color]="getNotificationBadgeColor(item.eventType)" shape="rounded-pill">
+                    <svg cIcon [name]="getNotificationIcon(item.eventType)"></svg>
+                  </c-badge>
+                </div>
+
+                <div class="flex-grow-1">
+                  <div class="fw-semibold d-flex align-items-center gap-2">
+                    <span>{{ item.title }}</span>
+                    @if (!item.read) {
+                      <c-badge color="danger">New</c-badge>
+                    }
+                  </div>
+
+                  <div class="small text-body-secondary mt-1">
+                    {{ item.message }}
+                  </div>
+
+                  <div class="small text-body-tertiary mt-1">
+                    {{ item.createdAt | date:'medium' }}
+                  </div>
+                </div>
+              </div>
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </c-dropdown>
+</ng-template>
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">

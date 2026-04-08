@@ -11,3 +11,52 @@
 	justify-content: center;
 	padding: 0 0.25rem;
 }
+
+.header-notification-toggle {
+	align-items: center;
+	background: rgba(229, 36, 59, 0.08);
+	border: 1px solid rgba(181, 17, 45, 0.12);
+	border-radius: 0.9rem;
+	color: #7f1227;
+	display: inline-flex;
+	justify-content: center;
+	min-height: 2.75rem;
+	min-width: 2.75rem;
+	padding: 0.45rem 0.65rem;
+	transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.header-notification-toggle:hover {
+	background: rgba(229, 36, 59, 0.14);
+	border-color: rgba(181, 17, 45, 0.18);
+	transform: translateY(-1px);
+}
+
+.header-notification-badge {
+	font-size: 0.65rem;
+	min-width: 1.1rem;
+	padding: 0.15rem 0.35rem;
+}
+
+.header-notification-menu {
+	max-width: min(92vw, 420px);
+	min-width: min(92vw, 360px);
+}
+
+.header-notification-menu__list {
+	max-height: min(65vh, 420px);
+	overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+	.header-notification-toggle {
+		min-height: 2.6rem;
+		min-width: 2.6rem;
+		padding: 0.4rem 0.55rem;
+	}
+
+	.header-notification-menu {
+		max-width: min(94vw, 380px);
+		min-width: min(94vw, 320px);
+	}
+}
