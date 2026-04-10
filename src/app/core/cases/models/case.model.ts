@@ -36,6 +36,9 @@ export interface CaseResponse {
   localite: string;
   delegation: string;
   gouvernorat: string;
+  ownerZmId?: string | null;
+  ownerZmName?: string | null;
+  assignedSttId?: string | null;
   siteSecteur?: string | null;
   offre?: string | null;
   desPack?: string | null;
@@ -206,12 +209,6 @@ export interface AssignSttRequest {
   sttId: string;
   sttEmail?: string;
   sttName?: string;
-}
-
-export interface AssignZmRequest {
-  zmId: string;
-  zmEmail?: string;
-  zmName?: string;
 }
 
 export interface AssignTechRequest {

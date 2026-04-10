@@ -10,6 +10,33 @@ import { CasesService } from '../../core/cases/cases.service';
 import { CreateCaseRequest } from '../../core/cases/models/case.model';
 import { SwalService } from '../../core/ui/swal.service';
 
+const TUNISIA_GOVERNORATES = [
+  'Tunis',
+  'Ariana',
+  'Ben Arous',
+  'Mannouba',
+  'Nabeul',
+  'Zaghouan',
+  'Bizerte',
+  'B\u00E9ja',
+  'Jendouba',
+  'Le Kef',
+  'Siliana',
+  'Sousse',
+  'Monastir',
+  'Mahdia',
+  'Sfax',
+  'Kairouan',
+  'Kasserine',
+  'Sidi Bouzid',
+  'Gab\u00E8s',
+  'M\u00E9denine',
+  'Tataouine',
+  'Gafsa',
+  'Tozeur',
+  'K\u00E9bili'
+] as const;
+
 @Component({
   selector: 'app-create-activation-case',
   standalone: true,
@@ -27,6 +54,7 @@ export class CreateActivationCaseComponent implements OnInit {
   private readonly zone = inject(NgZone);
 
   submitting = false;
+  readonly governorateOptions = [...TUNISIA_GOVERNORATES];
 
   readonly form = this.fb.group({
     crmCase: ['', [Validators.required, Validators.maxLength(80)]],
@@ -108,7 +136,7 @@ export class CreateActivationCaseComponent implements OnInit {
       )
       .subscribe({
         next: async () => {
-          await this.swal.success('Case created', 'Activation case created successfully.');
+          await this.swal.success('Case created', 'Activation case created and routed to the owner ZM automatically.');
           await this.router.navigateByUrl(this.listRoute);
         },
         error: async (err) => {

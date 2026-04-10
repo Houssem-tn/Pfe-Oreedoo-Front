@@ -1,0 +1,219 @@
+<section class="todo-board">
+  <header class="todo-board__hero">
+    <div>
+      <div class="todo-board__eyebrow">ZM import rendering</div>
+      <h3 class="mb-1">Imported Todos</h3>
+      <p class="text-body-secondary mb-0">
+        Browse injected todos with 50-row pagination, date/status filters, and quick search so you can work the imported dataset freely.
+      </p>
+    </div>
+
+    <div class="todo-board__hero-actions">
+      <button type="button" class="btn btn-outline-primary btn-sm" (click)="loadImportedTodos()" [disabled]="loading">
+        <svg cIcon name="cilReload" class="me-1"></svg>
+        {{ loading ? 'Refreshing...' : 'Refresh' }}
+      </button>
+
+      <a routerLink="/zm/inject-todos" class="btn btn-primary btn-sm">
+        <svg cIcon name="cilCloudUpload" class="me-1"></svg>
+        Inject More Todos
+      </a>
+    </div>
+  </header>
+
+  <section class="card border-0 shadow-sm todo-board__filters">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-xl-4">
+          <label class="form-label fw-semibold" for="import-search">Search</label>
+          <input
+            id="import-search"
+            type="text"
+            class="form-control"
+            placeholder="CRM, description, STT, batch, file"
+            [(ngModel)]="searchTerm"
+          />
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="import-status">Status</label>
+          <input
+            id="import-status"
+            type="text"
+            class="form-control"
+            placeholder="Imported status"
+            [(ngModel)]="selectedStatus"
+          />
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="import-governorate">Governorate</label>
+          <select
+            id="import-governorate"
+            class="form-select"
+            [(ngModel)]="selectedGouvernorat"
+          >
+            <option value="">All governorates</option>
+            <option *ngFor="let governorate of governorateOptions" [value]="governorate">{{ governorate }}</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="uploaded-from">Uploaded From</label>
+          <input
+            id="uploaded-from"
+            type="date"
+            class="form-control"
+            [(ngModel)]="uploadedFrom"
+          />
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="uploaded-to">Uploaded To</label>
+          <input
+            id="uploaded-to"
+            type="date"
+            class="form-control"
+            [(ngModel)]="uploadedTo"
+          />
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="page-size">Rows Per Page</label>
+          <select
+            id="page-size"
+            class="form-select"
+            [(ngModel)]="pageSize"
+            (ngModelChange)="onPageSizeChange()"
+          >
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-xl-10">
+          <div class="todo-board__filter-meta">
+            <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis">
+              {{ totalElements }} imported todo(s)
+            </span>
+
+            <span class="badge rounded-pill bg-light text-dark border" *ngIf="activeFiltersCount > 0">
+              {{ activeFiltersCount }} active filter(s)
+            </span>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-2">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-primary" (click)="applyFilters()" [disabled]="loading">
+              <svg cIcon name="cilFilter" class="me-1"></svg>
+              Apply Filters
+            </button>
+
+            <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="alert alert-danger shadow-sm" *ngIf="errorMessage">
+    <svg cIcon name="cilWarning" class="me-2"></svg>
+    {{ errorMessage }}
+  </div>
+
+  <section class="card border-0 shadow-sm todo-board__table-card">
+    <div class="card-body">
+      <div class="todo-board__table-header">
+        <div>
+          <h5 class="fw-semibold mb-1">Imported todo history</h5>
+          <p class="text-body-secondary mb-0">
+            Showing {{ rangeStart }} to {{ rangeEnd }} of {{ totalElements }} saved row(s).
+          </p>
+        </div>
+
+        <span class="badge rounded-pill bg-light text-dark border" *ngIf="result.totalPages > 0">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+      </div>
+
+      <div *ngIf="loading" class="todo-board__state">
+        <div class="spinner-border" role="status"></div>
+        <span>Loading imported todos...</span>
+      </div>
+
+      <div class="table-responsive" *ngIf="!loading && hasRows">
+        <table class="table align-middle todo-table">
+          <thead>
+            <tr>
+              <th>CRM Case</th>
+              <th>Governorate</th>
+              <th>Status</th>
+              <th>STT</th>
+              <th>Zone Manager</th>
+              <th>Source</th>
+              <th>Batch</th>
+              <th>Uploaded</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of items; trackBy: trackById">
+              <td class="fw-semibold">{{ item.crmCase || '-' }}</td>
+              <td>{{ item.gouvernorat || '-' }}</td>
+              <td>
+                <span class="badge rounded-pill bg-info-subtle text-info-emphasis">
+                  {{ item.statut || '-' }}
+                </span>
+              </td>
+              <td>{{ item.stt || '-' }}</td>
+              <td>{{ item.zoneManager || item.managerFilterUsed || '-' }}</td>
+              <td>
+                <div class="todo-table__source">{{ item.sourceFileName || '-' }}</div>
+                <div class="todo-table__sub">{{ item.managerFilterUsed || '-' }}</div>
+              </td>
+              <td class="todo-table__batch">{{ item.importBatchId || '-' }}</td>
+              <td>{{ item.uploadedAt ? (item.uploadedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
+              <td class="todo-table__description">{{ item.description || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="todo-board__empty" *ngIf="!loading && !hasRows">
+        <svg cIcon name="cilSpreadsheet" width="28" height="28"></svg>
+        <div>
+          <div class="fw-semibold">No imported todos match the current filters.</div>
+          <div class="text-body-secondary">Try resetting filters or inject a new batch.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="todo-board__pagination" *ngIf="!loading && result.totalPages > 1">
+    <div class="todo-board__pagination-meta">
+      Page {{ currentPage }} of {{ totalPages }}
+    </div>
+
+    <div class="todo-board__pagination-controls">
+      <button type="button" class="todo-board__page-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">
+        Previous
+      </button>
+
+      <button
+        type="button"
+        class="todo-board__page-btn"
+        [class.todo-board__page-btn--active]="page === currentPage"
+        *ngFor="let page of pages"
+        (click)="setPage(page)"
+      >
+        {{ page }}
+      </button>
+
+      <button type="button" class="todo-board__page-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        Next
+      </button>
+    </div>
+  </section>
+</section>

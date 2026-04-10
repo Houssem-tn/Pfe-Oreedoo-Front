@@ -5,7 +5,6 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../http/api.config';
 import {
   AssignTechRequest,
-  AssignZmRequest,
   AssignSttRequest,
   CaseResponse,
   CompleteWorkRequest,
@@ -51,11 +50,6 @@ export class CasesService {
   assignStt(caseId: string, stt: string | AssignSttRequest): Observable<CaseResponse> {
     const payload = typeof stt === 'string' ? { sttId: stt } : { sttId: stt.sttId };
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/assign-stt`, payload);
-  }
-
-  assignZm(caseId: string, zm: string | AssignZmRequest): Observable<CaseResponse> {
-    const payload = typeof zm === 'string' ? { zmId: zm } : { zmId: zm.zmId };
-    return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/assign-zm`, payload);
   }
 
   assignTech(caseId: string, tech: string | AssignTechRequest): Observable<CaseResponse> {

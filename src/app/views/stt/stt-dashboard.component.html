@@ -1,0 +1,184 @@
+<div class="stt-home">
+  <section class="stt-home__hero">
+    <div class="stt-home__hero-copy">
+      <div class="stt-home__eyebrow">STT mobile workspace</div>
+      <h1>Supervise technicians and activation cases from anywhere.</h1>
+      <p>
+        This STT dashboard keeps technician invitations, field cases, and urgent follow-up in a lighter mobile-first
+        layout without changing your existing workflow.
+      </p>
+    </div>
+
+    <div class="stt-home__hero-actions">
+      <a routerLink="/stt/cases/activation" class="stt-home__cta stt-home__cta--primary">
+        <svg cIcon name="cilFolderOpen"></svg>
+        Open case board
+      </a>
+      <a routerLink="/stt/invite-technicians" class="stt-home__cta stt-home__cta--ghost">
+        <svg cIcon name="cilEnvelopeOpen"></svg>
+        Invite technician
+      </a>
+      <button type="button" class="stt-home__cta stt-home__cta--ghost" (click)="refresh()" [disabled]="loading">
+        <svg cIcon name="cilReload"></svg>
+        {{ loading ? 'Refreshing...' : 'Refresh data' }}
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="loading" class="stt-home__state stt-home__state--loading">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Loading the latest STT field snapshot...</span>
+  </div>
+
+  <div *ngIf="error" class="stt-home__state stt-home__state--error">
+    <svg cIcon name="cilWarning"></svg>
+    <span>{{ error }}</span>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+    <section class="stt-home__stats">
+      <article class="stt-stat-card" [ngClass]="'stt-stat-card--' + stat.tone" *ngFor="let stat of stats">
+        <div class="stt-stat-card__icon">
+          <svg cIcon [name]="stat.icon"></svg>
+        </div>
+        <div class="stt-stat-card__value">{{ stat.value }}</div>
+        <div class="stt-stat-card__label">{{ stat.label }}</div>
+        <p>{{ stat.hint }}</p>
+      </article>
+    </section>
+
+    <section class="stt-home__highlights">
+      <article class="stt-panel">
+        <div class="stt-panel__header">
+          <div>
+            <div class="stt-panel__eyebrow">Territorial coverage</div>
+            <h2>Suggest the governorates you support</h2>
+          </div>
+          <button
+            type="button"
+            class="stt-home__cta stt-home__cta--primary stt-home__cta--inline"
+            (click)="openSuggestZonesModal()"
+            [disabled]="coverageSaving"
+          >
+            <svg cIcon name="cilMap"></svg>
+            {{ coverageSaving ? 'Saving...' : 'Suggest Zones' }}
+          </button>
+        </div>
+
+        <div class="stt-coverage-board">
+          <div class="stt-coverage-board__summary">{{ coverageSummaryLabel }}</div>
+
+          <div class="stt-coverage-board__group">
+            <div class="stt-coverage-board__label">Approved coverage</div>
+            <div class="stt-coverage-board__chips" *ngIf="approvedCoverageAreas.length > 0; else noApprovedCoverage">
+              <span class="stt-zone-chip stt-zone-chip--approved" *ngFor="let governorate of approvedCoverageAreas">
+                {{ governorate }}
+              </span>
+            </div>
+          </div>
+
+          <div class="stt-coverage-board__group">
+            <div class="stt-coverage-board__label">Pending ZM validation</div>
+            <div class="stt-coverage-board__chips" *ngIf="requestedCoverageAreas.length > 0; else noRequestedCoverage">
+              <span class="stt-zone-chip stt-zone-chip--pending" *ngFor="let governorate of requestedCoverageAreas">
+                {{ governorate }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noApprovedCoverage>
+          <div class="stt-panel__empty">No governorate has been validated for your STT yet.</div>
+        </ng-template>
+
+        <ng-template #noRequestedCoverage>
+          <div class="stt-panel__empty">No pending governorate request. Submit the areas you want the responsible ZMs to validate.</div>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="stt-home__highlights">
+      <article class="stt-panel">
+        <div class="stt-panel__header">
+          <div>
+            <div class="stt-panel__eyebrow">Operational focus</div>
+            <h2>Urgent cases to watch first</h2>
+          </div>
+          <a routerLink="/stt/cases/activation" class="stt-panel__link">View all cases</a>
+        </div>
+
+        <div class="stt-case-list" *ngIf="urgentCases.length > 0; else noCases">
+          <article class="stt-case-card" *ngFor="let item of urgentCases">
+            <div class="stt-case-card__top">
+              <div>
+                <div class="stt-case-card__crm">{{ item.crmCase }}</div>
+                <div class="stt-case-card__client">{{ item.clientName }} • {{ item.clientPhone }}</div>
+              </div>
+              <span class="stt-pill" [ngClass]="statusBadgeClass(item.status)">{{ humanizeStatus(item.status) }}</span>
+            </div>
+
+            <div class="stt-case-card__meta">
+              <span><svg cIcon name="cilLocationPin"></svg>{{ item.localite }}, {{ item.delegation }}</span>
+              <span><svg cIcon name="cilAlarm"></svg>{{ caseSlaLabel(item) }}</span>
+            </div>
+
+            <div class="stt-case-card__footer">
+              <span>TECH: {{ item.techName || item.techEmail || 'Not assigned' }}</span>
+              <a routerLink="/stt/cases/activation">Open queue</a>
+            </div>
+          </article>
+        </div>
+
+        <ng-template #noCases>
+          <div class="stt-panel__empty">No urgent cases are assigned to your STT scope right now.</div>
+        </ng-template>
+      </article>
+
+      <article class="stt-panel stt-panel--compact">
+        <div class="stt-panel__header">
+          <div>
+            <div class="stt-panel__eyebrow">Team pulse</div>
+            <h2>Technicians and invitations</h2>
+          </div>
+          <a routerLink="/stt/my-technicians" class="stt-panel__link">Open team</a>
+        </div>
+
+        <div class="stt-kpi-strip">
+          <div class="stt-kpi-strip__item">
+            <strong>{{ approvedTechCount }}</strong>
+            <span>Approved techs</span>
+          </div>
+          <div class="stt-kpi-strip__item">
+            <strong>{{ pendingTechCount }}</strong>
+            <span>Pending techs</span>
+          </div>
+          <div class="stt-kpi-strip__item">
+            <strong>{{ invitationReadyCount }}</strong>
+            <span>ZM approved</span>
+          </div>
+          <div class="stt-kpi-strip__item">
+            <strong>{{ averageCompletionLabel }}</strong>
+            <span>Completion</span>
+          </div>
+        </div>
+
+        <div class="stt-invite-list" *ngIf="recentInvitations.length > 0; else noInvitations">
+          <article class="stt-invite-card" *ngFor="let item of recentInvitations">
+            <div class="stt-invite-card__top">
+              <strong>{{ item.email }}</strong>
+              <span class="stt-pill" [ngClass]="invitationBadgeClass(item.status)">{{ humanizeStatus(item.status) }}</span>
+            </div>
+            <div class="stt-invite-card__meta">
+              <span>Sent {{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+              <span>ZM: {{ item.zmName || item.zmEmail || '-' }}</span>
+            </div>
+          </article>
+        </div>
+
+        <ng-template #noInvitations>
+          <div class="stt-panel__empty">No invitation activity yet. Start by inviting your first technician.</div>
+        </ng-template>
+      </article>
+    </section>
+  </ng-container>
+</div>

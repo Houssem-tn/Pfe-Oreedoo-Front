@@ -1,190 +1,135 @@
-<div class="card shadow-sm border-0">
-  <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+<div class="stt-tech-shell">
+  <section class="stt-tech-hero">
     <div>
-      <h5 class="mb-0 fw-semibold">My Technicians</h5>
-      <small class="text-body-secondary">Technicians assigned to you</small>
+      <div class="stt-tech-hero__eyebrow">STT team management</div>
+      <h1>My technicians</h1>
+      <p>Review availability, approval state, and contact details in a cleaner mobile-ready team board.</p>
     </div>
 
-    <button
-      class="btn btn-outline-secondary btn-sm px-3"
-      (click)="refresh()"
-      [disabled]="loading"
-    >
-      <svg cIcon name="cilReload" class="me-1"></svg>
-      Refresh
+    <div class="stt-tech-hero__actions">
+      <a routerLink="/stt/invite-technicians" class="stt-tech-btn stt-tech-btn--primary">
+        <svg cIcon name="cilEnvelopeOpen"></svg>
+        Invite technician
+      </a>
+      <button class="stt-tech-btn stt-tech-btn--ghost" (click)="refresh()" [disabled]="loading">
+        <svg cIcon name="cilReload"></svg>
+        {{ loading ? 'Refreshing...' : 'Refresh' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="stt-tech-stats">
+    <article class="stt-tech-stat" [ngClass]="'stt-tech-stat--' + stat.tone" *ngFor="let stat of summaryCards">
+      <div class="stt-tech-stat__icon"><svg cIcon [name]="stat.icon"></svg></div>
+      <strong>{{ stat.value }}</strong>
+      <span>{{ stat.label }}</span>
+    </article>
+  </section>
+
+  <section class="stt-tech-filters">
+    <label class="stt-tech-field stt-tech-field--search">
+      <span><svg cIcon name="cilSearch"></svg>Search</span>
+      <input
+        type="text"
+        placeholder="Name, email, phone"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onFiltersChange()"
+      />
+    </label>
+
+    <label class="stt-tech-field">
+      <span><svg cIcon name="cilFilter"></svg>Status</span>
+      <select [(ngModel)]="selectedStatus" (ngModelChange)="onFiltersChange()">
+        <option *ngFor="let status of statusOptions" [value]="status.value">
+          {{ status.label }}
+        </option>
+      </select>
+    </label>
+
+    <label class="stt-tech-field">
+      <span>Rows</span>
+      <select [(ngModel)]="pageSize" (ngModelChange)="onFiltersChange()">
+        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+      </select>
+    </label>
+
+    <button class="stt-tech-btn stt-tech-btn--ghost" (click)="resetFilters()">
+      <svg cIcon name="cilReload"></svg>
+      Reset
     </button>
+  </section>
+
+  <div *ngIf="loading" class="stt-tech-state stt-tech-state--loading">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Loading technicians...</span>
   </div>
 
-  <div class="card-body">
-    <div *ngIf="loading" class="text-center py-4">
-      <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-      Loading technicians...
-    </div>
-
-    <div *ngIf="error" class="alert alert-danger">
-      {{ error }}
-    </div>
-
-    <ng-container *ngIf="!loading && !error">
-      <!-- Filters -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">
-            <svg cIcon name="cilSearch" class="me-1"></svg>
-            Search
-          </label>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Search by full name, email or phone"
-            [(ngModel)]="searchTerm"
-            (ngModelChange)="onFiltersChange()"
-          />
-        </div>
-
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">
-            <svg cIcon name="cilFilter" class="me-1"></svg>
-            Status
-          </label>
-          <select
-            class="form-select"
-            [(ngModel)]="selectedStatus"
-            (ngModelChange)="onFiltersChange()"
-          >
-            <option *ngFor="let status of statusOptions" [value]="status.value">
-              {{ status.label }}
-            </option>
-          </select>
-        </div>
-
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Rows</label>
-          <select
-            class="form-select"
-            [(ngModel)]="pageSize"
-            (ngModelChange)="onFiltersChange()"
-          >
-            <option [ngValue]="5">5</option>
-            <option [ngValue]="10">10</option>
-            <option [ngValue]="20">20</option>
-          </select>
-        </div>
-
-        <div class="col-md-2 d-flex align-items-end">
-          <button class="btn btn-outline-secondary w-100" (click)="resetFilters()">
-            <svg cIcon name="cilReload" class="me-1"></svg>
-            Reset
-          </button>
-        </div>
-      </div>
-
-      <!-- Summary -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <small class="text-body-secondary">
-          Showing {{ paginatedTechnicians.length }} of {{ filteredTechnicians.length }} technicians
-        </small>
-      </div>
-
-      <!-- Table -->
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Full name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th>Enabled</th>
-              <th>Created at</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr *ngFor="let tech of paginatedTechnicians; trackBy: trackById">
-              <td>
-                <div class="fw-semibold text-dark">{{ tech.fullName }}</div>
-              </td>
-
-              <td>
-                <span class="text-body-secondary">{{ tech.email }}</span>
-              </td>
-
-              <td>
-                <span class="text-body-secondary">{{ tech.phone || '—' }}</span>
-              </td>
-
-              <td>
-                <span
-                  class="badge rounded-pill px-3 py-2"
-                  [ngClass]="statusBadgeClass(tech.status)"
-                >
-                  {{ tech.status }}
-                </span>
-              </td>
-
-              <td>
-                <span
-                  class="badge rounded-pill px-3 py-2"
-                  [ngClass]="enabledBadgeClass(tech.enabled)"
-                >
-                  {{ tech.enabled ? 'Yes' : 'No' }}
-                </span>
-              </td>
-
-              <td>
-                <span class="text-body-secondary">
-                  {{ tech.createdAt ? (tech.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}
-                </span>
-              </td>
-            </tr>
-
-            <tr *ngIf="paginatedTechnicians.length === 0">
-              <td colspan="6" class="text-center py-5">
-                <div class="d-flex flex-column align-items-center">
-                  <div class="mb-2 fs-5 text-body-secondary">No technicians found</div>
-                  <small class="text-body-secondary">
-                    Try changing the search or filter values.
-                  </small>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="d-flex justify-content-between align-items-center mt-4" *ngIf="filteredTechnicians.length > 0">
-        <small class="text-body-secondary">
-          Page {{ currentPage }} / {{ totalPages }}
-        </small>
-
-        <nav>
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item" [class.disabled]="currentPage === 1">
-              <button class="page-link" (click)="setPage(currentPage - 1)">
-                Previous
-              </button>
-            </li>
-
-            <li
-              class="page-item"
-              *ngFor="let page of pages"
-              [class.active]="page === currentPage"
-            >
-              <button class="page-link" (click)="setPage(page)">
-                {{ page }}
-              </button>
-            </li>
-
-            <li class="page-item" [class.disabled]="currentPage === totalPages">
-              <button class="page-link" (click)="setPage(currentPage + 1)">
-                Next
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </ng-container>
+  <div *ngIf="error" class="stt-tech-state stt-tech-state--error">
+    <svg cIcon name="cilWarning"></svg>
+    <span>{{ error }}</span>
   </div>
+
+  <ng-container *ngIf="!loading && !error">
+    <section class="stt-tech-meta">
+      <strong>{{ rangeLabel() }}</strong>
+      <span>technicians in the current view</span>
+    </section>
+
+    <section class="stt-tech-grid" *ngIf="paginatedTechnicians.length > 0; else emptyState">
+      <article class="stt-tech-card" *ngFor="let tech of paginatedTechnicians; trackBy: trackById">
+        <div class="stt-tech-card__top">
+          <div class="stt-tech-card__identity">
+            <div class="stt-tech-card__avatar">{{ initialsFor(tech.fullName) }}</div>
+            <div>
+              <h2>{{ tech.fullName }}</h2>
+              <p>{{ tech.email }}</p>
+            </div>
+          </div>
+
+          <div class="stt-tech-card__badges">
+            <span class="badge rounded-pill px-3 py-2" [ngClass]="statusBadgeClass(tech.status)">
+              {{ tech.status }}
+            </span>
+            <span class="badge rounded-pill px-3 py-2" [ngClass]="enabledBadgeClass(tech.enabled)">
+              {{ tech.enabled ? 'Enabled' : 'Disabled' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="stt-tech-card__facts">
+          <div class="stt-tech-card__fact">
+            <span><svg cIcon name="cilPhone"></svg>Phone</span>
+            <strong>{{ tech.phone || '-' }}</strong>
+          </div>
+          <div class="stt-tech-card__fact">
+            <span><svg cIcon name="cilClock"></svg>Created</span>
+            <strong>{{ tech.createdAt ? (tech.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</strong>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <ng-template #emptyState>
+      <div class="stt-tech-empty">
+        <strong>No technicians found.</strong>
+        <span>Try adjusting the search or status filter.</span>
+      </div>
+    </ng-template>
+
+    <section class="stt-tech-pagination" *ngIf="filteredTechnicians.length > 0">
+      <div>Page {{ currentPage }} / {{ totalPages }}</div>
+      <div class="stt-tech-pagination__controls">
+        <button class="stt-page-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+        <button
+          class="stt-page-btn"
+          *ngFor="let page of pages"
+          [class.stt-page-btn--active]="page === currentPage"
+          (click)="setPage(page)"
+        >
+          {{ page }}
+        </button>
+        <button class="stt-page-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+      </div>
+    </section>
+  </ng-container>
 </div>

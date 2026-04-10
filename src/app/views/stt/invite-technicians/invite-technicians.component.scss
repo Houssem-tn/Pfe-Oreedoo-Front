@@ -1,0 +1,272 @@
+:host {
+  display: block;
+}
+
+.stt-invite-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.stt-invite-hero,
+.stt-invite-stat,
+.stt-invite-panel,
+.stt-invite-alert {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 250, 250, 0.96));
+  border: 1px solid rgba(227, 6, 19, 0.08);
+  border-radius: 1.4rem;
+  box-shadow: 0 16px 36px rgba(122, 25, 34, 0.08);
+}
+
+.stt-invite-hero {
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 40%),
+    linear-gradient(135deg, #8f0715, #d60d1e 56%, #ff5f4a);
+  color: #fff;
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.stt-invite-hero__eyebrow,
+.stt-invite-panel__eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.84;
+  text-transform: uppercase;
+}
+
+.stt-invite-hero h1 {
+  font-size: clamp(1.45rem, 4vw, 2.15rem);
+  margin: 0.28rem 0 0.55rem;
+}
+
+.stt-invite-hero p {
+  margin: 0;
+  max-width: 42rem;
+}
+
+.stt-invite-hero__actions,
+.stt-invite-stats,
+.stt-invite-layout,
+.stt-invite-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.stt-invite-btn {
+  align-items: center;
+  border: 0;
+  border-radius: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.86rem 1rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.stt-invite-btn:hover {
+  transform: translateY(-1px);
+}
+
+.stt-invite-btn--primary {
+  background: #fff;
+  color: #af0718;
+}
+
+.stt-invite-btn--ghost {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.stt-invite-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stt-invite-stat {
+  padding: 1rem;
+}
+
+.stt-invite-stat__icon {
+  align-items: center;
+  background: rgba(227, 6, 19, 0.1);
+  border-radius: 0.95rem;
+  color: #b50b1b;
+  display: inline-flex;
+  height: 2.85rem;
+  justify-content: center;
+  width: 2.85rem;
+}
+
+.stt-invite-stat strong {
+  color: #2e1f24;
+  display: block;
+  font-size: 1.55rem;
+  margin-top: 0.85rem;
+}
+
+.stt-invite-stat span {
+  color: #7b666c;
+  font-size: 0.88rem;
+}
+
+.stt-invite-stat--warning .stt-invite-stat__icon {
+  background: rgba(214, 139, 0, 0.16);
+  color: #925d00;
+}
+
+.stt-invite-stat--soft .stt-invite-stat__icon {
+  background: rgba(27, 154, 170, 0.14);
+  color: #0f6873;
+}
+
+.stt-invite-stat--success .stt-invite-stat__icon {
+  background: rgba(27, 138, 90, 0.14);
+  color: #156948;
+}
+
+.stt-invite-alert {
+  align-items: center;
+  color: #4e3f44;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+}
+
+.stt-invite-alert--success {
+  border-color: rgba(27, 138, 90, 0.15);
+  color: #156948;
+}
+
+.stt-invite-alert--error {
+  border-color: rgba(161, 29, 43, 0.16);
+  color: #a11d2b;
+}
+
+.stt-invite-panel {
+  padding: 1.05rem;
+}
+
+.stt-invite-panel h2 {
+  color: #2f2025;
+  font-size: 1.08rem;
+  margin: 0.2rem 0 0;
+}
+
+.stt-invite-panel__eyebrow {
+  color: #a0111f;
+}
+
+.stt-invite-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.stt-invite-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.stt-invite-field span {
+  align-items: center;
+  color: #5a4047;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 700;
+  gap: 0.45rem;
+}
+
+.stt-invite-field input {
+  background: #fff;
+  border: 1px solid rgba(227, 6, 19, 0.12);
+  border-radius: 0.95rem;
+  min-height: 3rem;
+  padding: 0.82rem 0.95rem;
+}
+
+.stt-invite-field__hint {
+  color: #a11d2b;
+  font-size: 0.82rem;
+}
+
+.stt-invite-state,
+.stt-invite-empty {
+  align-items: center;
+  background: rgba(255, 249, 249, 0.92);
+  border: 1px dashed rgba(227, 6, 19, 0.16);
+  border-radius: 1rem;
+  color: #6d5a60;
+  display: flex;
+  gap: 0.75rem;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+.stt-invite-empty {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.stt-invite-card {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(227, 6, 19, 0.08);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.95rem;
+}
+
+.stt-invite-card__top,
+.stt-invite-card__meta {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.stt-invite-card__top strong {
+  color: #2f2025;
+  word-break: break-word;
+}
+
+.stt-invite-card__meta {
+  color: #7a656b;
+  font-size: 0.85rem;
+}
+
+.stt-invite-card__meta span {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+@media (min-width: 768px) {
+  .stt-invite-hero__actions {
+    grid-auto-flow: column;
+    justify-content: start;
+  }
+
+  .stt-invite-layout {
+    grid-template-columns: minmax(18rem, 22rem) 1fr;
+    align-items: start;
+  }
+
+  .stt-invite-card__top {
+    grid-template-columns: 1fr auto;
+    align-items: start;
+  }
+
+  .stt-invite-card__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 992px) {
+  .stt-invite-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

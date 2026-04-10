@@ -241,7 +241,59 @@
       </div>
     </div>
 
-    <section class="crm-table-panel" [class.d-none]="currentRole === 'ROLE_TECH'" [class.d-lg-block]="currentRole === 'ROLE_TECH'">
+    <div class="stt-mobile-board d-lg-none" *ngIf="currentRole === 'ROLE_STT'">
+      <article class="stt-mobile-card" *ngFor="let item of sttMobileCases; trackBy: trackById">
+        <div class="stt-mobile-card__top">
+          <div>
+            <div class="stt-mobile-card__crm">{{ item.crmCase }}</div>
+            <div class="stt-mobile-card__client">{{ item.clientName }} • {{ item.clientPhone }}</div>
+          </div>
+          <span class="badge rounded-pill" [ngClass]="statusBadgeClass(item.status)">{{ statusLabel(item.status) }}</span>
+        </div>
+
+        <div class="stt-mobile-card__meta">
+          <span><svg cIcon name="cilLocationPin"></svg>{{ item.localite }}, {{ item.delegation }}</span>
+          <span><svg cIcon name="cilDescription"></svg>{{ item.offre || '-' }}</span>
+        </div>
+
+        <div class="stt-mobile-card__chain">
+          <span class="stt-mobile-chip">TECH: {{ item.techName || item.techEmail || 'Not assigned' }}</span>
+          <span class="stt-mobile-chip">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
+        </div>
+
+        <div class="stt-mobile-card__sla">
+          <span class="badge rounded-pill" [ngClass]="slaBadgeClass(item)">{{ slaStatusLabel(item) }}</span>
+          <small>{{ slaRemainingLabel(item) }}</small>
+        </div>
+
+        <div class="sla-track" [ngClass]="slaProgressClass(item)">
+          <div class="sla-track__fill" [style.width.%]="slaProgress(item)"></div>
+        </div>
+
+        <div class="stt-mobile-card__summary">
+          <div><strong>RDV</strong><span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'Not set' }}</span></div>
+          <div><strong>Work</strong><span>{{ item.repTravauxStt || 'Pending' }}</span></div>
+        </div>
+
+        <div class="stt-mobile-actions">
+          <button *ngIf="canAssignTech(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openAssignTech(item)">
+            <svg cIcon name="cilUserFollow"></svg>Assign
+          </button>
+          <button *ngIf="canSetRdv(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openRdvPopup(item)">
+            <svg cIcon name="cilCalendar"></svg>RDV
+          </button>
+          <button type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id)" (click)="openDetails(item)">
+            <svg cIcon name="cilMagnifyingGlass"></svg>Details
+          </button>
+        </div>
+      </article>
+
+      <div class="crm-empty-state" *ngIf="sttMobileCases.length === 0">
+        <div class="crm-empty-state__title">No STT cases match your current filters.</div>
+      </div>
+    </div>
+
+    <section class="crm-table-panel" [class.d-none]="currentRole === 'ROLE_TECH' || currentRole === 'ROLE_STT'" [class.d-lg-block]="currentRole === 'ROLE_TECH' || currentRole === 'ROLE_STT'">
       <div class="crm-table-panel__header">
         <div>
           <div class="crm-panel-header__eyebrow">Case queue</div>
@@ -292,8 +344,8 @@
               <td>
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--zm">
-                    <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.zmName, item.zmEmail) }}</span>
-                    <span class="assignment-badge">ZM: {{ item.zmName || item.zmEmail || '-' }}</span>
+                    <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.ownerZmName || item.zmName, item.zmEmail) }}</span>
+                    <span class="assignment-badge">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
@@ -346,17 +398,6 @@
 
               <td class="text-end">
                 <div class="case-actions">
-                  <button
-                    *ngIf="canAssignZm(item)"
-                    type="button"
-                    class="action-btn action-btn--brand"
-                    title="Assign/Change ZM"
-                    [disabled]="isBusy(item.id)"
-                    (click)="openAssignZm(item)"
-                  >
-                    <svg cIcon name="cilUser"></svg>
-                  </button>
-
                   <button
                     *ngIf="canAssignStt(item)"
                     type="button"

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
+import Swal from 'sweetalert2';
 
 import { AppUser } from '../../../core/users/user.model';
 import { UserService } from '../../../core/users/user.service';
@@ -16,6 +17,33 @@ interface UserSummaryCard {
   icon: string;
   tone: 'primary' | 'accent' | 'success' | 'warning';
 }
+
+const TUNISIA_GOVERNORATES = [
+  'Tunis',
+  'Ariana',
+  'Ben Arous',
+  'Mannouba',
+  'Nabeul',
+  'Zaghouan',
+  'Bizerte',
+  'B\u00E9ja',
+  'Jendouba',
+  'Le Kef',
+  'Siliana',
+  'Sousse',
+  'Monastir',
+  'Mahdia',
+  'Sfax',
+  'Kairouan',
+  'Kasserine',
+  'Sidi Bouzid',
+  'Gab\u00E8s',
+  'M\u00E9denine',
+  'Tataouine',
+  'Gafsa',
+  'Tozeur',
+  'K\u00E9bili'
+] as const;
 
 @Component({
   standalone: true,
@@ -32,7 +60,8 @@ export class UsersListComponent implements OnInit {
   users: AppUser[] = [];
   loading = false;
   deletingId: string | null = null;
-  assigningSttId: string | null = null;
+  assigningGovernoratesZmId: string | null = null;
+  assigningCoverageSttId: string | null = null;
   togglingUserId: string | null = null;
   error: string | null = null;
 
@@ -43,9 +72,8 @@ export class UsersListComponent implements OnInit {
   currentPage = 1;
   pageSize = 5;
 
-  selectedZmBySttId: Record<string, string> = {};
-
   readonly pageSizeOptions = [5, 10, 20];
+  readonly governorateOptions = [...TUNISIA_GOVERNORATES];
   readonly roleOptions = [
     { value: '', label: 'All roles' },
     { value: 'ROLE_ADMIN', label: 'Admin' },
@@ -85,7 +113,6 @@ export class UsersListComponent implements OnInit {
         next: (data) => {
           this.users = data ?? [];
           this.currentPage = 1;
-          this.initializeZmSelections();
         },
         error: (err) => {
           console.error('Error loading users:', err);
@@ -129,30 +156,34 @@ export class UsersListComponent implements OnInit {
       });
   }
 
-  async openAssignZmModal(stt: AppUser): Promise<void> {
-    const options = this.approvedZmUsers.reduce<Record<string, string>>((acc, zm) => {
-      acc[zm.id] = zm.fullName;
-      return acc;
-    }, {});
-
-    if (Object.keys(options).length === 0) {
-      void this.swal.error('No ZM available', 'There are no approved ZM users available for assignment.');
-      return;
-    }
-
-    const result = await this.swal.promptSelect(
-      `Assign ZM to ${stt.fullName}`,
-      'Select ZM',
-      options,
-      stt.assignedZmId ?? '',
-      stt.assignedZmId ? 'Change' : 'Assign'
+  async openAssignGovernoratesModal(zm: AppUser): Promise<void> {
+    const result = await this.openGovernoratePicker(
+      `Assign Governorates to ${zm.fullName}`,
+      'Saving replaces the current territorial coverage for this ZM.',
+      this.governoratesFor(zm),
+      'Save governorates'
     );
 
     if (!result.isConfirmed || !result.value) {
       return;
     }
 
-    this.assignZm(stt, result.value);
+    this.assignGovernorates(zm, result.value);
+  }
+
+  async openSetCoverageAreasModal(stt: AppUser): Promise<void> {
+    const result = await this.openGovernoratePicker(
+      `Set Coverage Areas for ${stt.fullName}`,
+      'Saving replaces the current governorates this STT can support across zones.',
+      this.coverageAreasFor(stt),
+      'Save coverage areas'
+    );
+
+    if (!result.isConfirmed || !result.value) {
+      return;
+    }
+
+    this.assignCoverageAreas(stt, result.value);
   }
 
   async toggleBan(user: AppUser): Promise<void> {
@@ -213,52 +244,65 @@ export class UsersListComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  private assignZm(stt: AppUser, zmId: string): void {
-    this.selectedZmBySttId[stt.id] = zmId;
+  private assignGovernorates(zm: AppUser, assignedGovernorates: string[]): void {
     this.error = null;
-    this.assigningSttId = stt.id;
+    this.assigningGovernoratesZmId = zm.id;
 
-    this.usersSvc.assignSttToZm({
-      sttId: stt.id,
-      zmId
+    this.usersSvc.assignGovernoratesToZm({
+      zmId: zm.id,
+      assignedGovernorates
     })
       .pipe(
         finalize(() => {
-          this.assigningSttId = null;
+          this.assigningGovernoratesZmId = null;
           this.zone.run(() => this.cdr.detectChanges());
         })
       )
       .subscribe({
         next: (updated) => {
           this.mergeUser(updated);
-          void this.swal.success('Assignment saved', `ZM assigned successfully to ${updated.fullName}.`);
+          void this.swal.success('Governorates saved', `Territorial coverage updated for ${updated.fullName}.`);
         },
         error: (err) => {
-          console.error('Error assigning ZM:', err);
-          const message = err?.error?.message ?? 'Failed to assign ZM';
+          console.error('Error assigning governorates:', err);
+          const message = err?.error?.message ?? 'Failed to assign governorates';
           this.error = message;
-          void this.swal.error('Assignment failed', message);
+          void this.swal.error('Governorate assignment failed', message);
         }
       });
   }
 
-  initializeZmSelections(): void {
-    for (const user of this.users) {
-      if (user.id) {
-        this.selectedZmBySttId[user.id] = user.assignedZmId ?? '';
-      }
-    }
-  }
+  private assignCoverageAreas(stt: AppUser, coveredGovernorates: string[]): void {
+    this.error = null;
+    this.assigningCoverageSttId = stt.id;
 
-  get approvedZmUsers(): AppUser[] {
-    return this.users
-      .filter((user) => user.role === 'ROLE_ZM' && user.status === 'APPROVED' && user.enabled)
-      .sort((left, right) => left.fullName.localeCompare(right.fullName));
+    this.usersSvc.assignCoverageAreasToStt({
+      sttId: stt.id,
+      coveredGovernorates
+    })
+      .pipe(
+        finalize(() => {
+          this.assigningCoverageSttId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.mergeUser(updated);
+          void this.swal.success('Coverage saved', `Coverage areas updated for ${updated.fullName}.`);
+        },
+        error: (err) => {
+          console.error('Error assigning STT coverage:', err);
+          const message = err?.error?.message ?? 'Failed to save STT coverage areas';
+          this.error = message;
+          void this.swal.error('Coverage update failed', message);
+        }
+      });
   }
 
   get summaryCards(): UserSummaryCard[] {
     const approvedStt = this.users.filter((user) => user.role === 'ROLE_STT' && user.status === 'APPROVED' && user.enabled);
-    const assignedSttCount = approvedStt.filter((user) => !!user.assignedZmId).length;
+    const coveredSttCount = approvedStt.filter((user) => this.coverageAreasFor(user).length > 0).length;
 
     return [
       {
@@ -283,25 +327,33 @@ export class UsersListComponent implements OnInit {
         tone: 'warning'
       },
       {
-        label: 'STT mapped to ZM',
-        helper: 'Assigned STT supervision coverage',
-        value: `${assignedSttCount}/${approvedStt.length || 0}`,
+        label: 'STT coverage ready',
+        helper: 'Coverage areas defined for governorate-based dispatch',
+        value: `${coveredSttCount}/${approvedStt.length || 0}`,
         icon: 'cilLayers',
         tone: 'accent'
       }
     ];
   }
 
-  canAssignZm(user: AppUser): boolean {
-    return user.role === 'ROLE_STT' && user.status === 'APPROVED' && !!user.enabled;
+  canAssignGovernorates(user: AppUser): boolean {
+    return user.role === 'ROLE_ZM';
+  }
+
+  canSetCoverageAreas(user: AppUser): boolean {
+    return user.role === 'ROLE_STT';
   }
 
   canManageBan(user: AppUser): boolean {
     return user.status === 'APPROVED';
   }
 
-  isAssigning(sttId: string): boolean {
-    return this.assigningSttId === sttId;
+  isAssigningGovernorates(zmId: string): boolean {
+    return this.assigningGovernoratesZmId === zmId;
+  }
+
+  isAssigningCoverage(sttId: string): boolean {
+    return this.assigningCoverageSttId === sttId;
   }
 
   isDeleting(id: string): boolean {
@@ -444,25 +496,56 @@ export class UsersListComponent implements OnInit {
     return `${tokens[0][0] ?? ''}${tokens[1][0] ?? ''}`.toUpperCase();
   }
 
-  assignmentLabel(user: AppUser): string {
-    if (user.role !== 'ROLE_STT') {
-      return 'Not applicable';
+  territoryDetailLabel(user: AppUser): string {
+    if (user.role === 'ROLE_STT') {
+      return 'Coverage areas';
     }
 
-    if (!user.assignedZmId) {
-      return 'Not assigned';
+    if (user.role === 'ROLE_ZM') {
+      return 'Governorate coverage';
     }
 
-    return this.getFilteredAssignedZmName(user);
+    return 'Assignment';
   }
 
-  getFilteredAssignedZmName(user: AppUser): string {
-    if (!user.assignedZmId) {
-      return 'Not assigned';
+  territoryDetailValue(user: AppUser): string {
+    if (user.role === 'ROLE_STT') {
+      return this.coverageSummary(user);
     }
 
-    const zm = this.users.find((candidate) => candidate.id === user.assignedZmId);
-    return zm?.fullName || user.assignedZmEmail || 'Assigned';
+    if (user.role === 'ROLE_ZM') {
+      return this.governorateSummary(user);
+    }
+
+    return 'Not applicable';
+  }
+
+  governoratesFor(user: AppUser): string[] {
+    return (user.assignedGovernorates ?? []).filter((governorate) => !!governorate?.trim());
+  }
+
+  coverageAreasFor(user: AppUser): string[] {
+    return (user.coveredGovernorates ?? []).filter((governorate) => !!governorate?.trim());
+  }
+
+  governorateSummary(user: AppUser): string {
+    const count = this.governoratesFor(user).length;
+
+    if (count === 0) {
+      return 'No governorates assigned';
+    }
+
+    return `${count} governorate${count > 1 ? 's' : ''} assigned`;
+  }
+
+  coverageSummary(user: AppUser): string {
+    const count = this.coverageAreasFor(user).length;
+
+    if (count === 0) {
+      return 'No coverage areas defined';
+    }
+
+    return `${count} coverage area${count > 1 ? 's' : ''} defined`;
   }
 
   countByStatus(status: string): number {
@@ -531,10 +614,114 @@ export class UsersListComponent implements OnInit {
   }
 
   trackById = (_index: number, user: AppUser) => user.id;
+  trackGovernorate = (_index: number, governorate: string) => governorate;
 
   private mergeUser(updated: AppUser): void {
     this.users = this.users.map((user) => user.id === updated.id ? updated : user);
+  }
 
-    this.selectedZmBySttId[updated.id] = updated.assignedZmId ?? '';
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  private openGovernoratePicker(
+    titleText: string,
+    hint: string,
+    currentGovernorates: string[],
+    confirmButtonText: string
+  ): Promise<import('sweetalert2').SweetAlertResult<string[]>> {
+    const selectedGovernorates = new Set(currentGovernorates);
+
+    return Swal.fire<string[]>({
+      titleText,
+      width: 760,
+      html: `
+        <div class="user-governorates-modal">
+          <div class="user-governorates-modal__toolbar">
+            <label class="user-governorates-modal__toggle">
+              <input id="sw-governorates-all" type="checkbox" ${selectedGovernorates.size === this.governorateOptions.length ? 'checked' : ''} />
+              <span>Select all governorates</span>
+            </label>
+            <div class="user-governorates-modal__hint">
+              ${this.escapeHtml(hint)}
+            </div>
+          </div>
+
+          <div class="user-governorates-modal__grid">
+            ${this.governorateOptions.map((governorate) => `
+              <label class="user-governorates-modal__option">
+                <input
+                  type="checkbox"
+                  name="sw-governorate"
+                  value="${this.escapeHtml(governorate)}"
+                  ${selectedGovernorates.has(governorate) ? 'checked' : ''}
+                />
+                <span>${this.escapeHtml(governorate)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: 'user-governorates-popup'
+      },
+      showCancelButton: true,
+      confirmButtonText,
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#321fdb',
+      didOpen: () => {
+        const popup = Swal.getPopup();
+        if (!popup) {
+          return;
+        }
+
+        const selectAll = popup.querySelector<HTMLInputElement>('#sw-governorates-all');
+        const checkboxes = Array.from(
+          popup.querySelectorAll<HTMLInputElement>('input[name="sw-governorate"]')
+        );
+
+        const syncSelectAll = () => {
+          if (!selectAll) {
+            return;
+          }
+
+          selectAll.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
+        };
+
+        selectAll?.addEventListener('change', () => {
+          checkboxes.forEach((checkbox) => {
+            checkbox.checked = !!selectAll.checked;
+          });
+        });
+
+        checkboxes.forEach((checkbox) => {
+          checkbox.addEventListener('change', syncSelectAll);
+        });
+
+        syncSelectAll();
+      },
+      preConfirm: () => {
+        const popup = Swal.getPopup();
+        if (!popup) {
+          return [];
+        }
+
+        const selected = Array.from(
+          popup.querySelectorAll<HTMLInputElement>('input[name="sw-governorate"]:checked')
+        ).map((checkbox) => checkbox.value);
+
+        if (selected.length === 0) {
+          Swal.showValidationMessage('Select at least one governorate');
+          return undefined;
+        }
+
+        return selected;
+      }
+    });
   }
 }

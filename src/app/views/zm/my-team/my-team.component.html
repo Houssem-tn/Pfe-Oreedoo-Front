@@ -31,8 +31,8 @@
     </div>
     <div class="col-6 col-lg-3">
       <div class="team-kpi-card">
-        <div class="team-kpi-card__label">Avg Completion</div>
-        <div class="team-kpi-card__value">{{ avgTeamCompletion | number:'1.0-1' }}%</div>
+        <div class="team-kpi-card__label">Coverage Validation</div>
+        <div class="team-kpi-card__value">{{ pendingCoverageValidationCount }}</div>
       </div>
     </div>
   </div>
@@ -44,7 +44,51 @@
 
 <div *ngIf="!loading() && error()" class="alert alert-danger mb-4">{{ error() }}</div>
 
-<div *ngIf="!loading() && stts().length === 0" class="card border-0 shadow-sm">
+<section class="mb-4" *ngIf="!loading() && pendingCoverageRequests().length > 0">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h5 class="fw-semibold mb-1">Pending STT Coverage Validation</h5>
+      <p class="text-body-secondary mb-0">Review governorates proposed by STTs and validate the ones inside your territory.</p>
+    </div>
+    <span class="badge bg-warning-subtle text-warning-emphasis">{{ pendingCoverageValidationCount }} governorate(s) pending</span>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-xl-6" *ngFor="let stt of pendingCoverageRequests()">
+      <article class="stt-ops-card h-100">
+        <div class="stt-ops-card__accent stt-ops-card__accent--warning"></div>
+
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h6 class="mb-0 fw-semibold">{{ stt.fullName }}</h6>
+              <span class="badge bg-warning-subtle text-warning-emphasis">Pending validation</span>
+            </div>
+            <div class="small text-body-secondary mt-1">{{ stt.email }}</div>
+          </div>
+
+          <button
+            class="btn btn-sm btn-primary"
+            (click)="openValidateCoverageModal(stt)"
+            [disabled]="isValidatingCoverage(stt.id)"
+          >
+            <svg cIcon name="cilCheckCircle" class="me-1"></svg>
+            {{ isValidatingCoverage(stt.id) ? 'Saving...' : 'Validate Zones' }}
+          </button>
+        </div>
+
+        <div class="small fw-semibold mb-2">Governorates in your territory</div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis" *ngFor="let governorate of pendingGovernoratesFor(stt)">
+            {{ governorate }}
+          </span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div *ngIf="!loading() && stts().length === 0 && pendingCoverageRequests().length === 0" class="card border-0 shadow-sm">
   <div class="card-body text-center py-5">
     <svg cIcon name="cilPeople" class="text-body-secondary mb-3" width="30" height="30"></svg>
     <h5 class="mb-1">No STT assigned to this zone</h5>
@@ -79,6 +123,12 @@
             <div class="small text-body-secondary d-flex align-items-center gap-2" *ngIf="stt.phone">
               <svg cIcon name="cilPhone" width="14" height="14"></svg>
               {{ stt.phone }}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="stt.coveredGovernorates?.length">
+              <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis" *ngFor="let governorate of stt.coveredGovernorates">
+                {{ governorate }}
+              </span>
             </div>
           </div>
         </div>

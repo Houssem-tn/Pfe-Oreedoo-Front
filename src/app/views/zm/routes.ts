@@ -26,6 +26,18 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./technician-approvals/technician-approvals.component').then(m => m.TechnicianApprovalsComponent)
   },
+  {
+    path: 'inject-todos',
+    loadComponent: () =>
+      import('./inject-todos/inject-todos.component').then(m => m.InjectTodosComponent),
+    data: { title: 'Inject Todos' }
+  },
+  {
+    path: 'imported-todos',
+    loadComponent: () =>
+      import('./imported-todos/imported-todos.component').then(m => m.ImportedTodosComponent),
+    data: { title: 'Imported Todos' }
+  },
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 
   {

@@ -173,7 +173,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         item.crmCase.toLowerCase().includes(term) ||
         item.clientName.toLowerCase().includes(term) ||
         item.clientPhone.toLowerCase().includes(term) ||
-        (item.zmName ?? '').toLowerCase().includes(term) ||
+        this.ownerZmDisplayName(item).toLowerCase().includes(term) ||
         (item.sttName ?? '').toLowerCase().includes(term) ||
         (item.techName ?? '').toLowerCase().includes(term) ||
         (item.offre ?? '').toLowerCase().includes(term) ||
@@ -223,7 +223,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     return [
       { label: 'Total Cases', value: source.length, icon: 'cilDescription', className: 'stat-neutral' },
-      { label: 'Assigned to ZM', value: source.filter((c) => !!c.zmId).length, icon: 'cilUser', className: 'stat-primary' },
+      { label: 'Owned by ZM', value: source.filter((c) => !!this.ownerZmId(c)).length, icon: 'cilUser', className: 'stat-primary' },
       { label: 'Assigned to STT', value: source.filter((c) => !!c.sttId).length, icon: 'cilPeople', className: 'stat-info' },
       { label: 'Assigned to TECH', value: source.filter((c) => !!c.techId).length, icon: 'cilUserFollow', className: 'stat-warning' },
       { label: 'SLA Warning', value: warningCount, icon: 'cilWarning', className: 'stat-warning' },
@@ -344,6 +344,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       const rightScore = this.slaProgress(right);
       return leftScore - rightScore;
     });
+  }
+
+  get sttMobileCases(): CaseResponse[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+
+    return [...this.filteredCases]
+      .sort((left, right) => this.mobileSttPriority(left) - this.mobileSttPriority(right))
+      .slice(start, start + this.pageSize);
   }
 
   loadCases(): void {
@@ -580,6 +588,23 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return item.entityId ?? '-';
   }
 
+  private mobileSttPriority(item: CaseResponse): number {
+    const remaining = item.slaTracking?.remainingSeconds ?? Number.MAX_SAFE_INTEGER;
+
+    switch (item.status) {
+      case 'ASSIGNED_TO_STT':
+        return remaining - 5000;
+      case 'REJECTED_BY_ZM':
+      case 'NOT_REACHABLE':
+        return remaining - 2500;
+      case 'ASSIGNED_TO_TECH':
+      case 'RDV_SET':
+        return remaining - 1000;
+      default:
+        return remaining;
+    }
+  }
+
   async openAlert(alert: NotificationItem): Promise<void> {
     const caseIdRaw = alert.data?.['caseId'];
     const caseId = typeof caseIdRaw === 'string' && caseIdRaw.trim()
@@ -605,11 +630,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!alert.read) {
       this.notificationStore.markAsRead(alert.id);
     }
-  }
-
-  canAssignZm(item: CaseResponse): boolean {
-    if (!this.isAdmin) return false;
-    return item.status !== 'CLOSED';
   }
 
   canAssignStt(item: CaseResponse): boolean {
@@ -661,54 +681,17 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   trackById = (_index: number, item: CaseResponse) => item.id;
 
-  async openAssignZm(item: CaseResponse): Promise<void> {
-    this.actionLoadingCaseId = item.id;
-
-    try {
-      const zms = (await firstValueFrom(this.userService.getAllZmsForAssignment()))
-        .sort((a, b) => a.fullName.localeCompare(b.fullName));
-
-      if (!zms.length) {
-        await this.swal.error('No ZM available', 'No approved ZM users were found for assignment.');
-        return;
-      }
-
-      const result = await this.swal.promptSelect(
-        `Assign ZM to CRM ${item.crmCase}`,
-        'Choose ZM',
-        zms.reduce<Record<string, string>>((acc, zm) => {
-          acc[zm.id] = `${zm.fullName} (${zm.email})`;
-          return acc;
-        }, {}),
-        item.zmId ?? '',
-        item.zmId ? 'Change ZM' : 'Assign ZM'
-      );
-
-      if (!result.isConfirmed || !result.value) {
-        return;
-      }
-
-      const selectedZmId = result.value;
-      await this.runAction(item.id, () => this.casesService.assignZm(item.id, selectedZmId), 'ZM assignment saved');
-      console.log('Assign ZM', { caseId: item.id, selectedZmId });
-    } catch (err: any) {
-      console.error('Failed to assign ZM:', err);
-      const message = err?.error?.message ?? 'Failed to assign ZM';
-      await this.swal.error('Assignment failed', message);
-    } finally {
-      this.actionLoadingCaseId = null;
-      this.zone.run(() => this.cdr.detectChanges());
-    }
-  }
-
   async openAssignStt(item: CaseResponse): Promise<void> {
     this.actionLoadingCaseId = item.id;
 
     try {
-      const stts = await this.loadAssignableStts();
+      const stts = await this.loadAssignableStts(item);
 
       if (!stts.length) {
-        await this.swal.error('No STT available', 'No assignable STT was found for this case.');
+        await this.swal.error(
+          'No STT available',
+          `No approved STT currently covers ${item.gouvernorat}.`
+        );
         return;
       }
 
@@ -729,7 +712,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
       const selectedSttId = result.value;
       await this.runAction(item.id, () => this.casesService.assignStt(item.id, selectedSttId), 'STT assignment saved');
-      console.log('Assign STT', { caseId: item.id, caseZmId: item.zmId, selectedSttId });
     } catch (err: any) {
       console.error('Failed to assign STT:', err);
       const message = err?.error?.message ?? 'Failed to assign STT';
@@ -770,7 +752,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
       const selectedTechId = result.value;
       await this.runAction(item.id, () => this.casesService.assignTech(item.id, selectedTechId), 'TECH assignment saved');
-      console.log('Assign TECH', { caseId: item.id, caseSttId: item.sttId, selectedTechId });
     } catch (err: any) {
       console.error('Failed to assign TECH:', err);
       const message = err?.error?.message ?? 'Failed to assign TECH';
@@ -1080,7 +1061,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
             <div class="case-details-section">
               <h6 class="case-details-title">Assignment Chain</h6>
               <div class="row g-3 mb-3">
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">ZM:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.zmName, fullCase.zmEmail))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Owner ZM:</span> <span class="case-detail-value">${this.escapeHtml(this.ownerZmLabel(fullCase))}</span></div></div>
                 <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">STT:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</span></div></div>
                 <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</span></div></div>
               </div>
@@ -1289,9 +1270,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return (left ?? '').trim().toLowerCase() === (right ?? '').trim().toLowerCase();
   }
 
-  private async loadAssignableStts(): Promise<AssignableUser[]> {
+  private async loadAssignableStts(item: CaseResponse): Promise<AssignableUser[]> {
     const users = await firstValueFrom(this.userService.getMySttsForZm());
     return (users ?? [])
+      .filter((u) => this.userCoversGovernorate(u.coveredGovernorates, item.gouvernorat))
       .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
@@ -1499,6 +1481,27 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!safeName && !safeEmail) return '-';
     if (safeName && safeEmail) return `${safeName} (${safeEmail})`;
     return safeName || safeEmail;
+  }
+
+  private ownerZmId(item: CaseResponse): string {
+    return (item.ownerZmId ?? item.zmId ?? '').trim();
+  }
+
+  ownerZmDisplayName(item: CaseResponse): string {
+    return (item.ownerZmName ?? item.zmName ?? item.zmEmail ?? '').trim();
+  }
+
+  private ownerZmLabel(item: CaseResponse): string {
+    return this.personLabel(item.ownerZmName ?? item.zmName, item.zmEmail);
+  }
+
+  private userCoversGovernorate(governorates?: string[] | null, governorate?: string | null): boolean {
+    const target = (governorate ?? '').trim();
+    if (!target) {
+      return false;
+    }
+
+    return (governorates ?? []).some((value) => (value ?? '').trim() === target);
   }
 
   initialsFor(name?: string | null, email?: string | null): string {

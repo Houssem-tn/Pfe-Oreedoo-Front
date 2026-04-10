@@ -1,97 +1,103 @@
-<div class="container-fluid">
-  <div class="row g-4">
-    <div class="col-lg-4">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3">
-          <h5 class="mb-1">Invite Technician</h5>
-          <small class="text-body-secondary">Send a registration link to a technician by email.</small>
-        </div>
-
-        <div class="card-body">
-          <div *ngIf="successMessage" class="alert alert-success">
-            {{ successMessage }}
-          </div>
-
-          <div *ngIf="errorMessage" class="alert alert-danger">
-            {{ errorMessage }}
-          </div>
-
-          <form [formGroup]="form" (ngSubmit)="submit()">
-            <div class="mb-3">
-              <label class="form-label">Technician Email</label>
-              <input
-                type="email"
-                class="form-control"
-                formControlName="email"
-                placeholder="tech@example.com"
-              />
-              <div
-                class="text-danger small mt-1"
-                *ngIf="form.controls.email.touched && form.controls.email.invalid"
-              >
-                Please enter a valid email.
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              class="btn btn-primary w-100"
-              [disabled]="submitting"
-            >
-              {{ submitting ? 'Sending...' : 'Send Invitation' }}
-            </button>
-          </form>
-        </div>
-      </div>
+<div class="stt-invite-shell">
+  <section class="stt-invite-hero">
+    <div>
+      <div class="stt-invite-hero__eyebrow">Technician onboarding</div>
+      <h1>Invite technicians</h1>
+      <p>Send registration links, monitor approval progress, and keep the invitation flow easy to handle on phone.</p>
     </div>
 
-    <div class="col-lg-8">
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="mb-1">My Invitations</h5>
-            <small class="text-body-secondary">Track registration and approval status.</small>
-          </div>
-          <button class="btn btn-outline-secondary btn-sm" (click)="loadInvitations()">
-            Refresh
-          </button>
-        </div>
-
-        <div class="card-body p-0">
-          <div *ngIf="loading" class="p-4 text-center text-body-secondary">
-            Loading invitations...
-          </div>
-
-          <div *ngIf="!loading && invitations.length === 0" class="p-4 text-center text-body-secondary">
-            No invitations found.
-          </div>
-
-          <div *ngIf="!loading && invitations.length > 0" class="table-responsive">
-            <table class="table align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Created At</th>
-                  <th>Registered At</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let item of invitations; trackBy: trackByInvitation">
-                  <td>{{ item.email }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="badgeClass(item.status)">
-                      {{ item.status }}
-                    </span>
-                  </td>
-                  <td>{{ item.createdAt | date:'medium' }}</td>
-                  <td>{{ item.registeredAt ? (item.registeredAt | date:'medium') : '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+    <div class="stt-invite-hero__actions">
+      <a routerLink="/stt/my-technicians" class="stt-invite-btn stt-invite-btn--primary">
+        <svg cIcon name="cilPeople"></svg>
+        Open team
+      </a>
+      <button class="stt-invite-btn stt-invite-btn--ghost" (click)="loadInvitations()" [disabled]="loading">
+        <svg cIcon name="cilReload"></svg>
+        {{ loading ? 'Refreshing...' : 'Refresh list' }}
+      </button>
     </div>
+  </section>
+
+  <section class="stt-invite-stats">
+    <article class="stt-invite-stat" [ngClass]="'stt-invite-stat--' + stat.tone" *ngFor="let stat of summaryCards">
+      <div class="stt-invite-stat__icon"><svg cIcon [name]="stat.icon"></svg></div>
+      <strong>{{ stat.value }}</strong>
+      <span>{{ stat.label }}</span>
+    </article>
+  </section>
+
+  <div *ngIf="successMessage" class="stt-invite-alert stt-invite-alert--success">
+    <svg cIcon name="cilCheckCircle"></svg>
+    <span>{{ successMessage }}</span>
   </div>
+
+  <div *ngIf="errorMessage" class="stt-invite-alert stt-invite-alert--error">
+    <svg cIcon name="cilWarning"></svg>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <section class="stt-invite-layout">
+    <article class="stt-invite-panel">
+      <div class="stt-invite-panel__header">
+        <div class="stt-invite-panel__eyebrow">New invitation</div>
+        <h2>Send registration link</h2>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="stt-invite-form">
+        <label class="stt-invite-field">
+          <span><svg cIcon name="cilEnvelopeOpen"></svg>Technician email</span>
+          <input
+            type="email"
+            formControlName="email"
+            placeholder="tech@example.com"
+          />
+        </label>
+
+        <div class="stt-invite-field__hint" *ngIf="form.controls.email.touched && form.controls.email.invalid">
+          Please enter a valid email.
+        </div>
+
+        <button type="submit" class="stt-invite-btn stt-invite-btn--primary" [disabled]="submitting">
+          <svg cIcon name="cilEnvelopeOpen"></svg>
+          {{ submitting ? 'Sending...' : 'Send invitation' }}
+        </button>
+      </form>
+    </article>
+
+    <article class="stt-invite-panel">
+      <div class="stt-invite-panel__header">
+        <div class="stt-invite-panel__eyebrow">Invitation traceability</div>
+        <h2>My invitations</h2>
+      </div>
+
+      <div *ngIf="loading" class="stt-invite-state">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Loading invitations...</span>
+      </div>
+
+      <div *ngIf="!loading && sortedInvitations.length === 0" class="stt-invite-empty">
+        <strong>No invitations found.</strong>
+        <span>Your sent invitations will appear here with their registration and ZM decision status.</span>
+      </div>
+
+      <div class="stt-invite-list" *ngIf="!loading && sortedInvitations.length > 0">
+        <article class="stt-invite-card" *ngFor="let item of sortedInvitations; trackBy: trackByInvitation">
+          <div class="stt-invite-card__top">
+            <strong>{{ item.email }}</strong>
+            <span class="badge" [ngClass]="badgeClass(item.status)">
+              {{ statusLabel(item.status) }}
+            </span>
+          </div>
+
+          <div class="stt-invite-card__meta">
+            <span><svg cIcon name="cilClock"></svg>Sent {{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+            <span><svg cIcon name="cilUser"></svg>ZM {{ item.zmName || item.zmEmail || '-' }}</span>
+            <span><svg cIcon name="cilPeople"></svg>Used {{ item.used ? 'Yes' : 'No' }}</span>
+            <span><svg cIcon name="cilPeople"></svg>Registered {{ item.registeredAt ? (item.registeredAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+            <span><svg cIcon name="cilCheckCircle"></svg>Decision {{ item.zmDecisionAt ? (item.zmDecisionAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+          </div>
+        </article>
+      </div>
+    </article>
+  </section>
 </div>

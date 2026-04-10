@@ -568,6 +568,45 @@
   padding: 0.95rem 1rem;
 }
 
+.user-card__territory {
+  background:
+    linear-gradient(135deg, rgba(127, 18, 39, 0.08), rgba(229, 36, 59, 0.06));
+  border: 1px solid rgba(127, 18, 39, 0.08);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.user-card__territory-header {
+  align-items: center;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+.user-card__territory-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.user-governorate-chip {
+  background: rgba(127, 18, 39, 0.09);
+  border: 1px solid rgba(127, 18, 39, 0.12);
+  border-radius: 999px;
+  color: var(--user-accent);
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 800;
+  padding: 0.5rem 0.8rem;
+}
+
+.user-card__territory-empty {
+  color: var(--user-muted);
+  font-size: 0.92rem;
+}
+
 .user-card__assignment-copy {
   min-width: 0;
 }
@@ -584,6 +623,68 @@
 .user-card__assignment-value {
   color: var(--user-text);
   font-weight: 800;
+}
+
+:host ::ng-deep .user-governorates-popup {
+  border-radius: 1.5rem;
+}
+
+:host ::ng-deep .user-governorates-modal {
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+
+:host ::ng-deep .user-governorates-modal__toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: space-between;
+}
+
+:host ::ng-deep .user-governorates-modal__toggle {
+  align-items: center;
+  color: var(--user-text);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 0.55rem;
+}
+
+:host ::ng-deep .user-governorates-modal__hint {
+  color: var(--user-muted);
+  font-size: 0.9rem;
+}
+
+:host ::ng-deep .user-governorates-modal__grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 21rem;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+:host ::ng-deep .user-governorates-modal__option {
+  align-items: center;
+  background: rgba(255, 244, 246, 0.92);
+  border: 1px solid rgba(130, 14, 30, 0.1);
+  border-radius: 1rem;
+  color: var(--user-text);
+  cursor: pointer;
+  display: flex;
+  gap: 0.65rem;
+  min-height: 3rem;
+  padding: 0.8rem 0.9rem;
+}
+
+:host ::ng-deep .user-governorates-modal__option input {
+  accent-color: var(--user-primary);
+  flex: 0 0 auto;
+}
+
+:host ::ng-deep .user-governorates-modal__option span {
+  font-weight: 700;
 }
 
 .user-card__actions {
@@ -785,8 +886,13 @@
 
   .user-card__header,
   .user-card__assignment,
+  .user-card__territory-header,
   .users-pagination {
     flex-direction: column;
+  }
+
+  :host ::ng-deep .user-governorates-modal__grid {
+    grid-template-columns: 1fr;
   }
 
   .user-card__actions,

@@ -5,7 +5,7 @@
         <svg cIcon name="cilPeople"></svg>
         Ooredoo access control
       </div>
-      <h1>Manage accounts, platform access, and STT supervision in a sharper Ooredoo admin workspace.</h1>
+      <h1>Manage accounts, platform access, and governorate-based territorial coverage in a sharper Ooredoo admin workspace.</h1>
       <p>
         Keep this page focused on operational user management. Use the audit center when you need the full traceability and profile history.
       </p>
@@ -225,8 +225,8 @@
             </div>
 
             <div class="user-card__detail">
-              <span class="user-card__detail-label">Assigned ZM</span>
-              <strong>{{ assignmentLabel(user) }}</strong>
+              <span class="user-card__detail-label">{{ territoryDetailLabel(user) }}</span>
+              <strong>{{ territoryDetailValue(user) }}</strong>
             </div>
 
             <div class="user-card__detail">
@@ -236,24 +236,75 @@
           </div>
 
           <div
-            class="user-card__assignment"
+            class="user-card__territory"
             *ngIf="user.role === 'ROLE_STT'"
           >
-            <div class="user-card__assignment-copy">
-              <div class="user-card__assignment-title">ZM supervision</div>
-              <div class="user-card__assignment-value">{{ assignmentLabel(user) }}</div>
+            <div class="user-card__territory-header">
+              <div class="user-card__assignment-copy">
+                <div class="user-card__assignment-title">Coverage areas</div>
+                <div class="user-card__assignment-value">{{ coverageSummary(user) }}</div>
+              </div>
+
+              <button
+                *ngIf="canSetCoverageAreas(user)"
+                type="button"
+                class="user-button user-button--soft"
+                [disabled]="isAssigningCoverage(user.id)"
+                (click)="openSetCoverageAreasModal(user)"
+              >
+                <svg cIcon [name]="coverageAreasFor(user).length ? 'cilPencil' : 'cilPlus'"></svg>
+                {{ isAssigningCoverage(user.id) ? 'Saving...' : 'Set Coverage Areas' }}
+              </button>
             </div>
 
-            <button
-              *ngIf="canAssignZm(user)"
-              type="button"
-              class="user-button user-button--soft"
-              [disabled]="isAssigning(user.id)"
-              (click)="openAssignZmModal(user)"
-            >
-              <svg cIcon [name]="user.assignedZmId ? 'cilPencil' : 'cilPlus'"></svg>
-              {{ isAssigning(user.id) ? 'Saving...' : (user.assignedZmId ? 'Change ZM' : 'Assign ZM') }}
-            </button>
+            <div class="user-card__territory-chips" *ngIf="coverageAreasFor(user).length > 0; else noCoverageAreas">
+              <span
+                class="user-governorate-chip"
+                *ngFor="let governorate of coverageAreasFor(user); trackBy: trackGovernorate"
+              >
+                {{ governorate }}
+              </span>
+            </div>
+
+            <ng-template #noCoverageAreas>
+              <div class="user-card__territory-empty">No coverage areas defined yet.</div>
+            </ng-template>
+          </div>
+
+          <div
+            class="user-card__territory"
+            *ngIf="user.role === 'ROLE_ZM'"
+          >
+            <div class="user-card__territory-header">
+              <div class="user-card__assignment-copy">
+                <div class="user-card__assignment-title">Territorial coverage</div>
+                <div class="user-card__assignment-value">{{ governorateSummary(user) }}</div>
+              </div>
+
+              <button
+                *ngIf="canAssignGovernorates(user)"
+                type="button"
+                class="user-button user-button--soft"
+                [disabled]="isAssigningGovernorates(user.id)"
+                (click)="openAssignGovernoratesModal(user)"
+              >
+                <svg cIcon [name]="governoratesFor(user).length ? 'cilPencil' : 'cilPlus'"></svg>
+                {{ isAssigningGovernorates(user.id) ? 'Saving...' : 'Assign Governorates' }}
+              </button>
+            </div>
+
+            <div class="user-card__territory-chips" *ngIf="governoratesFor(user).length > 0; else noGovernorates">
+              <span
+                class="user-governorate-chip"
+                *ngFor="let governorate of governoratesFor(user); trackBy: trackGovernorate"
+              >
+                {{ governorate }}
+              </span>
+            </div>
+
+            <ng-template #noGovernorates>
+              <div class="user-card__territory-empty">No governorates assigned yet.</div>
+            </ng-template>
           </div>
 
           <div class="user-card__actions">

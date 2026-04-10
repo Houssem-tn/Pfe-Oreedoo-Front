@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
 
@@ -9,8 +10,9 @@ import { SttTechnicianApiService } from '../../../core/stt/stt-technician-api.se
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, IconDirective],
-  templateUrl: './my-technicians.component.html'
+  imports: [CommonModule, FormsModule, DatePipe, RouterLink, IconDirective],
+  templateUrl: './my-technicians.component.html',
+  styleUrl: './my-technicians.component.scss'
 })
 export class MyTechniciansComponent implements OnInit {
   private readonly api = inject(SttTechnicianApiService);
@@ -25,7 +27,8 @@ export class MyTechniciansComponent implements OnInit {
   selectedStatus = '';
 
   currentPage = 1;
-  pageSize = 5;
+  pageSize = 6;
+  readonly pageSizeOptions = [4, 6, 12];
 
   readonly statusOptions = [
     { value: '', label: 'All statuses' },
@@ -93,6 +96,15 @@ export class MyTechniciansComponent implements OnInit {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
   }
 
+  get summaryCards(): Array<{ label: string; value: number; icon: string; tone: string }> {
+    return [
+      { label: 'Total technicians', value: this.technicians.length, icon: 'cilPeople', tone: 'brand' },
+      { label: 'Approved', value: this.technicians.filter((item) => item.status === 'APPROVED').length, icon: 'cilCheckCircle', tone: 'success' },
+      { label: 'Pending', value: this.technicians.filter((item) => item.status === 'PENDING').length, icon: 'cilAlarm', tone: 'warning' },
+      { label: 'Enabled', value: this.technicians.filter((item) => item.enabled).length, icon: 'cilUserFollow', tone: 'soft' }
+    ];
+  }
+
   onFiltersChange(): void {
     this.currentPage = 1;
   }
@@ -106,6 +118,16 @@ export class MyTechniciansComponent implements OnInit {
     this.searchTerm = '';
     this.selectedStatus = '';
     this.currentPage = 1;
+  }
+
+  rangeLabel(): string {
+    if (this.filteredTechnicians.length === 0) {
+      return '0 of 0';
+    }
+
+    const start = (this.currentPage - 1) * this.pageSize + 1;
+    const end = Math.min(this.currentPage * this.pageSize, this.filteredTechnicians.length);
+    return `${start}-${end} of ${this.filteredTechnicians.length}`;
   }
 
   statusBadgeClass(status?: string): string {
@@ -124,6 +146,20 @@ export class MyTechniciansComponent implements OnInit {
     return enabled
       ? 'bg-success-subtle text-success-emphasis'
       : 'bg-secondary-subtle text-secondary-emphasis';
+  }
+
+  initialsFor(name: string): string {
+    const words = name.split(/\s+/).filter(Boolean);
+
+    if (!words.length) {
+      return 'NA';
+    }
+
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${words[0][0] ?? ''}${words[1][0] ?? ''}`.toUpperCase();
   }
 
   trackById = (_: number, tech: TechnicianListItem) => tech.id;
