@@ -4,6 +4,12 @@ export const routes: Routes = [
 
   {
     path: 'dashboard',
+    redirectTo: 'import-todos',
+    pathMatch: 'full'
+  },
+
+  {
+    path: 'import-todos',
     loadComponent: () =>
       import('../dashboard/dashboard.component').then(m => m.DashboardComponent)
   },

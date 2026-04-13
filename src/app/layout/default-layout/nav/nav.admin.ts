@@ -32,14 +32,14 @@ export const navAdmin: INavData[] = [
 
   {
     name: 'Import TODOS',
-    url: '/admin/dashboard',
-    iconComponent: { name: 'cil-arrow-top' }
+    url: '/admin/import-todos',
+    iconComponent: { name: 'cilCloudUpload' }
   },
 
   {
     name: 'Saved ZM Performance',
     url: '/admin/saved-zm-performance',
-    iconComponent: { name: 'cil-speedometer' }
+    iconComponent: { name: 'cilChartLine' }
   },
 
   {

@@ -1,10 +1,42 @@
 :host {
+  --ooredoo-red: #e30613;
+  --ooredoo-red-dark: #b50d19;
+  --ooredoo-border: rgba(227, 6, 19, 0.14);
   display: block;
 }
 
 .saved-performance-page {
   display: grid;
   gap: 1rem;
+}
+
+.saved-performance-page__brand {
+  align-items: center;
+  background: linear-gradient(90deg, rgba(227, 6, 19, 0.1), rgba(255, 255, 255, 0.94) 45%, rgba(227, 6, 19, 0.06));
+  border: 1px solid var(--ooredoo-border);
+  border-radius: 999px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-self: start;
+  padding: 0.45rem 0.9rem 0.45rem 0.5rem;
+}
+
+.saved-performance-page__brand-pill {
+  background: linear-gradient(135deg, var(--ooredoo-red), var(--ooredoo-red-dark));
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 0.42rem 0.8rem;
+  text-transform: lowercase;
+}
+
+.saved-performance-page__brand-text {
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .saved-performance-page__hero,
@@ -14,14 +46,16 @@
 .saved-performance-meta,
 .saved-performance-filters {
   background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--ooredoo-border);
   border-radius: 1rem;
   box-shadow: 0 0.9rem 1.8rem rgba(15, 23, 42, 0.05);
 }
 
-.saved-performance-page__hero {
+.saved-performance-page__hero--ooredoo {
   align-items: flex-start;
-  background: linear-gradient(140deg, #ffffff 0%, #f8fbff 55%, #fff7f7 100%);
+  background:
+    radial-gradient(circle at top right, rgba(227, 6, 19, 0.2), transparent 28%),
+    linear-gradient(140deg, #ffffff 0%, #fff4f6 55%, #fffafb 100%);
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
@@ -30,11 +64,37 @@
 }
 
 .saved-performance-page__eyebrow {
-  color: #c41e3a;
+  color: var(--ooredoo-red);
   font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.saved-performance-button {
+  border-radius: 0.9rem;
+  font-weight: 700;
+}
+
+.saved-performance-button--primary {
+  background: linear-gradient(135deg, var(--ooredoo-red), var(--ooredoo-red-dark));
+  border-color: var(--ooredoo-red);
+  color: #fff;
+}
+
+.saved-performance-button--outline {
+  border-color: rgba(227, 6, 19, 0.22);
+  color: var(--ooredoo-red-dark);
+}
+
+.saved-performance-field {
+  border-color: rgba(227, 6, 19, 0.16);
+  box-shadow: none;
+}
+
+.saved-performance-field:focus {
+  border-color: rgba(227, 6, 19, 0.42);
+  box-shadow: 0 0 0 0.2rem rgba(227, 6, 19, 0.12);
 }
 
 .saved-performance-page__state,
@@ -72,8 +132,8 @@
 }
 
 .saved-performance-item {
-  background: #f8fafc;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(160deg, #fff7f8 0%, #ffffff 100%);
+  border: 1px solid rgba(227, 6, 19, 0.1);
   border-radius: 0.95rem;
   color: inherit;
   display: grid;
@@ -84,14 +144,14 @@
 }
 
 .saved-performance-item:hover {
-  border-color: rgba(196, 30, 58, 0.24);
+  border-color: rgba(227, 6, 19, 0.24);
   transform: translateY(-1px);
 }
 
 .saved-performance-item--active {
-  background: linear-gradient(155deg, #fff8f8 0%, #f8fbff 100%);
-  border-color: rgba(196, 30, 58, 0.4);
-  box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.08);
+  background: linear-gradient(155deg, #fff2f4 0%, #fffafb 100%);
+  border-color: rgba(227, 6, 19, 0.34);
+  box-shadow: 0 0.75rem 1.5rem rgba(227, 6, 19, 0.09);
 }
 
 .saved-performance-item__title {
@@ -112,7 +172,7 @@
 
 .saved-performance-item__chips span {
   background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(227, 6, 19, 0.1);
   border-radius: 999px;
   color: #334155;
   font-size: 0.8rem;
@@ -194,8 +254,8 @@
 }
 
 .saved-performance-meta__chip {
-  background: #f8fafc;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: #fff7f8;
+  border: 1px solid rgba(227, 6, 19, 0.1);
   border-radius: 999px;
   color: #334155;
   font-size: 0.84rem;
@@ -219,6 +279,10 @@
 }
 
 @media (max-width: 767px) {
+  .saved-performance-page__brand {
+    border-radius: 1rem;
+  }
+
   .saved-performance-page__hero,
   .saved-performance-sidebar,
   .saved-performance-meta,

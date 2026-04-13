@@ -1,29 +1,42 @@
 <div class="admin-analytics-dashboard" *ngIf="isAdmin">
+  <div class="dashboard-brand-ribbon">
+    <span class="dashboard-brand-ribbon__pill">ooredoo</span>
+    <span class="dashboard-brand-ribbon__text">Import TODOS and monitor Zone Manager performance from one branded operations workspace.</span>
+  </div>
+
   <c-row [gutter]="4">
     <c-col xs="12">
-      <c-card class="hero-card">
+      <c-card class="hero-card hero-card--ooredoo">
         <c-card-body>
           <div class="hero-card__content">
             <div>
-              <div class="hero-card__eyebrow">Admin ZM study</div>
-              <h2 class="hero-card__title">Zone Manager Performance Analytics</h2>
+              <div class="hero-card__eyebrow">Ooredoo performance control</div>
+              <div class="hero-card__brandline">
+                <span class="hero-card__brand">ooredoo</span>
+                <span class="hero-card__brandcopy">Field Service Analytics</span>
+              </div>
+              <h2 class="hero-card__title">Import TODOS and Study Zone Manager Performance</h2>
               <p class="hero-card__description">
-                Upload operational CSV/XLS/XLSX files, save performance batches, and study Zone Manager workload, STT routing, and SLA behavior by governorate.
+                Upload operational CSV/XLS/XLSX files, preserve imported batches, and turn them into an Ooredoo-style control room for Zone Manager workload, STT routing, and SLA behavior by governorate.
               </p>
             </div>
 
             <div class="hero-card__chips">
               <span class="dashboard-chip">
                 <svg cIcon name="cilCloudUpload"></svg>
-                Reused import pipeline
+                Import TODOS flow
               </span>
               <span class="dashboard-chip">
-                <svg cIcon name="cilChartPie"></svg>
-                SLA study by ZM
+                <svg cIcon name="cilChartLine"></svg>
+                ZM performance study
               </span>
               <span class="dashboard-chip">
                 <svg cIcon name="cilLocationPin"></svg>
-                Governorate comparison
+                Governorate intelligence
+              </span>
+              <span class="dashboard-chip dashboard-chip--accent">
+                <svg cIcon name="cilSpeedometer"></svg>
+                Operations command view
               </span>
             </div>
           </div>
@@ -34,7 +47,7 @@
 
   <c-row [gutter]="4">
     <c-col xl="5" lg="6" xs="12">
-      <c-card class="dashboard-panel h-100">
+      <c-card class="dashboard-panel dashboard-panel--ooredoo h-100">
         <c-card-header class="dashboard-panel__header">
           <div>
             <div class="dashboard-panel__eyebrow">Import section</div>
@@ -44,16 +57,18 @@
         <c-card-body>
           <div class="row g-3 align-items-end">
             <div class="col-12">
-              <label class="form-label fw-semibold" for="performance-import-file">CSV / XLS / XLSX file</label>
-              <input
-                #performanceImportFileInput
-                id="performance-import-file"
-                type="file"
-                class="form-control"
-                accept=".csv,.xls,.xlsx"
-                (change)="onFileSelected($event)"
-              />
-              <div class="form-text">Operational study file with columns like CRM_CASE, STT, GOUVERNORAT, and ZONE_MNANAGER.</div>
+              <div class="ooredoo-upload-box">
+                <label class="form-label fw-semibold" for="performance-import-file">CSV / XLS / XLSX file</label>
+                <input
+                  #performanceImportFileInput
+                  id="performance-import-file"
+                  type="file"
+                  class="form-control ooredoo-input"
+                  accept=".csv,.xls,.xlsx"
+                  (change)="onFileSelected($event)"
+                />
+                <div class="form-text">Operational study file with columns like CRM_CASE, STT, GOUVERNORAT, and ZONE_MNANAGER.</div>
+              </div>
             </div>
 
             <div class="col-12">
@@ -64,14 +79,14 @@
             </div>
 
             <div class="col-sm-6">
-              <button cButton color="primary" class="w-100" type="button" (click)="previewImport()" [disabled]="previewLoading">
+              <button cButton color="primary" class="w-100 dashboard-action-button dashboard-action-button--primary" type="button" (click)="previewImport()" [disabled]="previewLoading">
                 <svg cIcon name="cilFilter" class="me-2"></svg>
                 {{ previewLoading ? 'Previewing...' : 'Preview Parsed Rows' }}
               </button>
             </div>
 
             <div class="col-sm-6">
-              <button cButton color="success" class="w-100" type="button" (click)="injectImport()" [disabled]="!canInject">
+              <button cButton color="success" class="w-100 dashboard-action-button dashboard-action-button--success" type="button" (click)="injectImport()" [disabled]="!canInject">
                 <svg cIcon name="cilCloudUpload" class="me-2"></svg>
                 {{ injectLoading ? 'Importing...' : 'Save Imported Batch' }}
               </button>
@@ -97,7 +112,7 @@
     </c-col>
 
     <c-col xl="7" lg="6" xs="12">
-      <c-card class="dashboard-panel h-100" *ngIf="hasPreview && importPreview as preview">
+      <c-card class="dashboard-panel dashboard-panel--ooredoo h-100" *ngIf="hasPreview && importPreview as preview">
         <c-card-header class="dashboard-panel__header">
           <div>
             <div class="dashboard-panel__eyebrow">Preview summary</div>
@@ -197,7 +212,7 @@
         </c-card-body>
       </c-card>
 
-      <c-card class="dashboard-panel h-100" *ngIf="!hasPreview">
+      <c-card class="dashboard-panel dashboard-panel--ooredoo h-100" *ngIf="!hasPreview">
         <c-card-body class="dashboard-empty">
           <svg cIcon name="cilChartPie" width="30" height="30"></svg>
           <div>
@@ -211,18 +226,18 @@
 
   <c-row [gutter]="4" class="mt-1">
     <c-col xs="12">
-      <c-card class="dashboard-panel">
+      <c-card class="dashboard-panel dashboard-panel--ooredoo">
         <c-card-header class="dashboard-panel__header">
           <div>
             <div class="dashboard-panel__eyebrow">Analytics filters</div>
-            <div class="dashboard-panel__title">Étude sur le ZM</div>
+            <div class="dashboard-panel__title">Etude sur le ZM</div>
           </div>
         </c-card-header>
         <c-card-body>
           <form [formGroup]="analyticsFiltersForm" class="row g-3 align-items-end">
             <div class="col-lg-4 col-md-6">
               <label class="form-label fw-semibold" for="zone-manager-filter">Zone Manager</label>
-              <select id="zone-manager-filter" class="form-select" formControlName="zoneManager">
+              <select id="zone-manager-filter" class="form-select ooredoo-input" formControlName="zoneManager">
                 <option value="">All Zone Managers</option>
                 <option *ngFor="let zm of selectedZoneManagers" [value]="zm">{{ zm }}</option>
               </select>
@@ -230,7 +245,7 @@
 
             <div class="col-lg-3 col-md-6">
               <label class="form-label fw-semibold" for="governorate-filter">Governorate</label>
-              <select id="governorate-filter" class="form-select" formControlName="gouvernorat">
+              <select id="governorate-filter" class="form-select ooredoo-input" formControlName="gouvernorat">
                 <option value="">All governorates</option>
                 <option *ngFor="let governorate of selectedGovernorates" [value]="governorate">{{ governorate }}</option>
               </select>
@@ -238,25 +253,25 @@
 
             <div class="col-lg-2 col-md-6">
               <label class="form-label fw-semibold" for="uploaded-from">Uploaded From</label>
-              <input id="uploaded-from" type="date" class="form-control" formControlName="uploadedFrom" />
+              <input id="uploaded-from" type="date" class="form-control ooredoo-input" formControlName="uploadedFrom" />
             </div>
 
             <div class="col-lg-2 col-md-6">
               <label class="form-label fw-semibold" for="uploaded-to">Uploaded To</label>
-              <input id="uploaded-to" type="date" class="form-control" formControlName="uploadedTo" />
+              <input id="uploaded-to" type="date" class="form-control ooredoo-input" formControlName="uploadedTo" />
             </div>
 
             <div class="col-12">
               <div class="d-flex flex-wrap gap-2 justify-content-end">
-                <button cButton color="primary" type="button" (click)="applyAnalyticsFilters()" [disabled]="analyticsLoading">
+                <button cButton color="primary" class="dashboard-action-button dashboard-action-button--primary" type="button" (click)="applyAnalyticsFilters()" [disabled]="analyticsLoading">
                   <svg cIcon name="cilMagnifyingGlass" class="me-2"></svg>
                   Apply Filters
                 </button>
-                <button cButton color="secondary" variant="outline" type="button" (click)="resetAnalyticsFilters()" [disabled]="analyticsLoading">
+                <button cButton color="secondary" variant="outline" class="dashboard-action-button dashboard-action-button--secondary" type="button" (click)="resetAnalyticsFilters()" [disabled]="analyticsLoading">
                   <svg cIcon name="cilReload" class="me-2"></svg>
                   Reset Filters
                 </button>
-                <button cButton color="success" type="button" (click)="savePerformanceStudy()" [disabled]="!canSaveStudy">
+                <button cButton color="success" class="dashboard-action-button dashboard-action-button--success" type="button" (click)="savePerformanceStudy()" [disabled]="!canSaveStudy">
                   <svg cIcon name="cilSave" class="me-2"></svg>
                   {{ saveStudyLoading ? 'Saving...' : 'Save Performance' }}
                 </button>

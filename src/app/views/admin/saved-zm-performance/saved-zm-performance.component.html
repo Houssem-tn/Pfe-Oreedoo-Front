@@ -1,14 +1,19 @@
 <section class="saved-performance-page">
-  <header class="saved-performance-page__hero">
+  <div class="saved-performance-page__brand">
+    <span class="saved-performance-page__brand-pill">ooredoo</span>
+    <span class="saved-performance-page__brand-text">Saved performance dashboards for archived telecom operations studies.</span>
+  </div>
+
+  <header class="saved-performance-page__hero saved-performance-page__hero--ooredoo">
     <div>
-      <div class="saved-performance-page__eyebrow">Admin archive dashboard</div>
+      <div class="saved-performance-page__eyebrow">Ooredoo archive workspace</div>
       <h3 class="mb-1">Saved ZM Performance</h3>
       <p class="text-body-secondary mb-0">
         Open any saved file snapshot and inspect it with the same KPI cards, charts, and statistics used in the live dashboard.
       </p>
     </div>
 
-    <button type="button" class="btn btn-outline-primary btn-sm" (click)="loadSavedStudies()" [disabled]="loading">
+    <button type="button" class="btn btn-sm saved-performance-button saved-performance-button--outline" (click)="loadSavedStudies()" [disabled]="loading">
       <svg cIcon name="cilReload" class="me-1"></svg>
       {{ loading ? 'Refreshing...' : 'Refresh' }}
     </button>
@@ -109,7 +114,7 @@
         <form [formGroup]="filtersForm" class="row g-3 align-items-end mt-1">
           <div class="col-lg-4 col-md-6">
             <label class="form-label fw-semibold" for="saved-zone-manager-filter">Zone Manager</label>
-            <select id="saved-zone-manager-filter" class="form-select" formControlName="zoneManager">
+            <select id="saved-zone-manager-filter" class="form-select saved-performance-field" formControlName="zoneManager">
               <option value="">All Zone Managers</option>
               <option *ngFor="let zm of availableZoneManagers" [value]="zm">{{ zm }}</option>
             </select>
@@ -117,7 +122,7 @@
 
           <div class="col-lg-3 col-md-6">
             <label class="form-label fw-semibold" for="saved-governorate-filter">Governorate</label>
-            <select id="saved-governorate-filter" class="form-select" formControlName="gouvernorat">
+            <select id="saved-governorate-filter" class="form-select saved-performance-field" formControlName="gouvernorat">
               <option value="">All governorates</option>
               <option *ngFor="let governorate of availableGovernorates" [value]="governorate">{{ governorate }}</option>
             </select>
@@ -125,21 +130,21 @@
 
           <div class="col-lg-2 col-md-6">
             <label class="form-label fw-semibold" for="saved-uploaded-from">Uploaded From</label>
-            <input id="saved-uploaded-from" type="date" class="form-control" formControlName="uploadedFrom" />
+            <input id="saved-uploaded-from" type="date" class="form-control saved-performance-field" formControlName="uploadedFrom" />
           </div>
 
           <div class="col-lg-2 col-md-6">
             <label class="form-label fw-semibold" for="saved-uploaded-to">Uploaded To</label>
-            <input id="saved-uploaded-to" type="date" class="form-control" formControlName="uploadedTo" />
+            <input id="saved-uploaded-to" type="date" class="form-control saved-performance-field" formControlName="uploadedTo" />
           </div>
 
           <div class="col-12">
             <div class="d-flex flex-wrap gap-2 justify-content-end">
-              <button type="button" class="btn btn-primary" (click)="applyFilters()" [disabled]="analyticsLoading">
+              <button type="button" class="btn saved-performance-button saved-performance-button--primary" (click)="applyFilters()" [disabled]="analyticsLoading">
                 <svg cIcon name="cilMagnifyingGlass" class="me-2"></svg>
                 Apply Filters
               </button>
-              <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="analyticsLoading">
+              <button type="button" class="btn saved-performance-button saved-performance-button--outline" (click)="resetFilters()" [disabled]="analyticsLoading">
                 <svg cIcon name="cilReload" class="me-2"></svg>
                 Reset Filters
               </button>

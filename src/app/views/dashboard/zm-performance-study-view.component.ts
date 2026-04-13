@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, OnChanges } from '@angular/core';
-import { ChartOptions } from 'chart.js';
+import { ChartOptions, TooltipItem } from 'chart.js';
 import {
   CardBodyComponent,
   CardComponent,
@@ -56,11 +56,13 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
   @Input() emptyTitle = 'No performance data is loaded right now.';
   @Input() emptyMessage = 'Import a batch or select a saved study to see the statistics.';
 
+  selectedGovernorateStudy = '';
   casesBySttChart: IChartProps = { type: 'bar' };
   slaByGovernorateChart: IChartProps = { type: 'bar' };
-  casesByGovernorateChart: IChartProps = { type: 'doughnut' };
+  casesByGovernorateChart: IChartProps = { type: 'pie' };
 
   ngOnChanges(): void {
+    this.syncSelectedGovernorateStudy();
     this.buildCharts(this.study);
   }
 
@@ -99,6 +101,16 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
 
   get insights(): string[] {
     return this.study?.insights ?? [];
+  }
+
+  get focusedGovernorateStudy(): ZmPerformanceGovernorateItem | null {
+    if (this.governorateBreakdown.length === 0) {
+      return null;
+    }
+
+    return this.governorateBreakdown.find(item => (item.gouvernorat ?? '') === this.selectedGovernorateStudy)
+      ?? this.governorateBreakdown[0]
+      ?? null;
   }
 
   get kpiCards(): KpiCard[] {
@@ -140,6 +152,14 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
     return Math.max(0, Math.min(100, item.percentage));
   }
 
+  governorateSttProgressValue(item: ZmPerformanceGovernorateSttItem): number {
+    return Math.max(0, Math.min(100, item.percentage));
+  }
+
+  selectGovernorateStudy(governorate: string): void {
+    this.selectedGovernorateStudy = governorate;
+  }
+
   trackByStt(_: number, item: ZmPerformanceSttBreakdownItem): string {
     return item.sttName ?? 'unknown-stt';
   }
@@ -167,7 +187,8 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
       study?.sttBreakdown.map(item => item.sttName || 'Unassigned') ?? [],
       study?.sttBreakdown.map(item => item.caseCount) ?? [],
       'Cases per STT',
-      getStyle('--cui-primary') ?? '#321fdb'
+      '#e30613',
+      (value) => `${this.formatMetric(value)} case(s)`
     );
 
     this.slaByGovernorateChart = this.buildHorizontalBarChart(
@@ -178,7 +199,8 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
         .filter(item => item.averageSlaBusinessDays != null)
         .map(item => item.averageSlaBusinessDays ?? 0) ?? [],
       'Average SLA (business days)',
-      getStyle('--cui-info') ?? '#39f'
+      '#e30613',
+      (value) => `${this.formatMetric(value)} business day(s)`
     );
 
     this.casesByGovernorateChart = this.buildDoughnutChart(
@@ -187,7 +209,13 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
     );
   }
 
-  private buildHorizontalBarChart(labels: string[], values: number[], label: string, color: string): IChartProps {
+  private buildHorizontalBarChart(
+    labels: string[],
+    values: number[],
+    label: string,
+    color: string,
+    tooltipFormatter: (value: number) => string
+  ): IChartProps {
     return {
       type: 'bar',
       data: {
@@ -204,7 +232,7 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
           }
         ]
       },
-      options: this.buildBarChartOptions(true)
+      options: this.buildBarChartOptions(true, tooltipFormatter)
     };
   }
 
@@ -225,30 +253,23 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
           }
         ]
       },
-      options: this.buildBarChartOptions(false)
+      options: this.buildBarChartOptions(false, (value) => this.formatMetric(value))
     };
   }
 
   private buildDoughnutChart(labels: string[], values: number[]): IChartProps {
-    const palette = [
-      getStyle('--cui-primary') ?? '#321fdb',
-      getStyle('--cui-info') ?? '#39f',
-      getStyle('--cui-success') ?? '#2eb85c',
-      getStyle('--cui-warning') ?? '#f9b115',
-      getStyle('--cui-danger') ?? '#e55353',
-      '#8e44ad',
-      '#0f766e',
-      '#d97706'
-    ];
+    const backgroundColors = this.buildPieColors(labels.length);
 
     return {
-      type: 'doughnut',
+      type: 'pie',
       data: {
         labels,
         datasets: [
           {
             data: values,
-            backgroundColor: labels.map((_, index) => palette[index % palette.length]),
+            backgroundColor: backgroundColors,
+            borderColor: '#ffffff',
+            borderWidth: 2,
             hoverOffset: 8
           }
         ]
@@ -257,10 +278,23 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              boxWidth: 10
+            display: false
+          },
+          tooltip: {
+            backgroundColor: '#111827',
+            borderColor: 'rgba(255, 255, 255, 0.14)',
+            borderWidth: 1,
+            bodyColor: '#f8fafc',
+            padding: 12,
+            titleColor: '#ffffff',
+            callbacks: {
+              title: (items) => items[0]?.label ?? '',
+              label: (context) => {
+                const value = Number(context.raw ?? 0);
+                const total = values.reduce((sum, current) => sum + current, 0);
+                const percentage = total > 0 ? (value / total) * 100 : 0;
+                return `${this.formatMetric(value)} case(s) - ${this.formatMetric(percentage)}%`;
+              }
             }
           }
         }
@@ -268,16 +302,37 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
     };
   }
 
-  private buildBarChartOptions(horizontal: boolean): ChartOptions {
+  private buildBarChartOptions(
+    horizontal: boolean,
+    tooltipFormatter: (value: number) => string
+  ): ChartOptions<'bar'> {
     const borderColor = getStyle('--cui-border-color-translucent') ?? 'rgba(15, 23, 42, 0.12)';
     const textColor = getStyle('--cui-body-color') ?? '#334155';
 
     return {
       maintainAspectRatio: false,
       indexAxis: horizontal ? 'y' : 'x',
+      layout: {
+        padding: {
+          right: horizontal ? 8 : 0
+        }
+      },
       plugins: {
         legend: {
           display: false
+        },
+        tooltip: {
+          backgroundColor: '#111827',
+          borderColor: 'rgba(255, 255, 255, 0.14)',
+          borderWidth: 1,
+          bodyColor: '#f8fafc',
+          displayColors: false,
+          padding: 12,
+          titleColor: '#ffffff',
+          callbacks: {
+            title: (items: TooltipItem<'bar'>[]) => items[0]?.label ?? '',
+            label: (context: TooltipItem<'bar'>) => tooltipFormatter(Number(context.raw ?? 0))
+          }
         }
       },
       scales: horizontal
@@ -285,25 +340,66 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
             x: {
               beginAtZero: true,
               grid: { color: borderColor },
-              ticks: { color: textColor }
+              ticks: {
+                color: textColor,
+                font: {
+                  size: 11,
+                  weight: 'normal'
+                }
+              }
             },
             y: {
               grid: { display: false },
-              ticks: { color: textColor }
+              ticks: {
+                autoSkip: false,
+                color: '#475569',
+                font: {
+                  size: 12,
+                  weight: 'normal'
+                }
+              }
             }
           }
         : {
             x: {
               grid: { display: false },
-              ticks: { color: textColor }
+              ticks: {
+                color: textColor
+              }
             },
             y: {
               beginAtZero: true,
               grid: { color: borderColor },
-              ticks: { color: textColor }
+              ticks: {
+                color: textColor
+              }
             }
           }
     };
+  }
+
+  private syncSelectedGovernorateStudy(): void {
+    if (this.governorateBreakdown.length === 0) {
+      this.selectedGovernorateStudy = '';
+      return;
+    }
+
+    const matchingSelectedGovernorate = this.study?.selectedGovernorate ?? '';
+    const hasCurrentSelection = this.governorateBreakdown.some(
+      item => (item.gouvernorat ?? '') === this.selectedGovernorateStudy
+    );
+
+    if (hasCurrentSelection) {
+      return;
+    }
+
+    const preferredSelection = this.governorateBreakdown.find(
+      item => (item.gouvernorat ?? '') === matchingSelectedGovernorate
+    );
+
+    this.selectedGovernorateStudy = preferredSelection?.gouvernorat
+      ?? this.governorateBreakdown[0]?.gouvernorat
+      ?? '';
   }
 
   private withAlpha(hexColor: string, alpha: number): string {
@@ -319,5 +415,12 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
     const green = parseInt(normalized.slice(3, 5), 16);
     const blue = parseInt(normalized.slice(5, 7), 16);
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  private buildPieColors(count: number): string[] {
+    return Array.from({ length: count }, (_, index) => {
+      const hue = Math.round((index * 360) / Math.max(count, 1));
+      return `hsl(${hue} 78% 54%)`;
+    });
   }
 }

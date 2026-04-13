@@ -94,6 +94,16 @@
                 SLA by governorate
               </c-chart>
             </div>
+            <div class="chart-inspector" *ngIf="governorateBreakdownWithSla.length > 0">
+              <div class="chart-inspector__title">Governorate SLA ranking</div>
+              <div class="chart-inspector__rows">
+                <div class="chart-inspector__row" *ngFor="let item of governorateBreakdownWithSla; trackBy: trackByGovernorate">
+                  <div class="chart-inspector__name">{{ item.gouvernorat || '-' }}</div>
+                  <div class="chart-inspector__meta">{{ formatMetric(item.averageSlaBusinessDays) }} d</div>
+                  <div class="chart-inspector__meta">{{ item.caseCount }} case(s)</div>
+                </div>
+              </div>
+            </div>
             <div class="chart-note" *ngIf="omittedGovernorateSlaCount > 0">
               {{ omittedGovernorateSlaCount }} governorate(s) are not shown in this visual because no valid SLA dates were found for them.
             </div>
@@ -122,6 +132,16 @@
               <c-chart [data]="casesByGovernorateChart.data" [options]="casesByGovernorateChart.options" [type]="casesByGovernorateChart.type">
                 Cases by governorate
               </c-chart>
+            </div>
+            <div class="chart-inspector" *ngIf="governorateBreakdown.length > 0">
+              <div class="chart-inspector__title">Governorate volume ranking</div>
+              <div class="chart-inspector__rows">
+                <div class="chart-inspector__row" *ngFor="let item of governorateBreakdown; trackBy: trackByGovernorate">
+                  <div class="chart-inspector__name">{{ item.gouvernorat || '-' }}</div>
+                  <div class="chart-inspector__meta">{{ item.caseCount }} case(s)</div>
+                  <div class="chart-inspector__meta">{{ formatMetric(item.percentage) }}%</div>
+                </div>
+              </div>
             </div>
             <ng-template #noGovernorateChart>
               <div class="dashboard-empty">
@@ -203,7 +223,7 @@
       </c-col>
 
       <c-col lg="6" xs="12">
-        <c-card class="dashboard-panel">
+        <c-card class="dashboard-panel governorate-focus-panel">
           <c-card-header class="dashboard-panel__header">
             <div>
               <div class="dashboard-panel__eyebrow">Governorate study</div>
@@ -211,38 +231,72 @@
             </div>
           </c-card-header>
           <c-card-body>
-            <div class="table-responsive" *ngIf="governorateBreakdown.length > 0; else noGovernorateTable">
-              <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
-                <thead>
-                  <tr>
-                    <th>Governorate</th>
-                    <th>Cases</th>
-                    <th>Share</th>
-                    <th>Average SLA</th>
-                    <th>STT mix in governorate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of governorateBreakdown; trackBy: trackByGovernorate">
-                    <td class="fw-semibold">{{ item.gouvernorat || '-' }}</td>
-                    <td>{{ item.caseCount }}</td>
-                    <td>{{ formatMetric(item.percentage) }}%</td>
-                    <td>{{ item.averageSlaBusinessDays != null ? (formatMetric(item.averageSlaBusinessDays) + ' d') : '-' }}</td>
-                    <td>
-                      <div class="governorate-stt-list" *ngIf="item.sttBreakdown.length > 0; else noGovernorateStts">
-                        <div class="governorate-stt-row" *ngFor="let sttItem of item.sttBreakdown; trackBy: trackByGovernorateStt">
-                          <span class="governorate-stt-row__name">{{ sttItem.sttName || '-' }}</span>
-                          <span class="governorate-stt-row__meta">{{ sttItem.caseCount }} case(s)</span>
-                          <span class="governorate-stt-row__meta">{{ formatMetric(sttItem.percentage) }}%</span>
-                        </div>
+            <div class="governorate-focus" *ngIf="governorateBreakdown.length > 0; else noGovernorateTable">
+              <div class="governorate-focus__toolbar">
+                <label class="form-label fw-semibold mb-1" for="governorate-study-select">Choose a governorate</label>
+                <select
+                  id="governorate-study-select"
+                  class="form-select governorate-focus__select"
+                  [value]="selectedGovernorateStudy"
+                  (change)="selectGovernorateStudy(($any($event.target).value || ''))"
+                >
+                  <option *ngFor="let item of governorateBreakdown; trackBy: trackByGovernorate" [value]="item.gouvernorat || ''">
+                    {{ item.gouvernorat || '-' }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="governorate-focus__summary" *ngIf="focusedGovernorateStudy as focused">
+                <div class="governorate-focus__headline">
+                  <div>
+                    <div class="dashboard-panel__eyebrow">Selected governorate</div>
+                    <div class="governorate-focus__title">{{ focused.gouvernorat || '-' }}</div>
+                  </div>
+                  <div class="governorate-focus__headline-chip">
+                    {{ focused.caseCount }} case(s)
+                  </div>
+                </div>
+
+                <div class="governorate-focus__kpis">
+                  <div class="governorate-focus__kpi">
+                    <span>Share in study</span>
+                    <strong>{{ formatMetric(focused.percentage) }}%</strong>
+                  </div>
+                  <div class="governorate-focus__kpi">
+                    <span>Average SLA</span>
+                    <strong>{{ focused.averageSlaBusinessDays != null ? (formatMetric(focused.averageSlaBusinessDays) + ' d') : '-' }}</strong>
+                  </div>
+                  <div class="governorate-focus__kpi">
+                    <span>Distinct STTs</span>
+                    <strong>{{ focused.distinctSttCount }}</strong>
+                  </div>
+                  <div class="governorate-focus__kpi">
+                    <span>Top STT</span>
+                    <strong>{{ focused.topSttName || '-' }}</strong>
+                  </div>
+                </div>
+
+                <div class="governorate-focus__mix" *ngIf="focused.sttBreakdown.length > 0; else noGovernorateStts">
+                  <div class="dashboard-panel__eyebrow">STT mix in governorate</div>
+                  <div class="governorate-stt-list">
+                    <div class="governorate-stt-row" *ngFor="let sttItem of focused.sttBreakdown; trackBy: trackByGovernorateStt">
+                      <span class="governorate-stt-row__name">{{ sttItem.sttName || '-' }}</span>
+                      <span class="governorate-stt-row__meta">{{ sttItem.caseCount }} case(s)</span>
+                      <span class="governorate-stt-row__meta">{{ formatMetric(sttItem.percentage) }}%</span>
+                      <div class="governorate-stt-row__progress">
+                        <div class="governorate-stt-row__progress-fill" [style.width.%]="governorateSttProgressValue(sttItem)"></div>
                       </div>
-                      <ng-template #noGovernorateStts>
-                        <span>-</span>
-                      </ng-template>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <ng-template #noGovernorateStts>
+                <div class="dashboard-empty dashboard-empty--compact">
+                  <svg cIcon name="cilPeople"></svg>
+                  <span>No STT mix is available for the selected governorate.</span>
+                </div>
+              </ng-template>
             </div>
             <ng-template #noGovernorateTable>
               <div class="dashboard-empty">
