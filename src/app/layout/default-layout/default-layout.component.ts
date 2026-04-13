@@ -1,6 +1,8 @@
 import { Component, effect, inject, OnDestroy, OnInit } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 import {
   ContainerComponent,
@@ -48,18 +50,32 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
 
   private readonly store = inject(AuthStore);
   private readonly notificationStore = inject(NotificationStoreService);
+  private readonly router = inject(Router);
+  private readonly subscriptions = new Subscription();
 
   constructor() {
     effect(() => {
-      this.navItems = getNavByRole(this.store.role());
+      this.refreshNavItems();
     });
   }
 
   ngOnInit(): void {
     this.notificationStore.init();
+    this.subscriptions.add(
+      this.router.events
+        .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+        .subscribe(() => {
+          this.refreshNavItems();
+        })
+    );
   }
 
   ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
     this.notificationStore.destroy();
+  }
+
+  private refreshNavItems(): void {
+    this.navItems = getNavByRole(this.store.role());
   }
 }

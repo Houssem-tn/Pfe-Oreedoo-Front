@@ -4,8 +4,8 @@ export const routes: Routes = [
 
   {
     path: 'dashboard',
-    redirectTo: '/dashboard',
-    pathMatch: 'full'
+    loadComponent: () =>
+      import('../dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
 
   {
@@ -39,6 +39,11 @@ export const routes: Routes = [
     path: 'cases/activation/new',
     loadComponent: () =>
       import('../cases/create-activation-case.component').then(m => m.CreateActivationCaseComponent)
+  },
+  {
+    path: 'saved-zm-performance',
+    loadComponent: () =>
+      import('./saved-zm-performance/saved-zm-performance.component').then(m => m.SavedZmPerformanceComponent)
   },
 
   // Audit home

@@ -2,12 +2,6 @@ import { INavData } from '@coreui/angular';
 
 export const navAdmin: INavData[] = [
   {
-    name: 'Dashboard',
-    url: '/admin/dashboard',
-    iconComponent: { name: 'cil-speedometer' }
-  },
-
-  {
     title: true,
     name: 'Administration'
   },
@@ -29,6 +23,23 @@ export const navAdmin: INavData[] = [
     name: 'Business Rules',
     url: '/admin/rules',
     iconComponent: { name: 'cil-settings' }
+  },
+
+  {
+    title: true,
+    name: 'Performance'
+  },
+
+  {
+    name: 'Import TODOS',
+    url: '/admin/dashboard',
+    iconComponent: { name: 'cil-arrow-top' }
+  },
+
+  {
+    name: 'Saved ZM Performance',
+    url: '/admin/saved-zm-performance',
+    iconComponent: { name: 'cil-speedometer' }
   },
 
   {

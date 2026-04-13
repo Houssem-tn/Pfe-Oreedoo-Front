@@ -7,21 +7,34 @@ import { navZm } from './nav/nav.zm';
 
 import { Role } from '../../core/auth/models/roles.type';
 
+function cloneNavItems(items: INavData[]): INavData[] {
+  return items.map(item => ({
+    ...item,
+    badge: item.badge ? { ...item.badge } : undefined,
+    attributes: item.attributes ? { ...item.attributes } : undefined,
+    iconComponent: item.iconComponent ? { ...item.iconComponent } : undefined,
+    label: item.label ? { ...item.label } : undefined,
+    linkProps: item.linkProps ? { ...item.linkProps } : undefined,
+    wrapper: item.wrapper ? { ...item.wrapper } : undefined,
+    children: item.children ? cloneNavItems(item.children) : undefined
+  }));
+}
+
 export function getNavByRole(role: Role | null): INavData[] {
   if (!role) return [];
 
   switch (role) {
     case 'ROLE_ADMIN':
-      return navAdmin;
+      return cloneNavItems(navAdmin);
 
     case 'ROLE_STT':
-      return navStt;
+      return cloneNavItems(navStt);
 
     case 'ROLE_TECH':
-      return navTech;
+      return cloneNavItems(navTech);
 
     case 'ROLE_ZM':
-      return navZm;
+      return cloneNavItems(navZm);
 
     // case 'ROLE_CRM_BOUTIQUE':
     //   return navCrmBoutique;
