@@ -37,7 +37,7 @@ export const navAdmin: INavData[] = [
   },
 
   {
-    name: 'Saved ZM Performance',
+    name: 'TODOS analysis',
     url: '/admin/saved-zm-performance',
     iconComponent: { name: 'cilChartLine' }
   },

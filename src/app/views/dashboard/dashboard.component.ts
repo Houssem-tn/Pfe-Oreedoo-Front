@@ -98,10 +98,18 @@ export class DashboardComponent implements OnInit {
     return this.importPreview?.previewRows ?? [];
   }
 
+  get cleanedPreviewRows(): AdminPerformanceImportPreviewRow[] {
+    return this.previewRows.filter(row => row.validRow);
+  }
+
+  get invalidPreviewRows(): AdminPerformanceImportPreviewRow[] {
+    return this.previewRows.filter(row => !row.validRow);
+  }
+
   get invalidReasonSummaries(): InvalidReasonSummary[] {
     const summary = new Map<string, number>();
 
-    for (const row of this.previewRows.filter(item => !item.validRow)) {
+    for (const row of this.invalidPreviewRows) {
       const issues = row.issues.length > 0 ? row.issues : ['Unknown validation issue'];
       for (const issue of issues) {
         summary.set(issue, (summary.get(issue) ?? 0) + 1);
@@ -111,6 +119,18 @@ export class DashboardComponent implements OnInit {
     return Array.from(summary.entries())
       .map(([reason, count]) => ({ reason, count }))
       .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason));
+  }
+
+  get distinctInvalidReasonCount(): number {
+    return this.invalidReasonSummaries.length;
+  }
+
+  get invalidRowsWithMultipleIssues(): number {
+    return this.invalidPreviewRows.filter(row => row.issues.length > 1).length;
+  }
+
+  get cleanedRowsWithSla(): number {
+    return this.cleanedPreviewRows.filter(row => row.slaBusinessDays != null).length;
   }
 
   get hasPreview(): boolean {

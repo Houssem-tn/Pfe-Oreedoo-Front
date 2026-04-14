@@ -2,12 +2,14 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { IconDirective } from '@coreui/icons-angular';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
   AdminPerformanceAnalyticsQuery,
   AdminPerformanceImportService,
+  SavedZmPerformanceRowPreview,
+  SavedZmPerformanceRowQualityResponse,
   SavedZmPerformanceStudyResponse,
   ZmPerformanceStudyResponse
 } from '../../../core/admin-performance-import/admin-performance-import.service';
@@ -41,6 +43,8 @@ export class SavedZmPerformanceComponent implements OnInit {
   studies: SavedZmPerformanceStudyResponse[] = [];
   selectedStudyId: string | null = null;
   selectedStudyAnalytics: ZmPerformanceStudyResponse | null = null;
+  selectedStudyRowQuality: SavedZmPerformanceRowQualityResponse | null = null;
+  activeView: 'valid' | 'invalid' = 'valid';
 
   ngOnInit(): void {
     this.loadSavedStudies();
@@ -71,6 +75,7 @@ export class SavedZmPerformanceComponent implements OnInit {
           if (response.length === 0) {
             this.selectedStudyId = null;
             this.selectedStudyAnalytics = null;
+            this.selectedStudyRowQuality = null;
             this.detectViewChanges();
             return;
           }
@@ -78,7 +83,7 @@ export class SavedZmPerformanceComponent implements OnInit {
           const stillExists = this.selectedStudyId && response.some(item => item.id === this.selectedStudyId);
           this.selectedStudyId = stillExists ? this.selectedStudyId : response[0].id;
           this.detectViewChanges();
-          this.loadSelectedStudyAnalytics();
+          this.loadSelectedStudyData();
         },
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to load saved ZM performance studies.';
@@ -86,6 +91,7 @@ export class SavedZmPerformanceComponent implements OnInit {
           this.studies = [];
           this.selectedStudyId = null;
           this.selectedStudyAnalytics = null;
+          this.selectedStudyRowQuality = null;
           this.detectViewChanges();
           await this.swal.error('Saved studies unavailable', message);
         }
@@ -94,18 +100,19 @@ export class SavedZmPerformanceComponent implements OnInit {
 
   selectStudy(studyId: string): void {
     this.selectedStudyId = studyId;
+    this.activeView = 'valid';
     this.resetFiltersSilently();
     this.detectViewChanges();
-    this.loadSelectedStudyAnalytics();
+    this.loadSelectedStudyData();
   }
 
   applyFilters(): void {
-    this.loadSelectedStudyAnalytics();
+    this.loadSelectedStudyData();
   }
 
   resetFilters(): void {
     this.resetFiltersSilently();
-    this.loadSelectedStudyAnalytics();
+    this.loadSelectedStudyData();
   }
 
   get availableZoneManagers(): string[] {
@@ -116,9 +123,33 @@ export class SavedZmPerformanceComponent implements OnInit {
     return this.selectedStudyAnalytics?.availableGovernorates ?? [];
   }
 
-  private async loadSelectedStudyAnalytics(showErrors = false): Promise<void> {
+  setActiveView(view: 'valid' | 'invalid'): void {
+    this.activeView = view;
+    this.detectViewChanges();
+  }
+
+  rowStatusLabel(row: SavedZmPerformanceRowPreview): string {
+    return row.validRow ? 'Valid' : 'Invalid';
+  }
+
+  rowStatusClass(row: SavedZmPerformanceRowPreview): string {
+    return row.validRow
+      ? 'bg-success-subtle text-success-emphasis'
+      : 'bg-danger-subtle text-danger-emphasis';
+  }
+
+  issueLabel(row: SavedZmPerformanceRowPreview): string {
+    return row.issues.length > 0 ? row.issues.join(' | ') : 'Unknown validation issue';
+  }
+
+  trackBySavedRow(index: number, row: SavedZmPerformanceRowPreview): string {
+    return `${row.sourceFileName ?? 'unknown'}-${row.rowNumber}-${index}`;
+  }
+
+  private async loadSelectedStudyData(showErrors = false): Promise<void> {
     if (!this.selectedStudyId) {
       this.selectedStudyAnalytics = null;
+      this.selectedStudyRowQuality = null;
       this.detectViewChanges();
       return;
     }
@@ -129,7 +160,10 @@ export class SavedZmPerformanceComponent implements OnInit {
 
     try {
       const response = await firstValueFrom(
-        this.adminPerformanceImportService.getSavedStudyAnalytics(this.selectedStudyId, this.currentAnalyticsQuery())
+        forkJoin({
+          analytics: this.adminPerformanceImportService.getSavedStudyAnalytics(this.selectedStudyId, this.currentAnalyticsQuery()),
+          rowQuality: this.adminPerformanceImportService.getSavedStudyRowQuality(this.selectedStudyId, this.currentAnalyticsQuery())
+        })
           .pipe(
             finalize(() => {
               this.analyticsLoading = false;
@@ -138,16 +172,18 @@ export class SavedZmPerformanceComponent implements OnInit {
           )
       );
 
-      this.selectedStudyAnalytics = response;
+      this.selectedStudyAnalytics = response.analytics;
+      this.selectedStudyRowQuality = response.rowQuality;
       this.filtersForm.patchValue({
-        zoneManager: response.selectedZoneManager ?? '',
-        gouvernorat: response.selectedGovernorate ?? ''
+        zoneManager: response.analytics.selectedZoneManager ?? '',
+        gouvernorat: response.analytics.selectedGovernorate ?? ''
       }, { emitEvent: false });
       this.detectViewChanges();
     } catch (err: any) {
       const message = err?.error?.message ?? 'Failed to load the saved dashboard statistics.';
       this.errorMessage = message;
       this.selectedStudyAnalytics = null;
+      this.selectedStudyRowQuality = null;
       this.detectViewChanges();
       if (showErrors) {
         await this.swal.error('Saved dashboard unavailable', message);

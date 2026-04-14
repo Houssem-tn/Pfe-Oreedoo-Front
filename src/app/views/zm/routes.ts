@@ -33,6 +33,12 @@ export const routes: Routes = [
     data: { title: 'Inject Todos' }
   },
   {
+    path: 'todos-analysis',
+    loadComponent: () =>
+      import('./todos-analysis/todos-analysis.component').then(m => m.TodosAnalysisComponent),
+    data: { title: 'Todos Analysis' }
+  },
+  {
     path: 'imported-todos',
     loadComponent: () =>
       import('./imported-todos/imported-todos.component').then(m => m.ImportedTodosComponent),

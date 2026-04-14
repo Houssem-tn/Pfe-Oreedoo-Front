@@ -107,6 +107,43 @@ export interface SavedZmPerformanceStudyResponse {
   study: ZmPerformanceStudyResponse;
 }
 
+export interface SavedZmPerformanceInvalidReason {
+  reason: string;
+  count: number;
+}
+
+export interface SavedZmPerformanceRowPreview {
+  sourceFileName?: string | null;
+  uploadedAt?: string | null;
+  rowNumber: number;
+  crmCase?: string | null;
+  zoneManager?: string | null;
+  gouvernorat?: string | null;
+  stt?: string | null;
+  statut?: string | null;
+  openDateSurTimos?: string | null;
+  dateAffectationStt?: string | null;
+  slaBusinessDays?: number | null;
+  issues: string[];
+  validRow: boolean;
+}
+
+export interface SavedZmPerformanceRowQualityResponse {
+  sourceFileNames: string[];
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  distinctZoneManagers: number;
+  distinctStts: number;
+  distinctGovernorates: number;
+  rowsWithSla: number;
+  invalidRowsWithMultipleIssues: number;
+  rowPreviewLimit: number;
+  invalidReasonSummaries: SavedZmPerformanceInvalidReason[];
+  validPreviewRows: SavedZmPerformanceRowPreview[];
+  invalidPreviewRows: SavedZmPerformanceRowPreview[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminPerformanceImportService {
   private readonly http = inject(HttpClient);
@@ -184,5 +221,32 @@ export class AdminPerformanceImportService {
       : `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/analytics`;
 
     return this.http.get<ZmPerformanceStudyResponse>(url);
+  }
+
+  getSavedStudyRowQuality(studyId: string, query: AdminPerformanceAnalyticsQuery): Observable<SavedZmPerformanceRowQualityResponse> {
+    const params = new URLSearchParams();
+
+    if (query.zoneManager?.trim()) {
+      params.set('zoneManager', query.zoneManager.trim());
+    }
+
+    if (query.gouvernorat?.trim()) {
+      params.set('gouvernorat', query.gouvernorat.trim());
+    }
+
+    if (query.uploadedFrom?.trim()) {
+      params.set('uploadedFrom', query.uploadedFrom.trim());
+    }
+
+    if (query.uploadedTo?.trim()) {
+      params.set('uploadedTo', query.uploadedTo.trim());
+    }
+
+    const queryString = params.toString();
+    const url = queryString
+      ? `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/row-quality?${queryString}`
+      : `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/row-quality`;
+
+    return this.http.get<SavedZmPerformanceRowQualityResponse>(url);
   }
 }

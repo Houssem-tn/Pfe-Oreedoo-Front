@@ -185,6 +185,188 @@
   gap: 1rem;
 }
 
+.saved-performance-view-switch {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.saved-performance-toggle {
+  background: linear-gradient(160deg, #fff7f8 0%, #ffffff 100%);
+  border: 1px solid rgba(227, 6, 19, 0.12);
+  border-radius: 1rem;
+  color: #0f172a;
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem 1.05rem;
+  text-align: left;
+  transition: 0.18s ease;
+}
+
+.saved-performance-toggle:hover {
+  border-color: rgba(227, 6, 19, 0.24);
+  transform: translateY(-1px);
+}
+
+.saved-performance-toggle--active {
+  background: linear-gradient(140deg, #fff2f4 0%, #fffafb 100%);
+  border-color: rgba(227, 6, 19, 0.36);
+  box-shadow: 0 0.9rem 1.6rem rgba(227, 6, 19, 0.08);
+}
+
+.saved-performance-toggle__eyebrow {
+  color: var(--ooredoo-red);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.saved-row-quality {
+  display: grid;
+  gap: 1rem;
+}
+
+.saved-row-quality__loading,
+.saved-row-quality__empty {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--ooredoo-border);
+  border-radius: 1rem;
+  box-shadow: 0 0.9rem 1.8rem rgba(15, 23, 42, 0.05);
+  color: #64748b;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  min-height: 140px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.saved-row-quality__kpis {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.saved-row-quality__kpi,
+.saved-row-quality__panel {
+  background: #fff;
+  border: 1px solid var(--ooredoo-border);
+  border-radius: 1rem;
+  box-shadow: 0 0.9rem 1.8rem rgba(15, 23, 42, 0.05);
+}
+
+.saved-row-quality__kpi {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.95rem 1rem;
+}
+
+.saved-row-quality__kpi span {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.saved-row-quality__kpi strong {
+  color: #0f172a;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.saved-row-quality__kpi--success {
+  background: linear-gradient(160deg, #f4fff8 0%, #ffffff 100%);
+}
+
+.saved-row-quality__kpi--danger {
+  background: linear-gradient(160deg, #fff4f6 0%, #ffffff 100%);
+}
+
+.saved-row-quality__panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.saved-row-quality__panel-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.saved-row-quality__panel-title {
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 800;
+  margin-top: 0.25rem;
+}
+
+.saved-row-quality__reason-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.saved-row-quality__reason-item {
+  align-items: center;
+  background: linear-gradient(160deg, #fff8fa 0%, #ffffff 100%);
+  border: 1px solid rgba(227, 6, 19, 0.1);
+  border-radius: 0.9rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+}
+
+.saved-row-quality__reason-text {
+  color: #334155;
+  font-weight: 700;
+}
+
+.saved-row-quality__reason-count {
+  color: #9f1239;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.saved-row-quality__grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.saved-row-quality__hint {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.saved-row-quality__table-shell {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.95rem;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.saved-row-quality__table thead th {
+  background: #fff6f7;
+  color: #7f1d1d;
+  font-size: 0.74rem;
+  font-weight: 800;
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 1;
+}
+
+.saved-row-quality__table td {
+  vertical-align: top;
+}
+
 .saved-performance-meta {
   display: grid;
   gap: 1rem;
@@ -276,6 +458,11 @@
   .saved-performance-sidebar {
     position: static;
   }
+
+  .saved-row-quality__grid,
+  .saved-performance-view-switch {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 767px) {
@@ -288,5 +475,9 @@
   .saved-performance-meta,
   .saved-performance-filters {
     padding: 1rem;
+  }
+
+  .saved-row-quality__kpis {
+    grid-template-columns: 1fr;
   }
 }

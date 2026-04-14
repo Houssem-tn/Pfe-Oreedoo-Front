@@ -28,6 +28,11 @@ export const navZm: INavData[] = [
     iconComponent: { name: 'cilCloudUpload' }
   },
   {
+    name: 'Todos Analysis',
+    url: '/zm/todos-analysis',
+    iconComponent: { name: 'cilSpeedometer' }
+  },
+  {
     name: 'Imported Todos',
     url: '/zm/imported-todos',
     iconComponent: { name: 'cilSpreadsheet' }

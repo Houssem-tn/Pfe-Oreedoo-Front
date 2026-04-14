@@ -1,7 +1,7 @@
 <div class="admin-analytics-dashboard" *ngIf="isAdmin">
   <div class="dashboard-brand-ribbon">
     <span class="dashboard-brand-ribbon__pill">ooredoo</span>
-    <span class="dashboard-brand-ribbon__text">Import TODOS and monitor Zone Manager performance from one branded operations workspace.</span>
+    <span class="dashboard-brand-ribbon__text">Import TODOS and monitor performance from one branded operations workspace.</span>
   </div>
 
   <c-row [gutter]="4">
@@ -15,7 +15,7 @@
                 <span class="hero-card__brand">ooredoo</span>
                 <span class="hero-card__brandcopy">Field Service Analytics</span>
               </div>
-              <h2 class="hero-card__title">Import TODOS and Study Zone Manager Performance</h2>
+              <h2 class="hero-card__title">Import TODOS and Study performance</h2>
               <p class="hero-card__description">
                 Upload operational CSV/XLS/XLSX files, preserve imported batches, and turn them into an Ooredoo-style control room for Zone Manager workload, STT routing, and SLA behavior by governorate.
               </p>
@@ -178,36 +178,190 @@
             </div>
           </div>
 
-          <div class="table-responsive mt-4">
-            <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
-              <thead>
-                <tr>
-                  <th>Row</th>
-                  <th>CRM Case</th>
-                  <th>Zone Manager</th>
-                  <th>Governorate</th>
-                  <th>STT</th>
-                  <th>Status</th>
-                  <th>SLA</th>
-                  <th>Validation</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of previewRows; trackBy: trackByPreviewRow">
-                  <td>#{{ row.rowNumber }}</td>
-                  <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
-                  <td>{{ row.zoneManager || '-' }}</td>
-                  <td>{{ row.gouvernorat || '-' }}</td>
-                  <td>{{ row.stt || '-' }}</td>
-                  <td>{{ row.statut || '-' }}</td>
-                  <td>{{ row.slaBusinessDays != null ? (row.slaBusinessDays + ' d') : '-' }}</td>
-                  <td>
-                    <span class="badge rounded-pill" [ngClass]="rowStatusClass(row)">{{ rowStatusLabel(row) }}</span>
-                    <div class="small text-body-secondary mt-1" *ngIf="row.issues.length > 0">{{ issueLabel(row) }}</div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="preview-section-grid mt-4">
+            <section class="preview-review-card preview-review-card--clean">
+              <div class="preview-review-card__header">
+                <div>
+                  <div class="dashboard-panel__eyebrow">Cleaned data</div>
+                  <div class="dashboard-panel__title">Rows ready for analytics</div>
+                </div>
+                <span class="badge rounded-pill bg-success-subtle text-success-emphasis">
+                  {{ cleanedPreviewRows.length }} valid row(s)
+                </span>
+              </div>
+
+              <div class="preview-review-card__metrics">
+                <div class="preview-review-metric">
+                  <span>Ready rows</span>
+                  <strong>{{ cleanedPreviewRows.length }}</strong>
+                </div>
+                <div class="preview-review-metric">
+                  <span>Rows with SLA</span>
+                  <strong>{{ cleanedRowsWithSla }}</strong>
+                </div>
+                <div class="preview-review-metric">
+                  <span>Will feed KPIs</span>
+                  <strong>{{ preview.validRows }}</strong>
+                </div>
+              </div>
+
+              <div class="small text-body-secondary mb-3">
+                This cleaned view shows only the rows that will contribute to the performance study.
+              </div>
+
+              <div class="preview-table-shell">
+                <div class="table-responsive">
+                  <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>Row</th>
+                        <th>CRM Case</th>
+                        <th>Zone Manager</th>
+                        <th>Governorate</th>
+                        <th>STT</th>
+                        <th>Status</th>
+                        <th>SLA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of cleanedPreviewRows; trackBy: trackByPreviewRow">
+                        <td>#{{ row.rowNumber }}</td>
+                        <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                        <td>{{ row.zoneManager || '-' }}</td>
+                        <td>{{ row.gouvernorat || '-' }}</td>
+                        <td>{{ row.stt || '-' }}</td>
+                        <td>{{ row.statut || '-' }}</td>
+                        <td>{{ row.slaBusinessDays != null ? (row.slaBusinessDays + ' d') : '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section class="preview-review-card preview-review-card--invalid">
+              <div class="preview-review-card__header">
+                <div>
+                  <div class="dashboard-panel__eyebrow">Invalid data</div>
+                  <div class="dashboard-panel__title">Row numbers and reasons</div>
+                </div>
+                <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                  {{ invalidPreviewRows.length }} invalid row(s)
+                </span>
+              </div>
+
+              <div class="preview-review-card__metrics">
+                <div class="preview-review-metric preview-review-metric--danger">
+                  <span>Invalid rows</span>
+                  <strong>{{ invalidPreviewRows.length }}</strong>
+                </div>
+                <div class="preview-review-metric preview-review-metric--danger">
+                  <span>Distinct reasons</span>
+                  <strong>{{ distinctInvalidReasonCount }}</strong>
+                </div>
+                <div class="preview-review-metric preview-review-metric--danger">
+                  <span>Multi-issue rows</span>
+                  <strong>{{ invalidRowsWithMultipleIssues }}</strong>
+                </div>
+              </div>
+
+              <div class="small text-body-secondary mb-3">
+                Use this review table to inspect the invalid rows, their row numbers, and the exact reasons they were excluded from analytics.
+              </div>
+
+              <div class="preview-table-shell" *ngIf="invalidPreviewRows.length > 0; else noInvalidRows">
+                <div class="table-responsive">
+                  <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>Row</th>
+                        <th>CRM Case</th>
+                        <th>Zone Manager</th>
+                        <th>Governorate</th>
+                        <th>STT</th>
+                        <th>Reasons</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of invalidPreviewRows; trackBy: trackByPreviewRow">
+                        <td>#{{ row.rowNumber }}</td>
+                        <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                        <td>{{ row.zoneManager || '-' }}</td>
+                        <td>{{ row.gouvernorat || '-' }}</td>
+                        <td>{{ row.stt || '-' }}</td>
+                        <td>
+                          <div class="preview-issue-list">
+                            <span class="preview-issue-badge" *ngFor="let issue of (row.issues.length > 0 ? row.issues : ['Unknown validation issue'])">
+                              {{ issue }}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <ng-template #noInvalidRows>
+                <div class="dashboard-empty preview-empty-state">
+                  <svg cIcon name="cilCheckCircle" width="26" height="26"></svg>
+                  <div>
+                    <div class="fw-semibold">No invalid rows were detected.</div>
+                    <div class="text-body-secondary">Every parsed row is currently eligible for analytics.</div>
+                  </div>
+                </div>
+              </ng-template>
+            </section>
+          </div>
+
+          <div class="preview-table-section mt-4">
+            <div class="preview-table-section__header">
+              <div>
+                <div class="dashboard-panel__eyebrow">Full batch view</div>
+                <div class="dashboard-panel__title">All parsed rows</div>
+              </div>
+              <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">
+                {{ previewRows.length }} row(s)
+              </span>
+            </div>
+
+            <div class="small text-body-secondary mb-3">
+              This table keeps the complete imported preview together so you can compare cleaned rows and invalid rows in one place.
+            </div>
+
+            <div class="preview-table-shell">
+              <div class="table-responsive">
+                <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>CRM Case</th>
+                      <th>Zone Manager</th>
+                      <th>Governorate</th>
+                      <th>STT</th>
+                      <th>Status</th>
+                      <th>SLA</th>
+                      <th>Validation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of previewRows; trackBy: trackByPreviewRow">
+                      <td>#{{ row.rowNumber }}</td>
+                      <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                      <td>{{ row.zoneManager || '-' }}</td>
+                      <td>{{ row.gouvernorat || '-' }}</td>
+                      <td>{{ row.stt || '-' }}</td>
+                      <td>{{ row.statut || '-' }}</td>
+                      <td>{{ row.slaBusinessDays != null ? (row.slaBusinessDays + ' d') : '-' }}</td>
+                      <td>
+                        <span class="badge rounded-pill" [ngClass]="rowStatusClass(row)">{{ rowStatusLabel(row) }}</span>
+                        <div class="small text-body-secondary mt-1" *ngIf="row.issues.length > 0">{{ issueLabel(row) }}</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </c-card-body>
       </c-card>

@@ -85,7 +85,8 @@
 .todo-table__source,
 .todo-table__sub,
 .todo-table__batch,
-.todo-table__description {
+.todo-table__description,
+.todo-table__issues {
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -110,6 +111,31 @@
   max-width: 360px;
   min-width: 240px;
   white-space: normal;
+}
+
+.todo-table__issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  max-width: 280px;
+}
+
+.todo-table__issue-chip {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.12);
+  border-radius: 999px;
+  color: #991b1b;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 0.3rem 0.6rem;
+}
+
+.todo-table__issue-clear {
+  color: #0f766e;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .todo-board__pagination {

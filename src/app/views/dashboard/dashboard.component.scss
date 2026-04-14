@@ -337,6 +337,109 @@
   white-space: nowrap;
 }
 
+.preview-section-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preview-review-card,
+.preview-table-section {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
+  box-shadow: 0 0.85rem 1.6rem rgba(15, 23, 42, 0.04);
+  padding: 1rem;
+}
+
+.preview-review-card--clean {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fff9 100%);
+}
+
+.preview-review-card--invalid {
+  background: linear-gradient(180deg, #ffffff 0%, #fff8fa 100%);
+}
+
+.preview-review-card__header,
+.preview-table-section__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.preview-review-card__metrics {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.preview-review-metric {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.9rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.preview-review-metric span {
+  color: #64748b;
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.preview-review-metric strong {
+  color: #0f172a;
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.preview-review-metric--danger {
+  background: rgba(255, 241, 242, 0.85);
+  border-color: rgba(225, 29, 72, 0.12);
+}
+
+.preview-table-shell {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.95rem;
+  max-height: 350px;
+  overflow: auto;
+}
+
+.preview-table-shell .dashboard-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.preview-issue-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.preview-issue-badge {
+  background: rgba(225, 29, 72, 0.1);
+  border: 1px solid rgba(225, 29, 72, 0.16);
+  border-radius: 999px;
+  color: #9f1239;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.32rem 0.6rem;
+}
+
+.preview-empty-state {
+  min-height: 180px;
+}
+
 .dashboard-loading,
 .dashboard-empty {
   align-items: center;
@@ -551,6 +654,10 @@
     flex-direction: column;
   }
 
+  .preview-section-grid {
+    grid-template-columns: 1fr;
+  }
+
   .chart-panel c-card-body,
   .chart-panel .card-body {
     min-height: auto;
@@ -564,6 +671,10 @@
 
   .hero-card__title {
     font-size: 1.55rem;
+  }
+
+  .preview-review-card__metrics {
+    grid-template-columns: 1fr;
   }
 
   .chart-wrap,

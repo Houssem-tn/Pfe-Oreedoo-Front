@@ -53,12 +53,18 @@ export class ImportedTodosComponent implements OnInit {
   ];
 
   readonly pageSizeOptions = [25, 50, 100];
+  readonly rowQualityOptions = [
+    { value: '', label: 'All rows' },
+    { value: 'valid', label: 'Valid rows only' },
+    { value: 'invalid', label: 'Invalid rows only' }
+  ];
 
   loading = false;
   errorMessage: string | null = null;
 
   searchTerm = '';
   selectedStatus = '';
+  selectedRowQuality = '';
   selectedGouvernorat = '';
   uploadedFrom = '';
   uploadedTo = '';
@@ -130,6 +136,7 @@ export class ImportedTodosComponent implements OnInit {
     return [
       this.searchTerm.trim(),
       this.selectedStatus.trim(),
+      this.selectedRowQuality.trim(),
       this.selectedGouvernorat.trim(),
       this.uploadedFrom.trim(),
       this.uploadedTo.trim()
@@ -145,6 +152,7 @@ export class ImportedTodosComponent implements OnInit {
       size: this.pageSize,
       search: this.searchTerm,
       statut: this.selectedStatus,
+      rowQuality: this.selectedRowQuality,
       gouvernorat: this.selectedGouvernorat,
       uploadedFrom: this.uploadedFrom,
       uploadedTo: this.uploadedTo
@@ -180,6 +188,7 @@ export class ImportedTodosComponent implements OnInit {
   resetFilters(): void {
     this.searchTerm = '';
     this.selectedStatus = '';
+    this.selectedRowQuality = '';
     this.selectedGouvernorat = '';
     this.uploadedFrom = '';
     this.uploadedTo = '';
@@ -204,5 +213,9 @@ export class ImportedTodosComponent implements OnInit {
 
   trackById(_: number, item: ImportedTodoListItem): string {
     return item.id;
+  }
+
+  trackByIssue(_: number, issue: string): string {
+    return issue;
   }
 }

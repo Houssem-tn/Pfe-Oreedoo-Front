@@ -4,7 +4,7 @@
       <div class="todo-board__eyebrow">ZM import rendering</div>
       <h3 class="mb-1">Imported Todos</h3>
       <p class="text-body-secondary mb-0">
-        Browse injected todos with 50-row pagination, date/status filters, and quick search so you can work the imported dataset freely.
+        Browse every matched row imported for your zone, including valid and invalid rows, with search and filters for day-to-day follow-up.
       </p>
     </div>
 
@@ -30,7 +30,7 @@
             id="import-search"
             type="text"
             class="form-control"
-            placeholder="CRM, description, STT, batch, file"
+            placeholder="CRM, description, STT, issue, batch, file"
             [(ngModel)]="searchTerm"
           />
         </div>
@@ -44,6 +44,17 @@
             placeholder="Imported status"
             [(ngModel)]="selectedStatus"
           />
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="row-quality">Row Quality</label>
+          <select
+            id="row-quality"
+            class="form-select"
+            [(ngModel)]="selectedRowQuality"
+          >
+            <option *ngFor="let option of rowQualityOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
         </div>
 
         <div class="col-12 col-md-6 col-xl-2">
@@ -148,6 +159,7 @@
           <thead>
             <tr>
               <th>CRM Case</th>
+              <th>Quality</th>
               <th>Governorate</th>
               <th>Status</th>
               <th>STT</th>
@@ -155,12 +167,24 @@
               <th>Source</th>
               <th>Batch</th>
               <th>Uploaded</th>
+              <th>Issues</th>
               <th>Description</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of items; trackBy: trackById">
-              <td class="fw-semibold">{{ item.crmCase || '-' }}</td>
+              <td>
+                <div class="fw-semibold">{{ item.crmCase || '-' }}</div>
+                <div class="todo-table__sub" *ngIf="item.rowNumber != null">Row {{ item.rowNumber }}</div>
+              </td>
+              <td>
+                <span
+                  class="badge rounded-pill"
+                  [ngClass]="item.validRow ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'"
+                >
+                  {{ item.validRow ? 'Valid' : 'Invalid' }}
+                </span>
+              </td>
               <td>{{ item.gouvernorat || '-' }}</td>
               <td>
                 <span class="badge rounded-pill bg-info-subtle text-info-emphasis">
@@ -175,6 +199,19 @@
               </td>
               <td class="todo-table__batch">{{ item.importBatchId || '-' }}</td>
               <td>{{ item.uploadedAt ? (item.uploadedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
+              <td>
+                <div class="todo-table__issues" *ngIf="item.validationIssues?.length; else noIssueBlock">
+                  <span
+                    class="todo-table__issue-chip"
+                    *ngFor="let issue of item.validationIssues; trackBy: trackByIssue"
+                  >
+                    {{ issue }}
+                  </span>
+                </div>
+                <ng-template #noIssueBlock>
+                  <span class="todo-table__issue-clear">No issue</span>
+                </ng-template>
+              </td>
               <td class="todo-table__description">{{ item.description || '-' }}</td>
             </tr>
           </tbody>

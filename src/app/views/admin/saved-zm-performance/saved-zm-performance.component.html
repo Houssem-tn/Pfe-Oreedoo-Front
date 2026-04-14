@@ -153,12 +153,197 @@
         </form>
       </section>
 
+      <section class="saved-performance-view-switch">
+        <button
+          type="button"
+          class="saved-performance-toggle"
+          [class.saved-performance-toggle--active]="activeView === 'valid'"
+          (click)="setActiveView('valid')"
+        >
+          <span class="saved-performance-toggle__eyebrow">Valid data statistics</span>
+          <strong>{{ selectedStudyAnalytics?.totalCases ?? 0 }} valid case(s)</strong>
+        </button>
+
+        <button
+          type="button"
+          class="saved-performance-toggle"
+          [class.saved-performance-toggle--active]="activeView === 'invalid'"
+          (click)="setActiveView('invalid')"
+        >
+          <span class="saved-performance-toggle__eyebrow">Invalid data statistics</span>
+          <strong>{{ selectedStudyRowQuality?.invalidRows ?? 0 }} invalid row(s)</strong>
+        </button>
+      </section>
+
       <app-zm-performance-study-view
+        *ngIf="activeView === 'valid'"
         [study]="selectedStudyAnalytics"
         [loading]="analyticsLoading"
         emptyTitle="No saved dashboard snapshot data is available for the current filters."
         emptyMessage="Adjust the filters above or choose another saved file snapshot from the left side."
       />
+
+      <section class="saved-row-quality" *ngIf="activeView === 'invalid'">
+        <div class="saved-row-quality__loading" *ngIf="analyticsLoading">
+          <div class="spinner-border" role="status"></div>
+          <span>Loading archived row-quality statistics...</span>
+        </div>
+
+        <ng-container *ngIf="!analyticsLoading && selectedStudyRowQuality as rowQuality">
+          <div class="saved-row-quality__kpis">
+            <div class="saved-row-quality__kpi">
+              <span>Total rows</span>
+              <strong>{{ rowQuality.totalRows }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi saved-row-quality__kpi--success">
+              <span>Valid rows</span>
+              <strong>{{ rowQuality.validRows }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi saved-row-quality__kpi--danger">
+              <span>Invalid rows</span>
+              <strong>{{ rowQuality.invalidRows }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi">
+              <span>Distinct reasons</span>
+              <strong>{{ rowQuality.invalidReasonSummaries.length }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi">
+              <span>Rows with SLA</span>
+              <strong>{{ rowQuality.rowsWithSla }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi saved-row-quality__kpi--danger">
+              <span>Multi-issue rows</span>
+              <strong>{{ rowQuality.invalidRowsWithMultipleIssues }}</strong>
+            </div>
+          </div>
+
+          <div class="saved-row-quality__panel" *ngIf="rowQuality.invalidReasonSummaries.length > 0">
+            <div class="saved-row-quality__panel-header">
+              <div>
+                <div class="saved-performance-page__eyebrow">Invalid reasons</div>
+                <div class="saved-row-quality__panel-title">Reason distribution</div>
+              </div>
+              <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                {{ rowQuality.invalidRows }} invalid row(s)
+              </span>
+            </div>
+
+            <div class="saved-row-quality__reason-list">
+              <div class="saved-row-quality__reason-item" *ngFor="let item of rowQuality.invalidReasonSummaries">
+                <span class="saved-row-quality__reason-text">{{ item.reason }}</span>
+                <span class="saved-row-quality__reason-count">{{ item.count }} row(s)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="saved-row-quality__grid">
+            <section class="saved-row-quality__panel">
+              <div class="saved-row-quality__panel-header">
+                <div>
+                  <div class="saved-performance-page__eyebrow">Cleaned archived data</div>
+                  <div class="saved-row-quality__panel-title">Valid rows preview</div>
+                </div>
+                <span class="badge rounded-pill bg-success-subtle text-success-emphasis">
+                  {{ rowQuality.validRows }} valid row(s)
+                </span>
+              </div>
+
+              <div class="saved-row-quality__hint">
+                Showing up to {{ rowQuality.rowPreviewLimit }} valid archived row(s) for the current filters.
+              </div>
+
+              <div class="saved-row-quality__table-shell">
+                <div class="table-responsive">
+                  <table class="table table-hover table-striped mb-0 saved-row-quality__table">
+                    <thead>
+                      <tr>
+                        <th>File</th>
+                        <th>Row</th>
+                        <th>CRM Case</th>
+                        <th>Zone Manager</th>
+                        <th>Governorate</th>
+                        <th>STT</th>
+                        <th>Status</th>
+                        <th>SLA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of rowQuality.validPreviewRows; trackBy: trackBySavedRow">
+                        <td>{{ row.sourceFileName || '-' }}</td>
+                        <td>#{{ row.rowNumber }}</td>
+                        <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                        <td>{{ row.zoneManager || '-' }}</td>
+                        <td>{{ row.gouvernorat || '-' }}</td>
+                        <td>{{ row.stt || '-' }}</td>
+                        <td>{{ row.statut || '-' }}</td>
+                        <td>{{ row.slaBusinessDays != null ? (row.slaBusinessDays + ' d') : '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section class="saved-row-quality__panel">
+              <div class="saved-row-quality__panel-header">
+                <div>
+                  <div class="saved-performance-page__eyebrow">Invalid archived data</div>
+                  <div class="saved-row-quality__panel-title">Row numbers and reasons</div>
+                </div>
+                <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                  {{ rowQuality.invalidRows }} invalid row(s)
+                </span>
+              </div>
+
+              <div class="saved-row-quality__hint">
+                Showing up to {{ rowQuality.rowPreviewLimit }} invalid archived row(s) for the current filters.
+              </div>
+
+              <div class="saved-row-quality__table-shell" *ngIf="rowQuality.invalidPreviewRows.length > 0; else noInvalidRows">
+                <div class="table-responsive">
+                  <table class="table table-hover table-striped mb-0 saved-row-quality__table">
+                    <thead>
+                      <tr>
+                        <th>File</th>
+                        <th>Row</th>
+                        <th>CRM Case</th>
+                        <th>Zone Manager</th>
+                        <th>Governorate</th>
+                        <th>STT</th>
+                        <th>Reasons</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of rowQuality.invalidPreviewRows; trackBy: trackBySavedRow">
+                        <td>{{ row.sourceFileName || '-' }}</td>
+                        <td>#{{ row.rowNumber }}</td>
+                        <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                        <td>{{ row.zoneManager || '-' }}</td>
+                        <td>{{ row.gouvernorat || '-' }}</td>
+                        <td>{{ row.stt || '-' }}</td>
+                        <td>
+                          <span class="badge rounded-pill" [ngClass]="rowStatusClass(row)">{{ rowStatusLabel(row) }}</span>
+                          <div class="small text-body-secondary mt-1">{{ issueLabel(row) }}</div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <ng-template #noInvalidRows>
+                <div class="saved-row-quality__empty">
+                  <svg cIcon name="cilCheckCircle" width="24" height="24"></svg>
+                  <div>
+                    <div class="fw-semibold">No invalid archived rows match the current filters.</div>
+                    <div class="text-body-secondary">Try broadening the filters if you want to inspect invalid rows from another slice of the saved study.</div>
+                  </div>
+                </div>
+              </ng-template>
+            </section>
+          </div>
+        </ng-container>
+      </section>
     </div>
   </div>
 </section>

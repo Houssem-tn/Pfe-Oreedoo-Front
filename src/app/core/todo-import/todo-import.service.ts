@@ -53,6 +53,9 @@ export interface ImportedTodoListItem {
   importBatchId?: string | null;
   sourceFileName?: string | null;
   managerFilterUsed?: string | null;
+  rowNumber?: number | null;
+  validRow?: boolean | null;
+  validationIssues?: string[] | null;
   crmCase?: string | null;
   fxDateCrm?: string | null;
   gouvernorat?: string | null;
@@ -71,11 +74,113 @@ export interface ImportedTodoPageResponse {
   size: number;
 }
 
+export interface ZmTodoAnalyticsAlert {
+  severity: string;
+  title: string;
+  message: string;
+}
+
+export interface ZmTodoAnalyticsSttItem {
+  sttName?: string | null;
+  caseCount: number;
+  percentage: number;
+  averageSlaBusinessDays?: number | null;
+  delayedCases: number;
+  delayedRate: number;
+  geleCases: number;
+  geleRate: number;
+}
+
+export interface ZmTodoAnalyticsGovernorateItem {
+  gouvernorat?: string | null;
+  caseCount: number;
+  percentage: number;
+  averageSlaBusinessDays?: number | null;
+  delayedCases: number;
+  delayedRate: number;
+  geleCases: number;
+  geleRate: number;
+  topSttName?: string | null;
+  topSttCaseCount: number;
+}
+
+export interface ZmTodoAnalyticsInvalidReason {
+  reason: string;
+  count: number;
+  crmCases: string[];
+}
+
+export interface ZmTodoAnalyticsResponse {
+  sourceFileName: string;
+  connectedZmName: string;
+  managerNameUsed: string;
+  totalRows: number;
+  matchedRows: number;
+  ignoredRows: number;
+  validMatchedRows: number;
+  invalidMatchedRows: number;
+  totalCases: number;
+  rowsWithSla: number;
+  averageSlaBusinessDays?: number | null;
+  delayedCases: number;
+  delayedRate: number;
+  geleCases: number;
+  geleRate: number;
+  distinctSttCount: number;
+  distinctGovernorateCount: number;
+  topSttName?: string | null;
+  topSttCaseCount: number;
+  topSttPercentage?: number | null;
+  bestGovernorateName?: string | null;
+  bestGovernorateAverageSla?: number | null;
+  worstGovernorateName?: string | null;
+  worstGovernorateAverageSla?: number | null;
+  alerts: ZmTodoAnalyticsAlert[];
+  insights: string[];
+  sttBreakdown: ZmTodoAnalyticsSttItem[];
+  governorateBreakdown: ZmTodoAnalyticsGovernorateItem[];
+  invalidReasonSummaries: ZmTodoAnalyticsInvalidReason[];
+}
+
+export interface ZmTodoImportProcessResponse {
+  analysisId: string;
+  sourceFileName: string;
+  uploadedAt: string;
+  importBatchId: string;
+  totalRows: number;
+  matchedRows: number;
+  ignoredRows: number;
+  validMatchedRows: number;
+  invalidMatchedRows: number;
+  savedRows: number;
+}
+
+export interface ZmTodoAnalysisListItem {
+  id: string;
+  sourceFileName: string;
+  uploadedAt: string;
+  importBatchId: string;
+  connectedZmName: string;
+  totalCases: number;
+  matchedRows: number;
+  invalidMatchedRows: number;
+  averageSlaBusinessDays?: number | null;
+}
+
+export interface ZmTodoAnalysisDetailResponse {
+  id: string;
+  sourceFileName: string;
+  uploadedAt: string;
+  importBatchId: string;
+  analytics: ZmTodoAnalyticsResponse;
+}
+
 export interface ImportedTodoListQuery {
   page?: number;
   size?: number;
   search?: string;
   statut?: string;
+  rowQuality?: string;
   gouvernorat?: string;
   uploadedFrom?: string;
   uploadedTo?: string;
@@ -92,9 +197,29 @@ export class TodoImportService {
     return this.http.post<TodoImportPreviewResponse>(`${this.importUrl}/preview`, formData);
   }
 
+  analyze(file: File): Observable<ZmTodoAnalyticsResponse> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<ZmTodoAnalyticsResponse>(`${this.importUrl}/analyze`, formData);
+  }
+
+  process(file: File): Observable<ZmTodoImportProcessResponse> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<ZmTodoImportProcessResponse>(`${this.importUrl}/process`, formData);
+  }
+
   inject(file: File, managerFilter: string): Observable<TodoImportInjectResponse> {
     const formData = this.buildPayload(file, managerFilter);
     return this.http.post<TodoImportInjectResponse>(`${this.importUrl}/inject`, formData);
+  }
+
+  listSavedAnalyses(): Observable<ZmTodoAnalysisListItem[]> {
+    return this.http.get<ZmTodoAnalysisListItem[]>(`${this.importUrl}/analyses`);
+  }
+
+  getSavedAnalysis(analysisId: string): Observable<ZmTodoAnalysisDetailResponse> {
+    return this.http.get<ZmTodoAnalysisDetailResponse>(`${this.importUrl}/analyses/${analysisId}`);
   }
 
   list(query: ImportedTodoListQuery): Observable<ImportedTodoPageResponse> {
@@ -114,6 +239,10 @@ export class TodoImportService {
 
     if (query.statut?.trim()) {
       params.set('statut', query.statut.trim());
+    }
+
+    if (query.rowQuality?.trim()) {
+      params.set('rowQuality', query.rowQuality.trim());
     }
 
     if (query.gouvernorat?.trim()) {
