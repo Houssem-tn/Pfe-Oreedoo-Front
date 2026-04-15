@@ -1,0 +1,177 @@
+<section class="zm-import-page">
+  <header class="zm-import-hero">
+    <div class="zm-import-hero__content">
+      <div class="zm-import-hero__eyebrow">
+        <svg cIcon name="cilCloudUpload"></svg>
+        Ooredoo todo import workspace
+      </div>
+
+      <h1>Inject Todos</h1>
+      <p>
+        Upload the external operational file, save every matched row that belongs to your perimeter, and automatically save
+        a new analysis snapshot in <strong>Todos Analysis</strong>.
+      </p>
+
+      <div class="zm-import-hero__chips">
+        <span class="zm-import-hero__chip">
+          <svg cIcon name="cilPeople"></svg>
+          {{ connectedZmName }}
+        </span>
+        <span class="zm-import-hero__chip">
+          <svg cIcon name="cilDescription"></svg>
+          Excel match key: {{ managerKeyUsed }}
+        </span>
+      </div>
+    </div>
+
+    <div class="zm-import-hero__actions">
+      <a routerLink="/zm/todos-analysis" class="btn-import btn-import--primary">
+        <svg cIcon name="cilSpeedometer"></svg>
+        Open Todos Analysis
+      </a>
+
+      <a routerLink="/zm/imported-todos" class="btn-import btn-import--ghost">
+        <svg cIcon name="cilDescription"></svg>
+        Open Imported Todos
+      </a>
+    </div>
+  </header>
+
+  <section class="zm-import-card card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="zm-import-section-heading">
+        <div>
+          <div class="zm-import-section-heading__title">Upload and process file</div>
+          <div class="zm-import-section-heading__hint">
+            The backend filters rows by your connected ZM identity, stores both valid and invalid matched rows into
+            <strong>Imported Todos</strong>, and stores the analytics snapshot separately in
+            <strong>Todos Analysis</strong>.
+          </div>
+        </div>
+        <span class="zm-import-section-heading__badge" *ngIf="profileLoading">Loading identity...</span>
+      </div>
+
+      <div class="zm-import-upload">
+        <label class="zm-import-picker" for="zm-import-file">
+          <div class="zm-import-picker__icon">
+            <svg cIcon name="cilCloudUpload"></svg>
+          </div>
+          <div class="zm-import-picker__body">
+            <strong>{{ selectedFile?.name || 'Choose a CSV, XLS or XLSX file' }}</strong>
+            <span>The upload will generate both imported todo rows and a saved analysis snapshot.</span>
+          </div>
+          <div class="zm-import-picker__cta">Browse</div>
+        </label>
+
+        <input
+          id="zm-import-file"
+          type="file"
+          class="d-none"
+          accept=".csv,.xls,.xlsx"
+          (change)="onFileSelected($event)"
+        />
+
+        <button
+          type="button"
+          class="btn-import btn-import--primary"
+          (click)="processUpload()"
+          [disabled]="processing || !selectedFile"
+        >
+          <svg cIcon [name]="processing ? 'cilClock' : 'cilCloudUpload'"></svg>
+          {{ processing ? 'Importing...' : 'Import file and save analysis' }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="zm-import-feedback zm-import-feedback--danger" *ngIf="errorMessage">
+    <svg cIcon name="cilWarning"></svg>
+    <div>{{ errorMessage }}</div>
+  </div>
+
+  <div class="zm-import-feedback zm-import-feedback--info" *ngIf="infoMessage">
+    <svg cIcon name="cilBell"></svg>
+    <div>{{ infoMessage }}</div>
+  </div>
+
+  <section class="zm-import-empty card border-0 shadow-sm" *ngIf="!result && !processing">
+    <div class="card-body">
+      <div class="zm-import-empty__grid">
+        <article class="zm-import-empty__card">
+          <svg cIcon name="cilDescription"></svg>
+          <strong>Imported rows</strong>
+          <span>All matched rows are saved into Imported Todos, with row-quality information preserved.</span>
+        </article>
+
+        <article class="zm-import-empty__card">
+          <svg cIcon name="cilSpeedometer"></svg>
+          <strong>Saved analysis</strong>
+          <span>Alerts, charts, and insights are stored in a separate Todos Analysis collection.</span>
+        </article>
+
+        <article class="zm-import-empty__card">
+          <svg cIcon name="cilWarning"></svg>
+          <strong>Invalid rows tracked</strong>
+          <span>Matched rows with issues are saved as invalid rows and still appear in the saved analysis snapshot.</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <ng-container *ngIf="result as vm">
+    <section class="zm-import-summary">
+      <article
+        class="zm-import-summary__card"
+        [ngClass]="'zm-import-summary__card--' + card.tone"
+        *ngFor="let card of importSummaryCards"
+      >
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+      </article>
+    </section>
+
+    <section class="zm-import-result card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="zm-import-section-heading">
+          <div>
+            <div class="zm-import-section-heading__title">Import completed</div>
+            <div class="zm-import-section-heading__hint">
+              Your file has been processed and a separate analytics study is now available in Todos Analysis.
+            </div>
+          </div>
+        </div>
+
+        <div class="zm-import-result__grid">
+          <article class="zm-import-result__item">
+            <span>Source file</span>
+            <strong>{{ vm.sourceFileName }}</strong>
+          </article>
+          <article class="zm-import-result__item">
+            <span>Uploaded at</span>
+            <strong>{{ formatDateTime(vm.uploadedAt) }}</strong>
+          </article>
+          <article class="zm-import-result__item">
+            <span>Batch</span>
+            <strong>{{ vm.importBatchId }}</strong>
+          </article>
+          <article class="zm-import-result__item">
+            <span>Saved analysis ID</span>
+            <strong>{{ vm.analysisId }}</strong>
+          </article>
+        </div>
+
+        <div class="zm-import-result__actions">
+          <a [routerLink]="['/zm/todos-analysis']" [queryParams]="{ analysisId: vm.analysisId }" class="btn-import btn-import--primary">
+            <svg cIcon name="cilSpeedometer"></svg>
+            Open this analysis
+          </a>
+
+          <a routerLink="/zm/imported-todos" class="btn-import btn-import--ghost-dark">
+            <svg cIcon name="cilDescription"></svg>
+            Open imported rows
+          </a>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</section>

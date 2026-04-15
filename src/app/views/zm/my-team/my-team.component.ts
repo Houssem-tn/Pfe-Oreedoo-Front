@@ -2,9 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import Swal from 'sweetalert2';
 
 import { CasesService } from '../../../core/cases/cases.service';
 import { PerformanceSummaryResponse } from '../../../core/cases/models/case.model';
+import { SwalService } from '../../../core/ui/swal.service';
 import { UserService } from '../../../core/users/user.service';
 import { AppUser } from '../../../core/users/user.model';
 
@@ -18,10 +20,14 @@ import { AppUser } from '../../../core/users/user.model';
 export class MyTeamComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly casesService = inject(CasesService);
+  private readonly swal = inject(SwalService);
 
   stts = signal<AppUser[]>([]);
+  zmProfile = signal<AppUser | null>(null);
+  pendingCoverageRequests = signal<AppUser[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
+  validatingCoverageSttId = signal<string | null>(null);
 
   expandedSttId = signal<string | null>(null);
   techsByStt = signal<Record<string, AppUser[]>>({});
@@ -29,8 +35,22 @@ export class MyTeamComponent implements OnInit {
   performanceByEmail = signal<Record<string, PerformanceSummaryResponse>>({});
 
   ngOnInit(): void {
+    this.loadMyProfile();
     this.loadMyStts();
+    this.loadPendingCoverageRequests();
     this.loadTechPerformance();
+  }
+
+  loadMyProfile(): void {
+    this.userService.getMe().subscribe({
+      next: (res) => {
+        this.zmProfile.set(res ?? null);
+      },
+      error: (err) => {
+        console.error('Failed to load ZM profile', err);
+        this.zmProfile.set(null);
+      }
+    });
   }
 
   loadMyStts(): void {
@@ -46,6 +66,18 @@ export class MyTeamComponent implements OnInit {
         console.error('Failed to load my STTs', err);
         this.error.set(err?.error?.message ?? 'Unable to load your STT team right now.');
         this.loading.set(false);
+      }
+    });
+  }
+
+  loadPendingCoverageRequests(): void {
+    this.userService.getMyPendingCoverageRequests().subscribe({
+      next: (res) => {
+        this.pendingCoverageRequests.set(res || []);
+      },
+      error: (err) => {
+        console.error('Failed to load pending STT coverage requests', err);
+        this.pendingCoverageRequests.set([]);
       }
     });
   }
@@ -203,6 +235,10 @@ export class MyTeamComponent implements OnInit {
     return Object.values(this.performanceByEmail()).reduce((sum, row) => sum + (row.activeTasksCount ?? 0), 0);
   }
 
+  get pendingCoverageValidationCount(): number {
+    return this.pendingCoverageRequests().reduce((sum, stt) => sum + this.pendingGovernoratesFor(stt).length, 0);
+  }
+
   get avgTeamCompletion(): number {
     const rows = Object.values(this.performanceByEmail());
     if (!rows.length) {
@@ -222,5 +258,95 @@ export class MyTeamComponent implements OnInit {
       default:
         return 'bg-warning-subtle text-warning-emphasis';
     }
+  }
+
+  pendingGovernoratesFor(stt: AppUser): string[] {
+    const territory = new Set((this.zmProfile()?.assignedGovernorates ?? []).filter((item) => !!item?.trim()));
+    return (stt.requestedGovernorates ?? []).filter((governorate) => territory.has(governorate));
+  }
+
+  isValidatingCoverage(sttId: string): boolean {
+    return this.validatingCoverageSttId() === sttId;
+  }
+
+  async openValidateCoverageModal(stt: AppUser): Promise<void> {
+    const governorates = this.pendingGovernoratesFor(stt);
+    if (!governorates.length) {
+      await this.swal.error('Nothing to validate', 'This STT has no pending governorate request inside your territory.');
+      return;
+    }
+
+    const result = await Swal.fire<string[]>({
+      titleText: `Validate Zones for ${stt.fullName}`,
+      width: 720,
+      html: `
+        <div class="coverage-approval-modal">
+          <div class="coverage-approval-modal__hint">
+            Approve the governorates you want to activate for this STT inside your territory.
+          </div>
+          <div class="coverage-approval-modal__grid">
+            ${governorates.map((governorate) => `
+              <label class="coverage-approval-modal__option">
+                <input type="checkbox" name="sw-coverage-approval" value="${this.escapeHtml(governorate)}" checked />
+                <span>${this.escapeHtml(governorate)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Validate zones',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#321fdb',
+      preConfirm: () => {
+        const popup = Swal.getPopup();
+        if (!popup) {
+          return [];
+        }
+
+        const selected = Array.from(
+          popup.querySelectorAll<HTMLInputElement>('input[name="sw-coverage-approval"]:checked')
+        ).map((checkbox) => checkbox.value);
+
+        if (selected.length === 0) {
+          Swal.showValidationMessage('Select at least one governorate to validate');
+          return undefined;
+        }
+
+        return selected;
+      }
+    });
+
+    if (!result.isConfirmed || !result.value?.length) {
+      return;
+    }
+
+    this.validatingCoverageSttId.set(stt.id);
+
+    this.userService.validateCoverageAreasForStt(stt.id, {
+      approvedGovernorates: result.value
+    }).subscribe({
+      next: async () => {
+        this.loadMyStts();
+        this.loadPendingCoverageRequests();
+        await this.swal.success('Zones validated', `Governorates were validated successfully for ${stt.fullName}.`);
+        this.validatingCoverageSttId.set(null);
+      },
+      error: async (err) => {
+        console.error('Failed to validate STT coverage areas', err);
+        const message = err?.error?.message ?? 'Failed to validate STT coverage areas';
+        await this.swal.error('Validation failed', message);
+        this.validatingCoverageSttId.set(null);
+      }
+    });
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
   }
 }

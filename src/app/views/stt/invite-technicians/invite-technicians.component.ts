@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { IconDirective } from '@coreui/icons-angular';
 import { finalize } from 'rxjs/operators';
 import { TechInvitation, TechInvitationService } from '../../../core/invitations/tech-invitation.service';
 import { SwalService } from '../../../core/ui/swal.service';
@@ -8,8 +10,9 @@ import { SwalService } from '../../../core/ui/swal.service';
 @Component({
   selector: 'app-invite-technicians',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './invite-technicians.component.html'
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconDirective],
+  templateUrl: './invite-technicians.component.html',
+  styleUrl: './invite-technicians.component.scss'
 })
 export class InviteTechniciansComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -27,6 +30,39 @@ export class InviteTechniciansComponent implements OnInit {
   protected form = this.fb.group({
     email: ['', [Validators.required, Validators.email]]
   });
+
+  protected get summaryCards(): Array<{ label: string; value: number; icon: string; tone: string }> {
+    return [
+      {
+        label: 'Total invitations',
+        value: this.invitations.length,
+        icon: 'cilEnvelopeOpen',
+        tone: 'brand'
+      },
+      {
+        label: 'Pending registration',
+        value: this.invitations.filter((item) => item.status === 'PENDING_REGISTRATION').length,
+        icon: 'cilAlarm',
+        tone: 'warning'
+      },
+      {
+        label: 'Waiting ZM approval',
+        value: this.invitations.filter((item) => item.status === 'REGISTERED_PENDING_ZM_APPROVAL').length,
+        icon: 'cilClock',
+        tone: 'soft'
+      },
+      {
+        label: 'Approved',
+        value: this.invitations.filter((item) => item.status === 'APPROVED_BY_ZM').length,
+        icon: 'cilCheckCircle',
+        tone: 'success'
+      }
+    ];
+  }
+
+  protected get sortedInvitations(): TechInvitation[] {
+    return [...this.invitations].sort((left, right) => this.toEpoch(right.createdAt) - this.toEpoch(left.createdAt));
+  }
 
   ngOnInit(): void {
     this.loadInvitations();
@@ -157,6 +193,19 @@ export class InviteTechniciansComponent implements OnInit {
     return item.id ?? item.email ?? index.toString();
   }
 
+  protected statusLabel(status?: string | null): string {
+    if (!status?.trim()) {
+      return '-';
+    }
+
+    return status
+      .trim()
+      .toLowerCase()
+      .split('_')
+      .map((part) => part ? part[0].toUpperCase() + part.slice(1) : '')
+      .join(' ');
+  }
+
   private extractErrorMessage(err: any, fallback: string): string {
     if (typeof err?.error === 'string') {
       try {
@@ -168,5 +217,14 @@ export class InviteTechniciansComponent implements OnInit {
     }
 
     return err?.error?.message || err?.message || fallback;
+  }
+
+  private toEpoch(value?: string | null): number {
+    if (!value) {
+      return 0;
+    }
+
+    const epoch = Date.parse(value);
+    return Number.isNaN(epoch) ? 0 : epoch;
   }
 }

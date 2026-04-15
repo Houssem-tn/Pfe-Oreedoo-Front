@@ -1,11 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../http/api.config';
 import {
   AssignTechRequest,
-  AssignZmRequest,
   AssignSttRequest,
   CaseResponse,
   CompleteWorkRequest,
@@ -30,6 +29,13 @@ export class CasesService {
     return this.http.get<CaseResponse>(`${this.casesUrl}/${id}`);
   }
 
+  downloadCasePdf(id: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.casesUrl}/${id}/pdf`, {
+      observe: 'response',
+      responseType: 'blob'
+    });
+  }
+
   createCase(payload: CreateCaseRequest): Observable<CaseResponse> {
     return this.http.post<CaseResponse>(this.casesUrl, payload);
   }
@@ -44,11 +50,6 @@ export class CasesService {
   assignStt(caseId: string, stt: string | AssignSttRequest): Observable<CaseResponse> {
     const payload = typeof stt === 'string' ? { sttId: stt } : { sttId: stt.sttId };
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/assign-stt`, payload);
-  }
-
-  assignZm(caseId: string, zm: string | AssignZmRequest): Observable<CaseResponse> {
-    const payload = typeof zm === 'string' ? { zmId: zm } : { zmId: zm.zmId };
-    return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/assign-zm`, payload);
   }
 
   assignTech(caseId: string, tech: string | AssignTechRequest): Observable<CaseResponse> {

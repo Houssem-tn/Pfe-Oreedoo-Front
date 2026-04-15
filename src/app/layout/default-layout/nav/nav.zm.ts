@@ -22,6 +22,21 @@ export const navZm: INavData[] = [
     url: '/zm/cases/activation',
     iconComponent: { name: 'cilFolder' }
   },
+  {
+    name: 'Inject Todos',
+    url: '/zm/inject-todos',
+    iconComponent: { name: 'cilCloudUpload' }
+  },
+  {
+    name: 'Todos Analysis',
+    url: '/zm/todos-analysis',
+    iconComponent: { name: 'cilSpeedometer' }
+  },
+  {
+    name: 'Imported Todos',
+    url: '/zm/imported-todos',
+    iconComponent: { name: 'cilSpreadsheet' }
+  },
 
    {
     name: 'My Team',

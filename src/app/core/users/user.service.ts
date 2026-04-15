@@ -5,9 +5,22 @@ import { map } from 'rxjs/operators';
 import { AppUser, Role, UserAuditDetailsResponse, UserAuditItem } from './user.model';
 import { API_BASE_URL } from '../http/api.config';
 
-export interface AssignSttToZmRequest {
+export interface AssignCoverageAreasToSttRequest {
   sttId: string;
+  coveredGovernorates: string[];
+}
+
+export interface RequestCoverageAreasRequest {
+  requestedGovernorates: string[];
+}
+
+export interface ValidateCoverageAreasRequest {
+  approvedGovernorates: string[];
+}
+
+export interface AssignGovernoratesToZmRequest {
   zmId: string;
+  assignedGovernorates: string[];
 }
 
 @Injectable({
@@ -52,21 +65,30 @@ export class UserService {
     return this.http.get<UserAuditItem[]>(`${this.usersUrl}/audit/by-role/${role}`);
   }
 
-  assignSttToZm(body: AssignSttToZmRequest): Observable<AppUser> {
+  assignCoverageAreasToStt(body: AssignCoverageAreasToSttRequest): Observable<AppUser> {
     return this.http.put<AppUser>(
-      `${this.baseUrl}/admin/assign-stt-to-zm`,
+      `${this.baseUrl}/admin/assign-coverage-areas-to-stt`,
       body
     );
+  }
+
+  assignGovernoratesToZm(body: AssignGovernoratesToZmRequest): Observable<AppUser> {
+    return this.http.put<AppUser>(
+      `${this.baseUrl}/admin/assign-governorates-to-zm`,
+      body
+    );
+  }
+
+  requestMyCoverageAreas(body: RequestCoverageAreasRequest): Observable<AppUser> {
+    return this.http.put<AppUser>(`${this.usersUrl}/me/coverage-request`, body);
   }
 
   getMyStts(): Observable<AppUser[]> {
     return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts`);
   }
 
-  getAllZmsForAssignment(): Observable<AppUser[]> {
-    return this.getAll().pipe(
-      map((users) => (users ?? []).filter((u) => u.role === 'ROLE_ZM' && u.status === 'APPROVED' && !!u.enabled))
-    );
+  getMyPendingCoverageRequests(): Observable<AppUser[]> {
+    return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts/coverage-requests`);
   }
 
   getMySttsForZm(): Observable<AppUser[]> {
@@ -83,6 +105,10 @@ export class UserService {
     return this.getMySttTechs(sttId).pipe(
       map((users) => (users ?? []).filter((u) => u.role === 'ROLE_TECH' && u.status === 'APPROVED' && !!u.enabled))
     );
+  }
+
+  validateCoverageAreasForStt(sttId: string, body: ValidateCoverageAreasRequest): Observable<AppUser> {
+    return this.http.put<AppUser>(`${this.usersUrl}/me/stts/${sttId}/coverage-validation`, body);
   }
 
   uploadProfileImage(userId: string, file: File): Observable<AppUser> {

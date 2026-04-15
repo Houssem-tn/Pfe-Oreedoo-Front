@@ -164,7 +164,10 @@
 
         <label class="crm-field">
           <span>Gouvernorat <em>*</em></span>
-          <input type="text" [class.is-invalid]="invalid('gouvernorat')" formControlName="gouvernorat" />
+          <select [class.is-invalid]="invalid('gouvernorat')" formControlName="gouvernorat">
+            <option value="">Select governorate</option>
+            <option *ngFor="let governorate of governorateOptions" [value]="governorate">{{ governorate }}</option>
+          </select>
           <small>{{ errorFor('gouvernorat', 'Gouvernorat') }}</small>
         </label>
       </div>
@@ -172,7 +175,7 @@
 
     <div class="crm-form-footer">
       <div class="crm-form-footer__note">
-        Keep CRM case, client phone, and MSISDN accurate here so assignment, RDV, and field execution stay reliable downstream.
+        Keep CRM case, client phone, MSISDN, and governorate accurate here so the owner ZM is resolved automatically and field execution stays reliable downstream.
       </div>
 
       <div class="crm-form-footer__actions">

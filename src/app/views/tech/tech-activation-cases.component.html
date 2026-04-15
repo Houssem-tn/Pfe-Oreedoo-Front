@@ -5,13 +5,13 @@
         <svg cIcon name="cilTask"></svg>
         Ooredoo TECH mobile board
       </div>
-      <div class="tech-tasks-hero__chip">{{ visibleCases.length }} in view</div>
+      <div class="tech-tasks-hero__chip">{{ totalVisibleCases }} in view</div>
     </div>
 
-    <h1>One clean field board for urgent tasks, RDV, work closure, and proof.</h1>
+    <h1>One mobile queue for urgent tasks, RDV, and work closure.</h1>
     <p>
-      Urgent cases stay first, proof capture stays close to the work form, and GPS traceability stays readable on a
-      phone without turning the board into a desktop-style admin page.
+      The board now keeps fewer tasks on screen at once, separates core actions from tools, and makes field movement
+      smoother without changing your workflow.
     </p>
 
     <div class="tech-tasks-hero__stats">
@@ -105,12 +105,13 @@
         </span>
         <input
           type="search"
-          [(ngModel)]="searchTerm"
+          [ngModel]="searchTerm"
+          (ngModelChange)="updateSearchTerm($event)"
           placeholder="Search CRM, customer, phone, location or offer"
         />
       </label>
 
-      <select [(ngModel)]="statusFilter" class="tech-select">
+      <select [ngModel]="statusFilter" (ngModelChange)="updateStatusFilter($any($event))" class="tech-select">
         <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
       </select>
     </div>
@@ -157,7 +158,7 @@
     <div class="tech-toolbar__footer">
       <div class="tech-toolbar__perf">{{ performanceLabel() }}</div>
       <div class="tech-toolbar__meta">
-        <span>{{ visibleCases.length }} visible</span>
+        <span>{{ totalVisibleCases }} visible</span>
         <span>{{ pendingProofCount }} proof pending</span>
       </div>
     </div>
@@ -180,12 +181,41 @@
         <div class="tech-section-header">
           <div>
             <div class="tech-section-header__title">Operational queue</div>
-            <div class="tech-section-header__hint">Urgent tasks, RDV, and work-ready cases stay ordered with the next action close at hand.</div>
+            <div class="tech-section-header__hint">Only a few tasks stay on screen at once so the next move is easier to read and tap.</div>
           </div>
-          <span class="tech-section-header__meta">{{ visibleCases.length }} visible</span>
+          <span class="tech-section-header__meta">{{ totalVisibleCases }} visible</span>
         </div>
 
-        <article class="tech-case-card" *ngFor="let item of visibleCases; trackBy: trackById">
+        <div class="tech-queue-overview" *ngIf="totalVisibleCases > 0">
+          <div class="tech-queue-overview__stats">
+            <span class="tech-queue-pill">Showing {{ pageStart }}-{{ pageEnd }} of {{ totalVisibleCases }}</span>
+            <span class="tech-queue-pill">Page {{ currentPage }} / {{ totalPages }}</span>
+          </div>
+
+          <div class="tech-pagination" *ngIf="totalPages > 1">
+            <button
+              type="button"
+              class="tech-page-btn"
+              (click)="goToPreviousPage()"
+              [disabled]="currentPage <= 1"
+            >
+              <svg cIcon name="cilChevronLeft"></svg>
+              Prev
+            </button>
+
+            <button
+              type="button"
+              class="tech-page-btn"
+              (click)="goToNextPage()"
+              [disabled]="currentPage >= totalPages"
+            >
+              Next
+              <svg cIcon name="cilChevronRight"></svg>
+            </button>
+          </div>
+        </div>
+
+        <article class="tech-case-card" *ngFor="let item of paginatedCases; trackBy: trackById">
           <div class="tech-case-card__header">
             <div class="tech-case-card__identity">
               <div class="tech-case-card__crm">CRM {{ item.crmCase }}</div>
@@ -245,7 +275,23 @@
             </div>
           </div>
 
-          <div class="tech-case-card__actions">
+          <div class="tech-case-card__main-actions">
+            <button
+              type="button"
+              class="btn-tech btn-tech--primary"
+              (click)="openPrimaryAction(item)"
+            >
+              <svg cIcon [name]="primaryActionIcon(item)"></svg>
+              {{ primaryActionLabel(item) }}
+            </button>
+
+            <button type="button" class="btn-tech btn-tech--ghost" (click)="openPanel(item, 'details')">
+              <svg cIcon name="cilMagnifyingGlass"></svg>
+              Details
+            </button>
+          </div>
+
+          <div class="tech-case-card__tool-actions">
             <a class="btn-tech btn-tech--ghost" [href]="'tel:' + item.clientPhone">
               <svg cIcon name="cilPhone"></svg>
               Call
@@ -255,31 +301,6 @@
               <svg cIcon name="cilMap"></svg>
               Map
             </a>
-
-            <button type="button" class="btn-tech btn-tech--ghost" (click)="openPanel(item, 'details')">
-              <svg cIcon name="cilMagnifyingGlass"></svg>
-              Details
-            </button>
-
-            <button
-              *ngIf="canSetRdv(item)"
-              type="button"
-              class="btn-tech btn-tech--soft"
-              (click)="openPanel(item, 'rdv')"
-            >
-              <svg cIcon name="cilCalendar"></svg>
-              RDV
-            </button>
-
-            <button
-              *ngIf="canSubmitWork(item)"
-              type="button"
-              class="btn-tech btn-tech--primary"
-              (click)="openPanel(item, 'work')"
-            >
-              <svg cIcon name="cilTask"></svg>
-              Submit work
-            </button>
 
             <button
               *ngIf="hasPendingProof(item)"
@@ -291,20 +312,10 @@
               <svg cIcon name="cilCloudDownload"></svg>
               Retry proof
             </button>
-
-            <button
-              *ngIf="!canSubmitWork(item) && !canSetRdv(item)"
-              type="button"
-              class="btn-tech btn-tech--primary"
-              (click)="openPrimaryAction(item)"
-            >
-              <svg cIcon name="cilChevronRight"></svg>
-              Open
-            </button>
           </div>
         </article>
 
-        <div class="tech-empty" *ngIf="visibleCases.length === 0">
+        <div class="tech-empty" *ngIf="totalVisibleCases === 0">
           <div class="tech-empty__title">No TECH tasks match the current filter.</div>
           <div class="tech-empty__hint">Try switching from urgent to all, or broaden the search to reopen the queue.</div>
         </div>
@@ -331,6 +342,32 @@
             <span class="badge rounded-pill" [ngClass]="statusBadgeClass(selected.status)">{{ statusLabel(selected.status) }}</span>
             <span class="badge rounded-pill" [ngClass]="slaBadgeClass(selected)">{{ slaLabel(selected) }}</span>
             <span class="badge rounded-pill" *ngIf="hasPendingProof(selected)" [ngClass]="proofStatusClass(selected)">Proof pending</span>
+          </div>
+
+          <div class="tech-panel__navigator" *ngIf="selectedCasePosition > 0 && totalVisibleCases > 1">
+            <button
+              type="button"
+              class="tech-page-btn"
+              (click)="openAdjacentCase(-1)"
+              [disabled]="!canGoToPreviousCase"
+            >
+              <svg cIcon name="cilChevronLeft"></svg>
+              Prev task
+            </button>
+
+            <div class="tech-panel__navigator-meta">
+              Task {{ selectedCasePosition }} of {{ totalVisibleCases }}
+            </div>
+
+            <button
+              type="button"
+              class="tech-page-btn"
+              (click)="openAdjacentCase(1)"
+              [disabled]="!canGoToNextCase"
+            >
+              Next task
+              <svg cIcon name="cilChevronRight"></svg>
+            </button>
           </div>
 
           <div class="tech-panel__tabs">

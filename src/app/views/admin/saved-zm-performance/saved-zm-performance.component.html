@@ -1,0 +1,349 @@
+<section class="saved-performance-page">
+  <div class="saved-performance-page__brand">
+    <span class="saved-performance-page__brand-pill">ooredoo</span>
+    <span class="saved-performance-page__brand-text">Saved performance dashboards for archived telecom operations studies.</span>
+  </div>
+
+  <header class="saved-performance-page__hero saved-performance-page__hero--ooredoo">
+    <div>
+      <div class="saved-performance-page__eyebrow">Ooredoo archive workspace</div>
+      <h3 class="mb-1">Saved ZM Performance</h3>
+      <p class="text-body-secondary mb-0">
+        Open any saved file snapshot and inspect it with the same KPI cards, charts, and statistics used in the live dashboard.
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-sm saved-performance-button saved-performance-button--outline" (click)="loadSavedStudies()" [disabled]="loading">
+      <svg cIcon name="cilReload" class="me-1"></svg>
+      {{ loading ? 'Refreshing...' : 'Refresh' }}
+    </button>
+  </header>
+
+  <div class="saved-performance-page__state" *ngIf="loading">
+    <div class="spinner-border" role="status"></div>
+    <span>Loading saved dashboard snapshots...</span>
+  </div>
+
+  <div class="alert alert-danger shadow-sm" *ngIf="errorMessage">
+    <svg cIcon name="cilWarning" class="me-2"></svg>
+    {{ errorMessage }}
+  </div>
+
+  <div class="saved-performance-page__empty" *ngIf="!loading && studies.length === 0">
+    <svg cIcon name="cilFolderOpen" width="30" height="30"></svg>
+    <div>
+      <div class="fw-semibold">No saved ZM performance dashboards yet.</div>
+      <div class="text-body-secondary">Save a dashboard snapshot from the import dashboard to archive it here.</div>
+    </div>
+  </div>
+
+  <div class="saved-performance-layout" *ngIf="!loading && studies.length > 0">
+    <aside class="saved-performance-sidebar">
+      <div class="saved-performance-sidebar__header">
+        <div class="saved-performance-page__eyebrow">Saved files</div>
+        <div class="saved-performance-sidebar__title">Choose a snapshot</div>
+      </div>
+
+      <button
+        type="button"
+        class="saved-performance-item"
+        *ngFor="let study of studies; trackBy: trackByStudy"
+        [class.saved-performance-item--active]="study.id === selectedStudy?.id"
+        (click)="selectStudy(study.id)"
+      >
+        <div class="saved-performance-item__title">
+          {{ study.sourceFileNames[0] || 'Saved dashboard snapshot' }}
+        </div>
+        <div class="saved-performance-item__meta">
+          {{ study.savedAt | date:'dd/MM/yyyy HH:mm' }}
+        </div>
+        <div class="saved-performance-item__meta" *ngIf="study.sourceFileNames.length > 1">
+          +{{ study.sourceFileNames.length - 1 }} more file(s)
+        </div>
+        <div class="saved-performance-item__chips">
+          <span>{{ study.study.totalCases }} cases</span>
+          <span>{{ formatMetric(study.study.averageSlaBusinessDays) }} d SLA</span>
+        </div>
+      </button>
+    </aside>
+
+    <div class="saved-performance-main" *ngIf="selectedStudy as currentStudy">
+      <section class="saved-performance-meta">
+        <div class="saved-performance-meta__header">
+          <div>
+            <div class="saved-performance-page__eyebrow">Saved dashboard</div>
+            <div class="saved-performance-meta__title">
+              {{ currentStudy.study.selectedZoneManager || 'All Zone Managers' }}
+              <span *ngIf="currentStudy.study.selectedGovernorate"> / {{ currentStudy.study.selectedGovernorate }}</span>
+            </div>
+          </div>
+
+          <div class="saved-performance-meta__stamp">
+            Saved {{ currentStudy.savedAt | date:'dd/MM/yyyy HH:mm' }}
+          </div>
+        </div>
+
+        <div class="saved-performance-meta__grid">
+          <div class="saved-performance-meta__block">
+            <span>Source files</span>
+            <div class="saved-performance-meta__chips">
+              <span class="saved-performance-meta__chip" *ngFor="let fileName of currentStudy.sourceFileNames">{{ fileName }}</span>
+            </div>
+          </div>
+
+          <div class="saved-performance-meta__block">
+            <span>Saved by</span>
+            <strong>{{ currentStudy.savedBy || '-' }}</strong>
+          </div>
+
+          <div class="saved-performance-meta__block" *ngIf="currentStudy.sourceBatchIds.length > 0">
+            <span>Batch IDs</span>
+            <div class="saved-performance-meta__chips">
+              <span class="saved-performance-meta__chip saved-performance-meta__chip--muted" *ngFor="let batchId of currentStudy.sourceBatchIds">
+                {{ batchId }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="saved-performance-filters">
+        <div class="saved-performance-page__eyebrow">Saved dashboard filters</div>
+        <div class="saved-performance-filters__title">Reuse the same filters on the archived data</div>
+
+        <form [formGroup]="filtersForm" class="row g-3 align-items-end mt-1">
+          <div class="col-lg-4 col-md-6">
+            <label class="form-label fw-semibold" for="saved-zone-manager-filter">Zone Manager</label>
+            <select id="saved-zone-manager-filter" class="form-select saved-performance-field" formControlName="zoneManager">
+              <option value="">All Zone Managers</option>
+              <option *ngFor="let zm of availableZoneManagers" [value]="zm">{{ zm }}</option>
+            </select>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
+            <label class="form-label fw-semibold" for="saved-governorate-filter">Governorate</label>
+            <select id="saved-governorate-filter" class="form-select saved-performance-field" formControlName="gouvernorat">
+              <option value="">All governorates</option>
+              <option *ngFor="let governorate of availableGovernorates" [value]="governorate">{{ governorate }}</option>
+            </select>
+          </div>
+
+          <div class="col-lg-2 col-md-6">
+            <label class="form-label fw-semibold" for="saved-uploaded-from">Uploaded From</label>
+            <input id="saved-uploaded-from" type="date" class="form-control saved-performance-field" formControlName="uploadedFrom" />
+          </div>
+
+          <div class="col-lg-2 col-md-6">
+            <label class="form-label fw-semibold" for="saved-uploaded-to">Uploaded To</label>
+            <input id="saved-uploaded-to" type="date" class="form-control saved-performance-field" formControlName="uploadedTo" />
+          </div>
+
+          <div class="col-12">
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <button type="button" class="btn saved-performance-button saved-performance-button--primary" (click)="applyFilters()" [disabled]="analyticsLoading">
+                <svg cIcon name="cilMagnifyingGlass" class="me-2"></svg>
+                Apply Filters
+              </button>
+              <button type="button" class="btn saved-performance-button saved-performance-button--outline" (click)="resetFilters()" [disabled]="analyticsLoading">
+                <svg cIcon name="cilReload" class="me-2"></svg>
+                Reset Filters
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="saved-performance-view-switch">
+        <button
+          type="button"
+          class="saved-performance-toggle"
+          [class.saved-performance-toggle--active]="activeView === 'valid'"
+          (click)="setActiveView('valid')"
+        >
+          <span class="saved-performance-toggle__eyebrow">Valid data statistics</span>
+          <strong>{{ selectedStudyAnalytics?.totalCases ?? 0 }} valid case(s)</strong>
+        </button>
+
+        <button
+          type="button"
+          class="saved-performance-toggle"
+          [class.saved-performance-toggle--active]="activeView === 'invalid'"
+          (click)="setActiveView('invalid')"
+        >
+          <span class="saved-performance-toggle__eyebrow">Invalid data statistics</span>
+          <strong>{{ selectedStudyRowQuality?.invalidRows ?? 0 }} invalid row(s)</strong>
+        </button>
+      </section>
+
+      <app-zm-performance-study-view
+        *ngIf="activeView === 'valid'"
+        [study]="selectedStudyAnalytics"
+        [loading]="analyticsLoading"
+        emptyTitle="No saved dashboard snapshot data is available for the current filters."
+        emptyMessage="Adjust the filters above or choose another saved file snapshot from the left side."
+      />
+
+      <section class="saved-row-quality" *ngIf="activeView === 'invalid'">
+        <div class="saved-row-quality__loading" *ngIf="analyticsLoading">
+          <div class="spinner-border" role="status"></div>
+          <span>Loading archived row-quality statistics...</span>
+        </div>
+
+        <ng-container *ngIf="!analyticsLoading && selectedStudyRowQuality as rowQuality">
+          <div class="saved-row-quality__kpis">
+            <div class="saved-row-quality__kpi">
+              <span>Total rows</span>
+              <strong>{{ rowQuality.totalRows }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi saved-row-quality__kpi--success">
+              <span>Valid rows</span>
+              <strong>{{ rowQuality.validRows }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi saved-row-quality__kpi--danger">
+              <span>Invalid rows</span>
+              <strong>{{ rowQuality.invalidRows }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi">
+              <span>Distinct reasons</span>
+              <strong>{{ rowQuality.invalidReasonSummaries.length }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi">
+              <span>Rows with SLA</span>
+              <strong>{{ rowQuality.rowsWithSla }}</strong>
+            </div>
+            <div class="saved-row-quality__kpi saved-row-quality__kpi--danger">
+              <span>Multi-issue rows</span>
+              <strong>{{ rowQuality.invalidRowsWithMultipleIssues }}</strong>
+            </div>
+          </div>
+
+          <div class="saved-row-quality__panel" *ngIf="rowQuality.invalidReasonSummaries.length > 0">
+            <div class="saved-row-quality__panel-header">
+              <div>
+                <div class="saved-performance-page__eyebrow">Invalid reasons</div>
+                <div class="saved-row-quality__panel-title">Reason distribution</div>
+              </div>
+              <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                {{ rowQuality.invalidRows }} invalid row(s)
+              </span>
+            </div>
+
+            <div class="saved-row-quality__reason-list">
+              <div class="saved-row-quality__reason-item" *ngFor="let item of rowQuality.invalidReasonSummaries">
+                <span class="saved-row-quality__reason-text">{{ item.reason }}</span>
+                <span class="saved-row-quality__reason-count">{{ item.count }} row(s)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="saved-row-quality__grid">
+            <section class="saved-row-quality__panel">
+              <div class="saved-row-quality__panel-header">
+                <div>
+                  <div class="saved-performance-page__eyebrow">Cleaned archived data</div>
+                  <div class="saved-row-quality__panel-title">Valid rows preview</div>
+                </div>
+                <span class="badge rounded-pill bg-success-subtle text-success-emphasis">
+                  {{ rowQuality.validRows }} valid row(s)
+                </span>
+              </div>
+
+              <div class="saved-row-quality__hint">
+                Showing up to {{ rowQuality.rowPreviewLimit }} valid archived row(s) for the current filters.
+              </div>
+
+              <div class="saved-row-quality__table-shell">
+                <div class="table-responsive">
+                  <table class="table table-hover table-striped mb-0 saved-row-quality__table">
+                    <thead>
+                      <tr>
+                        <th>File</th>
+                        <th>Row</th>
+                        <th>CRM Case</th>
+                        <th>Zone Manager</th>
+                        <th>Governorate</th>
+                        <th>STT</th>
+                        <th>Status</th>
+                        <th>SLA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of rowQuality.validPreviewRows; trackBy: trackBySavedRow">
+                        <td>{{ row.sourceFileName || '-' }}</td>
+                        <td>#{{ row.rowNumber }}</td>
+                        <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                        <td>{{ row.zoneManager || '-' }}</td>
+                        <td>{{ row.gouvernorat || '-' }}</td>
+                        <td>{{ row.stt || '-' }}</td>
+                        <td>{{ row.statut || '-' }}</td>
+                        <td>{{ row.slaBusinessDays != null ? (row.slaBusinessDays + ' d') : '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section class="saved-row-quality__panel">
+              <div class="saved-row-quality__panel-header">
+                <div>
+                  <div class="saved-performance-page__eyebrow">Invalid archived data</div>
+                  <div class="saved-row-quality__panel-title">Row numbers and reasons</div>
+                </div>
+                <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                  {{ rowQuality.invalidRows }} invalid row(s)
+                </span>
+              </div>
+
+              <div class="saved-row-quality__hint">
+                Showing up to {{ rowQuality.rowPreviewLimit }} invalid archived row(s) for the current filters.
+              </div>
+
+              <div class="saved-row-quality__table-shell" *ngIf="rowQuality.invalidPreviewRows.length > 0; else noInvalidRows">
+                <div class="table-responsive">
+                  <table class="table table-hover table-striped mb-0 saved-row-quality__table">
+                    <thead>
+                      <tr>
+                        <th>File</th>
+                        <th>Row</th>
+                        <th>CRM Case</th>
+                        <th>Zone Manager</th>
+                        <th>Governorate</th>
+                        <th>STT</th>
+                        <th>Reasons</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of rowQuality.invalidPreviewRows; trackBy: trackBySavedRow">
+                        <td>{{ row.sourceFileName || '-' }}</td>
+                        <td>#{{ row.rowNumber }}</td>
+                        <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                        <td>{{ row.zoneManager || '-' }}</td>
+                        <td>{{ row.gouvernorat || '-' }}</td>
+                        <td>{{ row.stt || '-' }}</td>
+                        <td>
+                          <span class="badge rounded-pill" [ngClass]="rowStatusClass(row)">{{ rowStatusLabel(row) }}</span>
+                          <div class="small text-body-secondary mt-1">{{ issueLabel(row) }}</div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <ng-template #noInvalidRows>
+                <div class="saved-row-quality__empty">
+                  <svg cIcon name="cilCheckCircle" width="24" height="24"></svg>
+                  <div>
+                    <div class="fw-semibold">No invalid archived rows match the current filters.</div>
+                    <div class="text-body-secondary">Try broadening the filters if you want to inspect invalid rows from another slice of the saved study.</div>
+                  </div>
+                </div>
+              </ng-template>
+            </section>
+          </div>
+        </ng-container>
+      </section>
+    </div>
+  </div>
+</section>

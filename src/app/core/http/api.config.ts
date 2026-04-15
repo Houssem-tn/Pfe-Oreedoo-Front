@@ -14,13 +14,10 @@ export function resolveApiBaseUrl(): string {
     || hostname.endsWith('.ngrok.io')
     || hostname.endsWith('.ngrok.app');
 
-  if (isAngularDevPort && (isLocalHost || isLanIpv4)) {
-    return `http://${hostname}:8080`;
-  }
-
-  // When the app is tunneled through ngrok, keep API calls relative so the
-  // Angular dev-server proxy can forward /api and websocket traffic to Spring.
-  if (isNgrokHost) {
+  // In Angular dev, prefer same-origin /api requests and let the dev-server
+  // proxy forward traffic to Spring Boot. This avoids direct browser calls to
+  // localhost:8080 from runtimes that may not resolve localhost the same way.
+  if (isAngularDevPort && (isLocalHost || isLanIpv4 || isNgrokHost)) {
     return '';
   }
 

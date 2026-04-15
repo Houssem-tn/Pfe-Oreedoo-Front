@@ -34,6 +34,9 @@ export interface AppUser {
 
   assignedZmId?: string | null;
   assignedZmEmail?: string | null;
+  assignedGovernorates?: string[] | null;
+  coveredGovernorates?: string[] | null;
+  requestedGovernorates?: string[] | null;
 
   validatedAt?: string | null;
   validatedBy?: string | null;

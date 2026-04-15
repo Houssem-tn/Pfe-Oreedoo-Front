@@ -5,7 +5,6 @@ import { RouterLink } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
-
 import { AuthStore } from '../../core/auth/auth.store';
 import { Role } from '../../core/auth/models/roles.type';
 import { SwalService } from '../../core/ui/swal.service';
@@ -174,7 +173,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         item.crmCase.toLowerCase().includes(term) ||
         item.clientName.toLowerCase().includes(term) ||
         item.clientPhone.toLowerCase().includes(term) ||
-        (item.zmName ?? '').toLowerCase().includes(term) ||
+        this.ownerZmDisplayName(item).toLowerCase().includes(term) ||
         (item.sttName ?? '').toLowerCase().includes(term) ||
         (item.techName ?? '').toLowerCase().includes(term) ||
         (item.offre ?? '').toLowerCase().includes(term) ||
@@ -224,7 +223,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     return [
       { label: 'Total Cases', value: source.length, icon: 'cilDescription', className: 'stat-neutral' },
-      { label: 'Assigned to ZM', value: source.filter((c) => !!c.zmId).length, icon: 'cilUser', className: 'stat-primary' },
+      { label: 'Owned by ZM', value: source.filter((c) => !!this.ownerZmId(c)).length, icon: 'cilUser', className: 'stat-primary' },
       { label: 'Assigned to STT', value: source.filter((c) => !!c.sttId).length, icon: 'cilPeople', className: 'stat-info' },
       { label: 'Assigned to TECH', value: source.filter((c) => !!c.techId).length, icon: 'cilUserFollow', className: 'stat-warning' },
       { label: 'SLA Warning', value: warningCount, icon: 'cilWarning', className: 'stat-warning' },
@@ -345,6 +344,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       const rightScore = this.slaProgress(right);
       return leftScore - rightScore;
     });
+  }
+
+  get sttMobileCases(): CaseResponse[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+
+    return [...this.filteredCases]
+      .sort((left, right) => this.mobileSttPriority(left) - this.mobileSttPriority(right))
+      .slice(start, start + this.pageSize);
   }
 
   loadCases(): void {
@@ -581,6 +588,23 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return item.entityId ?? '-';
   }
 
+  private mobileSttPriority(item: CaseResponse): number {
+    const remaining = item.slaTracking?.remainingSeconds ?? Number.MAX_SAFE_INTEGER;
+
+    switch (item.status) {
+      case 'ASSIGNED_TO_STT':
+        return remaining - 5000;
+      case 'REJECTED_BY_ZM':
+      case 'NOT_REACHABLE':
+        return remaining - 2500;
+      case 'ASSIGNED_TO_TECH':
+      case 'RDV_SET':
+        return remaining - 1000;
+      default:
+        return remaining;
+    }
+  }
+
   async openAlert(alert: NotificationItem): Promise<void> {
     const caseIdRaw = alert.data?.['caseId'];
     const caseId = typeof caseIdRaw === 'string' && caseIdRaw.trim()
@@ -606,11 +630,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!alert.read) {
       this.notificationStore.markAsRead(alert.id);
     }
-  }
-
-  canAssignZm(item: CaseResponse): boolean {
-    if (!this.isAdmin) return false;
-    return item.status !== 'CLOSED';
   }
 
   canAssignStt(item: CaseResponse): boolean {
@@ -662,54 +681,17 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   trackById = (_index: number, item: CaseResponse) => item.id;
 
-  async openAssignZm(item: CaseResponse): Promise<void> {
-    this.actionLoadingCaseId = item.id;
-
-    try {
-      const zms = (await firstValueFrom(this.userService.getAllZmsForAssignment()))
-        .sort((a, b) => a.fullName.localeCompare(b.fullName));
-
-      if (!zms.length) {
-        await this.swal.error('No ZM available', 'No approved ZM users were found for assignment.');
-        return;
-      }
-
-      const result = await this.swal.promptSelect(
-        `Assign ZM to CRM ${item.crmCase}`,
-        'Choose ZM',
-        zms.reduce<Record<string, string>>((acc, zm) => {
-          acc[zm.id] = `${zm.fullName} (${zm.email})`;
-          return acc;
-        }, {}),
-        item.zmId ?? '',
-        item.zmId ? 'Change ZM' : 'Assign ZM'
-      );
-
-      if (!result.isConfirmed || !result.value) {
-        return;
-      }
-
-      const selectedZmId = result.value;
-      await this.runAction(item.id, () => this.casesService.assignZm(item.id, selectedZmId), 'ZM assignment saved');
-      console.log('Assign ZM', { caseId: item.id, selectedZmId });
-    } catch (err: any) {
-      console.error('Failed to assign ZM:', err);
-      const message = err?.error?.message ?? 'Failed to assign ZM';
-      await this.swal.error('Assignment failed', message);
-    } finally {
-      this.actionLoadingCaseId = null;
-      this.zone.run(() => this.cdr.detectChanges());
-    }
-  }
-
   async openAssignStt(item: CaseResponse): Promise<void> {
     this.actionLoadingCaseId = item.id;
 
     try {
-      const stts = await this.loadAssignableStts();
+      const stts = await this.loadAssignableStts(item);
 
       if (!stts.length) {
-        await this.swal.error('No STT available', 'No assignable STT was found for this case.');
+        await this.swal.error(
+          'No STT available',
+          `No approved STT currently covers ${item.gouvernorat}.`
+        );
         return;
       }
 
@@ -730,7 +712,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
       const selectedSttId = result.value;
       await this.runAction(item.id, () => this.casesService.assignStt(item.id, selectedSttId), 'STT assignment saved');
-      console.log('Assign STT', { caseId: item.id, caseZmId: item.zmId, selectedSttId });
     } catch (err: any) {
       console.error('Failed to assign STT:', err);
       const message = err?.error?.message ?? 'Failed to assign STT';
@@ -771,7 +752,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
       const selectedTechId = result.value;
       await this.runAction(item.id, () => this.casesService.assignTech(item.id, selectedTechId), 'TECH assignment saved');
-      console.log('Assign TECH', { caseId: item.id, caseSttId: item.sttId, selectedTechId });
     } catch (err: any) {
       console.error('Failed to assign TECH:', err);
       const message = err?.error?.message ?? 'Failed to assign TECH';
@@ -1058,82 +1038,107 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       await Swal.fire({
         title: `Case Details - ${this.escapeHtml(fullCase.crmCase)}`,
         width: 940,
+        didOpen: (modal) => {
+          modal.classList.add('case-details-swal');
+        },
         html: `
           <div class="text-start case-details-modal">
-            <div class="row g-2 mb-2">
-              <div class="col-md-6"><strong>Type:</strong> ${this.escapeHtml(fullCase.type || '-')}</div>
-              <div class="col-md-6"><strong>Status:</strong> ${this.escapeHtml(this.statusLabel(fullCase.status))}</div>
-              <div class="col-md-6"><strong>Client:</strong> ${this.escapeHtml(fullCase.clientName || '-')}</div>
-              <div class="col-md-6"><strong>Phone:</strong> ${this.escapeHtml(fullCase.clientPhone || '-')}</div>
-              <div class="col-md-6"><strong>MSISDN:</strong> ${this.escapeHtml(fullCase.msisdn || '-')}</div>
-              <div class="col-md-6"><strong>Offer:</strong> ${this.escapeHtml(fullCase.offre || '-')}</div>
-              <div class="col-md-6"><strong>Pack:</strong> ${this.escapeHtml(fullCase.desPack || '-')}</div>
-              <div class="col-md-6"><strong>Comment:</strong> ${this.escapeHtml(fullCase.commentaire || '-')}</div>
-              <div class="col-md-12"><strong>Location:</strong> ${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Case Information</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Type:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.type || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Status:</span> <span class="case-detail-value">${this.escapeHtml(this.statusLabel(fullCase.status))}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Client:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.clientName || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Phone:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.clientPhone || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">MSISDN:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.msisdn || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Offer:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.offre || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Pack:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.desPack || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.commentaire || '-')}</span></div></div>
+                <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Location:</span> <span class="case-detail-value">${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">Assignment Chain</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-4"><strong>ZM:</strong> ${this.escapeHtml(this.personLabel(fullCase.zmName, fullCase.zmEmail))}</div>
-              <div class="col-md-4"><strong>STT:</strong> ${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</div>
-              <div class="col-md-4"><strong>TECH:</strong> ${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Assignment Chain</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Owner ZM:</span> <span class="case-detail-value">${this.escapeHtml(this.ownerZmLabel(fullCase))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">STT:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">RDV</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-4"><strong>Joignable:</strong> ${rdv.joignable == null ? '-' : rdv.joignable ? 'Yes' : 'No'}</div>
-              <div class="col-md-4"><strong>Date:</strong> ${this.escapeHtml(this.asDateLabel(rdv.datePriseRdv))}</div>
-              <div class="col-md-4"><strong>Abandon:</strong> ${rdv.abandon == null ? '-' : rdv.abandon ? 'Yes' : 'No'}</div>
-              <div class="col-md-6"><strong>Cause Injoignabilite:</strong> ${this.escapeHtml(rdv.causeInjoignabilite || '-')}</div>
-              <div class="col-md-6"><strong>Cause Abandon:</strong> ${this.escapeHtml(rdv.causeAbandon || '-')}</div>
-              <div class="col-md-6"><strong>Detail:</strong> ${this.escapeHtml(rdv.detail || '-')}</div>
-              <div class="col-md-6"><strong>Comment:</strong> ${this.escapeHtml(rdv.cmtRdv || '-')}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">RDV (Appointment)</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Joignable:</span> <span class="case-detail-value">${rdv.joignable == null ? '-' : rdv.joignable ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Date:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(rdv.datePriseRdv))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Abandon:</span> <span class="case-detail-value">${rdv.abandon == null ? '-' : rdv.abandon ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Cause Injoignabilite:</span> <span class="case-detail-value">${this.escapeHtml(rdv.causeInjoignabilite || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Cause Abandon:</span> <span class="case-detail-value">${this.escapeHtml(rdv.causeAbandon || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Detail:</span> <span class="case-detail-value">${this.escapeHtml(rdv.detail || '-')}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(rdv.cmtRdv || '-')}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">Work</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-4"><strong>Result:</strong> ${this.escapeHtml(work.repTravauxStt || '-')}</div>
-              <div class="col-md-4"><strong>Date End:</strong> ${this.escapeHtml(this.asDateLabel(work.dateFinTrv))}</div>
-              <div class="col-md-4"><strong>Comment:</strong> ${this.escapeHtml(work.cmtTrvStt || '-')}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Work</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Result:</span> <span class="case-detail-value">${this.escapeHtml(work.repTravauxStt || '-')}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Date End:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(work.dateFinTrv))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(work.cmtTrvStt || '-')}</span></div></div>
+              </div>
             </div>
 
-            <hr />
-            <h6 class="mb-2">Work GPS</h6>
-            ${this.renderWorkLocationHtml(work)}
-
-            <hr />
-            <h6 class="mb-2">Work Proof</h6>
-            ${this.renderProofsHtml(proofs)}
-
-            <hr />
-            <h6 class="mb-2">Technical Metrics</h6>
-            <div class="row g-2 mb-2">
-              <div class="col-md-3"><strong>Cable:</strong> ${this.asMetric(metrics.metrageCable)}</div>
-              <div class="col-md-3"><strong>PV:</strong> ${this.asMetric(metrics.nombrePv)}</div>
-              <div class="col-md-3"><strong>DL:</strong> ${this.asMetric(metrics.debitDl)}</div>
-              <div class="col-md-3"><strong>UL:</strong> ${this.asMetric(metrics.debitUl)}</div>
-              <div class="col-md-4"><strong>RSRP:</strong> ${this.asMetric(metrics.rsrp)}</div>
-              <div class="col-md-4"><strong>RSRQ:</strong> ${this.asMetric(metrics.rsrq)}</div>
-              <div class="col-md-4"><strong>SINR:</strong> ${this.asMetric(metrics.sinr)}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Work GPS Location</h6>
+              ${this.renderWorkLocationHtml(work)}
             </div>
 
-            <hr />
-            <h6 class="mb-2">ZM Validation</h6>
-            <div class="row g-2">
-              <div class="col-md-4"><strong>Approved:</strong> ${validation.approved == null ? '-' : validation.approved ? 'Yes' : 'No'}</div>
-              <div class="col-md-8"><strong>Comment:</strong> ${this.escapeHtml(validation.comment || '-')}</div>
+            <div class="case-details-section">
+              <h6 class="case-details-title">Work Proof</h6>
+              ${this.renderProofsHtml(proofs)}
             </div>
 
-            <hr />
-            <h6 class="mb-2">Case Timeline</h6>
-            ${this.renderTimelineHtml(timeline)}
+            <div class="case-details-section">
+              <h6 class="case-details-title">Technical Metrics</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">Cable:</span> <span class="case-detail-value">${this.asMetric(metrics.metrageCable)}</span></div></div>
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">PV:</span> <span class="case-detail-value">${this.asMetric(metrics.nombrePv)}</span></div></div>
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">DL:</span> <span class="case-detail-value">${this.asMetric(metrics.debitDl)}</span></div></div>
+                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">UL:</span> <span class="case-detail-value">${this.asMetric(metrics.debitUl)}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">RSRP:</span> <span class="case-detail-value">${this.asMetric(metrics.rsrp)}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">RSRQ:</span> <span class="case-detail-value">${this.asMetric(metrics.rsrq)}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">SINR:</span> <span class="case-detail-value">${this.asMetric(metrics.sinr)}</span></div></div>
+              </div>
+            </div>
+
+            <div class="case-details-section">
+              <h6 class="case-details-title">ZM Validation</h6>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Approved:</span> <span class="case-detail-value">${validation.approved == null ? '-' : validation.approved ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                <div class="col-md-8"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(validation.comment || '-')}</span></div></div>
+              </div>
+            </div>
+
+            <div class="case-details-section">
+              <h6 class="case-details-title">Case Timeline</h6>
+              ${this.renderTimelineHtml(timeline)}
+            </div>
           </div>
         `,
+        denyButtonText: 'Download',
+        cancelButtonText: 'Download',
+        showDenyButton: true,
         confirmButtonText: 'Close',
-        confirmButtonColor: '#321fdb'
+        confirmButtonColor: '#e30613',
+        denyButtonColor: '#1b9aaa',
+        preConfirm: () => {
+          return true;
+        },
+        preDeny: () => {
+          void this.onCaseDetailsDownload(fullCase);
+          return false;
+        }
       });
     } catch (err: any) {
       console.error('Failed to load case details:', err);
@@ -1143,6 +1148,64 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       this.actionLoadingCaseId = null;
       this.zone.run(() => this.cdr.detectChanges());
     }
+  }
+
+  async onCaseDetailsDownload(caseData: CaseResponse): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.casesService.downloadCasePdf(caseData.id));
+      const blob = response.body;
+
+      if (!blob) {
+        throw new Error('Empty PDF response');
+      }
+
+      const filename = this.extractDownloadFilename(response.headers.get('content-disposition'))
+        ?? this.buildCasePdfFilename(caseData);
+
+      this.saveBlob(blob, filename);
+    } catch (err: any) {
+      console.error('Failed to download case PDF:', err);
+      const message = err?.error?.message ?? err?.message ?? 'Failed to download case report';
+      await this.swal.error('Download failed', message);
+    }
+  }
+
+  private buildCasePdfFilename(caseData: CaseResponse): string {
+    const crmCase = (caseData.crmCase ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^[-.]+|[-.]+$/g, '');
+
+    return `case-${crmCase || caseData.id}.pdf`;
+  }
+
+  private extractDownloadFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) {
+      return null;
+    }
+
+    const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1]);
+    }
+
+    const plainMatch = /filename="([^"]+)"|filename=([^;]+)/i.exec(contentDisposition);
+    const raw = plainMatch?.[1] ?? plainMatch?.[2];
+    return raw?.trim() || null;
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 
   private async runAction(caseId: string, action: () => any, successTitle: string): Promise<void> {
@@ -1207,9 +1270,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return (left ?? '').trim().toLowerCase() === (right ?? '').trim().toLowerCase();
   }
 
-  private async loadAssignableStts(): Promise<AssignableUser[]> {
+  private async loadAssignableStts(item: CaseResponse): Promise<AssignableUser[]> {
     const users = await firstValueFrom(this.userService.getMySttsForZm());
     return (users ?? [])
+      .filter((u) => this.userCoversGovernorate(u.coveredGovernorates, item.gouvernorat))
       .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
@@ -1417,6 +1481,27 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!safeName && !safeEmail) return '-';
     if (safeName && safeEmail) return `${safeName} (${safeEmail})`;
     return safeName || safeEmail;
+  }
+
+  private ownerZmId(item: CaseResponse): string {
+    return (item.ownerZmId ?? item.zmId ?? '').trim();
+  }
+
+  ownerZmDisplayName(item: CaseResponse): string {
+    return (item.ownerZmName ?? item.zmName ?? item.zmEmail ?? '').trim();
+  }
+
+  private ownerZmLabel(item: CaseResponse): string {
+    return this.personLabel(item.ownerZmName ?? item.zmName, item.zmEmail);
+  }
+
+  private userCoversGovernorate(governorates?: string[] | null, governorate?: string | null): boolean {
+    const target = (governorate ?? '').trim();
+    if (!target) {
+      return false;
+    }
+
+    return (governorates ?? []).some((value) => (value ?? '').trim() === target);
   }
 
   initialsFor(name?: string | null, email?: string | null): string {

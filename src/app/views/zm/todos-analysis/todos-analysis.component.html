@@ -1,0 +1,420 @@
+<section class="todos-analysis-page">
+  <header class="todos-analysis-hero">
+    <div class="todos-analysis-hero__content">
+      <div class="todos-analysis-hero__eyebrow">
+        <svg cIcon name="cilSpeedometer"></svg>
+        Ooredoo saved performance studies
+      </div>
+
+      <h1>Todos Analysis</h1>
+      <p>
+        Review the alerts, KPI cards, charts, and operational insights generated from your imported todo files.
+        Each study is stored separately with its file name and upload date.
+      </p>
+
+      <div class="todos-analysis-hero__chips">
+        <span class="todos-analysis-hero__chip">
+          <svg cIcon name="cilPeople"></svg>
+          {{ connectedZmName }}
+        </span>
+        <span class="todos-analysis-hero__chip" *ngIf="selectedFileName !== '-'">
+          <svg cIcon name="cilDescription"></svg>
+          {{ selectedFileName }}
+        </span>
+        <span class="todos-analysis-hero__chip" *ngIf="selectedUploadedAt">
+          <svg cIcon name="cilClock"></svg>
+          {{ formatDateTime(selectedUploadedAt) }}
+        </span>
+      </div>
+    </div>
+
+    <div class="todos-analysis-hero__actions">
+      <a routerLink="/zm/inject-todos" class="btn-todos btn-todos--primary">
+        <svg cIcon name="cilCloudUpload"></svg>
+        Import new file
+      </a>
+
+      <a routerLink="/zm/imported-todos" class="btn-todos btn-todos--ghost">
+        <svg cIcon name="cilDescription"></svg>
+        Open imported todos
+      </a>
+    </div>
+  </header>
+
+  <div class="todos-analysis-feedback todos-analysis-feedback--danger" *ngIf="errorMessage">
+    <svg cIcon name="cilWarning"></svg>
+    <div>{{ errorMessage }}</div>
+  </div>
+
+  <section class="todos-analysis-shell">
+    <aside class="todos-analysis-sidebar card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="todos-analysis-section-heading">
+          <div>
+            <div class="todos-analysis-section-heading__title">Saved analyses</div>
+            <div class="todos-analysis-section-heading__hint">
+              Pick a saved file to display its alerts, charts, and breakdowns.
+            </div>
+          </div>
+          <span class="todos-analysis-section-heading__badge" *ngIf="listLoading">Loading...</span>
+        </div>
+
+        <div class="todos-analysis-empty" *ngIf="!listLoading && analyses.length === 0">
+          <svg cIcon name="cilDescription"></svg>
+          <div>No saved todo analysis yet. Import a file first to generate your first study.</div>
+        </div>
+
+        <div class="todos-analysis-list" *ngIf="analyses.length > 0">
+          <button
+            type="button"
+            class="todos-analysis-list__item"
+            [ngClass]="{ 'todos-analysis-list__item--active': item.id === selectedAnalysisId }"
+            *ngFor="let item of analyses; trackBy: trackByAnalysis"
+            (click)="selectAnalysis(item.id)"
+          >
+            <div class="todos-analysis-list__top">
+              <strong>{{ item.sourceFileName }}</strong>
+              <span>{{ formatDateTime(item.uploadedAt) }}</span>
+            </div>
+            <div class="todos-analysis-list__meta">
+              <span>{{ formatMetric(item.totalCases) }} case(s)</span>
+              <span>{{ formatMetric(item.matchedRows) }} matched</span>
+              <span *ngIf="item.averageSlaBusinessDays != null">{{ formatMetric(item.averageSlaBusinessDays) }} d SLA</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="todos-analysis-content">
+      <div class="todos-analysis-loading card border-0 shadow-sm" *ngIf="detailLoading">
+        <div class="card-body">
+          <div class="spinner-border" role="status"></div>
+          <div>Loading the selected analysis...</div>
+        </div>
+      </div>
+
+      <ng-container *ngIf="hasAnalytics && analytics as vm">
+        <section class="todos-analysis-context card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="todos-analysis-context__grid">
+              <article class="todos-analysis-context__item">
+                <span>Source file</span>
+                <strong>{{ selectedFileName }}</strong>
+              </article>
+              <article class="todos-analysis-context__item">
+                <span>Uploaded at</span>
+                <strong>{{ formatDateTime(selectedUploadedAt) }}</strong>
+              </article>
+              <article class="todos-analysis-context__item">
+                <span>Batch</span>
+                <strong>{{ selectedAnalysis?.importBatchId || '-' }}</strong>
+              </article>
+              <article class="todos-analysis-context__item">
+                <span>Manager key</span>
+                <strong>{{ vm.managerNameUsed }}</strong>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="todos-analysis-summary-strip">
+          <article
+            class="todos-analysis-summary-card"
+            [ngClass]="'todos-analysis-summary-card--' + card.tone"
+            *ngFor="let card of summaryCards; trackBy: trackBySummary"
+          >
+            <span>{{ card.label }}</span>
+            <strong>{{ card.value }}</strong>
+          </article>
+        </section>
+
+        <section class="todos-analysis-kpi-grid">
+          <article
+            class="todos-analysis-kpi-card"
+            [ngClass]="'todos-analysis-kpi-card--' + card.tone"
+            *ngFor="let card of kpiCards; trackBy: trackByKpi"
+          >
+            <div class="todos-analysis-kpi-card__icon">
+              <svg cIcon [name]="card.icon"></svg>
+            </div>
+            <div class="todos-analysis-kpi-card__value">{{ card.value }}</div>
+            <div class="todos-analysis-kpi-card__label">{{ card.label }}</div>
+            <div class="todos-analysis-kpi-card__hint">{{ card.hint }}</div>
+          </article>
+        </section>
+
+        <section class="todos-analysis-alerts" *ngIf="alerts.length > 0">
+          <div class="todos-analysis-section-heading">
+            <div>
+              <div class="todos-analysis-section-heading__title">Automatic alerts</div>
+              <div class="todos-analysis-section-heading__hint">Operational warnings produced from this saved study.</div>
+            </div>
+          </div>
+
+          <div class="todos-analysis-alerts__grid">
+            <article
+              class="todos-analysis-alert"
+              [ngClass]="alertToneClass(alert)"
+              *ngFor="let alert of alerts; trackBy: trackByAlert"
+            >
+              <div class="todos-analysis-alert__severity">{{ alert.severity }}</div>
+              <strong>{{ alert.title }}</strong>
+              <p>{{ alert.message }}</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="todos-analysis-insights" *ngIf="insights.length > 0">
+          <div class="todos-analysis-section-heading">
+            <div>
+              <div class="todos-analysis-section-heading__title">Insights</div>
+              <div class="todos-analysis-section-heading__hint">Readable conclusions extracted from this uploaded file.</div>
+            </div>
+          </div>
+
+          <div class="todos-analysis-insights__grid">
+            <article class="todos-analysis-insight" *ngFor="let insight of insights; trackBy: trackByInsight">
+              <svg cIcon name="cilDescription"></svg>
+              <span>{{ insight }}</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="todos-analysis-empty card border-0 shadow-sm" *ngIf="vm.totalCases === 0">
+          <div class="card-body">
+            <svg cIcon name="cilWarning"></svg>
+            <h4>No valid imported cases were available in this saved study.</h4>
+            <p>
+              The analysis snapshot was saved, but the uploaded rows did not produce any valid matched cases for KPI calculations.
+            </p>
+          </div>
+        </section>
+
+        <ng-container *ngIf="vm.totalCases > 0">
+          <section class="todos-analysis-chart-grid">
+            <article class="todos-analysis-chart card border-0 shadow-sm" *ngIf="sttBreakdown.length > 0">
+              <div class="card-body">
+                <div class="todos-analysis-section-heading">
+                  <div>
+                    <div class="todos-analysis-section-heading__title">Cases per STT</div>
+                    <div class="todos-analysis-section-heading__hint">Distribution of workload across the STTs in this file.</div>
+                  </div>
+                </div>
+                <div class="todos-analysis-chart__canvas">
+                  <c-chart [data]="casesBySttChart.data" [options]="casesBySttChart.options" [type]="casesBySttChart.type"></c-chart>
+                </div>
+              </div>
+            </article>
+
+            <article class="todos-analysis-chart card border-0 shadow-sm" *ngIf="governorateBreakdown.length > 0">
+              <div class="card-body">
+                <div class="todos-analysis-section-heading">
+                  <div>
+                    <div class="todos-analysis-section-heading__title">Cases by governorate</div>
+                    <div class="todos-analysis-section-heading__hint">Territorial volume mix for this saved analysis.</div>
+                  </div>
+                </div>
+                <div class="todos-analysis-chart__canvas todos-analysis-chart__canvas--pie">
+                  <c-chart [data]="casesByGovernorateChart.data" [options]="casesByGovernorateChart.options" [type]="casesByGovernorateChart.type"></c-chart>
+                </div>
+              </div>
+            </article>
+
+            <article class="todos-analysis-chart card border-0 shadow-sm" *ngIf="hasGovernorateSlaData">
+              <div class="card-body">
+                <div class="todos-analysis-section-heading">
+                  <div>
+                    <div class="todos-analysis-section-heading__title">Average SLA by governorate</div>
+                    <div class="todos-analysis-section-heading__hint">Business-day SLA based on open date and STT affectation.</div>
+                  </div>
+                </div>
+                <div class="todos-analysis-chart__canvas">
+                  <c-chart [data]="slaByGovernorateChart.data" [options]="slaByGovernorateChart.options" [type]="slaByGovernorateChart.type"></c-chart>
+                </div>
+              </div>
+            </article>
+
+            <article class="todos-analysis-chart card border-0 shadow-sm" *ngIf="governorateBreakdown.length > 0">
+              <div class="card-body">
+                <div class="todos-analysis-section-heading">
+                  <div>
+                    <div class="todos-analysis-section-heading__title">Delayed cases by governorate</div>
+                    <div class="todos-analysis-section-heading__hint">Where delay pressure is concentrated territorially.</div>
+                  </div>
+                </div>
+                <div class="todos-analysis-chart__canvas">
+                  <c-chart [data]="delayedByGovernorateChart.data" [options]="delayedByGovernorateChart.options" [type]="delayedByGovernorateChart.type"></c-chart>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section class="todos-analysis-table-grid">
+            <article class="todos-analysis-table card border-0 shadow-sm" *ngIf="sttBreakdown.length > 0">
+              <div class="card-body">
+                <div class="todos-analysis-section-heading">
+                  <div>
+                    <div class="todos-analysis-section-heading__title">STT distribution</div>
+                    <div class="todos-analysis-section-heading__hint">Counts, percentages, delay pressure, and frozen volume.</div>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table todos-analysis-table__table">
+                    <thead>
+                      <tr>
+                        <th>STT</th>
+                        <th>Cases</th>
+                        <th>Share</th>
+                        <th>Average SLA</th>
+                        <th>Delayed</th>
+                        <th>Gele</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of sttBreakdown; trackBy: trackByStt">
+                        <td class="fw-semibold">{{ item.sttName || '-' }}</td>
+                        <td>{{ formatMetric(item.caseCount) }}</td>
+                        <td>{{ formatMetric(item.percentage) }}%</td>
+                        <td>{{ item.averageSlaBusinessDays != null ? formatMetric(item.averageSlaBusinessDays) + ' d' : '-' }}</td>
+                        <td>{{ formatMetric(item.delayedCases) }} ({{ formatMetric(item.delayedRate) }}%)</td>
+                        <td>{{ formatMetric(item.geleCases) }} ({{ formatMetric(item.geleRate) }}%)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+
+            <article class="todos-analysis-table card border-0 shadow-sm" *ngIf="governorateBreakdown.length > 0">
+              <div class="card-body">
+                <div class="todos-analysis-section-heading">
+                  <div>
+                    <div class="todos-analysis-section-heading__title">Governorate distribution</div>
+                    <div class="todos-analysis-section-heading__hint">Volume, SLA, delays, and lead STT by governorate.</div>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="table todos-analysis-table__table">
+                    <thead>
+                      <tr>
+                        <th>Governorate</th>
+                        <th>Cases</th>
+                        <th>Share</th>
+                        <th>Average SLA</th>
+                        <th>Delayed</th>
+                        <th>Gele</th>
+                        <th>Lead STT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of governorateBreakdown; trackBy: trackByGovernorate">
+                        <td class="fw-semibold">{{ item.gouvernorat || '-' }}</td>
+                        <td>{{ formatMetric(item.caseCount) }}</td>
+                        <td>{{ formatMetric(item.percentage) }}%</td>
+                        <td>{{ item.averageSlaBusinessDays != null ? formatMetric(item.averageSlaBusinessDays) + ' d' : '-' }}</td>
+                        <td>{{ formatMetric(item.delayedCases) }} ({{ formatMetric(item.delayedRate) }}%)</td>
+                        <td>{{ formatMetric(item.geleCases) }} ({{ formatMetric(item.geleRate) }}%)</td>
+                        <td>{{ item.topSttName || '-' }} <span class="text-body-secondary" *ngIf="item.topSttCaseCount > 0">({{ formatMetric(item.topSttCaseCount) }})</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </section>
+        </ng-container>
+
+        <section class="todos-analysis-quality card border-0 shadow-sm" *ngIf="vm.invalidMatchedRows > 0">
+          <div class="card-body">
+            <div class="todos-analysis-section-heading">
+              <div>
+                <div class="todos-analysis-section-heading__title">Excluded matched rows</div>
+                <div class="todos-analysis-section-heading__hint">Click a reason to reveal the CRM cases affected by that specific validation issue.</div>
+              </div>
+            </div>
+            <div class="todos-analysis-quality__grid">
+              <article class="todos-analysis-quality__card">
+                <span>Main issue count</span>
+                <strong>{{ formatMetric(invalidReasonSummaries.length) }}</strong>
+                <small>Distinct reason(s)</small>
+              </article>
+
+              <button
+                type="button"
+                class="todos-analysis-quality__card todos-analysis-quality__card--clickable"
+                [ngClass]="{ 'todos-analysis-quality__card--active': item.reason === expandedInvalidReason }"
+                *ngFor="let item of invalidReasonSummaries; trackBy: trackByInvalidReason"
+                (click)="toggleInvalidReason(item.reason)"
+              >
+                <span>{{ item.reason }}</span>
+                <strong>{{ formatMetric(item.count) }}</strong>
+                <small>{{ formatMetric((item.count * 100) / (vm.invalidMatchedRows || 1)) }}% of invalid matched rows</small>
+              </button>
+            </div>
+
+            <div class="todos-analysis-quality__details" *ngIf="selectedInvalidReason as detail">
+              <div class="todos-analysis-quality__details-top">
+                <strong>{{ detail.reason }}</strong>
+                <span>{{ formatMetric(totalSelectedInvalidReasonCrmCases) }} CRM case(s)</span>
+              </div>
+
+              <div class="todos-analysis-quality__details-meta" *ngIf="totalSelectedInvalidReasonCrmCases > 0">
+                Showing {{ formatMetric(selectedInvalidReasonRangeStart) }} to {{ formatMetric(selectedInvalidReasonRangeEnd) }}
+                of {{ formatMetric(totalSelectedInvalidReasonCrmCases) }} CRM case(s)
+              </div>
+
+              <div class="todos-analysis-quality__empty" *ngIf="totalSelectedInvalidReasonCrmCases === 0">
+                No CRM case reference was found for this issue.
+              </div>
+
+              <ol class="todos-analysis-quality__crm-list" *ngIf="totalSelectedInvalidReasonCrmCases > 0">
+                <li
+                  class="todos-analysis-quality__crm-row"
+                  *ngFor="let crmCase of paginatedSelectedInvalidReasonCrmCases; let i = index; trackBy: trackByCrmCase"
+                >
+                  <span class="todos-analysis-quality__crm-index">
+                    {{ formatMetric(selectedInvalidReasonRangeStart + i) }}
+                  </span>
+                  <span class="todos-analysis-quality__crm-value">{{ crmCase }}</span>
+                </li>
+              </ol>
+
+              <div class="todos-analysis-quality__pagination" *ngIf="shouldShowInvalidReasonPagination">
+                <button
+                  type="button"
+                  class="todos-analysis-quality__page-btn"
+                  [disabled]="invalidReasonPage === 1"
+                  (click)="goToPreviousInvalidReasonPage()"
+                >
+                  Previous
+                </button>
+
+                <div class="todos-analysis-quality__page-list">
+                  <button
+                    type="button"
+                    class="todos-analysis-quality__page-number"
+                    [ngClass]="{ 'todos-analysis-quality__page-number--active': isInvalidReasonPageActive(page) }"
+                    *ngFor="let page of visibleInvalidReasonPages; trackBy: invalidReasonPageTrackBy"
+                    (click)="goToInvalidReasonPage(page)"
+                  >
+                    {{ page }}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  class="todos-analysis-quality__page-btn"
+                  [disabled]="invalidReasonPage === selectedInvalidReasonTotalPages"
+                  (click)="goToNextInvalidReasonPage()"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </ng-container>
+    </div>
+  </section>
+</section>
