@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
@@ -22,6 +22,8 @@ import {
 export class ImportedTodosComponent implements OnInit {
   private readonly todoImportService = inject(TodoImportService);
   private readonly swal = inject(SwalService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly zone = inject(NgZone);
 
   private static readonly PAGE_WINDOW = 5;
 
@@ -157,13 +159,19 @@ export class ImportedTodosComponent implements OnInit {
       uploadedFrom: this.uploadedFrom,
       uploadedTo: this.uploadedTo
     })
-      .pipe(finalize(() => { this.loading = false; }))
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.detectViewChanges();
+        })
+      )
       .subscribe({
         next: (response) => {
           this.result = response;
           this.currentPage = response.totalPages > 0
             ? Math.min(this.currentPage, response.totalPages)
             : 1;
+          this.detectViewChanges();
         },
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to load imported todos.';
@@ -175,6 +183,7 @@ export class ImportedTodosComponent implements OnInit {
             page: 0,
             size: this.pageSize
           };
+          this.detectViewChanges();
           await this.swal.error('Imported todos unavailable', message);
         }
       });
@@ -217,5 +226,9 @@ export class ImportedTodosComponent implements OnInit {
 
   trackByIssue(_: number, issue: string): string {
     return issue;
+  }
+
+  private detectViewChanges(): void {
+    this.zone.run(() => this.cdr.detectChanges());
   }
 }

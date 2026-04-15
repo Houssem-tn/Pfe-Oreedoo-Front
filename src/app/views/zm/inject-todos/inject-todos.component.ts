@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { finalize } from 'rxjs/operators';
@@ -26,6 +26,8 @@ export class InjectTodosComponent implements OnInit {
   private readonly todoImportService = inject(TodoImportService);
   private readonly userService = inject(UserService);
   private readonly swal = inject(SwalService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly zone = inject(NgZone);
 
   selectedFile: File | null = null;
   profile: AppUser | null = null;
@@ -39,13 +41,20 @@ export class InjectTodosComponent implements OnInit {
     this.profileLoading = true;
 
     this.userService.getMe()
-      .pipe(finalize(() => { this.profileLoading = false; }))
+      .pipe(
+        finalize(() => {
+          this.profileLoading = false;
+          this.detectViewChanges();
+        })
+      )
       .subscribe({
         next: (profile) => {
           this.profile = profile;
+          this.detectViewChanges();
         },
         error: () => {
           this.profile = null;
+          this.detectViewChanges();
         }
       });
   }
@@ -94,6 +103,7 @@ export class InjectTodosComponent implements OnInit {
     this.result = null;
     this.errorMessage = null;
     this.infoMessage = null;
+    this.detectViewChanges();
   }
 
   processUpload(): void {
@@ -107,7 +117,12 @@ export class InjectTodosComponent implements OnInit {
     this.infoMessage = null;
 
     this.todoImportService.process(this.selectedFile)
-      .pipe(finalize(() => { this.processing = false; }))
+      .pipe(
+        finalize(() => {
+          this.processing = false;
+          this.detectViewChanges();
+        })
+      )
       .subscribe({
         next: async (response) => {
           this.result = response;
@@ -118,6 +133,8 @@ export class InjectTodosComponent implements OnInit {
             this.infoMessage = `${response.invalidMatchedRows} matched row(s) were saved as invalid rows in Imported Todos and are also reflected in Todos Analysis.`;
           }
 
+          this.detectViewChanges();
+
           await this.swal.success(
             'Import completed',
             `${response.savedRows} matched row(s) were saved and the analysis snapshot was stored for ${this.connectedZmName}.`
@@ -127,6 +144,7 @@ export class InjectTodosComponent implements OnInit {
           const message = err?.error?.message ?? 'Failed to import the file for the connected Zone Manager.';
           this.result = null;
           this.errorMessage = message;
+          this.detectViewChanges();
           await this.swal.error('Import failed', message);
         }
       });
@@ -172,5 +190,9 @@ export class InjectTodosComponent implements OnInit {
 
     const [firstName, ...lastNameParts] = parts;
     return `${lastNameParts.join(' ')} ${firstName}`.trim();
+  }
+
+  private detectViewChanges(): void {
+    this.zone.run(() => this.cdr.detectChanges());
   }
 }

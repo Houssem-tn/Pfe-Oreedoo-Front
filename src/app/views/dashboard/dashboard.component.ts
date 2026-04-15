@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -58,6 +58,8 @@ export class DashboardComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly adminPerformanceImportService = inject(AdminPerformanceImportService);
   private readonly swal = inject(SwalService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly zone = inject(NgZone);
   @ViewChild('performanceImportFileInput') private performanceImportFileInput?: ElementRef<HTMLInputElement>;
 
   readonly analyticsFiltersForm = this.fb.nonNullable.group({
@@ -160,6 +162,7 @@ export class DashboardComponent implements OnInit {
     this.importResult = null;
     this.errorMessage = null;
     this.warningMessage = null;
+    this.detectViewChanges();
   }
 
   previewImport(): void {
@@ -174,7 +177,12 @@ export class DashboardComponent implements OnInit {
     this.importResult = null;
 
     this.adminPerformanceImportService.preview(this.selectedFile)
-      .pipe(finalize(() => { this.previewLoading = false; }))
+      .pipe(
+        finalize(() => {
+          this.previewLoading = false;
+          this.detectViewChanges();
+        })
+      )
       .subscribe({
         next: (response) => {
           this.importPreview = response;
@@ -184,11 +192,14 @@ export class DashboardComponent implements OnInit {
           } else if (response.invalidRows > 0) {
             this.warningMessage = 'Some rows are invalid for analytics and will be stored with issues so they do not affect KPI calculations.';
           }
+
+          this.detectViewChanges();
         },
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to preview the operational analytics file.';
           this.errorMessage = message;
           this.importPreview = null;
+          this.detectViewChanges();
           await this.swal.error('Preview failed', message);
         }
       });
@@ -209,10 +220,16 @@ export class DashboardComponent implements OnInit {
     this.errorMessage = null;
 
     this.adminPerformanceImportService.inject(this.selectedFile)
-      .pipe(finalize(() => { this.injectLoading = false; }))
+      .pipe(
+        finalize(() => {
+          this.injectLoading = false;
+          this.detectViewChanges();
+        })
+      )
       .subscribe({
         next: async (response) => {
           this.importResult = response;
+          this.detectViewChanges();
           await this.loadAnalytics(true);
           await this.swal.success(
             'Performance batch imported',
@@ -222,6 +239,7 @@ export class DashboardComponent implements OnInit {
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to import the analytics batch.';
           this.errorMessage = message;
+          this.detectViewChanges();
           await this.swal.error('Import failed', message);
         }
       });
@@ -250,12 +268,18 @@ export class DashboardComponent implements OnInit {
     this.errorMessage = null;
 
     this.adminPerformanceImportService.saveStudy(this.analytics)
-      .pipe(finalize(() => { this.saveStudyLoading = false; }))
+      .pipe(
+        finalize(() => {
+          this.saveStudyLoading = false;
+          this.detectViewChanges();
+        })
+      )
       .subscribe({
         next: async (response) => {
           this.clearImportWorkspace(true);
           this.errorMessage = null;
           this.resetAnalyticsFiltersSilently();
+          this.detectViewChanges();
           await this.loadAnalytics();
           await this.swal.success(
             'Performance saved',
@@ -265,6 +289,7 @@ export class DashboardComponent implements OnInit {
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to save the current performance study.';
           this.errorMessage = message;
+          this.detectViewChanges();
           await this.swal.error('Save failed', message);
         }
       });
@@ -277,7 +302,12 @@ export class DashboardComponent implements OnInit {
     try {
       const response = await firstValueFrom(
         this.adminPerformanceImportService.getAnalytics(this.analyticsFiltersForm.getRawValue())
-          .pipe(finalize(() => { this.analyticsLoading = false; }))
+          .pipe(
+            finalize(() => {
+              this.analyticsLoading = false;
+              this.detectViewChanges();
+            })
+          )
       );
 
       this.analytics = response;
@@ -285,10 +315,12 @@ export class DashboardComponent implements OnInit {
         zoneManager: response.selectedZoneManager ?? '',
         gouvernorat: response.selectedGovernorate ?? ''
       }, { emitEvent: false });
+      this.detectViewChanges();
     } catch (err: any) {
       const message = err?.error?.message ?? 'Failed to load Zone Manager performance analytics.';
       this.errorMessage = message;
       this.analytics = null;
+      this.detectViewChanges();
       if (showErrors) {
         await this.swal.error('Analytics unavailable', message);
       }
@@ -348,5 +380,9 @@ export class DashboardComponent implements OnInit {
     if (resetNativeInput && this.performanceImportFileInput?.nativeElement) {
       this.performanceImportFileInput.nativeElement.value = '';
     }
+  }
+
+  private detectViewChanges(): void {
+    this.zone.run(() => this.cdr.detectChanges());
   }
 }
