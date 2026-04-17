@@ -1,0 +1,341 @@
+<c-row [gutter]="4">
+  <c-col xl="5" lg="6" xs="12">
+    <c-card class="dashboard-panel dashboard-panel--ooredoo h-100">
+      <c-card-header class="dashboard-panel__header">
+        <div>
+          <div class="dashboard-panel__eyebrow">TODO import</div>
+          <div class="dashboard-panel__title">Upload TODO operational batch</div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div class="row g-3 align-items-end">
+          <div class="col-12">
+            <div class="ooredoo-upload-box">
+              <label class="form-label fw-semibold" for="todo-import-file">CSV / XLS / XLSX file</label>
+              <input
+                #todoImportFileInput
+                id="todo-import-file"
+                type="file"
+                class="form-control ooredoo-input"
+                accept=".csv,.xls,.xlsx"
+                (change)="onFileSelected($event)"
+              />
+              <div class="form-text">TODO study file with columns like CRM_CASE, STT, GOUVERNORAT, and ZONE_MNANAGER.</div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="dashboard-file-meta" *ngIf="selectedFile">
+              <svg cIcon name="cilSpreadsheet"></svg>
+              <span>Selected file: <strong>{{ selectedFile.name }}</strong></span>
+            </div>
+          </div>
+
+          <div class="col-sm-6">
+            <button cButton color="primary" class="w-100 dashboard-action-button dashboard-action-button--primary" type="button" (click)="previewImport()" [disabled]="previewLoading">
+              <svg cIcon name="cilFilter" class="me-2"></svg>
+              {{ previewLoading ? 'Previewing...' : 'Preview Parsed Rows' }}
+            </button>
+          </div>
+
+          <div class="col-sm-6">
+            <button cButton color="success" class="w-100 dashboard-action-button dashboard-action-button--success" type="button" (click)="injectImport()" [disabled]="!canInject">
+              <svg cIcon name="cilCloudUpload" class="me-2"></svg>
+              {{ injectLoading ? 'Importing...' : 'Save Imported Batch' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="alert alert-danger mt-4 mb-0" *ngIf="errorMessage">
+          <svg cIcon name="cilWarning" class="me-2"></svg>
+          {{ errorMessage }}
+        </div>
+
+        <div class="alert alert-warning mt-4 mb-0" *ngIf="warningMessage">
+          <svg cIcon name="cilInfo" class="me-2"></svg>
+          {{ warningMessage }}
+        </div>
+
+        <div class="alert alert-success mt-4 mb-0" *ngIf="importResult as result">
+          <div class="fw-semibold mb-1">Batch {{ result.batchId }} imported</div>
+          <div>{{ result.savedRows }} row(s) saved. {{ result.validRows }} valid row(s) are now available for TODO analysis.</div>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col xl="7" lg="6" xs="12">
+    <c-card class="dashboard-panel dashboard-panel--ooredoo h-100" *ngIf="hasPreview && importPreview as preview">
+      <c-card-header class="dashboard-panel__header">
+        <div>
+          <div class="dashboard-panel__eyebrow">TODO preview</div>
+          <div class="dashboard-panel__title">Parsed file indicators</div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div class="row g-3 preview-kpis">
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--neutral">
+              <span>Total rows</span>
+              <strong>{{ preview.totalRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--success">
+              <span>Valid rows</span>
+              <strong>{{ preview.validRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--danger">
+              <span>Invalid rows</span>
+              <strong>{{ preview.invalidRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--primary">
+              <span>Distinct ZMs</span>
+              <strong>{{ preview.distinctZoneManagers }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--warning">
+              <span>Distinct STTs</span>
+              <strong>{{ preview.distinctStts }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--info">
+              <span>Distinct governorates</span>
+              <strong>{{ preview.distinctGovernorates }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="invalid-summary mt-4" *ngIf="preview.invalidRows > 0">
+          <div class="invalid-summary__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Row quality</div>
+              <div class="dashboard-panel__title">Invalid rows and reasons</div>
+            </div>
+            <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+              {{ preview.invalidRows }} invalid row(s)
+            </span>
+          </div>
+
+          <div class="invalid-summary__list" *ngIf="invalidReasonSummaries.length > 0">
+            <div class="invalid-summary__item" *ngFor="let item of invalidReasonSummaries">
+              <span class="invalid-summary__reason">{{ item.reason }}</span>
+              <span class="invalid-summary__count">{{ item.count }} row(s)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-section-grid mt-4">
+          <section class="preview-review-card preview-review-card--clean">
+            <div class="preview-review-card__header">
+              <div>
+                <div class="dashboard-panel__eyebrow">Cleaned data</div>
+                <div class="dashboard-panel__title">Rows ready for TODO analytics</div>
+              </div>
+              <span class="badge rounded-pill bg-success-subtle text-success-emphasis">
+                {{ validPreviewRows.length }} valid row(s)
+              </span>
+            </div>
+
+            <div class="preview-review-card__metrics">
+              <div class="preview-review-metric">
+                <span>Ready rows</span>
+                <strong>{{ validPreviewRows.length }}</strong>
+              </div>
+              <div class="preview-review-metric">
+                <span>Rows with SLA</span>
+                <strong>{{ rowsWithSla }}</strong>
+              </div>
+              <div class="preview-review-metric">
+                <span>Will feed KPIs</span>
+                <strong>{{ preview.validRows }}</strong>
+              </div>
+            </div>
+
+            <div class="preview-table-shell">
+              <div class="table-responsive">
+                <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>CRM Case</th>
+                      <th>Zone Manager</th>
+                      <th>Governorate</th>
+                      <th>STT</th>
+                      <th>SLA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of validPreviewRows; trackBy: trackByPreviewRow">
+                      <td>#{{ row.rowNumber }}</td>
+                      <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                      <td>{{ row.zoneManager || '-' }}</td>
+                      <td>{{ row.gouvernorat || '-' }}</td>
+                      <td>{{ row.stt || '-' }}</td>
+                      <td>{{ row.slaBusinessDays != null ? (row.slaBusinessDays + ' d') : '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="preview-review-card preview-review-card--invalid">
+            <div class="preview-review-card__header">
+              <div>
+                <div class="dashboard-panel__eyebrow">Invalid data</div>
+                <div class="dashboard-panel__title">Row numbers and reasons</div>
+              </div>
+              <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                {{ invalidPreviewRows.length }} invalid row(s)
+              </span>
+            </div>
+
+            <div class="preview-review-card__metrics">
+              <div class="preview-review-metric preview-review-metric--danger">
+                <span>Invalid rows</span>
+                <strong>{{ invalidPreviewRows.length }}</strong>
+              </div>
+              <div class="preview-review-metric preview-review-metric--danger">
+                <span>Distinct reasons</span>
+                <strong>{{ distinctInvalidReasonCount }}</strong>
+              </div>
+            </div>
+
+            <div class="preview-table-shell" *ngIf="invalidPreviewRows.length > 0; else noInvalidTodoRows">
+              <div class="table-responsive">
+                <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>CRM Case</th>
+                      <th>Zone Manager</th>
+                      <th>Governorate</th>
+                      <th>STT</th>
+                      <th>Reasons</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of invalidPreviewRows; trackBy: trackByPreviewRow">
+                      <td>#{{ row.rowNumber }}</td>
+                      <td class="fw-semibold">{{ row.crmCase || '-' }}</td>
+                      <td>{{ row.zoneManager || '-' }}</td>
+                      <td>{{ row.gouvernorat || '-' }}</td>
+                      <td>{{ row.stt || '-' }}</td>
+                      <td>
+                        <div class="preview-issue-list">
+                          <span class="preview-issue-badge" *ngFor="let issue of (row.issues.length > 0 ? row.issues : ['Unknown validation issue'])">
+                            {{ issue }}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <ng-template #noInvalidTodoRows>
+              <div class="dashboard-empty preview-empty-state">
+                <svg cIcon name="cilCheckCircle" width="26" height="26"></svg>
+                <div>
+                  <div class="fw-semibold">No invalid rows were detected.</div>
+                  <div class="text-body-secondary">Every parsed row is currently eligible for TODO analytics.</div>
+                </div>
+              </div>
+            </ng-template>
+          </section>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <c-card class="dashboard-panel dashboard-panel--ooredoo h-100" *ngIf="!hasPreview">
+      <c-card-body class="dashboard-empty">
+        <svg cIcon name="cilChartPie" width="30" height="30"></svg>
+        <div>
+          <div class="fw-semibold">Preview the uploaded TODO batch to inspect row quality.</div>
+          <div class="text-body-secondary">Counters, distinct ZM/STT/governorate indicators, and row validity will appear here.</div>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<c-row [gutter]="4" class="mt-1">
+  <c-col xs="12">
+    <c-card class="dashboard-panel dashboard-panel--ooredoo">
+      <c-card-header class="dashboard-panel__header">
+        <div>
+          <div class="dashboard-panel__eyebrow">Analytics filters</div>
+          <div class="dashboard-panel__title">TODO analysis workspace</div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <form [formGroup]="analyticsFiltersForm" class="row g-3 align-items-end">
+          <div class="col-lg-4 col-md-6">
+            <label class="form-label fw-semibold" for="todo-zone-manager-filter">Zone Manager</label>
+            <select id="todo-zone-manager-filter" class="form-select ooredoo-input" formControlName="zoneManager">
+              <option value="">All Zone Managers</option>
+              <option *ngFor="let zm of selectedZoneManagers" [value]="zm">{{ zm }}</option>
+            </select>
+          </div>
+
+          <div class="col-lg-3 col-md-6">
+            <label class="form-label fw-semibold" for="todo-governorate-filter">Governorate</label>
+            <select id="todo-governorate-filter" class="form-select ooredoo-input" formControlName="gouvernorat">
+              <option value="">All governorates</option>
+              <option *ngFor="let governorate of selectedGovernorates" [value]="governorate">{{ governorate }}</option>
+            </select>
+          </div>
+
+          <div class="col-lg-2 col-md-6">
+            <label class="form-label fw-semibold" for="todo-uploaded-from">Uploaded From</label>
+            <input id="todo-uploaded-from" type="date" class="form-control ooredoo-input" formControlName="uploadedFrom" />
+          </div>
+
+          <div class="col-lg-2 col-md-6">
+            <label class="form-label fw-semibold" for="todo-uploaded-to">Uploaded To</label>
+            <input id="todo-uploaded-to" type="date" class="form-control ooredoo-input" formControlName="uploadedTo" />
+          </div>
+
+          <div class="col-12">
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <button cButton color="primary" class="dashboard-action-button dashboard-action-button--primary" type="button" (click)="applyAnalyticsFilters()" [disabled]="analyticsLoading">
+                <svg cIcon name="cilMagnifyingGlass" class="me-2"></svg>
+                Apply Filters
+              </button>
+              <button cButton color="secondary" variant="outline" class="dashboard-action-button dashboard-action-button--secondary" type="button" (click)="resetAnalyticsFilters()" [disabled]="analyticsLoading">
+                <svg cIcon name="cilReload" class="me-2"></svg>
+                Reset Filters
+              </button>
+              <button cButton color="success" class="dashboard-action-button dashboard-action-button--success" type="button" (click)="savePerformanceStudy()" [disabled]="!canSaveStudy">
+                <svg cIcon name="cilSave" class="me-2"></svg>
+                {{ saveStudyLoading ? 'Saving...' : 'Save TODO Analysis' }}
+              </button>
+            </div>
+          </div>
+        </form>
+        <div class="small text-body-secondary mt-3">
+          Save TODO Analysis stores the dashboard exactly as it is currently displayed, then clears the staging data so the next TODO file starts fresh.
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<c-row [gutter]="4" class="mt-1">
+  <c-col xs="12">
+    <app-zm-performance-study-view
+      [study]="analytics"
+      [loading]="analyticsLoading"
+      emptyTitle="No staged TODO data is loaded right now."
+      emptyMessage="Upload a new TODO CSV/XLS/XLSX batch to start the next study, or open TODOS analysis from the admin sidebar to review archived calculations."
+    />
+  </c-col>
+</c-row>

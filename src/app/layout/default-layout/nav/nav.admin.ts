@@ -31,7 +31,7 @@ export const navAdmin: INavData[] = [
   },
 
   {
-    name: 'Import TODOS',
+    name: 'Import Analytics',
     url: '/admin/import-todos',
     iconComponent: { name: 'cilCloudUpload' }
   },
@@ -40,6 +40,12 @@ export const navAdmin: INavData[] = [
     name: 'TODOS analysis',
     url: '/admin/saved-zm-performance',
     iconComponent: { name: 'cilChartLine' }
+  },
+
+  {
+    name: 'Act analysis',
+    url: '/admin/act-analysis',
+    iconComponent: { name: 'cilSpeedometer' }
   },
 
   {

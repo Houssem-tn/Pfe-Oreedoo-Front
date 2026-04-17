@@ -138,10 +138,19 @@ export interface SavedZmPerformanceRowQualityResponse {
   distinctGovernorates: number;
   rowsWithSla: number;
   invalidRowsWithMultipleIssues: number;
-  rowPreviewLimit: number;
+  invalidPageSize: number;
+  invalidPage: number;
+  filteredInvalidRows: number;
+  invalidTotalPages: number;
+  selectedInvalidReason?: string | null;
   invalidReasonSummaries: SavedZmPerformanceInvalidReason[];
-  validPreviewRows: SavedZmPerformanceRowPreview[];
   invalidPreviewRows: SavedZmPerformanceRowPreview[];
+}
+
+export interface SavedZmPerformanceRowQualityQuery extends AdminPerformanceAnalyticsQuery {
+  invalidReason?: string;
+  invalidPage?: number;
+  invalidPageSize?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -223,7 +232,7 @@ export class AdminPerformanceImportService {
     return this.http.get<ZmPerformanceStudyResponse>(url);
   }
 
-  getSavedStudyRowQuality(studyId: string, query: AdminPerformanceAnalyticsQuery): Observable<SavedZmPerformanceRowQualityResponse> {
+  getSavedStudyRowQuality(studyId: string, query: SavedZmPerformanceRowQualityQuery): Observable<SavedZmPerformanceRowQualityResponse> {
     const params = new URLSearchParams();
 
     if (query.zoneManager?.trim()) {
@@ -240,6 +249,18 @@ export class AdminPerformanceImportService {
 
     if (query.uploadedTo?.trim()) {
       params.set('uploadedTo', query.uploadedTo.trim());
+    }
+
+    if (query.invalidReason?.trim()) {
+      params.set('invalidReason', query.invalidReason.trim());
+    }
+
+    if (query.invalidPage != null) {
+      params.set('invalidPage', String(query.invalidPage));
+    }
+
+    if (query.invalidPageSize != null) {
+      params.set('invalidPageSize', String(query.invalidPageSize));
     }
 
     const queryString = params.toString();

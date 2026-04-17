@@ -1,0 +1,517 @@
+<div class="study-view">
+  <div class="dashboard-loading" *ngIf="loading">
+    <div class="spinner-border" role="status"></div>
+    <span>Loading activation analytics...</span>
+  </div>
+
+  <ng-container *ngIf="!loading && hasDashboardData; else emptyDashboardState">
+    <c-row [gutter]="4">
+      <c-col xs="12">
+        <c-card class="dashboard-panel study-context-card">
+          <c-card-body>
+            <div class="study-context-card__content">
+              <div>
+                <div class="dashboard-panel__eyebrow">Global admin intelligence</div>
+                <div class="study-context-card__title">Activation / mise en place command center</div>
+              </div>
+
+              <div class="study-context-card__chips">
+                <span class="study-context-chip">{{ dashboard?.storedRows ?? 0 }} stored row(s)</span>
+                <span class="study-context-chip">{{ dashboard?.validStoredRows ?? 0 }} valid analytic row(s)</span>
+                <span class="study-context-chip">{{ dashboard?.batchCount ?? 0 }} batch(es)</span>
+                <span class="study-context-chip" *ngIf="dashboard?.bestStt">Best STT: {{ dashboard?.bestStt }}</span>
+                <span class="study-context-chip" *ngIf="dashboard?.worstGovernorate">Weakest governorate: {{ dashboard?.worstGovernorate }}</span>
+                <span class="study-context-chip" *ngIf="dashboard?.mostDelayedStage">{{ dashboard?.mostDelayedStage }} is the slowest stage</span>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-1">
+      <c-col sm="6" xl="3" *ngFor="let card of kpiCards">
+        <c-card class="kpi-card" [ngClass]="'kpi-card--' + card.tone">
+          <c-card-body>
+            <div class="kpi-card__icon">
+              <svg cIcon [name]="card.icon"></svg>
+            </div>
+            <div class="kpi-card__label">{{ card.label }}</div>
+            <div class="kpi-card__value">{{ card.value }}</div>
+            <div class="kpi-card__hint">{{ card.hint }}</div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-1">
+      <c-col lg="6" xs="12">
+        <c-card class="dashboard-panel chart-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">STT workload</div>
+              <div class="dashboard-panel__title">Cases per STT</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="chart-wrap" *ngIf="sttWorkload.length > 0; else noSttChart">
+              <c-chart [data]="sttVolumeChart.data" [options]="sttVolumeChart.options" [type]="sttVolumeChart.type"></c-chart>
+            </div>
+            <div class="chart-inspector" *ngIf="sttWorkload.length > 0">
+              <div class="chart-inspector__title">Top workload carriers</div>
+              <div class="chart-inspector__rows">
+                <div class="chart-inspector__row" *ngFor="let item of sttWorkload; trackBy: trackByStt">
+                  <div class="chart-inspector__name">{{ item.sttName }}</div>
+                  <div class="chart-inspector__meta">{{ item.caseCount }} case(s)</div>
+                  <div class="chart-inspector__meta">{{ formatMetric(item.percentage) }}%</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noSttChart>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilChartBar"></svg>
+                <span>No STT workload chart is available.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col lg="6" xs="12">
+        <c-card class="dashboard-panel chart-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Governorate SLA</div>
+              <div class="dashboard-panel__title">End-to-end SLA by governorate</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="chart-wrap" *ngIf="governorateSlaBreakdown.length > 0; else noGovernorateSlaChart">
+              <c-chart [data]="governorateSlaChart.data" [options]="governorateSlaChart.options" [type]="governorateSlaChart.type"></c-chart>
+            </div>
+            <div class="chart-inspector" *ngIf="governorateSlaBreakdown.length > 0">
+              <div class="chart-inspector__title">SLA hot spots</div>
+              <div class="chart-inspector__rows">
+                <div class="chart-inspector__row" *ngFor="let item of governorateSlaBreakdown; trackBy: trackByGovernorate">
+                  <div class="chart-inspector__name">{{ item.gouvernorat }}</div>
+                  <div class="chart-inspector__meta">{{ formatDays(item.averageEndToEndSla) }}</div>
+                  <div class="chart-inspector__meta">{{ item.caseCount }} case(s)</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noGovernorateSlaChart>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilChartLine"></svg>
+                <span>No governorate SLA chart is available.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-1">
+      <c-col lg="5" xs="12">
+        <c-card class="dashboard-panel chart-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Geographic mix</div>
+              <div class="dashboard-panel__title">Cases by governorate</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="chart-wrap chart-wrap--compact" *ngIf="governorateBreakdown.length > 0; else noGovernorateVolumeChart">
+              <c-chart [data]="governorateVolumeChart.data" [options]="governorateVolumeChart.options" [type]="governorateVolumeChart.type"></c-chart>
+            </div>
+            <div class="chart-inspector" *ngIf="governorateBreakdown.length > 0">
+              <div class="chart-inspector__title">Top governorates by volume</div>
+              <div class="chart-inspector__rows">
+                <div class="chart-inspector__row" *ngFor="let item of governorateBreakdown.slice(0, 8); trackBy: trackByGovernorate">
+                  <div class="chart-inspector__name">{{ item.gouvernorat }}</div>
+                  <div class="chart-inspector__meta">{{ item.caseCount }} case(s)</div>
+                  <div class="chart-inspector__meta">{{ formatMetric(item.percentage) }}%</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #noGovernorateVolumeChart>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilLocationPin"></svg>
+                <span>No governorate volume chart is available.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col lg="7" xs="12">
+        <c-card class="dashboard-panel chart-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Pipeline delays</div>
+              <div class="dashboard-panel__title">Where the process slows down most</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="chart-wrap" *ngIf="pipelineStages.length > 0; else noPipelineChart">
+              <c-chart [data]="pipelineDelayChart.data" [options]="pipelineDelayChart.options" [type]="pipelineDelayChart.type"></c-chart>
+            </div>
+            <div class="table-responsive mt-3" *ngIf="pipelineStages.length > 0">
+              <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Stage</th>
+                    <th>Average delay</th>
+                    <th>Measured cases</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let stage of pipelineStages; trackBy: trackByStage">
+                    <td class="fw-semibold">{{ stage.label }}</td>
+                    <td>{{ formatDays(stage.averageBusinessDays) }}</td>
+                    <td>{{ stage.measuredCases }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noPipelineChart>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilSpeedometer"></svg>
+                <span>No pipeline delay analytics are available.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-1">
+      <c-col lg="6" xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Alerts</div>
+              <div class="dashboard-panel__title">Operational attention points</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="insights-grid" *ngIf="alerts.length > 0; else noAlerts">
+              <article class="insight-card" *ngFor="let alert of alerts; trackBy: trackByAlert">
+                <svg cIcon [name]="alert.severity === 'danger' ? 'cilWarning' : (alert.severity === 'warning' ? 'cilBell' : 'cilInfo')"></svg>
+                <span><strong>{{ alert.title }}:</strong> {{ alert.message }}</span>
+              </article>
+            </div>
+            <ng-template #noAlerts>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilCheckCircle"></svg>
+                <span>No alert threshold is currently triggered.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col lg="6" xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Insights</div>
+              <div class="dashboard-panel__title">Business-readable signals</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="insights-grid" *ngIf="insights.length > 0; else noInsights">
+              <article class="insight-card" *ngFor="let insight of insights">
+                <svg cIcon name="cilInfo"></svg>
+                <span>{{ insight }}</span>
+              </article>
+            </div>
+            <ng-template #noInsights>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilInfo"></svg>
+                <span>No interpretation-ready insight is available yet.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-1">
+      <c-col lg="6" xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">STT ranking</div>
+              <div class="dashboard-panel__title">Performance and workload distribution</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="table-responsive" *ngIf="sttRanking.length > 0; else noSttTable">
+              <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Cases</th>
+                    <th>Share</th>
+                    <th>RDV success</th>
+                    <th>Completion</th>
+                    <th>E2E SLA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of sttRanking; trackBy: trackByStt">
+                    <td class="fw-semibold">{{ item.sttName }}</td>
+                    <td>{{ item.caseCount }}</td>
+                    <td class="dashboard-share-cell">
+                      <div class="dashboard-share-cell__meta">{{ formatMetric(item.percentage) }}%</div>
+                      <c-progress thin color="primary" [value]="progressValue(item.percentage)" aria-label="STT share"></c-progress>
+                    </td>
+                    <td>{{ formatMetric(item.rdvSuccessRate) }}%</td>
+                    <td>{{ formatMetric(item.workCompletionRate) }}%</td>
+                    <td>{{ formatDays(item.averageEndToEndSla) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noSttTable>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilPeople"></svg>
+                <span>No STT ranking is available.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col lg="6" xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Governorate comparison</div>
+              <div class="dashboard-panel__title">Geography, SLA, and top STT</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="table-responsive" *ngIf="governorateBreakdown.length > 0; else noGovernorateTable">
+              <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Governorate</th>
+                    <th>Cases</th>
+                    <th>RDV success</th>
+                    <th>Delayed</th>
+                    <th>E2E SLA</th>
+                    <th>Top STT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of governorateBreakdown; trackBy: trackByGovernorate">
+                    <td class="fw-semibold">{{ item.gouvernorat }}</td>
+                    <td>{{ item.caseCount }}</td>
+                    <td>{{ formatMetric(item.rdvSuccessRate) }}%</td>
+                    <td>{{ formatMetric(item.delayedRate) }}%</td>
+                    <td>{{ formatDays(item.averageEndToEndSla) }}</td>
+                    <td>{{ item.topSttName || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noGovernorateTable>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilLocationPin"></svg>
+                <span>No governorate comparison is available.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-1">
+      <c-col lg="5" xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Import batches</div>
+              <div class="dashboard-panel__title">Recent dataset history</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="table-responsive" *ngIf="dashboard?.recentBatches?.length; else noBatchHistory">
+              <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Batch</th>
+                    <th>File</th>
+                    <th>Valid</th>
+                    <th>Invalid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let batch of dashboard?.recentBatches; trackBy: trackByBatch">
+                    <td class="fw-semibold">{{ batch.batchId }}</td>
+                    <td>{{ batch.fileName }}</td>
+                    <td>{{ batch.validRows }}</td>
+                    <td>{{ batch.invalidRows }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noBatchHistory>
+              <div class="dashboard-empty">
+                <svg cIcon name="cilCloudUpload"></svg>
+                <span>No batch history is available yet.</span>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col lg="7" xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-header class="dashboard-panel__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">RDV and quality</div>
+              <div class="dashboard-panel__title">Causes and telecom quality metrics</div>
+            </div>
+          </c-card-header>
+          <c-card-body>
+            <div class="row g-4">
+              <div class="col-md-6">
+                <div class="dashboard-panel__eyebrow">Top injoignabilite causes</div>
+                <div class="table-responsive" *ngIf="topInjoignabiliteCauses.length > 0; else noInjoignableCauses">
+                  <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>Cause</th>
+                        <th>Count</th>
+                        <th>Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of topInjoignabiliteCauses; trackBy: trackByCause">
+                        <td class="fw-semibold">{{ item.cause }}</td>
+                        <td>{{ item.count }}</td>
+                        <td>{{ formatMetric(item.percentage) }}%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ng-template #noInjoignableCauses>
+                  <div class="dashboard-empty dashboard-empty--compact">
+                    <svg cIcon name="cilPhoneSlash"></svg>
+                    <span>No injoignabilite causes were captured.</span>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="col-md-6">
+                <div class="dashboard-panel__eyebrow">Top abandon causes</div>
+                <div class="table-responsive" *ngIf="topAbandonCauses.length > 0; else noAbandonCauses">
+                  <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>Cause</th>
+                        <th>Count</th>
+                        <th>Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of topAbandonCauses; trackBy: trackByCause">
+                        <td class="fw-semibold">{{ item.cause }}</td>
+                        <td>{{ item.count }}</td>
+                        <td>{{ formatMetric(item.percentage) }}%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ng-template #noAbandonCauses>
+                  <div class="dashboard-empty dashboard-empty--compact">
+                    <svg cIcon name="cilBan"></svg>
+                    <span>No abandon causes were captured.</span>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="col-md-6">
+                <div class="dashboard-panel__eyebrow">Quality by STT</div>
+                <div class="table-responsive" *ngIf="qualityByStt.length > 0; else noQualityByStt">
+                  <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>STT</th>
+                        <th>DL</th>
+                        <th>UL</th>
+                        <th>SINR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of qualityByStt.slice(0, 6); trackBy: trackByQualitySlice">
+                        <td class="fw-semibold">{{ item.label }}</td>
+                        <td>{{ formatMetric(item.averageDebitDl) }}</td>
+                        <td>{{ formatMetric(item.averageDebitUl) }}</td>
+                        <td>{{ formatMetric(item.averageSinr) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ng-template #noQualityByStt>
+                  <div class="dashboard-empty dashboard-empty--compact">
+                    <svg cIcon name="cilBolt"></svg>
+                    <span>No STT quality comparison is available.</span>
+                  </div>
+                </ng-template>
+              </div>
+
+              <div class="col-md-6">
+                <div class="dashboard-panel__eyebrow">Quality by governorate</div>
+                <div class="table-responsive" *ngIf="qualityByGovernorate.length > 0; else noQualityByGovernorate">
+                  <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>Governorate</th>
+                        <th>DL</th>
+                        <th>UL</th>
+                        <th>SINR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of qualityByGovernorate.slice(0, 6); trackBy: trackByQualitySlice">
+                        <td class="fw-semibold">{{ item.label }}</td>
+                        <td>{{ formatMetric(item.averageDebitDl) }}</td>
+                        <td>{{ formatMetric(item.averageDebitUl) }}</td>
+                        <td>{{ formatMetric(item.averageSinr) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ng-template #noQualityByGovernorate>
+                  <div class="dashboard-empty dashboard-empty--compact">
+                    <svg cIcon name="cilGlobeAlt"></svg>
+                    <span>No governorate quality comparison is available.</span>
+                  </div>
+                </ng-template>
+              </div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </ng-container>
+
+  <ng-template #emptyDashboardState>
+    <c-row [gutter]="4">
+      <c-col xs="12">
+        <c-card class="dashboard-panel">
+          <c-card-body class="dashboard-empty">
+            <svg cIcon name="cilInbox" width="30" height="30"></svg>
+            <div>
+              <div class="fw-semibold">{{ emptyTitle }}</div>
+              <div class="text-body-secondary">{{ emptyMessage }}</div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+  </ng-template>
+</div>

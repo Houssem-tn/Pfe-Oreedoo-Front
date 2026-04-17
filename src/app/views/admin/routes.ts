@@ -51,6 +51,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./saved-zm-performance/saved-zm-performance.component').then(m => m.SavedZmPerformanceComponent)
   },
+  {
+    path: 'act-analysis',
+    loadComponent: () =>
+      import('../dashboard/activation-analysis.component').then(m => m.ActivationAnalysisComponent)
+  },
 
   // Audit home
   {

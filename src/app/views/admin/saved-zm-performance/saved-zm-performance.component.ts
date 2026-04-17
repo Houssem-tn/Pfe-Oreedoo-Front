@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ButtonDirective, CardBodyComponent, CardComponent, ColComponent, GutterDirective, RowComponent } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
 import { firstValueFrom, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -9,6 +10,7 @@ import {
   AdminPerformanceAnalyticsQuery,
   AdminPerformanceImportService,
   SavedZmPerformanceRowPreview,
+  SavedZmPerformanceRowQualityQuery,
   SavedZmPerformanceRowQualityResponse,
   SavedZmPerformanceStudyResponse,
   ZmPerformanceStudyResponse
@@ -19,11 +21,25 @@ import { ZmPerformanceStudyViewComponent } from '../../dashboard/zm-performance-
 @Component({
   selector: 'app-saved-zm-performance',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DatePipe, IconDirective, ZmPerformanceStudyViewComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DatePipe,
+    IconDirective,
+    ButtonDirective,
+    CardComponent,
+    CardBodyComponent,
+    RowComponent,
+    ColComponent,
+    GutterDirective,
+    ZmPerformanceStudyViewComponent
+  ],
   templateUrl: './saved-zm-performance.component.html',
-  styleUrl: './saved-zm-performance.component.scss'
+  styleUrls: ['./saved-zm-performance.component.scss', '../../dashboard/dashboard.component.scss']
 })
 export class SavedZmPerformanceComponent implements OnInit {
+  private static readonly INVALID_PAGE_SIZE = 50;
+
   private readonly fb = inject(FormBuilder);
   private readonly adminPerformanceImportService = inject(AdminPerformanceImportService);
   private readonly swal = inject(SwalService);
@@ -45,6 +61,8 @@ export class SavedZmPerformanceComponent implements OnInit {
   selectedStudyAnalytics: ZmPerformanceStudyResponse | null = null;
   selectedStudyRowQuality: SavedZmPerformanceRowQualityResponse | null = null;
   activeView: 'valid' | 'invalid' = 'valid';
+  selectedInvalidReason: string | null = null;
+  invalidPage = 1;
 
   ngOnInit(): void {
     this.loadSavedStudies();
@@ -101,16 +119,21 @@ export class SavedZmPerformanceComponent implements OnInit {
   selectStudy(studyId: string): void {
     this.selectedStudyId = studyId;
     this.activeView = 'valid';
+    this.selectedInvalidReason = null;
+    this.invalidPage = 1;
     this.resetFiltersSilently();
     this.detectViewChanges();
     this.loadSelectedStudyData();
   }
 
   applyFilters(): void {
+    this.invalidPage = 1;
     this.loadSelectedStudyData();
   }
 
   resetFilters(): void {
+    this.selectedInvalidReason = null;
+    this.invalidPage = 1;
     this.resetFiltersSilently();
     this.loadSelectedStudyData();
   }
@@ -126,6 +149,34 @@ export class SavedZmPerformanceComponent implements OnInit {
   setActiveView(view: 'valid' | 'invalid'): void {
     this.activeView = view;
     this.detectViewChanges();
+  }
+
+  selectInvalidReason(reason: string | null): void {
+    this.selectedInvalidReason = reason;
+    this.invalidPage = 1;
+    this.detectViewChanges();
+    this.loadSelectedStudyData();
+  }
+
+  goToPreviousInvalidPage(): void {
+    if (this.invalidPage <= 1) {
+      return;
+    }
+
+    this.invalidPage -= 1;
+    this.detectViewChanges();
+    this.loadSelectedStudyData();
+  }
+
+  goToNextInvalidPage(): void {
+    const totalPages = this.selectedStudyRowQuality?.invalidTotalPages ?? 1;
+    if (this.invalidPage >= totalPages) {
+      return;
+    }
+
+    this.invalidPage += 1;
+    this.detectViewChanges();
+    this.loadSelectedStudyData();
   }
 
   rowStatusLabel(row: SavedZmPerformanceRowPreview): string {
@@ -146,6 +197,10 @@ export class SavedZmPerformanceComponent implements OnInit {
     return `${row.sourceFileName ?? 'unknown'}-${row.rowNumber}-${index}`;
   }
 
+  trackByInvalidReason(_: number, item: { reason: string }): string {
+    return item.reason;
+  }
+
   private async loadSelectedStudyData(showErrors = false): Promise<void> {
     if (!this.selectedStudyId) {
       this.selectedStudyAnalytics = null;
@@ -162,7 +217,7 @@ export class SavedZmPerformanceComponent implements OnInit {
       const response = await firstValueFrom(
         forkJoin({
           analytics: this.adminPerformanceImportService.getSavedStudyAnalytics(this.selectedStudyId, this.currentAnalyticsQuery()),
-          rowQuality: this.adminPerformanceImportService.getSavedStudyRowQuality(this.selectedStudyId, this.currentAnalyticsQuery())
+          rowQuality: this.adminPerformanceImportService.getSavedStudyRowQuality(this.selectedStudyId, this.currentRowQualityQuery())
         })
           .pipe(
             finalize(() => {
@@ -174,6 +229,8 @@ export class SavedZmPerformanceComponent implements OnInit {
 
       this.selectedStudyAnalytics = response.analytics;
       this.selectedStudyRowQuality = response.rowQuality;
+      this.selectedInvalidReason = response.rowQuality.selectedInvalidReason ?? null;
+      this.invalidPage = response.rowQuality.invalidPage;
       this.filtersForm.patchValue({
         zoneManager: response.analytics.selectedZoneManager ?? '',
         gouvernorat: response.analytics.selectedGovernorate ?? ''
@@ -207,6 +264,15 @@ export class SavedZmPerformanceComponent implements OnInit {
 
   private currentAnalyticsQuery(): AdminPerformanceAnalyticsQuery {
     return this.filtersForm.getRawValue();
+  }
+
+  private currentRowQualityQuery(): SavedZmPerformanceRowQualityQuery {
+    return {
+      ...this.filtersForm.getRawValue(),
+      invalidReason: this.selectedInvalidReason ?? undefined,
+      invalidPage: this.invalidPage,
+      invalidPageSize: SavedZmPerformanceComponent.INVALID_PAGE_SIZE
+    };
   }
 
   private resetFiltersSilently(): void {
