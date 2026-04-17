@@ -232,7 +232,7 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
           }
         ]
       },
-      options: this.buildBarChartOptions(true, tooltipFormatter)
+      options: this.buildBarChartOptions(true, tooltipFormatter) as ChartOptions
     };
   }
 
@@ -253,7 +253,7 @@ export class ZmPerformanceStudyViewComponent implements OnChanges {
           }
         ]
       },
-      options: this.buildBarChartOptions(false, (value) => this.formatMetric(value))
+      options: this.buildBarChartOptions(false, (value) => this.formatMetric(value)) as ChartOptions
     };
   }
 

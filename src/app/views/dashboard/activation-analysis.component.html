@@ -1,0 +1,167 @@
+<div class="admin-analytics-dashboard">
+  <div class="dashboard-brand-ribbon">
+    <span class="dashboard-brand-ribbon__pill">ooredoo</span>
+    <span class="dashboard-brand-ribbon__text">Review live activation intelligence or reopen a saved Act analysis snapshot.</span>
+  </div>
+
+  <c-row [gutter]="4">
+    <c-col xs="12">
+      <c-card class="hero-card hero-card--ooredoo">
+        <c-card-body>
+          <div class="hero-card__content">
+            <div>
+              <div class="hero-card__eyebrow">Ooredoo activation command center</div>
+              <div class="hero-card__brandline">
+                <span class="hero-card__brand">ooredoo</span>
+                <span class="hero-card__brandcopy">Act analysis</span>
+              </div>
+              <h2 class="hero-card__title">Open the live dataset or a saved activation analysis</h2>
+              <p class="hero-card__description">
+                This workspace lets you reopen saved activation analytics, apply STT and governorate filters, and compare the current live dataset with earlier saved snapshots.
+              </p>
+            </div>
+
+            <div class="hero-card__chips">
+              <span class="dashboard-chip">
+                <svg cIcon name="cilChartLine"></svg>
+                Live dataset
+              </span>
+              <span class="dashboard-chip">
+                <svg cIcon name="cilSave"></svg>
+                Saved analyses
+              </span>
+              <span class="dashboard-chip">
+                <svg cIcon name="cilPeople"></svg>
+                STT filters
+              </span>
+              <span class="dashboard-chip dashboard-chip--accent">
+                <svg cIcon name="cilLocationPin"></svg>
+                Governorate filters
+              </span>
+            </div>
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <c-row [gutter]="4" class="mt-1">
+    <c-col xl="4" xs="12">
+      <c-card class="dashboard-panel dashboard-panel--ooredoo h-100">
+        <c-card-body>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <div class="dashboard-panel__eyebrow">Analysis source</div>
+              <div class="dashboard-panel__title">Live dataset and saved studies</div>
+            </div>
+          </div>
+
+          <button cButton color="primary" class="w-100 dashboard-action-button dashboard-action-button--primary mb-3" type="button" (click)="showLiveDataset()" [disabled]="viewMode === 'live' && loading">
+            <svg cIcon name="cilReload" class="me-2"></svg>
+            Open Live Dataset
+          </button>
+
+          <div class="small text-body-secondary mb-3" *ngIf="viewMode === 'live'">
+            You are currently viewing the live activation dataset.
+          </div>
+
+          <div class="d-grid gap-2" *ngIf="savedStudies.length > 0; else noSavedStudies">
+            <button
+              cButton
+              color="secondary"
+              variant="outline"
+              type="button"
+              class="text-start"
+              *ngFor="let study of savedStudies; trackBy: trackByStudy"
+              (click)="selectStudy(study.id)"
+            >
+              <div class="fw-semibold">{{ study.savedAt | date:'medium' }}</div>
+              <div class="small text-body-secondary">{{ study.sourceFileNames.join(', ') || 'Activation snapshot' }}</div>
+            </button>
+          </div>
+
+          <ng-template #noSavedStudies>
+            <div class="dashboard-empty">
+              <svg cIcon name="cilSave"></svg>
+              <span>No saved Act analysis is available yet.</span>
+            </div>
+          </ng-template>
+        </c-card-body>
+      </c-card>
+    </c-col>
+
+    <c-col xl="8" xs="12">
+      <c-card class="dashboard-panel dashboard-panel--ooredoo h-100">
+        <c-card-body>
+          <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+            <div>
+              <div class="dashboard-panel__eyebrow">{{ viewMode === 'live' ? 'Live workspace' : 'Saved workspace' }}</div>
+              <div class="dashboard-panel__title">
+                {{ viewMode === 'live' ? 'Current activation analytics' : 'Saved activation analytics snapshot' }}
+              </div>
+            </div>
+
+            <span class="badge rounded-pill" [ngClass]="viewMode === 'live' ? 'bg-primary-subtle text-primary-emphasis' : 'bg-success-subtle text-success-emphasis'">
+              {{ viewMode === 'live' ? 'Live dataset' : 'Saved study' }}
+            </span>
+          </div>
+
+          <div class="small text-body-secondary mt-3" *ngIf="viewMode === 'saved' && selectedStudy">
+            Reopened snapshot from {{ selectedStudy.savedAt | date:'medium' }} based on {{ selectedStudy.sourceFileNames.join(', ') || 'activation data' }}.
+          </div>
+
+          <form [formGroup]="filtersForm" class="row g-3 align-items-end mt-1">
+            <div class="col-lg-4 col-md-6">
+              <label class="form-label fw-semibold" for="act-analysis-stt">STT</label>
+              <select id="act-analysis-stt" class="form-select ooredoo-input" formControlName="stt">
+                <option value="">All STTs</option>
+                <option *ngFor="let stt of availableStts" [value]="stt">{{ stt }}</option>
+              </select>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+              <label class="form-label fw-semibold" for="act-analysis-governorate">Governorate</label>
+              <select id="act-analysis-governorate" class="form-select ooredoo-input" formControlName="gouvernorat">
+                <option value="">All governorates</option>
+                <option *ngFor="let governorate of availableGovernorates" [value]="governorate">{{ governorate }}</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <div class="d-flex flex-wrap gap-2 justify-content-end">
+                <button cButton color="primary" class="dashboard-action-button dashboard-action-button--primary" type="button" (click)="applyFilters()" [disabled]="loading">
+                  <svg cIcon name="cilMagnifyingGlass" class="me-2"></svg>
+                  Apply Filters
+                </button>
+                <button cButton color="secondary" variant="outline" class="dashboard-action-button dashboard-action-button--secondary" type="button" (click)="resetFilters()" [disabled]="loading">
+                  <svg cIcon name="cilReload" class="me-2"></svg>
+                  Clear Filters
+                </button>
+                <button cButton color="success" class="dashboard-action-button dashboard-action-button--success" type="button" (click)="saveLiveStudy()" [disabled]="!canSaveStudy">
+                  <svg cIcon name="cilSave" class="me-2"></svg>
+                  {{ saveStudyLoading ? 'Saving...' : 'Save Live Analysis' }}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <div class="alert alert-danger mt-4 mb-0" *ngIf="errorMessage">
+            <svg cIcon name="cilWarning" class="me-2"></svg>
+            {{ errorMessage }}
+          </div>
+        </c-card-body>
+      </c-card>
+    </c-col>
+  </c-row>
+
+  <c-row [gutter]="4" class="mt-1">
+    <c-col xs="12">
+      <app-activation-analytics-view
+        [dashboard]="dashboard"
+        [loading]="loading"
+        emptyTitle="No activation analytics are loaded right now."
+        emptyMessage="Import and save an activation dataset from the admin import page to start filling the Act analysis workspace."
+      />
+    </c-col>
+  </c-row>
+</div>

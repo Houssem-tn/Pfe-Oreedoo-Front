@@ -316,10 +316,25 @@
   background: linear-gradient(160deg, #fff8fa 0%, #ffffff 100%);
   border: 1px solid rgba(227, 6, 19, 0.1);
   border-radius: 0.9rem;
+  cursor: pointer;
   display: flex;
   gap: 0.75rem;
   justify-content: space-between;
   padding: 0.75rem 0.85rem;
+  text-align: left;
+  transition: 0.18s ease;
+  width: 100%;
+}
+
+.saved-row-quality__reason-item:hover {
+  border-color: rgba(227, 6, 19, 0.24);
+  transform: translateY(-1px);
+}
+
+.saved-row-quality__reason-item--active {
+  background: linear-gradient(140deg, #fff2f4 0%, #fffafb 100%);
+  border-color: rgba(227, 6, 19, 0.36);
+  box-shadow: 0 0.75rem 1.4rem rgba(227, 6, 19, 0.08);
 }
 
 .saved-row-quality__reason-text {
