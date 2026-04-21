@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, ViewChild, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import {
   ButtonDirective,
@@ -16,11 +16,13 @@ import { firstValueFrom } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
+  AdminActivationAnalyticsCharts,
   AdminActivationAnalyticsDashboard,
   AdminActivationAnalyticsImportResponse,
   AdminActivationAnalyticsInvalidReason,
   AdminActivationAnalyticsPreviewResponse,
   AdminActivationAnalyticsPreviewRow,
+  AdminActivationAnalyticsSummary,
   AdminActivationAnalyticsService
 } from '../../core/admin-activation-analytics/admin-activation-analytics.service';
 import { SwalService } from '../../core/ui/swal.service';
@@ -31,6 +33,7 @@ import { ActivationAnalyticsViewComponent } from './activation-analytics-view.co
   standalone: true,
   templateUrl: './activation-import-workspace.component.html',
   styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -65,6 +68,7 @@ export class ActivationImportWorkspaceComponent implements OnInit {
   previewLoading = false;
   importLoading = false;
   dashboardLoading = false;
+  chartsLoading = false;
   saveStudyLoading = false;
 
   errorMessage: string | null = null;
@@ -77,9 +81,12 @@ export class ActivationImportWorkspaceComponent implements OnInit {
   activePreviewView: 'valid' | 'invalid' = 'valid';
   selectedInvalidReason: string | null = null;
   invalidRowsPage = 1;
+  private dashboardSummary: AdminActivationAnalyticsSummary | null = null;
+  private dashboardCharts: AdminActivationAnalyticsCharts | null = null;
+  private lastDashboardRequestKey: string | null = null;
 
   ngOnInit(): void {
-    this.loadDashboard(true);
+    this.loadDashboard(true, true);
   }
 
   get validPreviewRows(): AdminActivationAnalyticsPreviewRow[] {
@@ -136,15 +143,21 @@ export class ActivationImportWorkspaceComponent implements OnInit {
   }
 
   get canSaveStudy(): boolean {
-    return !!this.dashboard && this.dashboard.kpis.totalCases > 0 && !this.saveStudyLoading && !this.dashboardLoading;
+    return !!this.dashboardSummary
+      && !!this.dashboardCharts
+      && !!this.dashboard
+      && this.dashboard.kpis.totalCases > 0
+      && !this.saveStudyLoading
+      && !this.dashboardLoading
+      && !this.chartsLoading;
   }
 
   get availableStts(): string[] {
-    return this.dashboard?.availableStts ?? [];
+    return this.dashboardSummary?.availableStts ?? this.dashboard?.availableStts ?? [];
   }
 
   get availableGovernorates(): string[] {
-    return this.dashboard?.availableGovernorates ?? [];
+    return this.dashboardSummary?.availableGovernorates ?? this.dashboard?.availableGovernorates ?? [];
   }
 
   onFileSelected(event: Event): void {
@@ -230,7 +243,7 @@ export class ActivationImportWorkspaceComponent implements OnInit {
         next: async (response) => {
           this.importResult = response;
           this.detectViewChanges();
-          await this.loadDashboard(true);
+          await this.loadDashboard(true, true);
           await this.swal.success(
             'Activation dataset imported',
             `${response.insertedRows} new valid row(s) were stored in batch ${response.batchId}. ${response.duplicateRows} duplicate row(s) and ${response.invalidRows} invalid row(s) were skipped.`
@@ -275,6 +288,8 @@ export class ActivationImportWorkspaceComponent implements OnInit {
       .subscribe({
         next: async (response) => {
           this.clearImportWorkspace(true);
+          this.dashboardSummary = null;
+          this.dashboardCharts = null;
           this.dashboard = null;
           this.resetAnalyticsFiltersSilently();
           await this.swal.success(
@@ -292,13 +307,23 @@ export class ActivationImportWorkspaceComponent implements OnInit {
       });
   }
 
-  async loadDashboard(showErrors = false): Promise<void> {
+  async loadDashboard(showErrors = false, forceReload = false): Promise<void> {
+    const requestKey = JSON.stringify(this.analyticsFiltersForm.getRawValue());
+    if (!forceReload && requestKey === this.lastDashboardRequestKey && this.dashboardSummary) {
+      return;
+    }
+
+    this.lastDashboardRequestKey = requestKey;
     this.dashboardLoading = true;
+    this.chartsLoading = true;
     this.errorMessage = null;
+    this.dashboardSummary = null;
+    this.dashboardCharts = null;
+    this.rebuildDashboard();
 
     try {
       const response = await firstValueFrom(
-        this.analyticsService.getDashboard(this.analyticsFiltersForm.getRawValue())
+        this.analyticsService.getSummary(this.analyticsFiltersForm.getRawValue())
           .pipe(
             finalize(() => {
               this.dashboardLoading = false;
@@ -307,15 +332,22 @@ export class ActivationImportWorkspaceComponent implements OnInit {
           )
       );
 
-      this.dashboard = response;
+      this.dashboardSummary = response;
+      this.dashboardCharts = null;
+      this.rebuildDashboard();
       this.analyticsFiltersForm.patchValue({
         stt: response.selectedStt ?? '',
         gouvernorat: response.selectedGovernorate ?? ''
       }, { emitEvent: false });
       this.detectViewChanges();
+      await this.loadCharts();
     } catch (err: any) {
+      this.lastDashboardRequestKey = null;
       const message = err?.error?.message ?? 'Failed to load activation analytics.';
       this.errorMessage = message;
+      this.chartsLoading = false;
+      this.dashboardSummary = null;
+      this.dashboardCharts = null;
       this.dashboard = null;
       this.detectViewChanges();
       if (showErrors) {
@@ -380,6 +412,63 @@ export class ActivationImportWorkspaceComponent implements OnInit {
     if (resetNativeInput && this.activationImportFileInput?.nativeElement) {
       this.activationImportFileInput.nativeElement.value = '';
     }
+  }
+
+  private async loadCharts(): Promise<void> {
+    this.chartsLoading = true;
+    this.detectViewChanges();
+
+    try {
+      const response = await firstValueFrom(
+        this.analyticsService.getCharts(this.analyticsFiltersForm.getRawValue())
+          .pipe(
+            finalize(() => {
+              this.chartsLoading = false;
+              this.detectViewChanges();
+            })
+          )
+      );
+
+      this.dashboardCharts = response;
+      this.rebuildDashboard();
+      this.detectViewChanges();
+    } catch (err: any) {
+      this.dashboardCharts = null;
+      this.rebuildDashboard();
+      this.errorMessage = err?.error?.message ?? 'Failed to load activation analytics charts.';
+      this.detectViewChanges();
+    }
+  }
+
+  private rebuildDashboard(): void {
+    if (!this.dashboardSummary) {
+      this.dashboard = null;
+      return;
+    }
+
+    this.dashboard = {
+      ...this.dashboardSummary,
+      ...(this.dashboardCharts ?? this.emptyChartsState())
+    };
+  }
+
+  private emptyChartsState(): AdminActivationAnalyticsCharts {
+    return {
+      bestStt: null,
+      worstStt: null,
+      bestGovernorate: null,
+      worstGovernorate: null,
+      mostDelayedStage: null,
+      sttRanking: [],
+      governorateBreakdown: [],
+      topInjoignabiliteCauses: [],
+      topAbandonCauses: [],
+      pipelineStages: [],
+      qualityByStt: [],
+      qualityByGovernorate: [],
+      alerts: [],
+      insights: []
+    };
   }
 
   private detectViewChanges(): void {

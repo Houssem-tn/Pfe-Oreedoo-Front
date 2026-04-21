@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../http/api.config';
 
@@ -140,6 +140,68 @@ export interface AdminActivationAnalyticsAlert {
   message: string;
 }
 
+export interface AdminActivationAnalyticsSummary {
+  storedRows: number;
+  validStoredRows: number;
+  batchCount: number;
+  latestBatch: AdminActivationAnalyticsBatch | null;
+  recentBatches: AdminActivationAnalyticsBatch[];
+  availableStts: string[];
+  availableGovernorates: string[];
+  selectedStt: string | null;
+  selectedGovernorate: string | null;
+  kpis: AdminActivationAnalyticsKpis;
+  rdvSuccessRate: number;
+  averageDebitDl: number | null;
+  averageDebitUl: number | null;
+  averageRsrp: number | null;
+  averageRsrq: number | null;
+  averageSinr: number | null;
+  averageMetrageCable: number | null;
+  averageNombreDePv: number | null;
+}
+
+export interface AdminActivationAnalyticsCharts {
+  bestStt: string | null;
+  worstStt: string | null;
+  bestGovernorate: string | null;
+  worstGovernorate: string | null;
+  mostDelayedStage: string | null;
+  sttRanking: AdminActivationAnalyticsSttItem[];
+  governorateBreakdown: AdminActivationAnalyticsGovernorateItem[];
+  topInjoignabiliteCauses: AdminActivationAnalyticsCauseItem[];
+  topAbandonCauses: AdminActivationAnalyticsCauseItem[];
+  pipelineStages: AdminActivationAnalyticsPipelineStage[];
+  qualityByStt: AdminActivationAnalyticsQualitySlice[];
+  qualityByGovernorate: AdminActivationAnalyticsQualitySlice[];
+  alerts: AdminActivationAnalyticsAlert[];
+  insights: string[];
+}
+
+export interface AdminActivationAnalyticsRowListItem {
+  id: string;
+  batchId: string;
+  uploadedAt: string;
+  sourceFileName: string | null;
+  rowNumber: number | null;
+  crmCase: string | null;
+  gouvernorat: string | null;
+  stt: string | null;
+  statut: string | null;
+  assignmentBusinessDays: number | null;
+  rdvBusinessDays: number | null;
+  executionBusinessDays: number | null;
+  endToEndBusinessDays: number | null;
+}
+
+export interface AdminActivationAnalyticsRowsPage {
+  items: AdminActivationAnalyticsRowListItem[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
 export interface AdminActivationAnalyticsDashboard {
   storedRows: number;
   validStoredRows: number;
@@ -191,9 +253,11 @@ export interface SavedActivationAnalyticsStudyResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AdminActivationAnalyticsService {
+  private static readonly GET_CACHE_TTL_MS = 10000;
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly analyticsUrl = `${this.baseUrl}/api/v1/admin/activation-analytics`;
+  private readonly getCache = new Map<string, { expiresAt: number; stream: Observable<unknown> }>();
 
   preview(file: File): Observable<AdminActivationAnalyticsPreviewResponse> {
     const formData = new FormData();
@@ -204,39 +268,127 @@ export class AdminActivationAnalyticsService {
   importFile(file: File): Observable<AdminActivationAnalyticsImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<AdminActivationAnalyticsImportResponse>(`${this.analyticsUrl}/import`, formData);
+    return this.http.post<AdminActivationAnalyticsImportResponse>(`${this.analyticsUrl}/import`, formData).pipe(
+      tap(() => this.invalidateCachedGets())
+    );
+  }
+
+  getSummary(query: AdminActivationAnalyticsQuery = {}): Observable<AdminActivationAnalyticsSummary> {
+    return this.cachedGet<AdminActivationAnalyticsSummary>(this.buildUrl(`${this.analyticsUrl}/summary`, query));
+  }
+
+  getCharts(query: AdminActivationAnalyticsQuery = {}): Observable<AdminActivationAnalyticsCharts> {
+    return this.cachedGet<AdminActivationAnalyticsCharts>(this.buildUrl(`${this.analyticsUrl}/charts`, query));
+  }
+
+  getRows(
+    page = 0,
+    size = 50,
+    query: AdminActivationAnalyticsQuery = {}
+  ): Observable<AdminActivationAnalyticsRowsPage> {
+    return this.cachedGet<AdminActivationAnalyticsRowsPage>(this.buildUrl(`${this.analyticsUrl}/rows`, {
+      ...query,
+      page,
+      size
+    }));
   }
 
   getDashboard(query: AdminActivationAnalyticsQuery = {}): Observable<AdminActivationAnalyticsDashboard> {
-    const params = new URLSearchParams();
-
-    if (query.stt?.trim()) {
-      params.set('stt', query.stt.trim());
-    }
-
-    if (query.gouvernorat?.trim()) {
-      params.set('gouvernorat', query.gouvernorat.trim());
-    }
-
-    const queryString = params.toString();
-    const url = queryString ? `${this.analyticsUrl}/dashboard?${queryString}` : `${this.analyticsUrl}/dashboard`;
-    return this.http.get<AdminActivationAnalyticsDashboard>(url);
+    return this.cachedGet<AdminActivationAnalyticsDashboard>(this.buildUrl(`${this.analyticsUrl}/dashboard`, query));
   }
 
   saveStudy(dashboard: AdminActivationAnalyticsDashboard): Observable<SavedActivationAnalyticsStudyResponse> {
     return this.http.post<SavedActivationAnalyticsStudyResponse>(`${this.analyticsUrl}/save-study`, {
       dashboard
-    });
+    }).pipe(
+      tap(() => this.invalidateCachedGets())
+    );
   }
 
   listSavedStudies(): Observable<SavedActivationAnalyticsStudyResponse[]> {
-    return this.http.get<SavedActivationAnalyticsStudyResponse[]>(`${this.analyticsUrl}/saved-studies`);
+    return this.cachedGet<SavedActivationAnalyticsStudyResponse[]>(`${this.analyticsUrl}/saved-studies`);
+  }
+
+  getSavedStudySummary(
+    studyId: string,
+    query: AdminActivationAnalyticsQuery = {}
+  ): Observable<AdminActivationAnalyticsSummary> {
+    return this.cachedGet<AdminActivationAnalyticsSummary>(
+      this.buildSavedStudyUrl(studyId, 'summary', query)
+    );
+  }
+
+  getSavedStudyCharts(
+    studyId: string,
+    query: AdminActivationAnalyticsQuery = {}
+  ): Observable<AdminActivationAnalyticsCharts> {
+    return this.cachedGet<AdminActivationAnalyticsCharts>(
+      this.buildSavedStudyUrl(studyId, 'charts', query)
+    );
+  }
+
+  getSavedStudyRows(
+    studyId: string,
+    page = 0,
+    size = 50,
+    query: AdminActivationAnalyticsQuery = {}
+  ): Observable<AdminActivationAnalyticsRowsPage> {
+    return this.cachedGet<AdminActivationAnalyticsRowsPage>(
+      this.buildSavedStudyUrl(studyId, 'rows', {
+        ...query,
+        page,
+        size
+      })
+    );
   }
 
   getSavedStudyDashboard(
     studyId: string,
     query: AdminActivationAnalyticsQuery = {}
   ): Observable<AdminActivationAnalyticsDashboard> {
+    return this.cachedGet<AdminActivationAnalyticsDashboard>(
+      this.buildSavedStudyUrl(studyId, 'dashboard', query)
+    );
+  }
+
+  private cachedGet<T>(url: string): Observable<T> {
+    const now = Date.now();
+    const cached = this.getCache.get(url);
+    if (cached && cached.expiresAt > now) {
+      return cached.stream as Observable<T>;
+    }
+
+    const request$ = this.http.get<T>(url).pipe(
+      tap({
+        error: () => this.getCache.delete(url)
+      }),
+      shareReplay(1)
+    );
+
+    this.getCache.set(url, {
+      expiresAt: now + AdminActivationAnalyticsService.GET_CACHE_TTL_MS,
+      stream: request$
+    });
+    return request$;
+  }
+
+  private invalidateCachedGets(): void {
+    this.getCache.clear();
+  }
+
+  private buildSavedStudyUrl(
+    studyId: string,
+    endpoint: 'summary' | 'charts' | 'rows' | 'dashboard',
+    query: AdminActivationAnalyticsQuery & { page?: number; size?: number } = {}
+  ): string {
+    const encodedId = encodeURIComponent(studyId);
+    return this.buildUrl(`${this.analyticsUrl}/saved-studies/${encodedId}/${endpoint}`, query);
+  }
+
+  private buildUrl(
+    baseUrl: string,
+    query: AdminActivationAnalyticsQuery & { page?: number; size?: number } = {}
+  ): string {
     const params = new URLSearchParams();
 
     if (query.stt?.trim()) {
@@ -247,12 +399,15 @@ export class AdminActivationAnalyticsService {
       params.set('gouvernorat', query.gouvernorat.trim());
     }
 
-    const queryString = params.toString();
-    const encodedId = encodeURIComponent(studyId);
-    const url = queryString
-      ? `${this.analyticsUrl}/saved-studies/${encodedId}/dashboard?${queryString}`
-      : `${this.analyticsUrl}/saved-studies/${encodedId}/dashboard`;
+    if (query.page != null) {
+      params.set('page', String(query.page));
+    }
 
-    return this.http.get<AdminActivationAnalyticsDashboard>(url);
+    if (query.size != null) {
+      params.set('size', String(query.size));
+    }
+
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   }
 }
