@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ButtonDirective, CardBodyComponent, CardComponent, ColComponent, GutterDirective, RowComponent } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
@@ -7,7 +7,9 @@ import { firstValueFrom } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
+  AdminActivationAnalyticsCharts,
   AdminActivationAnalyticsDashboard,
+  AdminActivationAnalyticsSummary,
   AdminActivationAnalyticsService,
   SavedActivationAnalyticsStudyResponse
 } from '../../core/admin-activation-analytics/admin-activation-analytics.service';
@@ -19,6 +21,7 @@ import { ActivationAnalyticsViewComponent } from './activation-analytics-view.co
   standalone: true,
   templateUrl: './activation-analysis.component.html',
   styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -46,6 +49,7 @@ export class ActivationAnalysisComponent implements OnInit {
   });
 
   loading = false;
+  chartsLoading = false;
   saveStudyLoading = false;
   errorMessage: string | null = null;
 
@@ -53,26 +57,32 @@ export class ActivationAnalysisComponent implements OnInit {
   savedStudies: SavedActivationAnalyticsStudyResponse[] = [];
   selectedStudyId: string | null = null;
   viewMode: 'live' | 'saved' = 'live';
+  private dashboardSummary: AdminActivationAnalyticsSummary | null = null;
+  private dashboardCharts: AdminActivationAnalyticsCharts | null = null;
+  private lastViewRequestKey: string | null = null;
 
   ngOnInit(): void {
     this.loadSavedStudies();
-    this.loadCurrentView(true);
+    this.loadCurrentView(true, true);
   }
 
   get availableStts(): string[] {
-    return this.dashboard?.availableStts ?? [];
+    return this.dashboardSummary?.availableStts ?? this.dashboard?.availableStts ?? [];
   }
 
   get availableGovernorates(): string[] {
-    return this.dashboard?.availableGovernorates ?? [];
+    return this.dashboardSummary?.availableGovernorates ?? this.dashboard?.availableGovernorates ?? [];
   }
 
   get canSaveStudy(): boolean {
     return this.viewMode === 'live'
+      && !!this.dashboardSummary
+      && !!this.dashboardCharts
       && !!this.dashboard
       && this.dashboard.kpis.totalCases > 0
       && !this.saveStudyLoading
-      && !this.loading;
+      && !this.loading
+      && !this.chartsLoading;
   }
 
   get selectedStudy(): SavedActivationAnalyticsStudyResponse | null {
@@ -87,7 +97,7 @@ export class ActivationAnalysisComponent implements OnInit {
     this.selectedStudyId = null;
     this.resetFiltersSilently();
     this.detectViewChanges();
-    this.loadCurrentView();
+    this.loadCurrentView(false, true);
   }
 
   selectStudy(studyId: string): void {
@@ -95,7 +105,7 @@ export class ActivationAnalysisComponent implements OnInit {
     this.selectedStudyId = studyId;
     this.resetFiltersSilently();
     this.detectViewChanges();
-    this.loadCurrentView();
+    this.loadCurrentView(false, true);
   }
 
   applyFilters(): void {
@@ -136,14 +146,28 @@ export class ActivationAnalysisComponent implements OnInit {
       });
   }
 
-  async loadCurrentView(showErrors = false): Promise<void> {
+  async loadCurrentView(showErrors = false, forceReload = false): Promise<void> {
+    const requestKey = JSON.stringify({
+      viewMode: this.viewMode,
+      selectedStudyId: this.selectedStudyId,
+      filters: this.filtersForm.getRawValue()
+    });
+    if (!forceReload && requestKey === this.lastViewRequestKey && this.dashboardSummary) {
+      return;
+    }
+
+    this.lastViewRequestKey = requestKey;
     this.loading = true;
+    this.chartsLoading = true;
     this.errorMessage = null;
+    this.dashboardSummary = null;
+    this.dashboardCharts = null;
+    this.rebuildDashboard();
 
     try {
       const response = this.viewMode === 'saved' && this.selectedStudyId
         ? await firstValueFrom(
-            this.analyticsService.getSavedStudyDashboard(this.selectedStudyId, this.filtersForm.getRawValue())
+            this.analyticsService.getSavedStudySummary(this.selectedStudyId, this.filtersForm.getRawValue())
               .pipe(
                 finalize(() => {
                   this.loading = false;
@@ -152,7 +176,7 @@ export class ActivationAnalysisComponent implements OnInit {
               )
           )
         : await firstValueFrom(
-            this.analyticsService.getDashboard(this.filtersForm.getRawValue())
+            this.analyticsService.getSummary(this.filtersForm.getRawValue())
               .pipe(
                 finalize(() => {
                   this.loading = false;
@@ -161,15 +185,22 @@ export class ActivationAnalysisComponent implements OnInit {
               )
           );
 
-      this.dashboard = response;
+      this.dashboardSummary = response;
+      this.dashboardCharts = null;
+      this.rebuildDashboard();
       this.filtersForm.patchValue({
         stt: response.selectedStt ?? '',
         gouvernorat: response.selectedGovernorate ?? ''
       }, { emitEvent: false });
       this.detectViewChanges();
+      await this.loadCharts();
     } catch (err: any) {
+      this.lastViewRequestKey = null;
       const message = err?.error?.message ?? 'Failed to load Act analysis.';
       this.errorMessage = message;
+      this.chartsLoading = false;
+      this.dashboardSummary = null;
+      this.dashboardCharts = null;
       this.dashboard = null;
       this.detectViewChanges();
       if (showErrors) {
@@ -204,6 +235,73 @@ export class ActivationAnalysisComponent implements OnInit {
       stt: '',
       gouvernorat: ''
     }, { emitEvent: false });
+  }
+
+  private async loadCharts(): Promise<void> {
+    this.chartsLoading = true;
+    this.detectViewChanges();
+
+    try {
+      const response = this.viewMode === 'saved' && this.selectedStudyId
+        ? await firstValueFrom(
+            this.analyticsService.getSavedStudyCharts(this.selectedStudyId, this.filtersForm.getRawValue())
+              .pipe(
+                finalize(() => {
+                  this.chartsLoading = false;
+                  this.detectViewChanges();
+                })
+              )
+          )
+        : await firstValueFrom(
+            this.analyticsService.getCharts(this.filtersForm.getRawValue())
+              .pipe(
+                finalize(() => {
+                  this.chartsLoading = false;
+                  this.detectViewChanges();
+                })
+              )
+          );
+
+      this.dashboardCharts = response;
+      this.rebuildDashboard();
+      this.detectViewChanges();
+    } catch (err: any) {
+      this.dashboardCharts = null;
+      this.rebuildDashboard();
+      this.errorMessage = err?.error?.message ?? 'Failed to load Act analysis charts.';
+      this.detectViewChanges();
+    }
+  }
+
+  private rebuildDashboard(): void {
+    if (!this.dashboardSummary) {
+      this.dashboard = null;
+      return;
+    }
+
+    this.dashboard = {
+      ...this.dashboardSummary,
+      ...(this.dashboardCharts ?? this.emptyChartsState())
+    };
+  }
+
+  private emptyChartsState(): AdminActivationAnalyticsCharts {
+    return {
+      bestStt: null,
+      worstStt: null,
+      bestGovernorate: null,
+      worstGovernorate: null,
+      mostDelayedStage: null,
+      sttRanking: [],
+      governorateBreakdown: [],
+      topInjoignabiliteCauses: [],
+      topAbandonCauses: [],
+      pipelineStages: [],
+      qualityByStt: [],
+      qualityByGovernorate: [],
+      alerts: [],
+      insights: []
+    };
   }
 
   private detectViewChanges(): void {

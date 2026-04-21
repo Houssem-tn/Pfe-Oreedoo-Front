@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
 import { ChartOptions, TooltipItem } from 'chart.js';
 import {
   CardBodyComponent,
@@ -40,6 +40,7 @@ type KpiCard = {
   standalone: true,
   templateUrl: './activation-analytics-view.component.html',
   styleUrl: './zm-performance-study-view.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     CardComponent,
@@ -57,6 +58,7 @@ type KpiCard = {
 export class ActivationAnalyticsViewComponent implements OnChanges {
   @Input() dashboard: AdminActivationAnalyticsDashboard | null = null;
   @Input() loading = false;
+  @Input() chartsLoading = false;
   @Input() emptyTitle = 'No activation analytics are loaded right now.';
   @Input() emptyMessage = 'Import a CSV/XLS/XLSX activation dataset to generate the global admin analytics workspace.';
 
