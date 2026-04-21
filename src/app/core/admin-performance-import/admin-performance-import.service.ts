@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../http/api.config';
 
@@ -155,9 +155,11 @@ export interface SavedZmPerformanceRowQualityQuery extends AdminPerformanceAnaly
 
 @Injectable({ providedIn: 'root' })
 export class AdminPerformanceImportService {
+  private static readonly GET_CACHE_TTL_MS = 10000;
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly importUrl = `${this.baseUrl}/api/v1/admin/performance-imports`;
+  private readonly getCache = new Map<string, { expiresAt: number; stream: Observable<unknown> }>();
 
   preview(file: File): Observable<AdminPerformanceImportPreviewResponse> {
     const formData = new FormData();
@@ -168,7 +170,9 @@ export class AdminPerformanceImportService {
   inject(file: File): Observable<AdminPerformanceImportInjectResponse> {
     const formData = new FormData();
     formData.append('file', file, file.name);
-    return this.http.post<AdminPerformanceImportInjectResponse>(`${this.importUrl}/inject`, formData);
+    return this.http.post<AdminPerformanceImportInjectResponse>(`${this.importUrl}/inject`, formData).pipe(
+      tap(() => this.invalidateCachedGets())
+    );
   }
 
   getAnalytics(query: AdminPerformanceAnalyticsQuery): Observable<ZmPerformanceStudyResponse> {
@@ -192,17 +196,19 @@ export class AdminPerformanceImportService {
 
     const queryString = params.toString();
     const url = queryString ? `${this.importUrl}/analytics?${queryString}` : `${this.importUrl}/analytics`;
-    return this.http.get<ZmPerformanceStudyResponse>(url);
+    return this.cachedGet<ZmPerformanceStudyResponse>(url);
   }
 
   saveStudy(study: ZmPerformanceStudyResponse): Observable<SavedZmPerformanceStudyResponse> {
     return this.http.post<SavedZmPerformanceStudyResponse>(`${this.importUrl}/save-study`, {
       study
-    });
+    }).pipe(
+      tap(() => this.invalidateCachedGets())
+    );
   }
 
   listSavedStudies(): Observable<SavedZmPerformanceStudyResponse[]> {
-    return this.http.get<SavedZmPerformanceStudyResponse[]>(`${this.importUrl}/saved-studies`);
+    return this.cachedGet<SavedZmPerformanceStudyResponse[]>(`${this.importUrl}/saved-studies`);
   }
 
   getSavedStudyAnalytics(studyId: string, query: AdminPerformanceAnalyticsQuery): Observable<ZmPerformanceStudyResponse> {
@@ -229,7 +235,7 @@ export class AdminPerformanceImportService {
       ? `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/analytics?${queryString}`
       : `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/analytics`;
 
-    return this.http.get<ZmPerformanceStudyResponse>(url);
+    return this.cachedGet<ZmPerformanceStudyResponse>(url);
   }
 
   getSavedStudyRowQuality(studyId: string, query: SavedZmPerformanceRowQualityQuery): Observable<SavedZmPerformanceRowQualityResponse> {
@@ -268,6 +274,31 @@ export class AdminPerformanceImportService {
       ? `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/row-quality?${queryString}`
       : `${this.importUrl}/saved-studies/${encodeURIComponent(studyId)}/row-quality`;
 
-    return this.http.get<SavedZmPerformanceRowQualityResponse>(url);
+    return this.cachedGet<SavedZmPerformanceRowQualityResponse>(url);
+  }
+
+  private cachedGet<T>(url: string): Observable<T> {
+    const now = Date.now();
+    const cached = this.getCache.get(url);
+    if (cached && cached.expiresAt > now) {
+      return cached.stream as Observable<T>;
+    }
+
+    const request$ = this.http.get<T>(url).pipe(
+      tap({
+        error: () => this.getCache.delete(url)
+      }),
+      shareReplay(1)
+    );
+
+    this.getCache.set(url, {
+      expiresAt: now + AdminPerformanceImportService.GET_CACHE_TTL_MS,
+      stream: request$
+    });
+    return request$;
+  }
+
+  private invalidateCachedGets(): void {
+    this.getCache.clear();
   }
 }

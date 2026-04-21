@@ -79,6 +79,7 @@ export class TodoImportWorkspaceComponent implements OnInit {
   importPreview: AdminPerformanceImportPreviewResponse | null = null;
   importResult: AdminPerformanceImportInjectResponse | null = null;
   analytics: ZmPerformanceStudyResponse | null = null;
+  private lastAnalyticsRequestKey: string | null = null;
 
   ngOnInit(): void {
     this.loadAnalytics(true);
@@ -214,7 +215,7 @@ export class TodoImportWorkspaceComponent implements OnInit {
         next: async (response) => {
           this.importResult = response;
           this.detectViewChanges();
-          await this.loadAnalytics(true);
+          await this.loadAnalytics(true, true);
           await this.swal.success(
             'TODO batch imported',
             `${response.savedRows} row(s) were stored in batch ${response.batchId}. ${response.validRows} valid row(s) are now available for TODO analysis.`
@@ -263,8 +264,9 @@ export class TodoImportWorkspaceComponent implements OnInit {
           this.clearImportWorkspace(true);
           this.errorMessage = null;
           this.resetAnalyticsFiltersSilently();
+          this.lastAnalyticsRequestKey = null;
           this.detectViewChanges();
-          await this.loadAnalytics();
+          await this.loadAnalytics(false, true);
           await this.swal.success(
             'TODO analysis saved',
             `The study from ${response.sourceFileNames.join(', ') || 'the imported batch'} was saved and the staging area was cleared for the next TODO file.`
@@ -279,7 +281,13 @@ export class TodoImportWorkspaceComponent implements OnInit {
       });
   }
 
-  async loadAnalytics(showErrors = false): Promise<void> {
+  async loadAnalytics(showErrors = false, forceReload = false): Promise<void> {
+    const requestKey = JSON.stringify(this.analyticsFiltersForm.getRawValue());
+    if (!forceReload && requestKey === this.lastAnalyticsRequestKey && this.analytics) {
+      return;
+    }
+
+    this.lastAnalyticsRequestKey = requestKey;
     this.analyticsLoading = true;
     this.errorMessage = null;
 
@@ -301,6 +309,7 @@ export class TodoImportWorkspaceComponent implements OnInit {
       }, { emitEvent: false });
       this.detectViewChanges();
     } catch (err: any) {
+      this.lastAnalyticsRequestKey = null;
       const message = err?.error?.message ?? 'Failed to load TODO analytics.';
       this.errorMessage = message;
       this.analytics = null;
