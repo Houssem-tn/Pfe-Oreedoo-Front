@@ -3,15 +3,14 @@
     <div class="tech-tasks-hero__top">
       <div class="tech-eyebrow">
         <svg cIcon name="cilTask"></svg>
-        Ooredoo TECH mobile board
+        {{ workspaceEyebrow }}
       </div>
       <div class="tech-tasks-hero__chip">{{ totalVisibleCases }} in view</div>
     </div>
 
-    <h1>One mobile queue for urgent tasks, RDV, and work closure.</h1>
+    <h1>{{ workspaceTitle }}</h1>
     <p>
-      The board now keeps fewer tasks on screen at once, separates core actions from tools, and makes field movement
-      smoother without changing your workflow.
+      {{ workspaceSubtitle }}
     </p>
 
     <div class="tech-tasks-hero__stats">
@@ -29,14 +28,14 @@
 
       <article class="tech-hero-stat">
         <span>Completed</span>
-        <strong>{{ performance?.completedCasesCount ?? 0 }}</strong>
+        <strong>{{ completedCasesCount }}</strong>
         <small>Closed interventions</small>
       </article>
     </div>
 
     <div class="tech-tasks-hero__actions">
       <a
-        routerLink="/tech/dashboard"
+        [routerLink]="dashboardRoute"
         class="btn-tech btn-tech--ghost"
       >
         <svg cIcon name="cilGrid"></svg>
@@ -431,7 +430,12 @@
                   <div><strong>Status</strong><span>{{ statusLabel(selected.status) }}</span></div>
                   <div><strong>SLA</strong><span>{{ slaLabel(selected) }}</span></div>
                   <div><strong>Time left</strong><span>{{ slaRemaining(selected) }}</span></div>
+                  <div><strong>Supervisor STT</strong><span>{{ selected.sttName || selected.sttEmail || '-' }}</span></div>
                   <div><strong>Assigned TECH</strong><span>{{ selected.techName || selected.techEmail || '-' }}</span></div>
+                  <div>
+                    <strong>Execution mode</strong>
+                    <span>{{ selected.executionMode === 'TECH_EXECUTION' ? 'Technician execution' : selected.executionMode === 'STT_SELF_EXECUTION' ? 'STT self execution' : '-' }}</span>
+                  </div>
                 </div>
                 <div class="tech-sla-track" [ngClass]="slaTrackClass(selected)">
                   <div class="tech-sla-track__fill" [style.width.%]="slaProgress(selected)"></div>

@@ -242,7 +242,7 @@
     </div>
 
     <div class="stt-mobile-board d-lg-none" *ngIf="currentRole === 'ROLE_STT'">
-      <article class="stt-mobile-card" *ngFor="let item of sttMobileCases; trackBy: trackById">
+      <article class="stt-mobile-card" [class.stt-mobile-card--executor]="isSttExecutor(item)" *ngFor="let item of sttMobileCases; trackBy: trackById">
         <div class="stt-mobile-card__top">
           <div>
             <div class="stt-mobile-card__crm">{{ item.crmCase }}</div>
@@ -257,6 +257,8 @@
         </div>
 
         <div class="stt-mobile-card__chain">
+          <span class="stt-mobile-chip stt-mobile-chip--mode">{{ executionModeLabel(item) }}</span>
+          <span class="stt-mobile-chip">Executor: {{ executorPersonLabel(item) }}</span>
           <span class="stt-mobile-chip">TECH: {{ item.techName || item.techEmail || 'Not assigned' }}</span>
           <span class="stt-mobile-chip">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
         </div>
@@ -276,11 +278,14 @@
         </div>
 
         <div class="stt-mobile-actions">
-          <button *ngIf="canAssignTech(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openAssignTech(item)">
-            <svg cIcon name="cilUserFollow"></svg>Assign
+          <button *ngIf="canExecuteMyself(item)" type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id) || isSttExecutor(item)" (click)="openExecuteMyself(item)">
+            <svg cIcon name="cilUser"></svg>{{ isSttExecutor(item) ? 'Executing' : 'Execute myself' }}
           </button>
-          <button *ngIf="canSetRdv(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openRdvPopup(item)">
-            <svg cIcon name="cilCalendar"></svg>RDV
+          <button *ngIf="canAssignTech(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openAssignTech(item)">
+            <svg cIcon name="cilUserFollow"></svg>Assign technician
+          </button>
+          <button type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openSttPrimaryAction(item)">
+            <svg cIcon [name]="sttPrimaryActionIcon(item)"></svg>{{ sttPrimaryActionLabel(item) }}
           </button>
           <button type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id)" (click)="openDetails(item)">
             <svg cIcon name="cilMagnifyingGlass"></svg>Details
@@ -360,6 +365,12 @@
                     <span class="assignment-badge">TECH: {{ item.techName || item.techEmail || '-' }}</span>
                   </div>
                 </div>
+                <div class="chain-line">
+                  <div class="assignment-person assignment-person--executor">
+                    <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorPersonLabel(item), executorPersonLabel(item)) }}</span>
+                    <span class="assignment-badge">Executor: {{ executorPersonLabel(item) }} • {{ executionModeLabel(item) }}</span>
+                  </div>
+                </div>
               </td>
 
               <td>
@@ -382,6 +393,10 @@
               </td>
 
               <td>
+                <div class="case-execution__item">
+                  <svg cIcon name="cilUser"></svg>
+                  <span>{{ executionModeLabel(item) }} • {{ executorPersonLabel(item) }}</span>
+                </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCalendar"></svg>
                   <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM/yyyy HH:mm') : 'RDV not set' }}</span>
@@ -407,6 +422,17 @@
                     (click)="openAssignStt(item)"
                   >
                     <svg cIcon name="cilPeople"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canExecuteMyself(item)"
+                    type="button"
+                    class="action-btn action-btn--primary"
+                    title="Execute myself"
+                    [disabled]="isBusy(item.id) || isSttExecutor(item)"
+                    (click)="openExecuteMyself(item)"
+                  >
+                    <svg cIcon name="cilUser"></svg>
                   </button>
 
                   <button

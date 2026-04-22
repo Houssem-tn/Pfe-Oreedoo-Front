@@ -1,7 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
@@ -67,6 +67,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private readonly notificationStore = inject(NotificationStoreService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
+  private readonly router = inject(Router);
 
   cases: CaseResponse[] = [];
   loading = false;
@@ -590,18 +591,19 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private mobileSttPriority(item: CaseResponse): number {
     const remaining = item.slaTracking?.remainingSeconds ?? Number.MAX_SAFE_INTEGER;
+    const executionBoost = this.isSttExecutor(item) ? -1500 : this.isTechExecutor(item) ? 400 : -300;
 
     switch (item.status) {
       case 'ASSIGNED_TO_STT':
-        return remaining - 5000;
+        return remaining - 5000 + executionBoost;
       case 'REJECTED_BY_ZM':
       case 'NOT_REACHABLE':
-        return remaining - 2500;
+        return remaining - 2500 + executionBoost;
       case 'ASSIGNED_TO_TECH':
       case 'RDV_SET':
-        return remaining - 1000;
+        return remaining - 1000 + executionBoost;
       default:
-        return remaining;
+        return remaining + executionBoost;
     }
   }
 
@@ -639,24 +641,34 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   canAssignTech(item: CaseResponse): boolean {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
-    return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH'].includes(item.status);
+    return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE', 'REJECTED_BY_ZM'].includes(item.status);
+  }
+
+  canExecuteMyself(item: CaseResponse): boolean {
+    if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
+    return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE', 'REJECTED_BY_ZM'].includes(item.status);
   }
 
   canSetRdv(item: CaseResponse): boolean {
-    const allowedStatuses = ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'];
+    const sttAllowedStatuses = ['ASSIGNED_TO_STT', 'RDV_SET', 'NOT_REACHABLE'];
+    const techAllowedStatuses = ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'];
 
-    if (this.isStt && this.isCaseOwnedByStt(item)) {
-      return allowedStatuses.includes(item.status);
+    if (this.isStt && this.isSttExecutor(item)) {
+      return sttAllowedStatuses.includes(item.status);
     }
 
     if (this.isTech && this.isCaseOwnedByTech(item)) {
-      return allowedStatuses.includes(item.status);
+      return techAllowedStatuses.includes(item.status);
     }
 
     return false;
   }
 
   canUpdateWork(item: CaseResponse): boolean {
+    if (this.isStt && this.isSttExecutor(item)) {
+      return ['RDV_SET', 'ASSIGNED_TO_STT'].includes(item.status);
+    }
+
     if (!this.isTech || !this.isCaseOwnedByTech(item)) return false;
     return ['RDV_SET', 'ASSIGNED_TO_TECH'].includes(item.status);
   }
@@ -762,7 +774,95 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     }
   }
 
+  async openExecuteMyself(item: CaseResponse): Promise<void> {
+    this.actionLoadingCaseId = item.id;
+
+    try {
+      const alreadySelfExecuting = this.isSttExecutor(item);
+      const confirm = alreadySelfExecuting
+        ? { isConfirmed: true }
+        : await this.swal.confirmAction(
+            'Take execution yourself?',
+            `CRM ${item.crmCase} will stay under your supervision and move into STT self-execution mode.`,
+            'Execute myself'
+          );
+
+      if (!confirm.isConfirmed) {
+        return;
+      }
+
+      await this.runAction(
+        item.id,
+        () => this.casesService.executeMyself(item.id),
+        alreadySelfExecuting ? 'STT execution kept' : 'STT self-execution activated'
+      );
+
+      void this.openSttExecutionWorkspace(item.id, 'details');
+    } catch (err: any) {
+      console.error('Failed to switch to STT self-execution:', err);
+      const message = err?.error?.message ?? 'Failed to activate STT self-execution';
+      await this.swal.error('Execution switch failed', message);
+    } finally {
+      this.actionLoadingCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+    }
+  }
+
+  openSttPrimaryAction(item: CaseResponse): void {
+    if (this.hasSttSelfExecution(item)) {
+      const panel = this.canUpdateWork(item) && item.status === 'RDV_SET'
+        ? 'work'
+        : this.canSetRdv(item)
+          ? 'rdv'
+          : 'details';
+
+      void this.openSttExecutionWorkspace(item.id, panel);
+      return;
+    }
+
+    if (this.canUpdateWork(item) && item.status === 'RDV_SET') {
+      void this.openWorkPopup(item);
+      return;
+    }
+
+    if (this.canSetRdv(item)) {
+      void this.openRdvPopup(item);
+      return;
+    }
+
+    void this.openDetails(item);
+  }
+
+  sttPrimaryActionLabel(item: CaseResponse): string {
+    if (this.canUpdateWork(item) && item.status === 'RDV_SET') {
+      return 'Work';
+    }
+
+    if (this.canSetRdv(item)) {
+      return 'RDV';
+    }
+
+    return 'Details';
+  }
+
+  sttPrimaryActionIcon(item: CaseResponse): string {
+    if (this.canUpdateWork(item) && item.status === 'RDV_SET') {
+      return 'cilTask';
+    }
+
+    if (this.canSetRdv(item)) {
+      return 'cilCalendar';
+    }
+
+    return 'cilMagnifyingGlass';
+  }
+
   async openRdvPopup(item: CaseResponse): Promise<void> {
+    if (this.isStt && this.isSttExecutor(item)) {
+      await this.openSttExecutionWorkspace(item.id, 'rdv');
+      return;
+    }
+
     const rdv = this.extractRdv(item);
 
     const result = await Swal.fire<SetRdvRequest>({
@@ -868,6 +968,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   async openWorkPopup(item: CaseResponse): Promise<void> {
+    if (this.isStt && this.isSttExecutor(item)) {
+      await this.openSttExecutionWorkspace(item.id, 'work');
+      return;
+    }
+
     const work = this.extractWork(item);
     const metrics = this.extractMetrics(item);
 
@@ -1062,8 +1167,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
               <h6 class="case-details-title">Assignment Chain</h6>
               <div class="row g-3 mb-3">
                 <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Owner ZM:</span> <span class="case-detail-value">${this.escapeHtml(this.ownerZmLabel(fullCase))}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">STT:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</span></div></div>
+                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Supervisor STT:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</span></div></div>
                 <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Execution mode:</span> <span class="case-detail-value">${this.escapeHtml(this.executionModeLabel(fullCase))}</span></div></div>
+                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Active executor:</span> <span class="case-detail-value">${this.escapeHtml(this.executorPersonLabel(fullCase))}</span></div></div>
               </div>
             </div>
 
@@ -1252,6 +1359,70 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private get currentUserEmail(): string {
     return (this.authStore.user()?.email ?? '').trim().toLowerCase();
+  }
+
+  hasSttSelfExecution(item: CaseResponse): boolean {
+    return item.executionMode === 'STT_SELF_EXECUTION'
+      && item.executorRole === 'STT'
+      && !!item.executorId
+      && item.executorId === item.sttId;
+  }
+
+  hasTechExecution(item: CaseResponse): boolean {
+    if (!item.techId) {
+      return false;
+    }
+
+    if (!item.executionMode && !item.executorRole && !item.executorId) {
+      return true;
+    }
+
+    return item.executionMode === 'TECH_EXECUTION'
+      && item.executorRole === 'TECH'
+      && !!item.executorId
+      && item.executorId === item.techId;
+  }
+
+  isSttExecutor(item: CaseResponse): boolean {
+    return this.sameEmail(item.sttEmail, this.currentUserEmail) && this.hasSttSelfExecution(item);
+  }
+
+  isTechExecutor(item: CaseResponse): boolean {
+    return this.sameEmail(item.techEmail, this.currentUserEmail) && this.hasTechExecution(item);
+  }
+
+  executionModeLabel(item: CaseResponse): string {
+    if (this.hasSttSelfExecution(item)) {
+      return 'STT self execution';
+    }
+
+    if (this.hasTechExecution(item)) {
+      return 'Technician execution';
+    }
+
+    return 'Execution not selected';
+  }
+
+  executorPersonLabel(item: CaseResponse): string {
+    if (this.hasSttSelfExecution(item)) {
+      return this.personLabel(item.sttName, item.sttEmail);
+    }
+
+    if (this.hasTechExecution(item)) {
+      return this.personLabel(item.techName, item.techEmail);
+    }
+
+    return '-';
+  }
+
+  private openSttExecutionWorkspace(caseId: string, panel: 'details' | 'rdv' | 'work'): Promise<boolean> {
+    return this.router.navigate(['/stt/cases/execution'], {
+      queryParams: {
+        caseId,
+        panel,
+        focus: panel === 'work' ? 'work' : panel === 'rdv' ? 'rdv' : 'all'
+      }
+    });
   }
 
   private isCaseOwnedByZm(item: CaseResponse): boolean {

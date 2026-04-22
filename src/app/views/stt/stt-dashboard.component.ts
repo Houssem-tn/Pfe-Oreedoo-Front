@@ -278,6 +278,18 @@ export class SttDashboardComponent implements OnInit {
     return `${Math.ceil(remaining / 3600)} h left`;
   }
 
+  executorSummary(item: CaseResponse): string {
+    if (item.executionMode === 'STT_SELF_EXECUTION') {
+      return `Executor: ${item.sttName || item.sttEmail || 'You'} (self)`;
+    }
+
+    if (item.executionMode === 'TECH_EXECUTION') {
+      return `Executor: ${item.techName || item.techEmail || 'Technician'}`;
+    }
+
+    return 'Executor: not selected';
+  }
+
   async openSuggestZonesModal(): Promise<void> {
     const selectedGovernorates = new Set([
       ...this.approvedCoverageAreas,

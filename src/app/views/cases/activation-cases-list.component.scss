@@ -582,6 +582,12 @@
   padding: 1rem;
 }
 
+.stt-mobile-card--executor {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 241, 244, 1));
+  border-color: rgba(227, 6, 19, 0.18);
+  box-shadow: 0 22px 42px rgba(83, 16, 24, 0.12);
+}
+
 .tech-mobile-card__top,
 .tech-mobile-card__sla {
   align-items: center;
@@ -684,7 +690,7 @@
 .stt-mobile-actions {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .stt-mobile-card__chain {
@@ -702,6 +708,12 @@
   font-size: 0.76rem;
   font-weight: 700;
   padding: 0.42rem 0.72rem;
+}
+
+.stt-mobile-chip--mode {
+  background: rgba(27, 154, 170, 0.1);
+  border-color: rgba(27, 154, 170, 0.16);
+  color: #0f6873;
 }
 
 .crm-table-panel__header {
@@ -825,6 +837,12 @@
   color: #8e5f00;
 }
 
+.assignment-person--executor {
+  background: rgba(62, 85, 160, 0.11);
+  border-color: rgba(62, 85, 160, 0.18);
+  color: #334e98;
+}
+
 .assignee-avatar {
   align-items: center;
   border-radius: 999px;
@@ -836,6 +854,10 @@
   justify-content: center;
   line-height: 1;
   width: 1.45rem;
+}
+
+.assignee-avatar--executor {
+  background: rgba(62, 85, 160, 0.14);
 }
 
 .assignee-avatar--zm {
@@ -956,6 +978,11 @@
 .action-btn--amber {
   background: rgba(214, 139, 0, 0.16);
   color: #8e5f00;
+}
+
+.action-btn--primary {
+  background: rgba(227, 6, 19, 0.16);
+  color: var(--crm-red-deep);
 }
 
 .action-btn--ghost {

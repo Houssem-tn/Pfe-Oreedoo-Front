@@ -153,6 +153,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   readonly statusOptions: Array<{ value: '' | CaseStatus; label: string }> = [
     { value: '', label: 'All statuses' },
+    { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
     { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
     { value: 'RDV_SET', label: 'RDV set' },
     { value: 'NOT_REACHABLE', label: 'Not reachable' },
@@ -189,8 +190,36 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return this.accessibleCases.filter((item) => item.status !== 'CLOSED');
   }
 
+  get currentRole(): string | null {
+    return this.authStore.role();
+  }
+
+  get isSttWorkspace(): boolean {
+    return this.currentRole === 'ROLE_STT';
+  }
+
+  get workspaceEyebrow(): string {
+    return this.isSttWorkspace ? 'Ooredoo STT field execution board' : 'Ooredoo TECH mobile board';
+  }
+
+  get workspaceTitle(): string {
+    return this.isSttWorkspace
+      ? 'One mobile queue for STT self-execution, RDV, proof capture, and work closure.'
+      : 'One mobile queue for urgent tasks, RDV, and work closure.';
+  }
+
+  get workspaceSubtitle(): string {
+    return this.isSttWorkspace
+      ? 'When you take execution yourself, this workspace mirrors the technician flow so photo proof, GPS capture, and closure stay in one mobile experience.'
+      : 'The board now keeps fewer tasks on screen at once, separates core actions from tools, and makes field movement smoother without changing your workflow.';
+  }
+
+  get dashboardRoute(): string {
+    return this.isSttWorkspace ? '/stt/dashboard' : '/tech/dashboard';
+  }
+
   get accessibleCases(): CaseResponse[] {
-    return this.cases.filter((item) => this.isCaseOwnedByTech(item));
+    return this.cases.filter((item) => this.canAccessFieldWorkspace(item));
   }
 
   get urgentCount(): number {
@@ -210,6 +239,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get pendingProofCount(): number {
     return Object.keys(this.proofDrafts).length;
+  }
+
+  get completedCasesCount(): number {
+    return this.accessibleCases.filter((item) =>
+      item.status === 'WORK_DONE' || item.status === 'VALIDATED_BY_ZM' || item.status === 'CLOSED'
+    ).length;
   }
 
   get summaryCards(): TechSummaryCard[] {
@@ -246,7 +281,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   get operationalAlerts(): NotificationItem[] {
-    const relevant = new Set(['CASE_ASSIGNED_TO_TECH', 'SLA_WARNING', 'SLA_BREACHED', 'SLA_ESCALATED']);
+    const relevant = new Set(['CASE_ASSIGNED_TO_TECH', 'CASE_ASSIGNED_TO_STT', 'SLA_WARNING', 'SLA_BREACHED', 'SLA_ESCALATED']);
 
     return this.notificationsStore.latestFirst()
       .filter((item) => relevant.has(item.eventType))
@@ -544,13 +579,27 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   canSetRdv(item: CaseResponse): boolean {
-    return this.isCaseOwnedByTech(item)
-      && ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'].includes(item.status);
+    if (!this.isCaseOwnedByCurrentExecutor(item)) {
+      return false;
+    }
+
+    if (this.isCaseOwnedBySttSelfExecutor(item)) {
+      return ['ASSIGNED_TO_STT', 'RDV_SET', 'NOT_REACHABLE'].includes(item.status);
+    }
+
+    return ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'].includes(item.status);
   }
 
   canSubmitWork(item: CaseResponse): boolean {
-    return this.isCaseOwnedByTech(item)
-      && ['ASSIGNED_TO_TECH', 'RDV_SET'].includes(item.status);
+    if (!this.isCaseOwnedByCurrentExecutor(item)) {
+      return false;
+    }
+
+    if (this.isCaseOwnedBySttSelfExecutor(item)) {
+      return ['ASSIGNED_TO_STT', 'RDV_SET'].includes(item.status);
+    }
+
+    return ['ASSIGNED_TO_TECH', 'RDV_SET'].includes(item.status);
   }
 
   openPrimaryAction(item: CaseResponse): void {
@@ -985,11 +1034,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   performanceLabel(): string {
-    if (!this.performance) {
-      return 'Waiting for performance snapshot';
+    if (!this.totalVisibleCases) {
+      return 'No active field execution right now';
     }
 
-    return `${this.performance.workCompletionProgress.toFixed(0)}% completion`;
+    const ratio = (this.completedCasesCount / this.totalVisibleCases) * 100;
+    return `${Math.round(ratio)}% completion in this field workspace`;
   }
 
   private readRouteIntent(): void {
@@ -1062,7 +1112,11 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private priorityScore(item: CaseResponse): number {
     const sla = resolveLiveSla(item, this.nowEpochMs);
     const deadlinePenalty = 100 - sla.progressPercent;
-    const statusPriority = item.status === 'RDV_SET' ? -10 : item.status === 'ASSIGNED_TO_TECH' ? 0 : 20;
+    const statusPriority = item.status === 'RDV_SET'
+      ? -10
+      : item.status === 'ASSIGNED_TO_TECH' || item.status === 'ASSIGNED_TO_STT'
+        ? 0
+        : 20;
     const proofPenalty = this.hasPendingProof(item) ? -5 : 0;
     return deadlinePenalty + statusPriority + proofPenalty;
   }
@@ -1692,8 +1746,34 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return (this.authStore.user()?.email ?? '').trim().toLowerCase();
   }
 
+  private canAccessFieldWorkspace(item: CaseResponse): boolean {
+    return this.isCaseOwnedByTech(item) || this.isCaseOwnedBySttSelfExecutor(item);
+  }
+
+  private isCaseOwnedByCurrentExecutor(item: CaseResponse): boolean {
+    return this.isCaseOwnedByTech(item) || this.isCaseOwnedBySttSelfExecutor(item);
+  }
+
   private isCaseOwnedByTech(item: CaseResponse): boolean {
-    return (item.techEmail ?? '').trim().toLowerCase() === this.currentUserEmail;
+    if ((item.techEmail ?? '').trim().toLowerCase() !== this.currentUserEmail || !item.techId) {
+      return false;
+    }
+
+    if (!item.executionMode && !item.executorRole && !item.executorId) {
+      return true;
+    }
+
+    return item.executionMode === 'TECH_EXECUTION'
+      && item.executorRole === 'TECH'
+      && item.executorId === item.techId;
+  }
+
+  private isCaseOwnedBySttSelfExecutor(item: CaseResponse): boolean {
+    return (item.sttEmail ?? '').trim().toLowerCase() === this.currentUserEmail
+      && item.executionMode === 'STT_SELF_EXECUTION'
+      && item.executorRole === 'STT'
+      && !!item.sttId
+      && item.executorId === item.sttId;
   }
 
   private toNullable(value?: string | null): string | null {

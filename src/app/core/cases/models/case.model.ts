@@ -1,5 +1,9 @@
 export type CaseType = 'ACTIVATION';
 
+export type ExecutorRole = 'STT' | 'TECH';
+
+export type ExecutionMode = 'STT_SELF_EXECUTION' | 'TECH_EXECUTION';
+
 export type CaseStatus =
   | 'CREATED'
   | 'ASSIGNED_TO_ZM'
@@ -50,6 +54,9 @@ export interface CaseResponse {
   sttName?: string | null;
   sttEmail?: string | null;
   dateAffectationStt?: string | null;
+  executorId?: string | null;
+  executorRole?: ExecutorRole | null;
+  executionMode?: ExecutionMode | null;
   techId?: string | null;
   techEmail?: string | null;
   techName?: string | null;

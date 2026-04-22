@@ -12,6 +12,11 @@ export const routes: Routes = [
       import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent)
   },
   {
+    path: 'cases/execution',
+    loadComponent: () =>
+      import('../tech/tech-activation-cases.component').then(m => m.TechActivationCasesComponent)
+  },
+  {
     path: 'approvals',
     loadComponent: () =>
       import('../admin/approvals/approvals.component').then(m => m.ApprovalsComponent)

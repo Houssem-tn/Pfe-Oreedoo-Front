@@ -57,6 +57,10 @@ export class CasesService {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/assign-tech`, payload);
   }
 
+  executeMyself(caseId: string): Observable<CaseResponse> {
+    return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/execute-myself`, {});
+  }
+
   setRdv(caseId: string, payload: SetRdvRequest): Observable<CaseResponse> {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/rdv`, payload);
   }
