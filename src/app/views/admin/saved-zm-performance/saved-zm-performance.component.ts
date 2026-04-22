@@ -49,8 +49,10 @@ export class SavedZmPerformanceComponent implements OnInit {
   readonly filtersForm = this.fb.nonNullable.group({
     zoneManager: [''],
     gouvernorat: [''],
-    uploadedFrom: [''],
-    uploadedTo: ['']
+    openDateFrom: [''],
+    openDateTo: [''],
+    affectationDateFrom: [''],
+    affectationDateTo: ['']
   });
 
   loading = false;
@@ -279,8 +281,10 @@ export class SavedZmPerformanceComponent implements OnInit {
     this.filtersForm.setValue({
       zoneManager: '',
       gouvernorat: '',
-      uploadedFrom: '',
-      uploadedTo: ''
+      openDateFrom: '',
+      openDateTo: '',
+      affectationDateFrom: '',
+      affectationDateTo: ''
     }, { emitEvent: false });
   }
 

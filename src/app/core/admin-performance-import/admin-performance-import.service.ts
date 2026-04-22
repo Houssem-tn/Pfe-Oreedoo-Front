@@ -94,8 +94,10 @@ export interface ZmPerformanceStudyResponse {
 export interface AdminPerformanceAnalyticsQuery {
   zoneManager?: string;
   gouvernorat?: string;
-  uploadedFrom?: string;
-  uploadedTo?: string;
+  openDateFrom?: string;
+  openDateTo?: string;
+  affectationDateFrom?: string;
+  affectationDateTo?: string;
 }
 
 export interface SavedZmPerformanceStudyResponse {
@@ -186,12 +188,20 @@ export class AdminPerformanceImportService {
       params.set('gouvernorat', query.gouvernorat.trim());
     }
 
-    if (query.uploadedFrom?.trim()) {
-      params.set('uploadedFrom', query.uploadedFrom.trim());
+    if (query.openDateFrom?.trim()) {
+      params.set('openDateFrom', query.openDateFrom.trim());
     }
 
-    if (query.uploadedTo?.trim()) {
-      params.set('uploadedTo', query.uploadedTo.trim());
+    if (query.openDateTo?.trim()) {
+      params.set('openDateTo', query.openDateTo.trim());
+    }
+
+    if (query.affectationDateFrom?.trim()) {
+      params.set('affectationDateFrom', query.affectationDateFrom.trim());
+    }
+
+    if (query.affectationDateTo?.trim()) {
+      params.set('affectationDateTo', query.affectationDateTo.trim());
     }
 
     const queryString = params.toString();
@@ -222,12 +232,20 @@ export class AdminPerformanceImportService {
       params.set('gouvernorat', query.gouvernorat.trim());
     }
 
-    if (query.uploadedFrom?.trim()) {
-      params.set('uploadedFrom', query.uploadedFrom.trim());
+    if (query.openDateFrom?.trim()) {
+      params.set('openDateFrom', query.openDateFrom.trim());
     }
 
-    if (query.uploadedTo?.trim()) {
-      params.set('uploadedTo', query.uploadedTo.trim());
+    if (query.openDateTo?.trim()) {
+      params.set('openDateTo', query.openDateTo.trim());
+    }
+
+    if (query.affectationDateFrom?.trim()) {
+      params.set('affectationDateFrom', query.affectationDateFrom.trim());
+    }
+
+    if (query.affectationDateTo?.trim()) {
+      params.set('affectationDateTo', query.affectationDateTo.trim());
     }
 
     const queryString = params.toString();
@@ -249,12 +267,20 @@ export class AdminPerformanceImportService {
       params.set('gouvernorat', query.gouvernorat.trim());
     }
 
-    if (query.uploadedFrom?.trim()) {
-      params.set('uploadedFrom', query.uploadedFrom.trim());
+    if (query.openDateFrom?.trim()) {
+      params.set('openDateFrom', query.openDateFrom.trim());
     }
 
-    if (query.uploadedTo?.trim()) {
-      params.set('uploadedTo', query.uploadedTo.trim());
+    if (query.openDateTo?.trim()) {
+      params.set('openDateTo', query.openDateTo.trim());
+    }
+
+    if (query.affectationDateFrom?.trim()) {
+      params.set('affectationDateFrom', query.affectationDateFrom.trim());
+    }
+
+    if (query.affectationDateTo?.trim()) {
+      params.set('affectationDateTo', query.affectationDateTo.trim());
     }
 
     if (query.invalidReason?.trim()) {
