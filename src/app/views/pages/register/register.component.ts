@@ -52,6 +52,7 @@ export class RegisterComponent {
   ];
 
   form: {
+    fullName: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -60,6 +61,7 @@ export class RegisterComponent {
     password: string;
     confirmPassword: string;
   } = {
+    fullName: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -80,6 +82,10 @@ export class RegisterComponent {
 
   selectRole(role: Role): void {
     this.form.role = role;
+  }
+
+  get isSttRegistration(): boolean {
+    return this.form.role === 'ROLE_STT';
   }
 
   formatRoleLabel(role: Role): string {
@@ -154,17 +160,23 @@ export class RegisterComponent {
     this.error = null;
     this.success = null;
 
+    const fullName = this.form.fullName.trim();
     const firstName = this.form.firstName.trim();
     const lastName = this.form.lastName.trim();
     const email = this.form.email.trim().toLowerCase();
     const phone = this.form.phone?.trim() || undefined;
 
-    if (!firstName) {
+    if (this.isSttRegistration && !fullName) {
+      this.error = 'STT/company name is required';
+      return;
+    }
+
+    if (!this.isSttRegistration && !firstName) {
       this.error = 'First name is required';
       return;
     }
 
-    if (!lastName) {
+    if (!this.isSttRegistration && !lastName) {
       this.error = 'Last name is required';
       return;
     }
@@ -192,8 +204,9 @@ export class RegisterComponent {
     this.loading = true;
 
     this.auth.register({
-      firstName,
-      lastName,
+      fullName: this.isSttRegistration ? fullName : undefined,
+      firstName: this.isSttRegistration ? undefined : firstName,
+      lastName: this.isSttRegistration ? undefined : lastName,
       email,
       phone,
       password: this.form.password,

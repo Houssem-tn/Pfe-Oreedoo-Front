@@ -18,6 +18,7 @@ import { finalize } from 'rxjs/operators';
 import {
   AdminActivationAnalyticsCharts,
   AdminActivationAnalyticsDashboard,
+  ActivationImportProcessingMode,
   AdminActivationAnalyticsImportResponse,
   AdminActivationAnalyticsInvalidReason,
   AdminActivationAnalyticsPreviewResponse,
@@ -70,6 +71,7 @@ export class ActivationImportWorkspaceComponent implements OnInit {
   dashboardLoading = false;
   chartsLoading = false;
   saveStudyLoading = false;
+  activeProcessingMode: ActivationImportProcessingMode | null = null;
 
   errorMessage: string | null = null;
   warningMessage: string | null = null;
@@ -142,6 +144,18 @@ export class ActivationImportWorkspaceComponent implements OnInit {
     return !!this.selectedFile && !!this.importPreview && !this.importLoading;
   }
 
+  get canAnalyzeBatch(): boolean {
+    return this.canImport && (this.importPreview?.validNewRows ?? 0) > 0;
+  }
+
+  get canDistributeBatch(): boolean {
+    return this.canImport && (this.importPreview?.processableRows ?? 0) > 0;
+  }
+
+  get canAnalyzeAndDistribute(): boolean {
+    return this.canAnalyzeBatch || this.canDistributeBatch;
+  }
+
   get canSaveStudy(): boolean {
     return !!this.dashboardSummary
       && !!this.dashboardCharts
@@ -201,7 +215,7 @@ export class ActivationImportWorkspaceComponent implements OnInit {
           if (response.totalRows === 0) {
             this.warningMessage = 'The uploaded file was parsed, but no non-empty rows were found.';
           } else if (response.invalidRows > 0 || response.duplicateRows > 0) {
-            this.warningMessage = 'Invalid rows and duplicate CRM_CASE rows are shown for review only. Only valid new rows will be stored in Mongo.';
+            this.warningMessage = 'Invalid rows are blocked. Duplicate CRM_CASE rows are skipped for analytics storage, but dataset duplicates can still refresh work distribution when you choose a distribution mode.';
           } else {
             this.warningMessage = null;
           }
@@ -218,7 +232,7 @@ export class ActivationImportWorkspaceComponent implements OnInit {
       });
   }
 
-  importDataset(): void {
+  importDataset(mode: ActivationImportProcessingMode): void {
     if (!this.selectedFile) {
       this.errorMessage = 'Select a file first.';
       return;
@@ -230,12 +244,14 @@ export class ActivationImportWorkspaceComponent implements OnInit {
     }
 
     this.importLoading = true;
+    this.activeProcessingMode = mode;
     this.errorMessage = null;
 
-    this.analyticsService.importFile(this.selectedFile)
+    this.analyticsService.importFile(this.selectedFile, mode)
       .pipe(
         finalize(() => {
           this.importLoading = false;
+          this.activeProcessingMode = null;
           this.detectViewChanges();
         })
       )
@@ -243,10 +259,12 @@ export class ActivationImportWorkspaceComponent implements OnInit {
         next: async (response) => {
           this.importResult = response;
           this.detectViewChanges();
-          await this.loadDashboard(true, true);
+          if (response.mode !== 'DISTRIBUTION') {
+            await this.loadDashboard(true, true);
+          }
           await this.swal.success(
-            'Activation dataset imported',
-            `${response.insertedRows} new valid row(s) were stored in batch ${response.batchId}. ${response.duplicateRows} duplicate row(s) and ${response.invalidRows} invalid row(s) were skipped.`
+            'Activation batch processed',
+            this.buildProcessingSuccessMessage(response)
           );
         },
         error: async (err) => {
@@ -392,6 +410,10 @@ export class ActivationImportWorkspaceComponent implements OnInit {
     return item.reason;
   }
 
+  isProcessingMode(mode: ActivationImportProcessingMode): boolean {
+    return this.activeProcessingMode === mode;
+  }
+
   private resetAnalyticsFiltersSilently(): void {
     this.analyticsFiltersForm.setValue({
       stt: '',
@@ -412,6 +434,33 @@ export class ActivationImportWorkspaceComponent implements OnInit {
     if (resetNativeInput && this.activationImportFileInput?.nativeElement) {
       this.activationImportFileInput.nativeElement.value = '';
     }
+  }
+
+  private buildProcessingSuccessMessage(response: AdminActivationAnalyticsImportResponse): string {
+    const segments: string[] = [];
+
+    if (response.mode !== 'DISTRIBUTION') {
+      if (response.insertedRows > 0 && response.batchId) {
+        segments.push(`${response.insertedRows} new analytics row(s) were stored in batch ${response.batchId}.`);
+      } else {
+        segments.push('No new analytics rows were stored because this file only contained already imported CRM_CASE rows or non-actionable source updates.');
+      }
+    }
+
+    if (response.distributionSummary) {
+      segments.push(
+        `${response.distributionSummary.createdCases} case(s) were created, `
+        + `${response.distributionSummary.updatedExistingCases} existing case(s) were refreshed, `
+        + `${response.distributionSummary.assignedToZmCases} row(s) were routed to a ZM, `
+        + `and ${response.distributionSummary.sentToAdminQueueCases} row(s) were left in the admin queue.`
+      );
+    }
+
+    segments.push(
+      `${response.duplicateRows} duplicate analytics row(s) and ${response.invalidRows} invalid row(s) were skipped from analytics storage.`
+    );
+
+    return segments.join(' ');
   }
 
   private async loadCharts(): Promise<void> {

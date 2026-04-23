@@ -30,7 +30,9 @@ export class AuthStore {
     }
 
     this._user.set({
+      id: user.id,
       username: user.username,
+      fullName: user.fullName,
       email: user.email,
       role: user.role,
       status: user.status,

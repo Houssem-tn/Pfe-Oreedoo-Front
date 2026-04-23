@@ -27,27 +27,53 @@ export interface AdminActivationAnalyticsInvalidReason {
 export interface AdminActivationAnalyticsPreviewResponse {
   sourceFileName: string;
   totalRows: number;
+  processableRows: number;
   validNewRows: number;
   duplicateRows: number;
   invalidRows: number;
   distinctStts: number;
   distinctGovernorates: number;
+  enCoursRows: number;
+  effectueRows: number;
+  termineRows: number;
+  actionableRows: number;
   invalidRowPageSize: number;
   invalidReasonSummaries: AdminActivationAnalyticsInvalidReason[];
   validPreviewRows: AdminActivationAnalyticsPreviewRow[];
   invalidRowsPreview: AdminActivationAnalyticsPreviewRow[];
 }
 
+export type ActivationImportProcessingMode = 'ANALYTICS' | 'DISTRIBUTION' | 'ANALYTICS_AND_DISTRIBUTION';
+
+export interface AdminActivationAnalyticsDistributionSummary {
+  processableRows: number;
+  actionableRows: number;
+  createdCases: number;
+  updatedExistingCases: number;
+  assignedToZmCases: number;
+  sentToAdminQueueCases: number;
+  sourceCompletedRows: number;
+  sourceTerminatedRows: number;
+  noGovernorateRows: number;
+}
+
 export interface AdminActivationAnalyticsImportResponse {
-  batchId: string;
+  mode: ActivationImportProcessingMode;
+  batchId: string | null;
   sourceFileName: string;
   totalRows: number;
+  processableRows: number;
   insertedRows: number;
   validNewRows: number;
   invalidRows: number;
   duplicateRows: number;
   distinctStts: number;
   distinctGovernorates: number;
+  enCoursRows: number;
+  effectueRows: number;
+  termineRows: number;
+  actionableRows: number;
+  distributionSummary: AdminActivationAnalyticsDistributionSummary | null;
   uploadedAt: string;
 }
 
@@ -265,9 +291,10 @@ export class AdminActivationAnalyticsService {
     return this.http.post<AdminActivationAnalyticsPreviewResponse>(`${this.analyticsUrl}/preview`, formData);
   }
 
-  importFile(file: File): Observable<AdminActivationAnalyticsImportResponse> {
+  importFile(file: File, mode: ActivationImportProcessingMode): Observable<AdminActivationAnalyticsImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('mode', mode);
     return this.http.post<AdminActivationAnalyticsImportResponse>(`${this.analyticsUrl}/import`, formData).pipe(
       tap(() => this.invalidateCachedGets())
     );

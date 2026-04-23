@@ -224,23 +224,22 @@ function clamp(value: number): number {
 
 function formatSeconds(totalSeconds: number): string {
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-    return '0s';
+    return '<1m';
   }
 
   const safeSeconds = Math.floor(totalSeconds);
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const seconds = safeSeconds % 60;
 
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
 
   if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
+    return `${minutes}m`;
   }
 
-  return `${seconds}s`;
+  return '<1m';
 }
 
 function toEpochMs(value?: string | null): number | null {

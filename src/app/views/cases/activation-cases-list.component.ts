@@ -56,8 +56,8 @@ type PerfCard = {
   styleUrl: './activation-cases-list.component.scss'
 })
 export class ActivationCasesListComponent implements OnInit, OnDestroy {
-  private static readonly LIVE_TICK_MS = 1000;
-  private static readonly BACKEND_RESYNC_MS = 30000;
+  private static readonly LIVE_TICK_MS = 60000;
+  private static readonly BACKEND_RESYNC_MS = 300000;
 
   private readonly casesService = inject(CasesService);
   private readonly userService = inject(UserService);
@@ -341,9 +341,12 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   get techMobileCases(): CaseResponse[] {
     return [...this.filteredCases].sort((left, right) => {
-      const leftScore = this.slaProgress(left);
-      const rightScore = this.slaProgress(right);
-      return leftScore - rightScore;
+      const priorityDelta = this.mobileTechPriority(left) - this.mobileTechPriority(right);
+      if (priorityDelta !== 0) {
+        return priorityDelta;
+      }
+
+      return left.crmCase.localeCompare(right.crmCase);
     });
   }
 
@@ -604,6 +607,23 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         return remaining - 1000 + executionBoost;
       default:
         return remaining + executionBoost;
+    }
+  }
+
+  private mobileTechPriority(item: CaseResponse): number {
+    const remaining = item.slaTracking?.remainingSeconds ?? Number.MAX_SAFE_INTEGER;
+
+    switch (item.status) {
+      case 'RDV_SET':
+        return remaining - 3000;
+      case 'ASSIGNED_TO_TECH':
+      case 'ASSIGNED_TO_STT':
+        return remaining - 1500;
+      case 'NOT_REACHABLE':
+      case 'REJECTED_BY_ZM':
+        return remaining - 500;
+      default:
+        return remaining;
     }
   }
 
@@ -1403,6 +1423,30 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return 'Execution not selected';
   }
 
+  ownerZmCompactLabel(item: CaseResponse): string {
+    return this.compactPersonLabel(item.ownerZmName ?? item.zmName, item.zmEmail);
+  }
+
+  sttDisplayName(item: CaseResponse): string {
+    return this.compactPersonLabel(item.sttName, item.sttEmail);
+  }
+
+  techDisplayName(item: CaseResponse): string {
+    return this.compactPersonLabel(item.techName, item.techEmail);
+  }
+
+  executorDisplayName(item: CaseResponse): string {
+    if (this.hasSttSelfExecution(item)) {
+      return this.compactPersonLabel(item.sttName, item.sttEmail);
+    }
+
+    if (this.hasTechExecution(item)) {
+      return this.compactPersonLabel(item.techName, item.techEmail);
+    }
+
+    return '-';
+  }
+
   executorPersonLabel(item: CaseResponse): string {
     if (this.hasSttSelfExecution(item)) {
       return this.personLabel(item.sttName, item.sttEmail);
@@ -1654,6 +1698,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return safeName || safeEmail;
   }
 
+  private compactPersonLabel(name?: string | null, email?: string | null): string {
+    const safeName = (name ?? '').trim();
+    if (safeName) {
+      return safeName;
+    }
+
+    const safeEmail = (email ?? '').trim();
+    if (!safeEmail) {
+      return '-';
+    }
+
+    const localPart = safeEmail.split('@')[0]?.trim();
+    return localPart || safeEmail;
+  }
+
   private ownerZmId(item: CaseResponse): string {
     return (item.ownerZmId ?? item.zmId ?? '').trim();
   }
@@ -1759,23 +1818,22 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private formatSeconds(totalSeconds: number): string {
     if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-      return '0s';
+      return '<1m';
     }
 
     const safeSeconds = Math.floor(totalSeconds);
     const hours = Math.floor(safeSeconds / 3600);
     const minutes = Math.floor((safeSeconds % 3600) / 60);
-    const seconds = safeSeconds % 60;
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
 
     if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
+      return `${minutes}m`;
     }
 
-    return `${seconds}s`;
+    return '<1m';
   }
 
   private resolveLiveSla(item: CaseResponse): {
@@ -1862,8 +1920,13 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     this.zone.runOutsideAngular(() => {
       this.liveTickHandle = setInterval(() => {
-        this.nowEpochMs = Date.now();
-        this.zone.run(() => this.cdr.detectChanges());
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+          return;
+        }
+
+        this.zone.run(() => {
+          this.nowEpochMs = Date.now();
+        });
       }, ActivationCasesListComponent.LIVE_TICK_MS);
     });
   }
@@ -1880,6 +1943,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     this.zone.runOutsideAngular(() => {
       this.resyncHandle = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+          return;
+        }
+
+        if (this.loading || this.performanceLoading || this.actionLoadingCaseId != null) {
+          return;
+        }
+
         this.zone.run(() => {
           this.loadCases();
           this.loadPerformance();

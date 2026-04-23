@@ -1,0 +1,87 @@
+<div class="field-shell">
+  <header class="field-topbar">
+    <div class="field-topbar__identity">
+      <div class="field-topbar__mark">O</div>
+      <div>
+        <span>Hello,</span>
+        <strong>{{ userName }}</strong>
+      </div>
+    </div>
+
+    <div class="field-topbar__actions">
+      <button
+        type="button"
+        class="field-icon-button"
+        aria-label="Notifications"
+        (click)="toggleNotifications()"
+      >
+        <svg cIcon name="cilBell"></svg>
+        <span *ngIf="unreadCount > 0" class="field-icon-button__badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="field-icon-button"
+        aria-label="Log out"
+        (click)="logout()"
+      >
+        <svg cIcon name="cilAccountLogout"></svg>
+      </button>
+
+      <div class="field-topbar__role">{{ roleLabel }}</div>
+    </div>
+  </header>
+
+  <section class="field-notification-panel" *ngIf="notificationsOpen">
+    <div class="field-notification-panel__header">
+      <div>
+        <strong>Notifications</strong>
+        <span>{{ unreadCount }} unread</span>
+      </div>
+      <button type="button" class="field-button field-button--ghost" (click)="markAllRead()" [disabled]="unreadCount === 0">
+        <svg cIcon name="cilCheck"></svg>
+        Read all
+      </button>
+    </div>
+
+    <div class="field-notification-panel__list" *ngIf="latestNotifications.length > 0; else noNotifications">
+      <button
+        type="button"
+        class="field-notification-item"
+        *ngFor="let item of latestNotifications"
+        [class.field-notification-item--unread]="!item.read"
+        (click)="openNotification(item)"
+      >
+        <span>{{ item.title }}</span>
+        <strong>{{ item.message }}</strong>
+        <small>{{ item.createdAt | date:'short' }}</small>
+      </button>
+    </div>
+
+    <ng-template #noNotifications>
+      <div class="field-notification-panel__empty">
+        <svg cIcon name="cilInbox"></svg>
+        <span>No notifications yet.</span>
+      </div>
+    </ng-template>
+  </section>
+
+  <main class="field-content">
+    <router-outlet />
+  </main>
+
+  <nav class="field-bottom-nav" aria-label="Field navigation">
+    <a
+      *ngFor="let item of navItems"
+      class="field-bottom-nav__item"
+      routerLinkActive="field-bottom-nav__item--active"
+      [routerLinkActiveOptions]="{ exact: item.exact }"
+      [routerLink]="linkFor(item.path)"
+    >
+      <svg cIcon [name]="item.icon"></svg>
+      <span>{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <app-notification-toast-stack />
+</div>

@@ -188,7 +188,7 @@
         <div class="tech-queue-overview" *ngIf="totalVisibleCases > 0">
           <div class="tech-queue-overview__stats">
             <span class="tech-queue-pill">Showing {{ pageStart }}-{{ pageEnd }} of {{ totalVisibleCases }}</span>
-            <span class="tech-queue-pill">Page {{ currentPage }} / {{ totalPages }}</span>
+            <span class="tech-queue-pill">Page {{ displayPage }} / {{ totalPages }}</span>
           </div>
 
           <div class="tech-pagination" *ngIf="totalPages > 1">
@@ -196,7 +196,7 @@
               type="button"
               class="tech-page-btn"
               (click)="goToPreviousPage()"
-              [disabled]="currentPage <= 1"
+              [disabled]="displayPage <= 1"
             >
               <svg cIcon name="cilChevronLeft"></svg>
               Prev
@@ -206,7 +206,7 @@
               type="button"
               class="tech-page-btn"
               (click)="goToNextPage()"
-              [disabled]="currentPage >= totalPages"
+              [disabled]="displayPage >= totalPages"
             >
               Next
               <svg cIcon name="cilChevronRight"></svg>
@@ -681,20 +681,9 @@
                   [disabled]="actionBusy || locationBusy"
                 >
                   <svg cIcon name="cilMediaRecord"></svg>
-                  Use camera
+                  Take proof photo
                 </button>
                 <input #cameraProofInput type="file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment" data-source="camera" hidden (change)="onProofFileSelected($event)" />
-
-                <button
-                  type="button"
-                  class="btn-tech btn-tech--ghost"
-                  (click)="startProofSelection(galleryProofInput, 'gallery')"
-                  [disabled]="actionBusy || locationBusy"
-                >
-                  <svg cIcon name="cilPaperclip"></svg>
-                  Choose gallery
-                </button>
-                <input #galleryProofInput type="file" accept="image/*,.jpg,.jpeg,.png,.webp" data-source="gallery" hidden (change)="onProofFileSelected($event)" />
 
                 <button
                   *ngIf="currentProofDraft"

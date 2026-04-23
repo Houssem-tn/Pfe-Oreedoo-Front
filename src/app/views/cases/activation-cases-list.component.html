@@ -258,9 +258,9 @@
 
         <div class="stt-mobile-card__chain">
           <span class="stt-mobile-chip stt-mobile-chip--mode">{{ executionModeLabel(item) }}</span>
-          <span class="stt-mobile-chip">Executor: {{ executorPersonLabel(item) }}</span>
-          <span class="stt-mobile-chip">TECH: {{ item.techName || item.techEmail || 'Not assigned' }}</span>
-          <span class="stt-mobile-chip">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
+          <span class="stt-mobile-chip">Executor: {{ executorDisplayName(item) }}</span>
+          <span class="stt-mobile-chip">TECH: {{ techDisplayName(item) === '-' ? 'Not assigned' : techDisplayName(item) }}</span>
+          <span class="stt-mobile-chip">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
         </div>
 
         <div class="stt-mobile-card__sla">
@@ -350,25 +350,25 @@
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--zm">
                     <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.ownerZmName || item.zmName, item.zmEmail) }}</span>
-                    <span class="assignment-badge">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
+                    <span class="assignment-badge">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--stt">
                     <span class="assignee-avatar assignee-avatar--stt">{{ initialsFor(item.sttName, item.sttEmail) }}</span>
-                    <span class="assignment-badge">STT: {{ item.sttName || item.sttEmail || '-' }}</span>
+                    <span class="assignment-badge">STT: {{ sttDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--tech">
                     <span class="assignee-avatar assignee-avatar--tech">{{ initialsFor(item.techName, item.techEmail) }}</span>
-                    <span class="assignment-badge">TECH: {{ item.techName || item.techEmail || '-' }}</span>
+                    <span class="assignment-badge">TECH: {{ techDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--executor">
-                    <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorPersonLabel(item), executorPersonLabel(item)) }}</span>
-                    <span class="assignment-badge">Executor: {{ executorPersonLabel(item) }} • {{ executionModeLabel(item) }}</span>
+                    <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorDisplayName(item), executorDisplayName(item)) }}</span>
+                    <span class="assignment-badge">Executor: {{ executorDisplayName(item) }} - {{ executionModeLabel(item) }}</span>
                   </div>
                 </div>
               </td>
@@ -395,7 +395,7 @@
               <td>
                 <div class="case-execution__item">
                   <svg cIcon name="cilUser"></svg>
-                  <span>{{ executionModeLabel(item) }} • {{ executorPersonLabel(item) }}</span>
+                  <span>{{ executionModeLabel(item) }} - {{ executorDisplayName(item) }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCalendar"></svg>

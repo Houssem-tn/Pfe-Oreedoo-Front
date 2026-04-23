@@ -87,11 +87,30 @@
                   <section class="register-section">
                     <div class="register-section__header">
                       <span class="register-section__eyebrow">Step 1</span>
-                      <h3>Personal information</h3>
+                      <h3>{{ isSttRegistration ? 'Company information' : 'Personal information' }}</h3>
                     </div>
 
                     <div class="row g-3">
-                      <div class="col-md-6">
+                      <div class="col-12" *ngIf="isSttRegistration">
+                        <c-input-group class="register-form__group">
+                          <span cInputGroupText class="register-form__icon">
+                            <svg cIcon name="cilPeople"></svg>
+                          </span>
+                          <input
+                            cFormControl
+                            class="register-form__control"
+                            placeholder="STT / company name"
+                            name="fullName"
+                            [(ngModel)]="form.fullName"
+                            required
+                          />
+                        </c-input-group>
+                        <div class="register-form__hint mt-2">
+                          Use the official STT company name, for example THS or INSCOM.
+                        </div>
+                      </div>
+
+                      <div class="col-md-6" *ngIf="!isSttRegistration">
                         <c-input-group class="register-form__group">
                           <span cInputGroupText class="register-form__icon">
                             <svg cIcon name="cilUser"></svg>
@@ -107,7 +126,7 @@
                         </c-input-group>
                       </div>
 
-                      <div class="col-md-6">
+                      <div class="col-md-6" *ngIf="!isSttRegistration">
                         <c-input-group class="register-form__group">
                           <span cInputGroupText class="register-form__icon">
                             <svg cIcon name="cilUser"></svg>

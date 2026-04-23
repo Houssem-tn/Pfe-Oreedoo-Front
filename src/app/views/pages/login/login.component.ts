@@ -17,6 +17,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
+import { AuthStore } from '../../../core/auth/auth.store';
 
 @Component({
   selector: 'app-login',
@@ -42,6 +43,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 })
 export class LoginComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -86,7 +88,7 @@ export class LoginComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.router.navigateByUrl('/dashboard');
+          this.router.navigateByUrl(this.landingRoute());
         },
         error: (e) => {
           const msg =
@@ -109,5 +111,14 @@ export class LoginComponent implements OnInit {
     }
 
     return normalized || 'Login failed';
+  }
+
+  private landingRoute(): string {
+    switch (this.authStore.role()) {
+      case 'ROLE_TECH':
+        return '/tech/home';
+      default:
+        return '/dashboard';
+    }
   }
 }

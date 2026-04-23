@@ -33,17 +33,10 @@
             </div>
           </div>
 
-          <div class="col-sm-6">
+          <div class="col-12">
             <button cButton color="primary" class="w-100 dashboard-action-button dashboard-action-button--primary" type="button" (click)="previewImport()" [disabled]="previewLoading">
               <svg cIcon name="cilFilter" class="me-2"></svg>
               {{ previewLoading ? 'Previewing...' : 'Preview Parsed Rows' }}
-            </button>
-          </div>
-
-          <div class="col-sm-6">
-            <button cButton color="success" class="w-100 dashboard-action-button dashboard-action-button--success" type="button" (click)="importDataset()" [disabled]="!canImport">
-              <svg cIcon name="cilCloudUpload" class="me-2"></svg>
-              {{ importLoading ? 'Importing...' : 'Store Valid Rows' }}
             </button>
           </div>
         </div>
@@ -59,8 +52,75 @@
         </div>
 
         <div class="alert alert-success mt-4 mb-0" *ngIf="importResult as result">
-          <div class="fw-semibold mb-1">Batch {{ result.batchId }} imported</div>
-          <div>{{ result.insertedRows }} valid new row(s) stored. {{ result.duplicateRows }} duplicate row(s) and {{ result.invalidRows }} invalid row(s) were skipped.</div>
+          <div class="fw-semibold mb-1">
+            {{ result.mode === 'ANALYTICS' ? 'Analytics batch processed' : result.mode === 'DISTRIBUTION' ? 'Distribution batch processed' : 'Analytics and distribution batch processed' }}
+          </div>
+          <div *ngIf="result.batchId; else distributionOnlySummary">
+            Analytics batch {{ result.batchId }} stored {{ result.insertedRows }} new row(s). {{ result.duplicateRows }} duplicate row(s) and {{ result.invalidRows }} invalid row(s) were skipped from analytics storage.
+          </div>
+          <ng-template #distributionOnlySummary>
+            {{ result.duplicateRows }} duplicate analytics row(s) and {{ result.invalidRows }} invalid row(s) were skipped from analytics storage review.
+          </ng-template>
+          <div class="mt-2" *ngIf="result.distributionSummary as distribution">
+            Distribution created {{ distribution.createdCases }} case(s), refreshed {{ distribution.updatedExistingCases }} existing case(s), routed {{ distribution.assignedToZmCases }} row(s) to ZM ownership, and left {{ distribution.sentToAdminQueueCases }} row(s) in the admin queue.
+          </div>
+        </div>
+
+        <div class="dashboard-empty mt-4 align-items-start" *ngIf="hasPreview && importPreview as preview">
+          <div class="w-100">
+            <div class="fw-semibold">Choose what to do with this validated batch.</div>
+            <div class="text-body-secondary mt-1">
+              The same parsed file can feed analytics, operational distribution, or both. Analytics storage still skips duplicate CRM_CASE rows that are already in the activation dataset.
+            </div>
+
+            <div class="row g-2 mt-2">
+              <div class="col-xl-4 col-md-6">
+                <button
+                  cButton
+                  color="success"
+                  class="w-100 dashboard-action-button dashboard-action-button--success"
+                  type="button"
+                  (click)="importDataset('ANALYTICS')"
+                  [disabled]="!canAnalyzeBatch"
+                >
+                  <svg cIcon name="cilChartPie" class="me-2"></svg>
+                  {{ isProcessingMode('ANALYTICS') ? 'Analyzing...' : 'Analyze Batch' }}
+                </button>
+              </div>
+
+              <div class="col-xl-4 col-md-6">
+                <button
+                  cButton
+                  color="warning"
+                  class="w-100 dashboard-action-button"
+                  type="button"
+                  (click)="importDataset('DISTRIBUTION')"
+                  [disabled]="!canDistributeBatch"
+                >
+                  <svg cIcon name="cilShareAll" class="me-2"></svg>
+                  {{ isProcessingMode('DISTRIBUTION') ? 'Distributing...' : 'Distribute Work' }}
+                </button>
+              </div>
+
+              <div class="col-xl-4 col-md-12">
+                <button
+                  cButton
+                  color="primary"
+                  class="w-100 dashboard-action-button dashboard-action-button--primary"
+                  type="button"
+                  (click)="importDataset('ANALYTICS_AND_DISTRIBUTION')"
+                  [disabled]="!canAnalyzeAndDistribute"
+                >
+                  <svg cIcon name="cilCloudUpload" class="me-2"></svg>
+                  {{ isProcessingMode('ANALYTICS_AND_DISTRIBUTION') ? 'Running both...' : 'Analyze + Distribute' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="small text-body-secondary mt-3">
+              Analytics-ready rows: {{ preview.validNewRows }}. Distribution-ready rows: {{ preview.processableRows }}. Actionable work rows: {{ preview.actionableRows }}.
+            </div>
+          </div>
         </div>
 
         <div class="row g-3 mt-1" *ngIf="dashboard as analytics">
@@ -111,7 +171,7 @@
           </div>
           <div class="col-6 col-xl-4">
             <div class="preview-kpi preview-kpi--success">
-              <span>Valid new rows</span>
+              <span>Analytics-ready rows</span>
               <strong>{{ preview.validNewRows }}</strong>
             </div>
           </div>
@@ -129,6 +189,12 @@
           </div>
           <div class="col-6 col-xl-4">
             <div class="preview-kpi preview-kpi--primary">
+              <span>Distribution-ready rows</span>
+              <strong>{{ preview.processableRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--primary">
               <span>Distinct STTs</span>
               <strong>{{ preview.distinctStts }}</strong>
             </div>
@@ -137,6 +203,30 @@
             <div class="preview-kpi preview-kpi--info">
               <span>Distinct governorates</span>
               <strong>{{ preview.distinctGovernorates }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--neutral">
+              <span>En cours</span>
+              <strong>{{ preview.enCoursRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--warning">
+              <span>Effectué source</span>
+              <strong>{{ preview.effectueRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--neutral">
+              <span>Terminé source</span>
+              <strong>{{ preview.termineRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--success">
+              <span>Actionable work</span>
+              <strong>{{ preview.actionableRows }}</strong>
             </div>
           </div>
         </div>

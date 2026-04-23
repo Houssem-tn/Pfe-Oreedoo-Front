@@ -103,8 +103,8 @@ interface TechProofDraft {
   styleUrl: './tech-activation-cases.component.scss'
 })
 export class TechActivationCasesComponent implements OnInit, OnDestroy {
-  private static readonly CLOCK_TICK_MS = 1000;
-  private static readonly RESYNC_MS = 60000;
+  private static readonly CLOCK_TICK_MS = 60000;
+  private static readonly RESYNC_MS = 300000;
   private static readonly PROOF_STORAGE_KEY = 'tech-work-proof-drafts-v1';
   private static readonly MAX_PHOTO_SIZE_BYTES = 8 * 1024 * 1024;
 
@@ -309,7 +309,14 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
         return statusMatches && quickFilterMatches && searchMatches;
       })
-      .sort((left, right) => this.priorityScore(left) - this.priorityScore(right));
+      .sort((left, right) => {
+        const priorityDelta = this.priorityScore(left) - this.priorityScore(right);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+
+        return left.crmCase.localeCompare(right.crmCase);
+      });
   }
 
   get totalVisibleCases(): number {
@@ -318,6 +325,10 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.totalVisibleCases / this.pageSize));
+  }
+
+  get displayPage(): number {
+    return this.currentPageValue;
   }
 
   get pageStart(): number {
@@ -1096,7 +1107,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private matchesQuickFilter(item: CaseResponse): boolean {
     switch (this.quickFilter) {
       case 'urgent': {
-        const status = this.slaStatus(item);
+        const status = this.snapshotSlaStatus(item);
         return status === 'WARNING' || status === 'BREACHED' || status === 'COMPLETED_LATE';
       }
       case 'rdv':
@@ -1110,8 +1121,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   private priorityScore(item: CaseResponse): number {
-    const sla = resolveLiveSla(item, this.nowEpochMs);
-    const deadlinePenalty = 100 - sla.progressPercent;
+    const deadlinePenalty = 100 - this.snapshotSlaProgress(item);
     const statusPriority = item.status === 'RDV_SET'
       ? -10
       : item.status === 'ASSIGNED_TO_TECH' || item.status === 'ASSIGNED_TO_STT'
@@ -1119,6 +1129,19 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         : 20;
     const proofPenalty = this.hasPendingProof(item) ? -5 : 0;
     return deadlinePenalty + statusPriority + proofPenalty;
+  }
+
+  private snapshotSlaStatus(item: CaseResponse): SlaStatus | null {
+    return item.slaTracking?.status ?? resolveLiveSla(item, this.nowEpochMs).status;
+  }
+
+  private snapshotSlaProgress(item: CaseResponse): number {
+    const progress = item.slaTracking?.progressPercent;
+    if (typeof progress === 'number' && Number.isFinite(progress)) {
+      return Math.max(0, Math.min(100, progress));
+    }
+
+    return resolveLiveSla(item, this.nowEpochMs).progressPercent;
   }
 
   private createEmptyRdvForm(): TechRdvForm {
@@ -1725,12 +1748,24 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   private startClock(): void {
     this.clockHandle = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
       this.nowEpochMs = Date.now();
     }, TechActivationCasesComponent.CLOCK_TICK_MS);
   }
 
   private startResync(): void {
     this.resyncHandle = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
+      if (this.selectedCaseId || this.actionBusy || this.panelLoading || this.locationBusy) {
+        return;
+      }
+
       if (!this.loading && !this.syncing) {
         this.syncing = true;
         this.loadCases();
