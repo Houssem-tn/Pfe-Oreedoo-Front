@@ -145,7 +145,7 @@ export class FieldHomeComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.casesService.getActivationCases()
+    this.casesService.getOperationalCases()
       .pipe(finalize(() => {
         this.loading = false;
         this.render();

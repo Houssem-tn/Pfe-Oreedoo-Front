@@ -10,5 +10,10 @@ export const navTech: INavData[] = [
     name: 'My Field Tasks',
     url: '/tech/cases/activation',
     iconComponent: { name: 'cilFolder' }
+  },
+  {
+    name: 'Complaint Tasks',
+    url: '/tech/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
   }
 ];

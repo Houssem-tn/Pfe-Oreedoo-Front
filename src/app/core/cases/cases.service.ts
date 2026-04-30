@@ -1,16 +1,20 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin, map, switchMap } from 'rxjs';
 
 import { API_BASE_URL } from '../http/api.config';
 import {
   AssignTechRequest,
   AssignSttRequest,
   CaseResponse,
+  CaseType,
+  ComplaintImportResponse,
+  ComplaintDiagnosisRequest,
   CompleteWorkRequest,
   CreateCaseRequest,
   CreateActivationCaseRequest,
   PerformanceSummaryResponse,
+  ReopenComplaintRequest,
   SetRdvRequest,
   ValidateZmRequest
 } from './models/case.model';
@@ -20,9 +24,30 @@ export class CasesService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly casesUrl = `${this.baseUrl}/api/v1/cases`;
+  private readonly plaintesUrl = `${this.baseUrl}/api/v1/plaintes`;
+
+  getCasesByType(type: CaseType): Observable<CaseResponse[]> {
+    return this.http.get<CaseResponse[]>(`${this.casesUrl}?type=${type}`);
+  }
 
   getActivationCases(): Observable<CaseResponse[]> {
-    return this.http.get<CaseResponse[]>(`${this.casesUrl}?type=ACTIVATION`);
+    return this.getCasesByType('ACTIVATION');
+  }
+
+  getComplaintCases(): Observable<CaseResponse[]> {
+    return this.getCasesByType('PLAINTE');
+  }
+
+  importComplaintCsv(file: File): Observable<ComplaintImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ComplaintImportResponse>(`${this.plaintesUrl}/import`, formData);
+  }
+
+  getOperationalCases(types: CaseType[] = ['ACTIVATION', 'PLAINTE']): Observable<CaseResponse[]> {
+    return forkJoin(types.map((type) => this.getCasesByType(type))).pipe(
+      map((responses) => responses.flat())
+    );
   }
 
   getCaseById(id: string): Observable<CaseResponse> {
@@ -67,6 +92,18 @@ export class CasesService {
 
   completeWork(caseId: string, payload: CompleteWorkRequest): Observable<CaseResponse> {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/work`, payload);
+  }
+
+  diagnoseComplaint(caseId: string, payload: ComplaintDiagnosisRequest): Observable<CaseResponse> {
+    return this.http.post(`${this.plaintesUrl}/${caseId}/diagnosis`, payload).pipe(
+      switchMap(() => this.getCaseById(caseId))
+    );
+  }
+
+  reopenComplaint(caseId: string, payload: ReopenComplaintRequest): Observable<CaseResponse> {
+    return this.http.post(`${this.plaintesUrl}/${caseId}/reopen`, payload).pipe(
+      switchMap(() => this.getCaseById(caseId))
+    );
   }
 
   uploadWorkProof(
@@ -118,11 +155,13 @@ export class CasesService {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/close`, {});
   }
 
-  getMyPerformance(): Observable<PerformanceSummaryResponse> {
-    return this.http.get<PerformanceSummaryResponse>(`${this.casesUrl}/analytics/my-performance`);
+  getMyPerformance(type?: CaseType): Observable<PerformanceSummaryResponse> {
+    const suffix = type ? `?type=${type}` : '';
+    return this.http.get<PerformanceSummaryResponse>(`${this.casesUrl}/analytics/my-performance${suffix}`);
   }
 
-  getTechPerformance(): Observable<PerformanceSummaryResponse[]> {
-    return this.http.get<PerformanceSummaryResponse[]>(`${this.casesUrl}/analytics/tech-performance`);
+  getTechPerformance(type?: CaseType): Observable<PerformanceSummaryResponse[]> {
+    const suffix = type ? `?type=${type}` : '';
+    return this.http.get<PerformanceSummaryResponse[]>(`${this.casesUrl}/analytics/tech-performance${suffix}`);
   }
 }

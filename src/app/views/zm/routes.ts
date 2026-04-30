@@ -9,7 +9,14 @@ export const routes: Routes = [
   {
     path: 'cases/activation',
     loadComponent: () =>
-      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent)
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'ACTIVATION' }
+  },
+  {
+    path: 'cases/complaint',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'PLAINTE' }
   },
   {
     path: 'cases/activation/new',

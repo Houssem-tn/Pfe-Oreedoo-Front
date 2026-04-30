@@ -1,7 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
@@ -14,23 +14,30 @@ import { UserService } from '../../core/users/user.service';
 import { CasesService } from '../../core/cases/cases.service';
 import {
   CASE_STATUS_UI,
+  CaseDiagnosis,
   CaseMetrics,
   CaseProofFile,
   CaseRdv,
   CaseResponse,
+  CaseResolution,
   CaseSlaTracking,
   CaseStatus,
   CaseTimelineEvent,
+  CaseType,
   CaseWork,
   CaseZmValidation,
+  ComplaintCategory,
+  ComplaintDiagnosisRequest,
   CompleteWorkRequest,
   PerformanceSummaryResponse,
+  ReopenComplaintRequest,
   SetRdvRequest,
   SlaStatus,
   ValidateZmRequest
 } from '../../core/cases/models/case.model';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
+import { governoratesMatch } from '../../core/shared/tunisia-governorates';
 
 type AssignableUser = { id: string; fullName: string; email: string };
 
@@ -68,6 +75,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   cases: CaseResponse[] = [];
   loading = false;
@@ -92,21 +100,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private resyncHandle: ReturnType<typeof setInterval> | null = null;
   private readonly warningThresholdPercent = 50;
 
-  readonly statusOptions: Array<{ value: '' | CaseStatus; label: string }> = [
-    { value: '', label: 'All statuses' },
-    { value: 'CREATED', label: 'Created' },
-    { value: 'ASSIGNED_TO_ZM', label: 'Assigned to ZM' },
-    { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
-    { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
-    { value: 'RDV_SET', label: 'RDV set' },
-    { value: 'NOT_REACHABLE', label: 'Not reachable' },
-    { value: 'ABANDONED', label: 'Abandoned' },
-    { value: 'WORK_DONE', label: 'Work done' },
-    { value: 'VALIDATED_BY_ZM', label: 'Validated by ZM' },
-    { value: 'REJECTED_BY_ZM', label: 'Rejected by ZM' },
-    { value: 'CLOSED', label: 'Closed' }
-  ];
-
   ngOnInit(): void {
     this.loadCases();
     this.loadPerformance();
@@ -123,8 +116,59 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return this.authStore.role();
   }
 
+  get caseType(): CaseType {
+    return this.resolveCaseTypeFromRoute() ?? 'ACTIVATION';
+  }
+
+  get isComplaintModule(): boolean {
+    return this.caseType === 'PLAINTE';
+  }
+
+  get caseBoardLabel(): string {
+    return this.isComplaintModule ? 'Complaint' : 'Activation';
+  }
+
+  get caseBoardLabelPlural(): string {
+    return this.isComplaintModule ? 'Complaints' : 'Activation cases';
+  }
+
+  get statusOptions(): Array<{ value: '' | CaseStatus; label: string }> {
+    if (this.isComplaintModule) {
+      return [
+        { value: '', label: 'All statuses' },
+        { value: 'CREATED', label: 'Created' },
+        { value: 'ASSIGNED_TO_ZM', label: 'Assigned to ZM' },
+        { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
+        { value: 'DIAGNOSIS_STEP', label: 'Diagnosis step' },
+        { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
+        { value: 'NOT_REACHABLE', label: 'Not reachable' },
+        { value: 'RESOLUTION_SUBMITTED', label: 'Resolution submitted' },
+        { value: 'RETURNED_TO_STT', label: 'Returned to STT' },
+        { value: 'ESCALATED', label: 'Escalated' },
+        { value: 'REOPENED', label: 'Reopened' },
+        { value: 'VALIDATED_BY_ZM', label: 'Validated by ZM' },
+        { value: 'CLOSED', label: 'Closed' }
+      ];
+    }
+
+    return [
+      { value: '', label: 'All statuses' },
+      { value: 'CREATED', label: 'Created' },
+      { value: 'ASSIGNED_TO_ZM', label: 'Assigned to ZM' },
+      { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
+      { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
+      { value: 'RDV_SET', label: 'RDV set' },
+      { value: 'NOT_REACHABLE', label: 'Not reachable' },
+      { value: 'ABANDONED', label: 'Abandoned' },
+      { value: 'WORK_DONE', label: 'Work done' },
+      { value: 'VALIDATED_BY_ZM', label: 'Validated by ZM' },
+      { value: 'REJECTED_BY_ZM', label: 'Rejected by ZM' },
+      { value: 'CLOSED', label: 'Closed' }
+    ];
+  }
+
   get canCreateCase(): boolean {
-    return this.currentRole === 'ROLE_ADMIN';
+    return this.currentRole === 'ROLE_ADMIN' && !this.isComplaintModule;
   }
 
   get createRoute(): string {
@@ -132,6 +176,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get workspaceTitle(): string {
+    if (this.isComplaintModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'Ooredoo Complaint Command Center';
+        case 'ROLE_ZM':
+          return 'Zone Complaint Oversight';
+        case 'ROLE_STT':
+          return 'Complaint Resolution Control';
+        case 'ROLE_TECH':
+          return 'Field Complaint Queue';
+        default:
+          return 'Complaint Case Management';
+      }
+    }
+
     switch (this.currentRole) {
       case 'ROLE_ADMIN':
         return 'Ooredoo Activation Command Center';
@@ -147,6 +206,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get workspaceSubtitle(): string {
+    if (this.isComplaintModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'Turn imported CRM complaints into a controlled resolution workflow with the same assignment and validation discipline.';
+        case 'ROLE_ZM':
+          return 'Supervise complaint ownership, diagnosis outcomes, and final validation across your zone.';
+        case 'ROLE_STT':
+          return 'Manage complaint diagnosis, technician decisions, and resolution submission without leaving the operational board.';
+        case 'ROLE_TECH':
+          return 'Review complaint interventions, proof capture, and field execution progress in the same mobile workspace.';
+        default:
+          return 'Telecom complaint workflow: assignment, RDV, diagnosis, work, validation, and closure.';
+      }
+    }
+
     switch (this.currentRole) {
       case 'ROLE_ADMIN':
         return 'Monitor the full CRM activation pipeline, from intake to closure, inside a branded operations workspace.';
@@ -174,6 +248,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         item.crmCase.toLowerCase().includes(term) ||
         item.clientName.toLowerCase().includes(term) ||
         item.clientPhone.toLowerCase().includes(term) ||
+        (item.complaintDetail ?? '').toLowerCase().includes(term) ||
+        (item.complaintDescription ?? '').toLowerCase().includes(term) ||
         this.ownerZmDisplayName(item).toLowerCase().includes(term) ||
         (item.sttName ?? '').toLowerCase().includes(term) ||
         (item.techName ?? '').toLowerCase().includes(term) ||
@@ -215,7 +291,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   get statsCards(): StatCard[] {
     const source = this.accessibleCases;
-    const workDoneCount = source.filter((c) => ['WORK_DONE', 'VALIDATED_BY_ZM', 'CLOSED'].includes(c.status)).length;
+    const workDoneCount = source.filter((c) => this.isWorkCompletedStatus(c.status)).length;
     const warningCount = source.filter((c) => this.getSlaStatus(c) === 'WARNING').length;
     const breachCount = source.filter((c) => {
       const status = this.getSlaStatus(c);
@@ -223,13 +299,13 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     }).length;
 
     return [
-      { label: 'Total Cases', value: source.length, icon: 'cilDescription', className: 'stat-neutral' },
+      { label: this.isComplaintModule ? 'Total complaints' : 'Total Cases', value: source.length, icon: 'cilDescription', className: 'stat-neutral' },
       { label: 'Owned by ZM', value: source.filter((c) => !!this.ownerZmId(c)).length, icon: 'cilUser', className: 'stat-primary' },
       { label: 'Assigned to STT', value: source.filter((c) => !!c.sttId).length, icon: 'cilPeople', className: 'stat-info' },
       { label: 'Assigned to TECH', value: source.filter((c) => !!c.techId).length, icon: 'cilUserFollow', className: 'stat-warning' },
       { label: 'SLA Warning', value: warningCount, icon: 'cilWarning', className: 'stat-warning' },
       { label: 'SLA Breached', value: breachCount, icon: 'cilBan', className: 'stat-danger' },
-      { label: 'Work Done', value: workDoneCount, icon: 'cilTask', className: 'stat-success' },
+      { label: this.isComplaintModule ? 'Resolution ready' : 'Work Done', value: workDoneCount, icon: 'cilTask', className: 'stat-success' },
       { label: 'Closed', value: source.filter((c) => c.status === 'CLOSED').length, icon: 'cilLockLocked', className: 'stat-dark' }
     ];
   }
@@ -309,6 +385,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     return this.notificationStore.latestFirst()
       .filter((item) => events.has(item.eventType))
+      .filter((item) => this.notificationMatchesCurrentBoard(item))
       .slice(0, 4);
   }
 
@@ -364,7 +441,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
-    this.casesService.getActivationCases()
+    this.caseListRequest()
       .pipe(
         finalize(() => {
           this.loading = false;
@@ -378,8 +455,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
           this.currentPage = Math.min(Math.max(1, previousPage), this.totalPages);
         },
         error: (err) => {
-          console.error('Failed to load activation cases:', err);
-          this.error = err?.error?.message ?? 'Failed to load activation cases';
+          console.error(`Failed to load ${this.caseType.toLowerCase()} cases:`, err);
+          this.error = err?.error?.message ?? `Failed to load ${this.caseBoardLabel.toLowerCase()} cases`;
         }
       });
   }
@@ -391,7 +468,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     this.performanceLoading = true;
 
-    this.casesService.getMyPerformance()
+    this.casesService.getMyPerformance(this.caseType)
       .pipe(finalize(() => {
         this.performanceLoading = false;
         this.zone.run(() => this.cdr.detectChanges());
@@ -407,7 +484,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       });
 
     if (this.isAdmin || this.isZm || this.isStt) {
-      this.casesService.getTechPerformance().subscribe({
+      this.casesService.getTechPerformance(this.caseType).subscribe({
         next: (rows) => {
           this.teamTechPerformance = rows ?? [];
         },
@@ -596,6 +673,24 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const remaining = item.slaTracking?.remainingSeconds ?? Number.MAX_SAFE_INTEGER;
     const executionBoost = this.isSttExecutor(item) ? -1500 : this.isTechExecutor(item) ? 400 : -300;
 
+    if (item.type === 'PLAINTE') {
+      switch (item.status) {
+        case 'DIAGNOSIS_STEP':
+          return remaining - 5000 + executionBoost;
+        case 'RETURNED_TO_STT':
+        case 'REOPENED':
+          return remaining - 3500 + executionBoost;
+        case 'ASSIGNED_TO_STT':
+          return remaining - 2500 + executionBoost;
+        case 'ASSIGNED_TO_TECH':
+          return remaining - 1500 + executionBoost;
+        case 'NOT_REACHABLE':
+          return remaining - 1000 + executionBoost;
+        default:
+          return remaining + executionBoost;
+      }
+    }
+
     switch (item.status) {
       case 'ASSIGNED_TO_STT':
         return remaining - 5000 + executionBoost;
@@ -612,6 +707,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private mobileTechPriority(item: CaseResponse): number {
     const remaining = item.slaTracking?.remainingSeconds ?? Number.MAX_SAFE_INTEGER;
+
+    if (item.type === 'PLAINTE') {
+      switch (item.status) {
+        case 'ASSIGNED_TO_TECH':
+          return remaining - 3000;
+        case 'RETURNED_TO_STT':
+        case 'REOPENED':
+          return remaining - 1500;
+        case 'DIAGNOSIS_STEP':
+        case 'NOT_REACHABLE':
+          return remaining - 500;
+        default:
+          return remaining;
+      }
+    }
 
     switch (item.status) {
       case 'RDV_SET':
@@ -656,20 +766,46 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   canAssignStt(item: CaseResponse): boolean {
     if (!this.isZm || !this.isCaseOwnedByZm(item)) return false;
+    if (item.type === 'PLAINTE') {
+      return ['ASSIGNED_TO_ZM', 'ASSIGNED_TO_STT', 'RETURNED_TO_STT', 'REOPENED', 'ESCALATED'].includes(item.status);
+    }
+
     return ['ASSIGNED_TO_ZM', 'ASSIGNED_TO_STT'].includes(item.status);
   }
 
   canAssignTech(item: CaseResponse): boolean {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
+
+    if (item.type === 'PLAINTE') {
+      return this.hasComplaintFieldDecision(item)
+        && ['DIAGNOSIS_STEP', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+    }
+
     return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE', 'REJECTED_BY_ZM'].includes(item.status);
   }
 
   canExecuteMyself(item: CaseResponse): boolean {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
+
+    if (item.type === 'PLAINTE') {
+      return this.hasComplaintFieldDecision(item)
+        && ['DIAGNOSIS_STEP', 'ASSIGNED_TO_STT', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+    }
+
     return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE', 'REJECTED_BY_ZM'].includes(item.status);
   }
 
   canSetRdv(item: CaseResponse): boolean {
+    if (item.type === 'PLAINTE') {
+      const sttAllowedStatuses = ['ASSIGNED_TO_STT', 'DIAGNOSIS_STEP', 'NOT_REACHABLE'];
+
+      if (this.isStt && this.isSttExecutor(item)) {
+        return !this.hasDiagnosis(item) && sttAllowedStatuses.includes(item.status);
+      }
+
+      return false;
+    }
+
     const sttAllowedStatuses = ['ASSIGNED_TO_STT', 'RDV_SET', 'NOT_REACHABLE'];
     const techAllowedStatuses = ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'];
 
@@ -685,6 +821,19 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   canUpdateWork(item: CaseResponse): boolean {
+    if (item.type === 'PLAINTE') {
+      if (!this.hasComplaintFieldDecision(item)) {
+        return false;
+      }
+
+      if (this.isStt && this.isSttExecutor(item)) {
+        return ['ASSIGNED_TO_STT', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+      }
+
+      if (!this.isTech || !this.isCaseOwnedByTech(item)) return false;
+      return item.status === 'ASSIGNED_TO_TECH';
+    }
+
     if (this.isStt && this.isSttExecutor(item)) {
       return ['RDV_SET', 'ASSIGNED_TO_STT'].includes(item.status);
     }
@@ -693,14 +842,34 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return ['RDV_SET', 'ASSIGNED_TO_TECH'].includes(item.status);
   }
 
+  canDiagnose(item: CaseResponse): boolean {
+    if (item.type !== 'PLAINTE' || !this.isStt || !this.isCaseOwnedByStt(item)) {
+      return false;
+    }
+
+    return this.hasCompletedComplaintRdv(item)
+      && ['ASSIGNED_TO_STT', 'DIAGNOSIS_STEP', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+  }
+
   canValidateZm(item: CaseResponse): boolean {
     if (!this.isZm || !this.isCaseOwnedByZm(item)) return false;
+    if (item.type === 'PLAINTE') {
+      return item.status === 'RESOLUTION_SUBMITTED';
+    }
+
     return item.status === 'WORK_DONE';
   }
 
   canCloseCase(item: CaseResponse): boolean {
     if (!this.isZm || !this.isCaseOwnedByZm(item)) return false;
     return item.status === 'VALIDATED_BY_ZM';
+  }
+
+  canReopenComplaint(item: CaseResponse): boolean {
+    return item.type === 'PLAINTE'
+      && this.isZm
+      && this.isCaseOwnedByZm(item)
+      && ['CLOSED', 'VALIDATED_BY_ZM', 'RESOLUTION_SUBMITTED'].includes(item.status);
   }
 
   canView(item: CaseResponse): boolean {
@@ -830,9 +999,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   openSttPrimaryAction(item: CaseResponse): void {
     if (this.hasSttSelfExecution(item)) {
-      const panel = this.canUpdateWork(item) && item.status === 'RDV_SET'
-        ? 'work'
-        : this.canSetRdv(item)
+      const panel = this.canDiagnose(item)
+        ? 'diagnosis'
+        : this.canUpdateWork(item) && (item.type === 'PLAINTE' || item.status === 'RDV_SET')
+          ? 'work'
+          : this.canSetRdv(item)
           ? 'rdv'
           : 'details';
 
@@ -840,7 +1011,12 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.canUpdateWork(item) && item.status === 'RDV_SET') {
+    if (this.canDiagnose(item)) {
+      void this.openDiagnosisPopup(item);
+      return;
+    }
+
+    if (this.canUpdateWork(item) && (item.type === 'PLAINTE' || item.status === 'RDV_SET')) {
       void this.openWorkPopup(item);
       return;
     }
@@ -854,7 +1030,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   sttPrimaryActionLabel(item: CaseResponse): string {
-    if (this.canUpdateWork(item) && item.status === 'RDV_SET') {
+    if (this.canDiagnose(item)) {
+      return 'Diagnosis';
+    }
+
+    if (this.canUpdateWork(item) && (item.type === 'PLAINTE' || item.status === 'RDV_SET')) {
       return 'Work';
     }
 
@@ -866,7 +1046,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   sttPrimaryActionIcon(item: CaseResponse): string {
-    if (this.canUpdateWork(item) && item.status === 'RDV_SET') {
+    if (this.canDiagnose(item)) {
+      return 'cilNotes';
+    }
+
+    if (this.canUpdateWork(item) && (item.type === 'PLAINTE' || item.status === 'RDV_SET')) {
       return 'cilTask';
     }
 
@@ -1089,6 +1273,108 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     await this.runAction(item.id, () => this.casesService.completeWork(item.id, workPayload), 'Work updated');
   }
 
+  async openDiagnosisPopup(item: CaseResponse): Promise<void> {
+    const diagnosis = this.extractDiagnosis(item);
+    const selectedCategory = diagnosis.complaintCategory ?? 'OTHER';
+
+    const result = await Swal.fire<ComplaintDiagnosisRequest>({
+      title: `Diagnosis - CRM ${this.escapeHtml(item.crmCase)}`,
+      width: 780,
+      html: `
+        <div class="case-op-modal">
+          <div class="case-op-grid case-op-grid-2">
+            <div class="case-op-field">
+              <label class="case-op-label">Complaint category <span>*</span></label>
+              <select id="sw-diagnosis-category" class="swal2-input case-op-input">
+                ${this.complaintCategoryOptions()
+                  .map((option) => `<option value="${option.value}" ${selectedCategory === option.value ? 'selected' : ''}>${option.label}</option>`)
+                  .join('')}
+              </select>
+            </div>
+
+            <div class="case-op-field">
+              <label class="case-op-label">Root cause</label>
+              <input id="sw-diagnosis-root-cause" class="swal2-input case-op-input" value="${this.escapeHtml(diagnosis.rootCause ?? '')}" />
+            </div>
+          </div>
+
+          <div class="case-op-field">
+            <label class="case-op-label">Diagnosis comment</label>
+            <textarea id="sw-diagnosis-comment" class="swal2-textarea case-op-textarea" placeholder="Summarize the issue, checks, and next decision">${this.escapeHtml(diagnosis.diagnosisComment ?? item.complaintDescription ?? item.complaintDetail ?? '')}</textarea>
+          </div>
+
+          <div class="case-op-divider"></div>
+
+          <div class="case-op-grid case-op-grid-3">
+            <div class="case-op-field">
+              <label class="case-op-label">Requires field work</label>
+              <select id="sw-diagnosis-field" class="swal2-input case-op-input">
+                <option value="false" ${diagnosis.requiresFieldWork ? '' : 'selected'}>No</option>
+                <option value="true" ${diagnosis.requiresFieldWork ? 'selected' : ''}>Yes</option>
+              </select>
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">Requires TECH</label>
+              <select id="sw-diagnosis-tech" class="swal2-input case-op-input">
+                <option value="false" ${diagnosis.requiresTechIntervention ? '' : 'selected'}>No</option>
+                <option value="true" ${diagnosis.requiresTechIntervention ? 'selected' : ''}>Yes</option>
+              </select>
+            </div>
+            <div class="case-op-field">
+              <label class="case-op-label">Escalate</label>
+              <select id="sw-diagnosis-escalation" class="swal2-input case-op-input">
+                <option value="false" ${diagnosis.requiresEscalation ? '' : 'selected'}>No</option>
+                <option value="true" ${diagnosis.requiresEscalation ? 'selected' : ''}>Yes</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: 'case-op-popup'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Save diagnosis',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#1b9aaa',
+      preConfirm: () => {
+        const complaintCategory = this.getElementValue('sw-diagnosis-category') as ComplaintCategory;
+        const rootCause = this.toNullable(this.getElementValue('sw-diagnosis-root-cause'));
+        const diagnosisComment = this.toNullable(this.getElementValue('sw-diagnosis-comment'));
+        const requiresFieldWork = this.getElementValue('sw-diagnosis-field') === 'true';
+        const requiresTechIntervention = this.getElementValue('sw-diagnosis-tech') === 'true';
+        const requiresEscalation = this.getElementValue('sw-diagnosis-escalation') === 'true';
+
+        if (!complaintCategory) {
+          Swal.showValidationMessage('Complaint category is required');
+          return undefined;
+        }
+
+        if (requiresEscalation && requiresTechIntervention) {
+          Swal.showValidationMessage('Choose either escalation or TECH intervention for the next step');
+          return undefined;
+        }
+
+        return {
+          complaintCategory,
+          rootCause,
+          diagnosisComment,
+          requiresFieldWork,
+          requiresTechIntervention,
+          requiresEscalation
+        };
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+    const diagnosisPayload = result.value;
+    await this.runAction(
+      item.id,
+      () => this.casesService.diagnoseComplaint(item.id, diagnosisPayload),
+      'Diagnosis saved'
+    );
+  }
+
   async openValidatePopup(item: CaseResponse): Promise<void> {
     const validation = this.extractValidation(item);
     const defaultApproved = validation.approved ?? true;
@@ -1137,6 +1423,43 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     await this.runAction(item.id, () => this.casesService.validateZm(item.id, validationPayload), 'Validation saved');
   }
 
+  async openReopenComplaint(item: CaseResponse): Promise<void> {
+    const result = await Swal.fire<ReopenComplaintRequest>({
+      title: `Reopen complaint - CRM ${this.escapeHtml(item.crmCase)}`,
+      width: 640,
+      html: `
+        <div class="case-op-modal">
+          <div class="case-op-field">
+            <label class="case-op-label">Reopen comment</label>
+            <textarea id="sw-reopen-comment" class="swal2-textarea case-op-textarea" placeholder="Explain why this complaint needs another resolution cycle"></textarea>
+          </div>
+        </div>
+      `,
+      customClass: {
+        popup: 'case-op-popup'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Reopen complaint',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#f9b115',
+      preConfirm: () => {
+        return {
+          comment: this.toNullable(this.getElementValue('sw-reopen-comment'))
+        };
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) {
+      return;
+    }
+
+    await this.runAction(
+      item.id,
+      () => this.casesService.reopenComplaint(item.id, result.value!),
+      'Complaint reopened'
+    );
+  }
+
   async openClosePopup(item: CaseResponse): Promise<void> {
     const confirm = await this.swal.confirmAction(
       'Close this case?',
@@ -1156,6 +1479,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       const rdv = this.extractRdv(fullCase);
       const work = this.extractWork(fullCase);
       const metrics = this.extractMetrics(fullCase);
+      const diagnosis = this.extractDiagnosis(fullCase);
+      const resolution = this.extractResolution(fullCase);
       const validation = this.extractValidation(fullCase);
       const timeline = this.extractTimeline(fullCase);
       const proofs = this.extractProofs(fullCase);
@@ -1180,6 +1505,12 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
                 <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Pack:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.desPack || '-')}</span></div></div>
                 <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.commentaire || '-')}</span></div></div>
                 <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Location:</span> <span class="case-detail-value">${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</span></div></div>
+                ${fullCase.type === 'PLAINTE' ? `
+                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Contact CL2:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.contactCl2 || '-')}</span></div></div>
+                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Source:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.source || '-')}</span></div></div>
+                  <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Complaint detail:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.complaintDetail || '-')}</span></div></div>
+                  <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Complaint description:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.complaintDescription || '-')}</span></div></div>
+                ` : ''}
               </div>
             </div>
 
@@ -1206,6 +1537,35 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
                 <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(rdv.cmtRdv || '-')}</span></div></div>
               </div>
             </div>
+
+            ${fullCase.type === 'PLAINTE' ? `
+              <div class="case-details-section">
+                <h6 class="case-details-title">Diagnosis</h6>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Category:</span> <span class="case-detail-value">${this.escapeHtml(this.complaintCategoryLabel(diagnosis.complaintCategory))}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Field work:</span> <span class="case-detail-value">${diagnosis.requiresFieldWork == null ? '-' : diagnosis.requiresFieldWork ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH needed:</span> <span class="case-detail-value">${diagnosis.requiresTechIntervention == null ? '-' : diagnosis.requiresTechIntervention ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Escalation:</span> <span class="case-detail-value">${diagnosis.requiresEscalation == null ? '-' : diagnosis.requiresEscalation ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Diagnosed at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(diagnosis.diagnosedAt))}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Diagnosed by:</span> <span class="case-detail-value">${this.escapeHtml(diagnosis.diagnosedBy || '-')}</span></div></div>
+                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Root cause:</span> <span class="case-detail-value">${this.escapeHtml(diagnosis.rootCause || '-')}</span></div></div>
+                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Diagnosis comment:</span> <span class="case-detail-value">${this.escapeHtml(diagnosis.diagnosisComment || '-')}</span></div></div>
+                </div>
+              </div>
+
+              <div class="case-details-section">
+                <h6 class="case-details-title">Resolution</h6>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Type:</span> <span class="case-detail-value">${this.escapeHtml(resolution.resolutionType || '-')}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Validation status:</span> <span class="case-detail-value">${this.escapeHtml(resolution.validationStatus || '-')}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Submitted at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(resolution.submittedAt))}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Submitted by:</span> <span class="case-detail-value">${this.escapeHtml(resolution.submittedBy || '-')}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Validated at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(resolution.validatedAt))}</span></div></div>
+                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Reopened at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(resolution.reopenedAt))}</span></div></div>
+                  <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Resolution comment:</span> <span class="case-detail-value">${this.escapeHtml(resolution.resolutionComment || '-')}</span></div></div>
+                </div>
+              </div>
+            ` : ''}
 
             <div class="case-details-section">
               <h6 class="case-details-title">Work</h6>
@@ -1459,12 +1819,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return '-';
   }
 
-  private openSttExecutionWorkspace(caseId: string, panel: 'details' | 'rdv' | 'work'): Promise<boolean> {
-    return this.router.navigate(['/stt/cases/execution'], {
+  private openSttExecutionWorkspace(caseId: string, panel: 'details' | 'rdv' | 'diagnosis' | 'work'): Promise<boolean> {
+    return this.router.navigate([`/stt/cases/execution/tasks/${caseId}`], {
       queryParams: {
-        caseId,
-        panel,
-        focus: panel === 'work' ? 'work' : panel === 'rdv' ? 'rdv' : 'all'
+        step: panel === 'details' ? undefined : panel
       }
     });
   }
@@ -1525,6 +1883,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     };
   }
 
+  private extractDiagnosis(item: CaseResponse): CaseDiagnosis {
+    return item.diagnosis ?? {};
+  }
+
+  private extractResolution(item: CaseResponse): CaseResolution {
+    return item.resolution ?? {};
+  }
+
   private extractMetrics(item: CaseResponse): CaseMetrics {
     if (item.metrics) return item.metrics;
 
@@ -1546,6 +1912,91 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       approved: item.repZm === 'APPROVED' ? true : item.repZm === 'REJECTED' ? false : null,
       comment: item.commentZm
     };
+  }
+
+  private hasDiagnosis(item: CaseResponse): boolean {
+    const diagnosis = this.extractDiagnosis(item);
+    return !!diagnosis.complaintCategory
+      || !!diagnosis.rootCause?.trim()
+      || !!diagnosis.diagnosisComment?.trim()
+      || diagnosis.requiresEscalation === true
+      || diagnosis.requiresFieldWork === true
+      || diagnosis.requiresTechIntervention === true;
+  }
+
+  private hasCompletedComplaintRdv(item: CaseResponse): boolean {
+    const rdv = this.extractRdv(item);
+    return rdv.joignable !== false
+      && rdv.abandon !== true
+      && !!rdv.datePriseRdv;
+  }
+
+  private hasComplaintFieldDecision(item: CaseResponse): boolean {
+    const diagnosis = this.extractDiagnosis(item);
+    return diagnosis.requiresFieldWork === true || diagnosis.requiresTechIntervention === true;
+  }
+
+  private isWorkCompletedStatus(status: CaseStatus): boolean {
+    return status === 'WORK_DONE'
+      || status === 'RESOLUTION_SUBMITTED'
+      || status === 'VALIDATED_BY_ZM'
+      || status === 'CLOSED';
+  }
+
+  private complaintCategoryOptions(): Array<{ value: ComplaintCategory; label: string }> {
+    return [
+      { value: 'NETWORK_COVERAGE', label: 'Network coverage' },
+      { value: 'SERVICE_QUALITY', label: 'Service quality' },
+      { value: 'INSTALLATION', label: 'Installation' },
+      { value: 'EQUIPMENT', label: 'Equipment' },
+      { value: 'BILLING', label: 'Billing' },
+      { value: 'ACTIVATION_FOLLOW_UP', label: 'Activation follow-up' },
+      { value: 'CUSTOMER_EDUCATION', label: 'Customer education' },
+      { value: 'OTHER', label: 'Other' }
+    ];
+  }
+
+  private complaintCategoryLabel(value?: ComplaintCategory | null): string {
+    return this.complaintCategoryOptions().find((option) => option.value === value)?.label ?? '-';
+  }
+
+  private notificationMatchesCurrentBoard(item: NotificationItem): boolean {
+    const caseType = typeof item.data?.['caseType'] === 'string'
+      ? item.data['caseType'].trim().toUpperCase()
+      : '';
+
+    if (!caseType) {
+      return this.caseType === 'ACTIVATION';
+    }
+
+    return caseType === this.caseType;
+  }
+
+  private caseListRequest() {
+    return this.caseType === 'PLAINTE'
+      ? this.casesService.getComplaintCases()
+      : this.casesService.getActivationCases();
+  }
+
+  private resolveCaseTypeFromRoute(): CaseType | null {
+    const snapshots = [...this.route.snapshot.pathFromRoot].reverse();
+    for (const snapshot of snapshots) {
+      const value = snapshot.data?.['caseType'];
+      if (value === 'ACTIVATION' || value === 'PLAINTE') {
+        return value;
+      }
+    }
+
+    const url = this.router.url.toLowerCase();
+    if (url.includes('/complaint')) {
+      return 'PLAINTE';
+    }
+
+    if (url.includes('/activation')) {
+      return 'ACTIVATION';
+    }
+
+    return null;
   }
 
   private extractProofs(item: CaseResponse): CaseProofFile[] {
@@ -1726,12 +2177,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   private userCoversGovernorate(governorates?: string[] | null, governorate?: string | null): boolean {
-    const target = (governorate ?? '').trim();
-    if (!target) {
+    if (!(governorate ?? '').trim()) {
       return false;
     }
 
-    return (governorates ?? []).some((value) => (value ?? '').trim() === target);
+    return (governorates ?? []).some((value) => governoratesMatch(value, governorate));
   }
 
   initialsFor(name?: string | null, email?: string | null): string {

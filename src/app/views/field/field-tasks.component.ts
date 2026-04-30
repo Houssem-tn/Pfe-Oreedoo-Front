@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
-import { CaseResponse } from '../../core/cases/models/case.model';
+import { CaseResponse, CaseType } from '../../core/cases/models/case.model';
 import { FieldCaseCardComponent } from './components/field-case-card.component';
 import { FieldEmptyStateComponent } from './components/field-empty-state.component';
 import {
@@ -27,8 +27,8 @@ type FieldTaskFilter = 'active' | 'ready' | 'completed' | 'all';
     <section class="field-page">
       <div class="field-page__header">
         <div class="field-page__eyebrow">Tasks</div>
-        <h1 class="field-page__title">Assigned cases</h1>
-        <p class="field-page__subtitle">Client visits, locations, offers, and service status in one queue.</p>
+        <h1 class="field-page__title">{{ pageTitle }}</h1>
+        <p class="field-page__subtitle">{{ pageSubtitle }}</p>
       </div>
 
       <section class="field-card field-toolbar">
@@ -74,6 +74,7 @@ type FieldTaskFilter = 'active' | 'ready' | 'completed' | 'all';
 export class FieldTasksComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly casesService = inject(CasesService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
@@ -90,6 +91,38 @@ export class FieldTasksComponent implements OnInit {
 
   get basePath(): string {
     return fieldBasePathFromUrl(this.router.url);
+  }
+
+  get caseType(): CaseType | null {
+    return this.resolveCaseTypeFromRoute();
+  }
+
+  get isComplaintRoute(): boolean {
+    return this.caseType === 'PLAINTE';
+  }
+
+  get pageTitle(): string {
+    if (this.caseType === 'ACTIVATION') {
+      return 'Assigned activation cases';
+    }
+
+    if (this.caseType === 'PLAINTE') {
+      return 'Assigned complaint cases';
+    }
+
+    return 'Assigned cases';
+  }
+
+  get pageSubtitle(): string {
+    if (this.caseType === 'ACTIVATION') {
+      return 'Activation visits, locations, offers, and service status in one queue.';
+    }
+
+    if (this.caseType === 'PLAINTE') {
+      return 'Complaint interventions, locations, and service status in one queue.';
+    }
+
+    return 'Client visits, locations, offers, and service status in one queue.';
   }
 
   get assignedCases(): CaseResponse[] {
@@ -111,7 +144,7 @@ export class FieldTasksComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.casesService.getActivationCases()
+    this.caseRequest()
       .pipe(finalize(() => {
         this.loading = false;
         this.render();
@@ -126,6 +159,39 @@ export class FieldTasksComponent implements OnInit {
           this.cases = [];
         }
       });
+  }
+
+  private caseRequest() {
+    if (this.caseType === 'PLAINTE') {
+      return this.casesService.getComplaintCases();
+    }
+
+    if (this.caseType === 'ACTIVATION') {
+      return this.casesService.getActivationCases();
+    }
+
+    return this.casesService.getOperationalCases();
+  }
+
+  private resolveCaseTypeFromRoute(): CaseType | null {
+    const snapshots = [...this.route.snapshot.pathFromRoot].reverse();
+    for (const snapshot of snapshots) {
+      const value = snapshot.data?.['caseType'];
+      if (value === 'ACTIVATION' || value === 'PLAINTE') {
+        return value;
+      }
+    }
+
+    const url = this.router.url.toLowerCase();
+    if (url.includes('/complaint')) {
+      return 'PLAINTE';
+    }
+
+    if (url.includes('/activation')) {
+      return 'ACTIVATION';
+    }
+
+    return null;
   }
 
   private matchesFilter(item: CaseResponse): boolean {

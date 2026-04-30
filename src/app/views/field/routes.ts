@@ -23,8 +23,15 @@ export const routes: Routes = [
       },
       {
         path: 'cases/activation',
-        redirectTo: 'tasks',
-        pathMatch: 'full'
+        loadComponent: () =>
+          import('./field-tasks.component').then((m) => m.FieldTasksComponent),
+        data: { caseType: 'ACTIVATION' }
+      },
+      {
+        path: 'cases/complaint',
+        loadComponent: () =>
+          import('./field-tasks.component').then((m) => m.FieldTasksComponent),
+        data: { caseType: 'PLAINTE' }
       },
       {
         path: 'tasks/:id/execution',

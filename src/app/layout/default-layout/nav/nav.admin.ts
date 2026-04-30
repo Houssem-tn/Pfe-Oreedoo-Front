@@ -64,6 +64,11 @@ export const navAdmin: INavData[] = [
     url: '/admin/cases/activation',
     iconComponent: { name: 'cilFolder' }
   },
+  {
+    name: 'Complaint Cases',
+    url: '/admin/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
 
   {
     name: 'Stock',

@@ -183,7 +183,7 @@
   <div *ngIf="loading" class="crm-state crm-state--loading">
     <div class="spinner-border" role="status"></div>
     <div>
-      <strong>Loading activation cases...</strong>
+      <strong>Loading {{ caseBoardLabel.toLowerCase() }} cases...</strong>
       <span>Preparing the latest CRM workflow data.</span>
     </div>
   </div>
@@ -274,7 +274,7 @@
 
         <div class="stt-mobile-card__summary">
           <div><strong>RDV</strong><span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'Not set' }}</span></div>
-          <div><strong>Work</strong><span>{{ item.repTravauxStt || 'Pending' }}</span></div>
+          <div><strong>{{ item.type === 'PLAINTE' ? 'Resolution' : 'Work' }}</strong><span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Pending' }}</span></div>
         </div>
 
         <div class="stt-mobile-actions">
@@ -302,7 +302,7 @@
       <div class="crm-table-panel__header">
         <div>
           <div class="crm-panel-header__eyebrow">Case queue</div>
-          <div class="crm-panel-header__title">Activation cases</div>
+          <div class="crm-panel-header__title">{{ caseBoardLabelPlural }}</div>
         </div>
         <div class="crm-table-panel__meta">{{ rangeLabel() }}</div>
       </div>
@@ -403,7 +403,7 @@
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilTask"></svg>
-                  <span>{{ item.repTravauxStt || 'Work not submitted' }}</span>
+                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work not submitted' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCheckCircle"></svg>
@@ -458,6 +458,17 @@
                   </button>
 
                   <button
+                    *ngIf="canDiagnose(item)"
+                    type="button"
+                    class="action-btn action-btn--teal"
+                    title="Save diagnosis"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openDiagnosisPopup(item)"
+                  >
+                    <svg cIcon name="cilNotes"></svg>
+                  </button>
+
+                  <button
                     *ngIf="canUpdateWork(item)"
                     type="button"
                     class="action-btn action-btn--success"
@@ -491,6 +502,17 @@
                   </button>
 
                   <button
+                    *ngIf="canReopenComplaint(item)"
+                    type="button"
+                    class="action-btn action-btn--amber"
+                    title="Reopen complaint"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openReopenComplaint(item)"
+                  >
+                    <svg cIcon name="cilReload"></svg>
+                  </button>
+
+                  <button
                     *ngIf="canView(item)"
                     type="button"
                     class="action-btn action-btn--soft"
@@ -507,7 +529,7 @@
             <tr *ngIf="paginatedCases.length === 0">
               <td colspan="8">
                 <div class="crm-empty-state">
-                  <div class="crm-empty-state__title">No activation cases found</div>
+                  <div class="crm-empty-state__title">No {{ caseBoardLabel.toLowerCase() }} cases found</div>
                   <div class="crm-empty-state__hint">Try changing search or filters.</div>
                 </div>
               </td>

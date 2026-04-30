@@ -22,6 +22,11 @@ export const navStt: INavData[] = [
     iconComponent: { name: 'cilFolder' }
   },
   {
+    name: 'Complaint Cases',
+    url: '/stt/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
+  {
     name: 'My Technicians',
     url: '/stt/my-technicians',
     iconComponent: { name: 'cilPeople' }

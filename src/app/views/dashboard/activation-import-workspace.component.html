@@ -3,8 +3,8 @@
     <c-card class="dashboard-panel dashboard-panel--ooredoo h-100">
       <c-card-header class="dashboard-panel__header">
         <div>
-          <div class="dashboard-panel__eyebrow">Activation import</div>
-          <div class="dashboard-panel__title">Upload activation analytics dataset</div>
+          <div class="dashboard-panel__eyebrow">Activation CSV import</div>
+          <div class="dashboard-panel__title">Import Activation CSV</div>
         </div>
       </c-card-header>
       <c-card-body>
@@ -36,7 +36,7 @@
           <div class="col-12">
             <button cButton color="primary" class="w-100 dashboard-action-button dashboard-action-button--primary" type="button" (click)="previewImport()" [disabled]="previewLoading">
               <svg cIcon name="cilFilter" class="me-2"></svg>
-              {{ previewLoading ? 'Previewing...' : 'Preview Parsed Rows' }}
+              {{ previewLoading ? 'Previewing...' : 'Preview Activation CSV' }}
             </button>
           </div>
         </div>
@@ -98,7 +98,7 @@
                   [disabled]="!canDistributeBatch"
                 >
                   <svg cIcon name="cilShareAll" class="me-2"></svg>
-                  {{ isProcessingMode('DISTRIBUTION') ? 'Distributing...' : 'Distribute Work' }}
+                  {{ isProcessingMode('DISTRIBUTION') ? 'Importing...' : 'Import Activation CSV' }}
                 </button>
               </div>
 
@@ -112,7 +112,7 @@
                   [disabled]="!canAnalyzeAndDistribute"
                 >
                   <svg cIcon name="cilCloudUpload" class="me-2"></svg>
-                  {{ isProcessingMode('ANALYTICS_AND_DISTRIBUTION') ? 'Running both...' : 'Analyze + Distribute' }}
+                  {{ isProcessingMode('ANALYTICS_AND_DISTRIBUTION') ? 'Running both...' : 'Analyze + Import Activation CSV' }}
                 </button>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { finalize } from 'rxjs/operators';
 
+import { TUNISIA_GOVERNORATES } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
 import {
   ImportedTodoListItem,
@@ -27,32 +28,7 @@ export class ImportedTodosComponent implements OnInit {
 
   private static readonly PAGE_WINDOW = 5;
 
-  readonly governorateOptions = [
-    'Tunis',
-    'Ariana',
-    'Ben Arous',
-    'Mannouba',
-    'Nabeul',
-    'Zaghouan',
-    'Bizerte',
-    'Béja',
-    'Jendouba',
-    'Le Kef',
-    'Siliana',
-    'Sousse',
-    'Monastir',
-    'Mahdia',
-    'Sfax',
-    'Kairouan',
-    'Kasserine',
-    'Sidi Bouzid',
-    'Gabès',
-    'Médenine',
-    'Tataouine',
-    'Gafsa',
-    'Tozeur',
-    'Kébili'
-  ];
+  readonly governorateOptions = [...TUNISIA_GOVERNORATES];
 
   readonly pageSizeOptions = [25, 50, 100];
   readonly rowQualityOptions = [

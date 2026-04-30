@@ -1,6 +1,7 @@
 import { NgTemplateOutlet, DatePipe } from '@angular/common';
 import { Component, computed, inject, input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { UserService } from '../../../core/users/user.service';
 import { CasesService } from '../../../core/cases/cases.service';
@@ -139,7 +140,7 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     this.markOneAsRead(notification, event);
 
     if (notification.eventType !== 'USER_REGISTERED') {
-      const roleRoute = this.getCaseListRouteByRole();
+      const roleRoute = this.getCaseRouteForNotification(notification);
 
       if (roleRoute && this.isCaseEvent(notification.eventType)) {
         this.router.navigate([roleRoute]);
@@ -237,9 +238,12 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   }
 
   private loadPerformanceSnapshot(): void {
-    this.casesService.getMyPerformance().subscribe({
-      next: (summary) => {
-        this.activeTasksCount = summary.activeTasksCount ?? 0;
+    forkJoin([
+      this.casesService.getMyPerformance('ACTIVATION'),
+      this.casesService.getMyPerformance('PLAINTE')
+    ]).subscribe({
+      next: ([activationSummary, complaintSummary]) => {
+        this.activeTasksCount = (activationSummary.activeTasksCount ?? 0) + (complaintSummary.activeTasksCount ?? 0);
         this.cdr.detectChanges();
       },
       error: () => {
@@ -276,6 +280,30 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       default:
         return null;
     }
+  }
+
+  private getCaseRouteForNotification(notification: NotificationItem): string | null {
+    const caseType = typeof notification.data?.['caseType'] === 'string'
+      ? notification.data['caseType'].trim().toUpperCase()
+      : '';
+
+    if (caseType === 'PLAINTE') {
+      const role = this.authStore.role();
+      switch (role) {
+        case 'ROLE_ADMIN':
+          return '/admin/cases/complaint';
+        case 'ROLE_ZM':
+          return '/zm/cases/complaint';
+        case 'ROLE_STT':
+          return '/stt/cases/complaint';
+        case 'ROLE_TECH':
+          return '/tech/cases/complaint';
+        default:
+          return this.getCaseListRouteByRole();
+      }
+    }
+
+    return this.getCaseListRouteByRole();
   }
 
   public newMessages = [

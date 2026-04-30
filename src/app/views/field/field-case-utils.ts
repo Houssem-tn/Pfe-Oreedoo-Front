@@ -58,14 +58,25 @@ export function isSttSelfExecutionCase(item: CaseResponse, currentUserEmail: str
 }
 
 export function isCompletedFieldStatus(status: CaseStatus): boolean {
-  return status === 'WORK_DONE' || status === 'VALIDATED_BY_ZM' || status === 'CLOSED';
+  return status === 'WORK_DONE'
+    || status === 'RESOLUTION_SUBMITTED'
+    || status === 'VALIDATED_BY_ZM'
+    || status === 'CLOSED';
 }
 
 export function isActiveFieldStatus(status: CaseStatus): boolean {
-  return !isCompletedFieldStatus(status) && status !== 'ABANDONED';
+  return !isCompletedFieldStatus(status)
+    && status !== 'ABANDONED'
+    && status !== 'ESCALATED';
 }
 
 export function canUpdateFieldRdv(item: CaseResponse): boolean {
+  if (item.type === 'PLAINTE') {
+    return item.status === 'ASSIGNED_TO_STT'
+      || item.status === 'ASSIGNED_TO_TECH'
+      || item.status === 'NOT_REACHABLE';
+  }
+
   return item.status === 'ASSIGNED_TO_TECH'
     || item.status === 'ASSIGNED_TO_STT'
     || item.status === 'RDV_SET'
@@ -73,6 +84,13 @@ export function canUpdateFieldRdv(item: CaseResponse): boolean {
 }
 
 export function canFinishFieldWork(item: CaseResponse): boolean {
+  if (item.type === 'PLAINTE') {
+    return item.status === 'ASSIGNED_TO_TECH'
+      || item.status === 'ASSIGNED_TO_STT'
+      || item.status === 'RETURNED_TO_STT'
+      || item.status === 'REOPENED';
+  }
+
   return item.status === 'ASSIGNED_TO_TECH'
     || item.status === 'ASSIGNED_TO_STT'
     || item.status === 'RDV_SET';
@@ -93,18 +111,23 @@ export function fieldStatusLabel(status: CaseStatus): string {
 export function fieldStatusTone(status: CaseStatus): FieldTone {
   switch (status) {
     case 'RDV_SET':
+    case 'DIAGNOSIS_STEP':
     case 'ASSIGNED_TO_TECH':
     case 'ASSIGNED_TO_STT':
+    case 'REOPENED':
       return 'info';
     case 'NOT_REACHABLE':
+    case 'RETURNED_TO_STT':
     case 'REJECTED_BY_ZM':
       return 'warning';
+    case 'ESCALATED':
+    case 'ABANDONED':
+      return 'danger';
     case 'WORK_DONE':
+    case 'RESOLUTION_SUBMITTED':
     case 'VALIDATED_BY_ZM':
     case 'CLOSED':
       return 'success';
-    case 'ABANDONED':
-      return 'danger';
     default:
       return 'neutral';
   }
@@ -147,6 +170,10 @@ export function fieldRdvLabel(item: CaseResponse): string {
 }
 
 export function fieldWorkLabel(item: CaseResponse): string {
+  if (item.type === 'PLAINTE' && item.resolution?.resolutionType?.trim()) {
+    return item.resolution.resolutionType.trim();
+  }
+
   const work = extractWork(item);
   return work.repTravauxStt?.trim() || 'Not finished';
 }

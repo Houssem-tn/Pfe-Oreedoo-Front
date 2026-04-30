@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, NgZone, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   ButtonDirective,
   CardBodyComponent,
@@ -52,6 +53,7 @@ import { ActivationAnalyticsViewComponent } from './activation-analytics-view.co
 })
 export class ActivationImportWorkspaceComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
   private readonly analyticsService = inject(AdminActivationAnalyticsService);
   private readonly swal = inject(SwalService);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -266,6 +268,9 @@ export class ActivationImportWorkspaceComponent implements OnInit {
             'Activation batch processed',
             this.buildProcessingSuccessMessage(response)
           );
+          if (mode !== 'ANALYTICS') {
+            await this.router.navigateByUrl('/admin/cases/activation');
+          }
         },
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to import the activation analytics batch.';

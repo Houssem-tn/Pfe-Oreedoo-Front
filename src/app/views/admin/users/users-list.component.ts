@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 
 import { AppUser } from '../../../core/users/user.model';
 import { UserService } from '../../../core/users/user.service';
+import { TUNISIA_GOVERNORATES, normalizeGovernorateList } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
 
 interface UserSummaryCard {
@@ -17,33 +18,6 @@ interface UserSummaryCard {
   icon: string;
   tone: 'primary' | 'accent' | 'success' | 'warning';
 }
-
-const TUNISIA_GOVERNORATES = [
-  'Tunis',
-  'Ariana',
-  'Ben Arous',
-  'Mannouba',
-  'Nabeul',
-  'Zaghouan',
-  'Bizerte',
-  'B\u00E9ja',
-  'Jendouba',
-  'Le Kef',
-  'Siliana',
-  'Sousse',
-  'Monastir',
-  'Mahdia',
-  'Sfax',
-  'Kairouan',
-  'Kasserine',
-  'Sidi Bouzid',
-  'Gab\u00E8s',
-  'M\u00E9denine',
-  'Tataouine',
-  'Gafsa',
-  'Tozeur',
-  'K\u00E9bili'
-] as const;
 
 @Component({
   standalone: true,
@@ -157,11 +131,14 @@ export class UsersListComponent implements OnInit {
   }
 
   async openAssignGovernoratesModal(zm: AppUser): Promise<void> {
+    const availableGovernorates = this.availableGovernoratesForZm(zm);
     const result = await this.openGovernoratePicker(
       `Assign Governorates to ${zm.fullName}`,
-      'Saving replaces the current territorial coverage for this ZM.',
+      'Only governorates not already assigned to another ZM are shown here. Leave everything unchecked if you want this ZM to stay free.',
+      availableGovernorates,
       this.governoratesFor(zm),
-      'Save governorates'
+      'Save governorates',
+      true
     );
 
     if (!result.isConfirmed || !result.value) {
@@ -175,8 +152,10 @@ export class UsersListComponent implements OnInit {
     const result = await this.openGovernoratePicker(
       `Set Coverage Areas for ${stt.fullName}`,
       'Saving replaces the current governorates this STT can support across zones.',
+      this.governorateOptions,
       this.coverageAreasFor(stt),
-      'Save coverage areas'
+      'Save coverage areas',
+      false
     );
 
     if (!result.isConfirmed || !result.value) {
@@ -521,11 +500,11 @@ export class UsersListComponent implements OnInit {
   }
 
   governoratesFor(user: AppUser): string[] {
-    return (user.assignedGovernorates ?? []).filter((governorate) => !!governorate?.trim());
+    return normalizeGovernorateList(user.assignedGovernorates ?? []);
   }
 
   coverageAreasFor(user: AppUser): string[] {
-    return (user.coveredGovernorates ?? []).filter((governorate) => !!governorate?.trim());
+    return normalizeGovernorateList(user.coveredGovernorates ?? []);
   }
 
   governorateSummary(user: AppUser): string {
@@ -632,10 +611,14 @@ export class UsersListComponent implements OnInit {
   private openGovernoratePicker(
     titleText: string,
     hint: string,
+    availableGovernorates: string[],
     currentGovernorates: string[],
-    confirmButtonText: string
+    confirmButtonText: string,
+    allowEmptySelection: boolean
   ): Promise<import('sweetalert2').SweetAlertResult<string[]>> {
-    const selectedGovernorates = new Set(currentGovernorates);
+    const selectedGovernorates = new Set(
+      currentGovernorates.filter((governorate) => availableGovernorates.includes(governorate))
+    );
 
     return Swal.fire<string[]>({
       titleText,
@@ -644,7 +627,7 @@ export class UsersListComponent implements OnInit {
         <div class="user-governorates-modal">
           <div class="user-governorates-modal__toolbar">
             <label class="user-governorates-modal__toggle">
-              <input id="sw-governorates-all" type="checkbox" ${selectedGovernorates.size === this.governorateOptions.length ? 'checked' : ''} />
+              <input id="sw-governorates-all" type="checkbox" ${availableGovernorates.length > 0 && selectedGovernorates.size === availableGovernorates.length ? 'checked' : ''} />
               <span>Select all governorates</span>
             </label>
             <div class="user-governorates-modal__hint">
@@ -653,7 +636,7 @@ export class UsersListComponent implements OnInit {
           </div>
 
           <div class="user-governorates-modal__grid">
-            ${this.governorateOptions.map((governorate) => `
+            ${availableGovernorates.map((governorate) => `
               <label class="user-governorates-modal__option">
                 <input
                   type="checkbox"
@@ -715,7 +698,7 @@ export class UsersListComponent implements OnInit {
           popup.querySelectorAll<HTMLInputElement>('input[name="sw-governorate"]:checked')
         ).map((checkbox) => checkbox.value);
 
-        if (selected.length === 0) {
+        if (!allowEmptySelection && selected.length === 0) {
           Swal.showValidationMessage('Select at least one governorate');
           return undefined;
         }
@@ -723,5 +706,18 @@ export class UsersListComponent implements OnInit {
         return selected;
       }
     });
+  }
+
+  private availableGovernoratesForZm(zm: AppUser): string[] {
+    const currentGovernorates = new Set(this.governoratesFor(zm));
+    const assignedToOtherZms = new Set(
+      this.users
+        .filter((user) => user.role === 'ROLE_ZM' && user.id !== zm.id)
+        .flatMap((user) => this.governoratesFor(user))
+    );
+
+    return this.governorateOptions.filter(
+      (governorate) => currentGovernorates.has(governorate) || !assignedToOtherZms.has(governorate)
+    );
   }
 }

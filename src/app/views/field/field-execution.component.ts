@@ -5,9 +5,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { finalize, firstValueFrom } from 'rxjs';
 
+import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
 import {
+  CaseDiagnosis,
   CaseResponse,
+  ComplaintCategory,
+  ComplaintDiagnosisRequest,
   CompleteWorkRequest,
   SetRdvRequest
 } from '../../core/cases/models/case.model';
@@ -25,8 +29,9 @@ import {
   fieldStatusClass,
   fieldStatusLabel
 } from './field-case-utils';
+import { OcrService } from '../../core/ocr/ocr.service';
 
-type FieldExecutionStep = 'rdv' | 'work' | 'metrics' | 'completion';
+type FieldExecutionStep = 'rdv' | 'diagnosis' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
 
 interface FieldExecutionStepItem {
@@ -56,6 +61,15 @@ interface FieldWorkForm {
   rsrp: string;
   rsrq: string;
   sinr: string;
+}
+
+interface FieldDiagnosisForm {
+  complaintCategory: ComplaintCategory;
+  rootCause: string;
+  diagnosisComment: string;
+  requiresFieldWork: boolean;
+  requiresTechIntervention: boolean;
+  requiresEscalation: boolean;
 }
 
 interface FieldGeoSnapshot {
@@ -154,10 +168,70 @@ interface FieldGeoSnapshot {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'work'">Next</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : 'work'">Next</button>
             <button class="field-button field-button--primary" type="submit" [disabled]="actionBusy">
               <svg cIcon name="cilSave"></svg>
               Save RDV
+            </button>
+          </div>
+        </form>
+
+        <form class="field-card field-form-grid" *ngIf="activeStep === 'diagnosis' && showDiagnosisStep" (ngSubmit)="saveDiagnosis()">
+          <div class="field-section-title">
+            <h2>Diagnosis step</h2>
+            <span>Decision</span>
+          </div>
+
+          <label class="field-label">
+            Complaint category
+            <select class="field-input" name="complaintCategory" [(ngModel)]="diagnosisForm.complaintCategory" [disabled]="!canEditDiagnosis">
+              <option *ngFor="let option of complaintCategoryOptions" [ngValue]="option.value">{{ option.label }}</option>
+            </select>
+          </label>
+
+          <label class="field-label">
+            Root cause
+            <input class="field-input" type="text" name="rootCause" [(ngModel)]="diagnosisForm.rootCause" [disabled]="!canEditDiagnosis" />
+          </label>
+
+          <label class="field-label">
+            Diagnosis comment
+            <textarea class="field-textarea" name="diagnosisComment" [(ngModel)]="diagnosisForm.diagnosisComment" [disabled]="!canEditDiagnosis"></textarea>
+          </label>
+
+          <div class="field-toggle-row">
+            <button type="button" class="field-toggle" [class.field-toggle--active]="diagnosisForm.requiresFieldWork" (click)="canEditDiagnosis ? diagnosisForm.requiresFieldWork = true : null">
+              Field work
+            </button>
+            <button type="button" class="field-toggle" [class.field-toggle--active]="!diagnosisForm.requiresFieldWork" (click)="canEditDiagnosis ? diagnosisForm.requiresFieldWork = false : null">
+              No field work
+            </button>
+          </div>
+
+          <div class="field-toggle-row">
+            <button type="button" class="field-toggle" [class.field-toggle--active]="diagnosisForm.requiresTechIntervention" (click)="canEditDiagnosis ? diagnosisForm.requiresTechIntervention = true : null">
+              Assign TECH
+            </button>
+            <button type="button" class="field-toggle" [class.field-toggle--active]="!diagnosisForm.requiresTechIntervention" (click)="canEditDiagnosis ? diagnosisForm.requiresTechIntervention = false : null">
+              STT handles
+            </button>
+          </div>
+
+          <div class="field-toggle-row">
+            <button type="button" class="field-toggle" [class.field-toggle--active]="diagnosisForm.requiresEscalation" (click)="canEditDiagnosis ? diagnosisForm.requiresEscalation = true : null">
+              Escalate
+            </button>
+            <button type="button" class="field-toggle" [class.field-toggle--active]="!diagnosisForm.requiresEscalation" (click)="canEditDiagnosis ? diagnosisForm.requiresEscalation = false : null">
+              No escalation
+            </button>
+          </div>
+
+          <div class="field-button-row">
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'rdv'">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'work'">Next</button>
+            <button *ngIf="canEditDiagnosis" class="field-button field-button--primary" type="submit" [disabled]="actionBusy">
+              <svg cIcon name="cilSave"></svg>
+              Save diagnosis
             </button>
           </div>
         </form>
@@ -184,7 +258,7 @@ interface FieldGeoSnapshot {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'rdv'">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : 'rdv'">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = 'metrics'">Next</button>
           </div>
         </section>
@@ -204,29 +278,79 @@ interface FieldGeoSnapshot {
               PV count
               <input class="field-input" type="number" step="1" name="nombrePv" [(ngModel)]="workForm.nombrePv" />
             </label>
+          </div>
+
+          <div class="field-section-title" style="margin-top: 1rem">
+            <span>Speedtest Extraction</span>
+          </div>
+
+          <!-- Fast OCR implementation for Speedtest -->
+          <div class="field-form-grid">
+            <button class="field-button field-button--ghost" type="button" (click)="speedtestOcrInput.click()" [disabled]="ocrSpeedtestBusy">
+              <svg cIcon name="cilPaperclip"></svg>
+              {{ ocrSpeedtestBusy ? 'Extracting...' : 'Attach speedtest screenshot' }}
+            </button>
+            <input #speedtestOcrInput type="file" accept="image/*" hidden (change)="onSpeedtestOcrUpload(speedtestOcrInput)" />
+          </div>
+
+          <div class="field-toggle-row">
+            <button type="button" class="field-toggle" [class.field-toggle--active]="speedtestValidated" (click)="speedtestValidated = true">
+              <svg cIcon name="cilCheck"></svg> Validated
+            </button>
+            <button type="button" class="field-toggle" [class.field-toggle--active]="!speedtestValidated" (click)="speedtestValidated = false">
+              <svg cIcon name="cilX"></svg> Modify
+            </button>
+          </div>
+
+          <div class="field-form-grid field-form-grid--two">
             <label class="field-label">
               DL
-              <input class="field-input" type="number" step="0.01" name="debitDl" [(ngModel)]="workForm.debitDl" />
+              <input class="field-input" type="number" step="0.01" name="debitDl" [(ngModel)]="workForm.debitDl" [disabled]="speedtestValidated" />
             </label>
             <label class="field-label">
               UL
-              <input class="field-input" type="number" step="0.01" name="debitUl" [(ngModel)]="workForm.debitUl" />
-            </label>
-            <label class="field-label">
-              RSRP
-              <input class="field-input" type="number" step="1" name="rsrp" [(ngModel)]="workForm.rsrp" />
-            </label>
-            <label class="field-label">
-              RSRQ
-              <input class="field-input" type="number" step="1" name="rsrq" [(ngModel)]="workForm.rsrq" />
-            </label>
-            <label class="field-label">
-              SINR
-              <input class="field-input" type="number" step="1" name="sinr" [(ngModel)]="workForm.sinr" />
+              <input class="field-input" type="number" step="0.01" name="debitUl" [(ngModel)]="workForm.debitUl" [disabled]="speedtestValidated" />
             </label>
           </div>
 
-          <div class="field-button-row">
+          <div class="field-section-title" style="margin-top: 1rem">
+            <span>Router Signal Extraction</span>
+          </div>
+
+          <!-- Fast OCR implementation for Signal -->
+          <div class="field-form-grid">
+            <button class="field-button field-button--ghost" type="button" (click)="signalOcrInput.click()" [disabled]="ocrSignalBusy">
+              <svg cIcon name="cilPaperclip"></svg>
+              {{ ocrSignalBusy ? 'Extracting...' : 'Attach router signal screenshot' }}
+            </button>
+            <input #signalOcrInput type="file" accept="image/*" hidden (change)="onSignalOcrUpload(signalOcrInput)" />
+          </div>
+
+          <div class="field-toggle-row">
+            <button type="button" class="field-toggle" [class.field-toggle--active]="signalValidated" (click)="signalValidated = true">
+              <svg cIcon name="cilCheck"></svg> Validated
+            </button>
+            <button type="button" class="field-toggle" [class.field-toggle--active]="!signalValidated" (click)="signalValidated = false">
+              <svg cIcon name="cilX"></svg> Modify
+            </button>
+          </div>
+
+          <div class="field-form-grid field-form-grid--two">
+            <label class="field-label">
+              RSRP
+              <input class="field-input" type="number" step="0.01" name="rsrp" [(ngModel)]="workForm.rsrp" [disabled]="signalValidated" />
+            </label>
+            <label class="field-label">
+              RSRQ
+              <input class="field-input" type="number" step="0.01" name="rsrq" [(ngModel)]="workForm.rsrq" [disabled]="signalValidated" />
+            </label>
+            <label class="field-label" style="grid-column: 1 / -1">
+              SINR
+              <input class="field-input" type="number" step="0.01" name="sinr" [(ngModel)]="workForm.sinr" [disabled]="signalValidated" />
+            </label>
+          </div>
+
+          <div class="field-button-row" style="margin-top: 1.5rem">
             <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'work'">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = 'completion'">Next</button>
           </div>
@@ -281,18 +405,13 @@ interface FieldGeoSnapshot {
   `
 })
 export class FieldExecutionComponent implements OnInit {
+  private readonly authStore = inject(AuthStore);
   private readonly casesService = inject(CasesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
-
-  readonly steps: FieldExecutionStepItem[] = [
-    { key: 'rdv', label: 'RDV', icon: 'cilCalendar' },
-    { key: 'work', label: 'Work', icon: 'cilTask' },
-    { key: 'metrics', label: 'Metrics', icon: 'cilChart' },
-    { key: 'completion', label: 'Finish', icon: 'cilCheckCircle' }
-  ];
+  private readonly ocrService = inject(OcrService);
 
   loading = false;
   actionBusy = false;
@@ -303,9 +422,50 @@ export class FieldExecutionComponent implements OnInit {
   caseItem: CaseResponse | null = null;
   proofFile: File | null = null;
   proofPreviewUrl: string | null = null;
+  ocrSignalBusy = false;
+  ocrSpeedtestBusy = false;
+  speedtestValidated = true;
+  signalValidated = true;
+  readonly complaintCategoryOptions: Array<{ value: ComplaintCategory; label: string }> = [
+    { value: 'NETWORK_COVERAGE', label: 'Network coverage' },
+    { value: 'SERVICE_QUALITY', label: 'Service quality' },
+    { value: 'INSTALLATION', label: 'Installation' },
+    { value: 'EQUIPMENT', label: 'Equipment' },
+    { value: 'BILLING', label: 'Billing' },
+    { value: 'ACTIVATION_FOLLOW_UP', label: 'Activation follow-up' },
+    { value: 'CUSTOMER_EDUCATION', label: 'Customer education' },
+    { value: 'OTHER', label: 'Other' }
+  ];
 
   rdvForm: FieldRdvForm = this.emptyRdvForm();
+  diagnosisForm: FieldDiagnosisForm = this.emptyDiagnosisForm();
   workForm: FieldWorkForm = this.emptyWorkForm();
+
+  get steps(): FieldExecutionStepItem[] {
+    const steps: FieldExecutionStepItem[] = [
+      { key: 'rdv', label: 'RDV', icon: 'cilCalendar' }
+    ];
+
+    if (this.showDiagnosisStep) {
+      steps.push({ key: 'diagnosis', label: 'Diagnosis', icon: 'cilNotes' });
+    }
+
+    steps.push(
+      { key: 'work', label: 'Work', icon: 'cilTask' },
+      { key: 'metrics', label: 'Metrics', icon: 'cilChart' },
+      { key: 'completion', label: 'Finish', icon: 'cilCheckCircle' }
+    );
+
+    return steps;
+  }
+
+  get showDiagnosisStep(): boolean {
+    return this.caseItem?.type === 'PLAINTE';
+  }
+
+  get canEditDiagnosis(): boolean {
+    return this.showDiagnosisStep && this.authStore.role() === 'ROLE_STT';
+  }
 
   ngOnInit(): void {
     this.activeStep = this.stepFromQuery();
@@ -358,12 +518,52 @@ export class FieldExecutionComponent implements OnInit {
         next: (updated) => {
           this.caseItem = updated;
           this.rdvForm = this.createRdvForm(updated);
+          this.diagnosisForm = this.createDiagnosisForm(updated);
           this.showBanner('RDV saved.', 'success');
-          this.activeStep = 'work';
+          this.activeStep = updated.type === 'PLAINTE' ? 'diagnosis' : 'work';
         },
         error: (err) => {
           console.error('Failed to save field RDV', err);
           this.showBanner(err?.error?.message ?? 'Unable to save RDV.', 'danger');
+        }
+      });
+  }
+
+  saveDiagnosis(): void {
+    const target = this.caseItem;
+    if (!target || target.type !== 'PLAINTE') {
+      return;
+    }
+
+    const payload = this.buildDiagnosisPayload();
+    if (!payload) {
+      return;
+    }
+
+    this.actionBusy = true;
+    this.showBanner('Saving diagnosis...', 'info');
+
+    this.casesService.diagnoseComplaint(target.id, payload)
+      .pipe(finalize(() => {
+        this.actionBusy = false;
+        this.render();
+      }))
+      .subscribe({
+        next: async (updated) => {
+          this.caseItem = updated;
+          this.diagnosisForm = this.createDiagnosisForm(updated);
+          this.showBanner('Diagnosis saved.', 'success');
+
+          if (updated.status === 'DIAGNOSIS_STEP') {
+            this.activeStep = 'work';
+            return;
+          }
+
+          await this.router.navigateByUrl(`${this.basePath}/tasks/${updated.id}`);
+        },
+        error: (err) => {
+          console.error('Failed to save diagnosis', err);
+          this.showBanner(err?.error?.message ?? 'Unable to save diagnosis.', 'danger');
         }
       });
   }
@@ -437,6 +637,86 @@ export class FieldExecutionComponent implements OnInit {
     }
   }
 
+  async onSignalOcrUpload(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file || this.ocrSignalBusy) {
+      return;
+    }
+
+    this.ocrSignalBusy = true;
+    this.showBanner('Extracting signal screen with OCR...', 'info');
+
+    try {
+      const responses = await firstValueFrom(this.ocrService.extract([file]));
+      const metrics = this.ocrService.parseSignalMetrics(responses);
+
+      const filled: string[] = [];
+      if (metrics.sinr != null) {
+        this.workForm.sinr = String(metrics.sinr);
+        filled.push('SINR');
+      }
+      if (metrics.rsrp != null) {
+        this.workForm.rsrp = String(metrics.rsrp);
+        filled.push('RSRP');
+      }
+      if (metrics.rsrq != null) {
+        this.workForm.rsrq = String(metrics.rsrq);
+        filled.push('RSRQ');
+      }
+
+      if (filled.length === 0) {
+        this.showBanner('OCR did not detect any signal values on this image.', 'warning');
+      } else {
+        this.showBanner(`Signal values filled: ${filled.join(', ')}.`, 'success');
+      }
+    } catch (err: any) {
+      console.error('OCR signal extraction failed', err);
+      this.showBanner(err?.error?.message ?? 'Unable to extract signal values from this image.', 'danger');
+    } finally {
+      this.ocrSignalBusy = false;
+      this.render();
+    }
+  }
+
+  async onSpeedtestOcrUpload(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (!file || this.ocrSpeedtestBusy) {
+      return;
+    }
+
+    this.ocrSpeedtestBusy = true;
+    this.showBanner('Extracting speedtest screen with OCR...', 'info');
+
+    try {
+      const responses = await firstValueFrom(this.ocrService.extract([file]));
+      const metrics = this.ocrService.parseSpeedtestMetrics(responses);
+
+      const filled: string[] = [];
+      if (metrics.debitDl != null) {
+        this.workForm.debitDl = String(metrics.debitDl);
+        filled.push('DL');
+      }
+      if (metrics.debitUl != null) {
+        this.workForm.debitUl = String(metrics.debitUl);
+        filled.push('UL');
+      }
+
+      if (filled.length === 0) {
+        this.showBanner('OCR did not detect any speedtest values on this image.', 'warning');
+      } else {
+        this.showBanner(`Speedtest values filled: ${filled.join(', ')}.`, 'success');
+      }
+    } catch (err: any) {
+      console.error('OCR speedtest extraction failed', err);
+      this.showBanner(err?.error?.message ?? 'Unable to extract speedtest values from this image.', 'danger');
+    } finally {
+      this.ocrSpeedtestBusy = false;
+      this.render();
+    }
+  }
+
   private loadCase(caseId: string): void {
     this.loading = true;
     this.error = null;
@@ -450,7 +730,11 @@ export class FieldExecutionComponent implements OnInit {
         next: (item) => {
           this.caseItem = item;
           this.rdvForm = this.createRdvForm(item);
+          this.diagnosisForm = this.createDiagnosisForm(item);
           this.workForm = this.createWorkForm(item);
+          if (item.type !== 'PLAINTE' && this.activeStep === 'diagnosis') {
+            this.activeStep = 'work';
+          }
         },
         error: (err) => {
           console.error('Failed to load field execution case', err);
@@ -485,6 +769,27 @@ export class FieldExecutionComponent implements OnInit {
       cmtRdv: this.rdvForm.cmtRdv.trim(),
       abandon: this.rdvForm.abandon,
       causeAbandon: this.rdvForm.abandon ? this.toNullable(this.rdvForm.causeAbandon) : null
+    };
+  }
+
+  private buildDiagnosisPayload(): ComplaintDiagnosisRequest | null {
+    if (!this.diagnosisForm.complaintCategory) {
+      this.showBanner('Complaint category is required.', 'danger');
+      return null;
+    }
+
+    if (this.diagnosisForm.requiresEscalation && this.diagnosisForm.requiresTechIntervention) {
+      this.showBanner('Choose either escalation or TECH intervention for the next step.', 'danger');
+      return null;
+    }
+
+    return {
+      complaintCategory: this.diagnosisForm.complaintCategory,
+      rootCause: this.toNullable(this.diagnosisForm.rootCause),
+      diagnosisComment: this.toNullable(this.diagnosisForm.diagnosisComment),
+      requiresFieldWork: this.diagnosisForm.requiresFieldWork,
+      requiresTechIntervention: this.diagnosisForm.requiresTechIntervention,
+      requiresEscalation: this.diagnosisForm.requiresEscalation
     };
   }
 
@@ -550,6 +855,19 @@ export class FieldExecutionComponent implements OnInit {
     };
   }
 
+  private createDiagnosisForm(item: CaseResponse): FieldDiagnosisForm {
+    const diagnosis = this.extractDiagnosis(item);
+
+    return {
+      complaintCategory: diagnosis.complaintCategory ?? 'OTHER',
+      rootCause: diagnosis.rootCause ?? '',
+      diagnosisComment: diagnosis.diagnosisComment ?? item.complaintDescription ?? item.complaintDetail ?? '',
+      requiresFieldWork: diagnosis.requiresFieldWork ?? false,
+      requiresTechIntervention: diagnosis.requiresTechIntervention ?? false,
+      requiresEscalation: diagnosis.requiresEscalation ?? false
+    };
+  }
+
   private emptyRdvForm(): FieldRdvForm {
     return {
       joignable: true,
@@ -559,6 +877,17 @@ export class FieldExecutionComponent implements OnInit {
       cmtRdv: '',
       abandon: false,
       causeAbandon: ''
+    };
+  }
+
+  private emptyDiagnosisForm(): FieldDiagnosisForm {
+    return {
+      complaintCategory: 'OTHER',
+      rootCause: '',
+      diagnosisComment: '',
+      requiresFieldWork: false,
+      requiresTechIntervention: false,
+      requiresEscalation: false
     };
   }
 
@@ -616,9 +945,13 @@ export class FieldExecutionComponent implements OnInit {
 
   private stepFromQuery(): FieldExecutionStep {
     const value = this.route.snapshot.queryParamMap.get('step');
-    return value === 'work' || value === 'metrics' || value === 'completion' || value === 'rdv'
+    return value === 'work' || value === 'metrics' || value === 'completion' || value === 'rdv' || value === 'diagnosis'
       ? value
       : 'rdv';
+  }
+
+  private extractDiagnosis(item: CaseResponse): CaseDiagnosis {
+    return item.diagnosis ?? {};
   }
 
   private toNullable(value: string): string | null {

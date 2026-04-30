@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 
 import { CasesService } from '../../../core/cases/cases.service';
 import { PerformanceSummaryResponse } from '../../../core/cases/models/case.model';
+import { normalizeGovernorateList } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
 import { UserService } from '../../../core/users/user.service';
 import { AppUser } from '../../../core/users/user.model';
@@ -261,8 +262,8 @@ export class MyTeamComponent implements OnInit {
   }
 
   pendingGovernoratesFor(stt: AppUser): string[] {
-    const territory = new Set((this.zmProfile()?.assignedGovernorates ?? []).filter((item) => !!item?.trim()));
-    return (stt.requestedGovernorates ?? []).filter((governorate) => territory.has(governorate));
+    const territory = new Set(normalizeGovernorateList(this.zmProfile()?.assignedGovernorates ?? []));
+    return normalizeGovernorateList(stt.requestedGovernorates ?? []).filter((governorate) => territory.has(governorate));
   }
 
   isValidatingCoverage(sttId: string): boolean {

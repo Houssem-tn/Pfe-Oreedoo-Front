@@ -23,6 +23,11 @@ export const navZm: INavData[] = [
     iconComponent: { name: 'cilFolder' }
   },
   {
+    name: 'Complaint Cases',
+    url: '/zm/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
+  {
     name: 'Inject Todos',
     url: '/zm/inject-todos',
     iconComponent: { name: 'cilCloudUpload' }

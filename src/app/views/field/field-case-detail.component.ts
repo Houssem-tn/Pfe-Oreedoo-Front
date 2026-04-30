@@ -146,6 +146,32 @@ interface FieldGeoSnapshot {
           </div>
         </section>
 
+        <section class="field-card" *ngIf="item.type === 'PLAINTE'">
+          <div class="field-section-title">
+            <h2>Diagnosis</h2>
+            <span>{{ item.diagnosis?.complaintCategory || 'Pending' }}</span>
+          </div>
+
+          <div class="field-detail-grid">
+            <div class="field-fact">
+              <span>Root cause</span>
+              <strong>{{ item.diagnosis?.rootCause || '-' }}</strong>
+            </div>
+            <div class="field-fact">
+              <span>TECH needed</span>
+              <strong>{{ item.diagnosis?.requiresTechIntervention ? 'Yes' : 'No' }}</strong>
+            </div>
+            <div class="field-fact">
+              <span>Escalation</span>
+              <strong>{{ item.diagnosis?.requiresEscalation ? 'Yes' : 'No' }}</strong>
+            </div>
+            <div class="field-fact">
+              <span>Comment</span>
+              <p>{{ item.diagnosis?.diagnosisComment || '-' }}</p>
+            </div>
+          </div>
+        </section>
+
         <section class="field-card">
           <div class="field-section-title">
             <h2>Technical data</h2>
@@ -156,6 +182,28 @@ interface FieldGeoSnapshot {
             <div class="field-fact" *ngFor="let metric of metrics(item)">
               <span>{{ metric.label }}</span>
               <strong>{{ metric.value }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="field-card" *ngIf="item.type === 'PLAINTE'">
+          <div class="field-section-title">
+            <h2>Resolution</h2>
+            <span>{{ item.resolution?.validationStatus || 'Pending' }}</span>
+          </div>
+
+          <div class="field-detail-grid">
+            <div class="field-fact">
+              <span>Resolution type</span>
+              <strong>{{ item.resolution?.resolutionType || '-' }}</strong>
+            </div>
+            <div class="field-fact">
+              <span>Submitted at</span>
+              <strong>{{ item.resolution?.submittedAt ? (item.resolution?.submittedAt | date:'short') : '-' }}</strong>
+            </div>
+            <div class="field-fact">
+              <span>Resolution comment</span>
+              <p>{{ item.resolution?.resolutionComment || '-' }}</p>
             </div>
           </div>
         </section>

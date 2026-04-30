@@ -15,9 +15,9 @@
                 <span class="hero-card__brand">ooredoo</span>
                 <span class="hero-card__brandcopy">Multi-context import</span>
               </div>
-              <h2 class="hero-card__title">Import TODO files and activation files without mixing their analysis flows</h2>
+              <h2 class="hero-card__title">Import TODO, Activation, and Plainte files without mixing their workflows</h2>
               <p class="hero-card__description">
-                The admin now chooses the import context first. TODO files continue through the existing TODO study pipeline and archived TODOS analysis, while activation files go through the dedicated activation analytics dataset and the new Act analysis workspace.
+                The admin now chooses the import context first. TODO files continue through the existing TODO study pipeline, activation CSV files stay in the activation analytics and activation cases flow, and plainte CSV files go straight into the complaint workflow.
               </p>
             </div>
 
@@ -33,6 +33,10 @@
               <span class="dashboard-chip">
                 <svg cIcon name="cilBolt"></svg>
                 Activation analytics isolated
+              </span>
+              <span class="dashboard-chip">
+                <svg cIcon name="cilWarning"></svg>
+                Complaint workflow isolated
               </span>
               <span class="dashboard-chip dashboard-chip--accent">
                 <svg cIcon name="cilChartLine"></svg>
@@ -52,7 +56,7 @@
           <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
             <div>
               <div class="dashboard-panel__eyebrow">File type selection</div>
-              <div class="dashboard-panel__title">Choose how the uploaded file should be treated</div>
+              <div class="dashboard-panel__title">Choose the exact workflow the uploaded file belongs to</div>
             </div>
 
             <div class="d-flex flex-wrap gap-2">
@@ -65,7 +69,7 @@
                 (click)="selectImportType('todos')"
               >
                 <svg cIcon name="cilDescription" class="me-2"></svg>
-                Todos
+                Import TODO Files
               </button>
 
               <button
@@ -77,13 +81,25 @@
                 (click)="selectImportType('activation')"
               >
                 <svg cIcon name="cilBolt" class="me-2"></svg>
-                Activation
+                Import Activation CSV
+              </button>
+
+              <button
+                cButton
+                type="button"
+                [color]="isSelected('complaint') ? 'primary' : 'secondary'"
+                [variant]="isSelected('complaint') ? undefined : 'outline'"
+                class="dashboard-action-button"
+                (click)="selectImportType('complaint')"
+              >
+                <svg cIcon name="cilWarning" class="me-2"></svg>
+                Import Plainte CSV
               </button>
             </div>
           </div>
 
           <div class="small text-body-secondary mt-3">
-            `Todos` uses the legacy TODO study pipeline and can still be saved into `TODOS analysis`. `Activation` uses the new dedicated activation analytics collection and is reviewed in `Act analysis`.
+            `Todos` uses the legacy TODO study pipeline. `Activation` uses only the activation analytics import endpoint and activation case flow. `Plaintes` uses only the complaint import endpoint and complaint case flow.
           </div>
         </c-card-body>
       </c-card>
@@ -92,4 +108,5 @@
 
   <app-todo-import-workspace *ngIf="selectedImportType === 'todos'" />
   <app-activation-import-workspace *ngIf="selectedImportType === 'activation'" />
+  <app-complaint-import-workspace *ngIf="selectedImportType === 'complaint'" />
 </div>

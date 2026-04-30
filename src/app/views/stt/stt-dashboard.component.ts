@@ -8,38 +8,12 @@ import Swal from 'sweetalert2';
 import { CasesService } from '../../core/cases/cases.service';
 import { CaseResponse, PerformanceSummaryResponse } from '../../core/cases/models/case.model';
 import { TechInvitation, TechInvitationService } from '../../core/invitations/tech-invitation.service';
+import { TUNISIA_GOVERNORATES } from '../../core/shared/tunisia-governorates';
 import { SttTechnicianApiService } from '../../core/stt/stt-technician-api.service';
 import { TechnicianListItem } from '../../core/stt/models/technician-list-item.model';
 import { SwalService } from '../../core/ui/swal.service';
 import { AppUser } from '../../core/users/user.model';
 import { UserService } from '../../core/users/user.service';
-
-const TUNISIA_GOVERNORATES = [
-  'Tunis',
-  'Ariana',
-  'Ben Arous',
-  'Mannouba',
-  'Nabeul',
-  'Zaghouan',
-  'Bizerte',
-  'B\u00E9ja',
-  'Jendouba',
-  'Le Kef',
-  'Siliana',
-  'Sousse',
-  'Monastir',
-  'Mahdia',
-  'Sfax',
-  'Kairouan',
-  'Kasserine',
-  'Sidi Bouzid',
-  'Gab\u00E8s',
-  'M\u00E9denine',
-  'Tataouine',
-  'Gafsa',
-  'Tozeur',
-  'K\u00E9bili'
-] as const;
 
 type DashboardStat = {
   label: string;
