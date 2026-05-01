@@ -1,0 +1,350 @@
+// ─── Sticky Header ────────────────────────────────────────────────────────────
+
+.cd-sticky-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+  border-bottom: 1px solid var(--cui-border-color);
+  background: var(--cui-body-bg);
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--cui-primary);
+  }
+
+  &__title {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+  }
+}
+
+.cd-type-pill {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--cui-primary-bg-subtle);
+  color: var(--cui-primary-text-emphasis);
+  border: 1px solid var(--cui-primary-border-subtle);
+  vertical-align: middle;
+}
+
+.cd-status-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+// ─── Body ─────────────────────────────────────────────────────────────────────
+
+.cd-body {
+  padding: 0 !important;
+}
+
+// ─── Section ─────────────────────────────────────────────────────────────────
+
+.cd-section {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--cui-border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 576px) {
+    padding: 0.85rem 1rem;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--cui-secondary-color);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--cui-border-color);
+  }
+
+  &__icon {
+    width: 0.9rem;
+    height: 0.9rem;
+    color: var(--cui-primary);
+    flex-shrink: 0;
+  }
+}
+
+// ─── Grid (dl label / value) ─────────────────────────────────────────────────
+
+.cd-grid {
+  display: grid;
+  grid-template-columns: minmax(130px, 200px) 1fr;
+  column-gap: 1rem;
+  row-gap: 0.45rem;
+  margin: 0;
+
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+    row-gap: 0.2rem;
+  }
+
+  dt {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cui-secondary-color);
+    align-self: start;
+    padding-top: 0.1rem;
+
+    @media (max-width: 576px) {
+      font-size: 0.72rem;
+      margin-top: 0.5rem;
+      padding-top: 0;
+    }
+  }
+
+  dd {
+    font-size: 0.875rem;
+    color: var(--cui-body-color);
+    margin: 0;
+    word-break: break-word;
+
+    &:empty::before,
+    &.cd-empty::before {
+      content: '—';
+      color: var(--cui-secondary-color);
+      font-style: italic;
+    }
+  }
+}
+
+.cd-multiline {
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.cd-value--yes {
+  color: var(--cui-success-text-emphasis) !important;
+  font-weight: 600;
+}
+
+.cd-value--no {
+  color: var(--cui-danger-text-emphasis) !important;
+}
+
+// ─── GPS link ─────────────────────────────────────────────────────────────────
+
+.cd-gps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--cui-info);
+  text-decoration: none;
+  font-size: 0.875rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    flex-shrink: 0;
+  }
+}
+
+// ─── Metrics Grid ─────────────────────────────────────────────────────────────
+
+.cd-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.cd-metric {
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem 0.75rem;
+  background: var(--cui-secondary-bg-subtle);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 0.6rem;
+
+  &__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--cui-secondary-color);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cui-body-color);
+    line-height: 1.2;
+  }
+}
+
+// ─── Timeline ─────────────────────────────────────────────────────────────────
+
+.cd-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cd-timeline__item {
+  display: flex;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  position: relative;
+
+  &:not(.cd-timeline__item--last)::before {
+    content: '';
+    position: absolute;
+    left: 0.875rem;
+    top: 1.75rem;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--cui-border-color);
+    transform: translateX(-50%);
+  }
+
+  &--last {
+    padding-bottom: 0;
+  }
+}
+
+.cd-timeline__marker {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--cui-primary-bg-subtle);
+  border: 1.5px solid var(--cui-primary-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cui-primary-text-emphasis);
+  z-index: 1;
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}
+
+.cd-timeline__content {
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.cd-timeline__title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--cui-body-color);
+  line-height: 1.3;
+}
+
+.cd-timeline__time {
+  font-size: 0.72rem;
+  color: var(--cui-secondary-color);
+  margin-top: 0.15rem;
+}
+
+.cd-timeline__actor {
+  font-size: 0.78rem;
+  color: var(--cui-secondary-color);
+  margin-top: 0.15rem;
+}
+
+.cd-timeline__details {
+  font-size: 0.8rem;
+  color: var(--cui-body-color);
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+.cd-timeline__transition {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+
+  svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    color: var(--cui-secondary-color);
+  }
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+
+.cd-footer {
+  border-top: 1px solid var(--cui-border-color);
+}
+
+// ─── Ooredoo Brand Buttons ────────────────────────────────────────────────────
+
+::ng-deep .btn-close:hover {
+  background-color: rgba(227, 6, 19, 0.1) !important;
+  border-radius: 0.25rem;
+  opacity: 1 !important;
+}
+
+// Download PDF button (color="info" variant="outline" → .btn-outline-info)
+::ng-deep .btn.btn-outline-info {
+  color: #e30613 !important;
+  border-color: #e30613 !important;
+
+  &:hover:not(:disabled) {
+    background-color: #e30613 !important;
+    border-color: #e30613 !important;
+    color: #fff !important;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 0.25rem rgba(227, 6, 19, 0.35) !important;
+  }
+}
+
+// Close button (color="secondary" variant="ghost" → .btn-ghost-secondary)
+::ng-deep .btn.btn-ghost-secondary {
+  color: #e30613 !important;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(227, 6, 19, 0.08) !important;
+    color: #e30613 !important;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 0.25rem rgba(227, 6, 19, 0.25) !important;
+  }
+}

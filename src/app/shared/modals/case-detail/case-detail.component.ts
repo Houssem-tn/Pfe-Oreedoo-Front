@@ -1,0 +1,146 @@
+import { CommonModule, DatePipe } from '@angular/common';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  BadgeComponent,
+  ButtonCloseDirective,
+  ButtonDirective,
+  ModalBodyComponent,
+  ModalComponent,
+  ModalFooterComponent,
+  ModalHeaderComponent,
+  ModalTitleDirective
+} from '@coreui/angular';
+import { IconDirective } from '@coreui/icons-angular';
+
+import {
+  CASE_STATUS_UI,
+  CaseResponse,
+  CaseStatus,
+  CaseTimelineEvent
+} from '../../../core/cases/models/case.model';
+
+@Component({
+  selector: 'app-case-detail',
+  standalone: true,
+  imports: [
+    CommonModule,
+    DatePipe,
+    ModalComponent,
+    ModalHeaderComponent,
+    ModalTitleDirective,
+    ButtonCloseDirective,
+    ModalBodyComponent,
+    ModalFooterComponent,
+    ButtonDirective,
+    BadgeComponent,
+    IconDirective
+  ],
+  templateUrl: './case-detail.component.html',
+  styleUrl: './case-detail.component.scss'
+})
+export class CaseDetailComponent {
+  @Input() visible = false;
+  @Input() caseData: CaseResponse | null = null;
+
+  @Output() visibleChange = new EventEmitter<boolean>();
+  @Output() close = new EventEmitter<void>();
+  @Output() download = new EventEmitter<CaseResponse>();
+
+  onClose(): void {
+    this.close.emit();
+    this.visibleChange.emit(false);
+  }
+
+  handleVisibleChange(v: boolean): void {
+    if (!v) {
+      this.close.emit();
+    }
+    this.visibleChange.emit(v);
+  }
+
+  onDownload(): void {
+    if (this.caseData) {
+      this.download.emit(this.caseData);
+    }
+  }
+
+  statusBadgeClass(status?: CaseStatus | null): string {
+    if (!status) return 'bg-secondary-subtle text-secondary-emphasis';
+    return CASE_STATUS_UI[status]?.badgeClass ?? 'bg-secondary-subtle text-secondary-emphasis';
+  }
+
+  statusLabel(status?: CaseStatus | null): string {
+    if (!status) return '-';
+    return CASE_STATUS_UI[status]?.label ?? status;
+  }
+
+  val(value: string | null | undefined): string {
+    const s = (value ?? '').trim();
+    return s || '—';
+  }
+
+  numVal(value: number | null | undefined): string {
+    if (value == null) return '—';
+    return String(value);
+  }
+
+  boolVal(value: boolean | null | undefined): string {
+    if (value == null) return '—';
+    return value ? 'Yes' : 'No';
+  }
+
+  dateVal(value: string | null | undefined): string {
+    if (!value) return '—';
+    try {
+      return new Date(value).toLocaleString('fr-TN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return value;
+    }
+  }
+
+  humanizeStatus(value?: string | null): string {
+    if (!value?.trim()) return '—';
+    return value.trim().toLowerCase().split('_')
+      .map(p => p ? p[0].toUpperCase() + p.slice(1) : '')
+      .join(' ');
+  }
+
+  get hasLocation(): boolean {
+    const c = this.caseData;
+    return !!(c?.latitude || c?.longitude);
+  }
+
+  get hasMetrics(): boolean {
+    const m = this.caseData?.metrics;
+    return !!(m?.metrageCable != null || m?.nombrePv != null ||
+              m?.debitDl != null || m?.debitUl != null ||
+              m?.rsrp != null || m?.rsrq != null || m?.sinr != null);
+  }
+
+  get sortedTimeline(): CaseTimelineEvent[] {
+    if (!this.caseData?.timeline?.length) return [];
+    return [...this.caseData.timeline].sort((a, b) => {
+      return new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime();
+    });
+  }
+
+  timelineIconName(eventType: string): string {
+    const t = eventType?.toLowerCase() ?? '';
+    if (t.includes('assign')) return 'cilUserFollow';
+    if (t.includes('rdv') || t.includes('appointment')) return 'cilCalendar';
+    if (t.includes('work') || t.includes('complet')) return 'cilTask';
+    if (t.includes('validat') || t.includes('approv')) return 'cilCheckCircle';
+    if (t.includes('reject') || t.includes('abandon')) return 'cilBan';
+    if (t.includes('create')) return 'cilFile';
+    if (t.includes('close')) return 'cilLockLocked';
+    if (t.includes('escalat')) return 'cilWarning';
+    if (t.includes('reopen')) return 'cilReload';
+    return 'cilHistory';
+  }
+}

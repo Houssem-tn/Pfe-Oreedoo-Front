@@ -552,3 +552,24 @@
     </section>
   </ng-container>
 </div>
+
+<app-case-detail
+  [visible]="caseDetailVisible"
+  (visibleChange)="caseDetailVisible = $event"
+  [caseData]="caseDetailData"
+  (close)="onCaseDetailClose()"
+  (download)="onCaseDetailDownload($event)"
+></app-case-detail>
+
+<app-assign-user-modal
+  [visible]="assignModalVisible"
+  (visibleChange)="assignModalVisible = $event"
+  [title]="assignModalTitle"
+  [description]="assignModalDescription"
+  [users]="assignModalUsers"
+  [currentUserId]="assignModalCurrentId"
+  [confirmText]="assignModalConfirmText"
+  [loading]="assignModalLoading"
+  (save)="onAssignSave($event)"
+  (cancel)="onAssignCancel()"
+></app-assign-user-modal>

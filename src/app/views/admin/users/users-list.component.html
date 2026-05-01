@@ -398,3 +398,16 @@
     </section>
   </ng-container>
 </div>
+
+<app-governorate-selector
+  [visible]="govSelectorVisible"
+  (visibleChange)="govSelectorVisible = $event"
+  [title]="govSelectorTitle"
+  [description]="govSelectorDescription"
+  [confirmText]="govSelectorConfirmText"
+  [governorateOptions]="govSelectorOptions"
+  [selected]="govSelectorSelected"
+  [allowEmpty]="govSelectorAllowEmpty"
+  (save)="onGovSave($event)"
+  (cancel)="onGovCancel()"
+></app-governorate-selector>

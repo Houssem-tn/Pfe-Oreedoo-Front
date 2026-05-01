@@ -1,0 +1,302 @@
+// ─── Modal Header ────────────────────────────────────────────────────────────
+
+.gov-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.gov-modal-header__main {
+  min-width: 0;
+}
+
+.gov-modal-header__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.gov-modal-header__desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color);
+  line-height: 1.4;
+}
+
+.gov-counter {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--cui-secondary-color);
+  background: var(--cui-secondary-bg-subtle);
+  border: 1px solid var(--cui-border-color);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  white-space: nowrap;
+
+  strong {
+    color: var(--cui-primary);
+    font-weight: 700;
+  }
+}
+
+// ─── Toolbar ─────────────────────────────────────────────────────────────────
+
+.gov-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.gov-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+
+  &__icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--cui-secondary-color);
+    pointer-events: none;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 0.5rem 2rem 0.5rem 2.25rem;
+    border: 1.5px solid var(--cui-border-color);
+    border-radius: 0.6rem;
+    background: var(--cui-body-bg);
+    color: var(--cui-body-color);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+
+    &:focus {
+      border-color: var(--cui-primary);
+      box-shadow: 0 0 0 3px rgba(var(--cui-primary-rgb), 0.12);
+    }
+
+    &::placeholder {
+      color: var(--cui-secondary-color);
+    }
+  }
+
+  &__clear {
+    position: absolute;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: none;
+    background: transparent;
+    color: var(--cui-secondary-color);
+    cursor: pointer;
+    border-radius: 50%;
+    padding: 0;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: var(--cui-secondary-bg-subtle);
+      color: var(--cui-body-color);
+    }
+
+    svg {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
+  }
+}
+
+.gov-bulk-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.gov-bulk-btn {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1.5px solid #e30613;
+  background: #e30613;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.88;
+  }
+
+  &--ghost {
+    background: transparent;
+    color: #e30613;
+  }
+}
+
+// ─── Region Headers ───────────────────────────────────────────────────────────
+
+.gov-region-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cui-secondary-color);
+  margin: 1rem 0 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--cui-border-color);
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+// ─── Chip Grid ────────────────────────────────────────────────────────────────
+
+.gov-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+
+  &--grouped {
+    margin-bottom: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ─── Individual Chip ──────────────────────────────────────────────────────────
+
+.gov-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid var(--cui-border-color);
+  border-radius: 0.65rem;
+  background: var(--cui-body-bg);
+  color: var(--cui-body-color);
+  font-size: 0.84rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  line-height: 1.2;
+  width: 100%;
+
+  &:hover:not(.gov-chip--selected) {
+    border-color: var(--cui-primary);
+    background: var(--cui-primary-bg-subtle);
+    color: var(--cui-primary-text-emphasis);
+  }
+
+  &--selected {
+    border-color: var(--cui-primary);
+    background: var(--cui-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(var(--cui-primary-rgb), 0.28);
+
+    .gov-chip__check {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  &__check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+
+    svg {
+      width: 0.75rem;
+      height: 0.75rem;
+    }
+  }
+
+  &__label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+.gov-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: var(--cui-secondary-color);
+  text-align: center;
+
+  &__icon {
+    width: 2rem;
+    height: 2rem;
+    opacity: 0.4;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+}
+
+// ─── Ooredoo Brand Buttons ────────────────────────────────────────────────────
+
+::ng-deep .btn.btn-primary {
+  background-color: #e30613 !important;
+  border-color: #e30613 !important;
+  color: #fff !important;
+
+  &:hover:not(:disabled) {
+    background-color: #c0050f !important;
+    border-color: #c0050f !important;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 0.25rem rgba(227, 6, 19, 0.35) !important;
+  }
+
+  &:disabled {
+    background-color: #e30613 !important;
+    border-color: #e30613 !important;
+    opacity: 0.6;
+  }
+}
+
+::ng-deep .btn-close:hover {
+  background-color: rgba(227, 6, 19, 0.1) !important;
+  border-radius: 0.25rem;
+  opacity: 1 !important;
+}

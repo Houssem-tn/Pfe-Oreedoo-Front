@@ -5,6 +5,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
+import { CaseDetailComponent } from '../../shared/modals/case-detail/case-detail.component';
+import { AssignUserModalComponent } from '../../shared/modals/assign-user-modal/assign-user-modal.component';
 import { AuthStore } from '../../core/auth/auth.store';
 import { Role } from '../../core/auth/models/roles.type';
 import { SwalService } from '../../core/ui/swal.service';
@@ -58,7 +60,7 @@ type PerfCard = {
 @Component({
   selector: 'app-activation-cases-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective, CaseDetailComponent, AssignUserModalComponent],
   templateUrl: './activation-cases-list.component.html',
   styleUrl: './activation-cases-list.component.scss'
 })
@@ -82,6 +84,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   performanceLoading = false;
   actionLoadingCaseId: string | null = null;
   error: string | null = null;
+
+  // Case detail modal state
+  caseDetailVisible = false;
+  caseDetailData: CaseResponse | null = null;
+
+  // Assign user modal state
+  assignModalVisible = false;
+  assignModalTitle = '';
+  assignModalDescription = '';
+  assignModalUsers: AssignableUser[] = [];
+  assignModalCurrentId: string | null = null;
+  assignModalConfirmText = 'Assign';
+  assignModalLoading = false;
+  private assignModalMode: 'stt' | 'tech' = 'stt';
+  private assignModalPendingCase: CaseResponse | null = null;
 
   myPerformance: PerformanceSummaryResponse | null = null;
   teamTechPerformance: PerformanceSummaryResponse[] = [];
@@ -882,85 +899,73 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   trackById = (_index: number, item: CaseResponse) => item.id;
 
-  async openAssignStt(item: CaseResponse): Promise<void> {
-    this.actionLoadingCaseId = item.id;
+  openAssignStt(item: CaseResponse): void {
+    this.assignModalMode = 'stt';
+    this.assignModalPendingCase = item;
+    this.assignModalTitle = `Assign STT — CRM ${item.crmCase}`;
+    this.assignModalDescription = item.gouvernorat
+      ? `Showing approved STTs that cover ${item.gouvernorat}.`
+      : 'Showing approved STTs available for this case.';
+    this.assignModalCurrentId = item.sttId ?? null;
+    this.assignModalConfirmText = item.sttId ? 'Change STT' : 'Assign STT';
+    this.assignModalUsers = [];
+    this.assignModalLoading = true;
+    this.assignModalVisible = true;
 
-    try {
-      const stts = await this.loadAssignableStts(item);
-
-      if (!stts.length) {
-        await this.swal.error(
-          'No STT available',
-          `No approved STT currently covers ${item.gouvernorat}.`
-        );
-        return;
-      }
-
-      const result = await this.swal.promptSelect(
-        `Assign STT to CRM ${item.crmCase}`,
-        'Choose STT',
-        stts.reduce<Record<string, string>>((acc, stt) => {
-          acc[stt.id] = `${stt.fullName} (${stt.email})`;
-          return acc;
-        }, {}),
-        item.sttId ?? '',
-        item.sttId ? 'Change STT' : 'Assign STT'
-      );
-
-      if (!result.isConfirmed || !result.value) {
-        return;
-      }
-
-      const selectedSttId = result.value;
-      await this.runAction(item.id, () => this.casesService.assignStt(item.id, selectedSttId), 'STT assignment saved');
-    } catch (err: any) {
-      console.error('Failed to assign STT:', err);
-      const message = err?.error?.message ?? 'Failed to assign STT';
-      await this.swal.error('Assignment failed', message);
-    } finally {
-      this.actionLoadingCaseId = null;
+    this.loadAssignableStts(item).then(stts => {
+      this.assignModalUsers = stts;
+      this.assignModalLoading = false;
       this.zone.run(() => this.cdr.detectChanges());
-    }
-
-    
+    }).catch(err => {
+      this.assignModalLoading = false;
+      this.assignModalVisible = false;
+      const message = err?.error?.message ?? 'Failed to load STT list';
+      void this.swal.error('Load failed', message);
+      this.zone.run(() => this.cdr.detectChanges());
+    });
   }
 
-  async openAssignTech(item: CaseResponse): Promise<void> {
-    this.actionLoadingCaseId = item.id;
+  openAssignTech(item: CaseResponse): void {
+    this.assignModalMode = 'tech';
+    this.assignModalPendingCase = item;
+    this.assignModalTitle = `Assign Technician — CRM ${item.crmCase}`;
+    this.assignModalDescription = 'Showing approved technicians from your team.';
+    this.assignModalCurrentId = item.techId ?? null;
+    this.assignModalConfirmText = item.techId ? 'Change TECH' : 'Assign TECH';
+    this.assignModalUsers = [];
+    this.assignModalLoading = true;
+    this.assignModalVisible = true;
 
-    try {
-      const techs = await this.loadAssignableTechs();
-
-      if (!techs.length) {
-        await this.swal.error('No TECH available', 'No assignable TECH was found for this case.');
-        return;
-      }
-
-      const result = await this.swal.promptSelect(
-        `Assign TECH to CRM ${item.crmCase}`,
-        'Choose TECH',
-        techs.reduce<Record<string, string>>((acc, tech) => {
-          acc[tech.id] = `${tech.fullName} (${tech.email})`;
-          return acc;
-        }, {}),
-        item.techId ?? '',
-        item.techId ? 'Change TECH' : 'Assign TECH'
-      );
-
-      if (!result.isConfirmed || !result.value) {
-        return;
-      }
-
-      const selectedTechId = result.value;
-      await this.runAction(item.id, () => this.casesService.assignTech(item.id, selectedTechId), 'TECH assignment saved');
-    } catch (err: any) {
-      console.error('Failed to assign TECH:', err);
-      const message = err?.error?.message ?? 'Failed to assign TECH';
-      await this.swal.error('Assignment failed', message);
-    } finally {
-      this.actionLoadingCaseId = null;
+    this.loadAssignableTechs().then(techs => {
+      this.assignModalUsers = techs;
+      this.assignModalLoading = false;
       this.zone.run(() => this.cdr.detectChanges());
+    }).catch(err => {
+      this.assignModalLoading = false;
+      this.assignModalVisible = false;
+      const message = err?.error?.message ?? 'Failed to load technician list';
+      void this.swal.error('Load failed', message);
+      this.zone.run(() => this.cdr.detectChanges());
+    });
+  }
+
+  async onAssignSave(userId: string): Promise<void> {
+    if (!this.assignModalPendingCase) return;
+    const item = this.assignModalPendingCase;
+    this.assignModalVisible = false;
+
+    if (this.assignModalMode === 'stt') {
+      await this.runAction(item.id, () => this.casesService.assignStt(item.id, userId), 'STT assignment saved');
+    } else {
+      await this.runAction(item.id, () => this.casesService.assignTech(item.id, userId), 'TECH assignment saved');
     }
+
+    this.assignModalPendingCase = null;
+  }
+
+  onAssignCancel(): void {
+    this.assignModalVisible = false;
+    this.assignModalPendingCase = null;
   }
 
   async openExecuteMyself(item: CaseResponse): Promise<void> {
@@ -1476,157 +1481,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     try {
       const fullCase = await firstValueFrom(this.casesService.getCaseById(item.id));
-      const rdv = this.extractRdv(fullCase);
-      const work = this.extractWork(fullCase);
-      const metrics = this.extractMetrics(fullCase);
-      const diagnosis = this.extractDiagnosis(fullCase);
-      const resolution = this.extractResolution(fullCase);
-      const validation = this.extractValidation(fullCase);
-      const timeline = this.extractTimeline(fullCase);
-      const proofs = this.extractProofs(fullCase);
-
-      await Swal.fire({
-        title: `Case Details - ${this.escapeHtml(fullCase.crmCase)}`,
-        width: 940,
-        didOpen: (modal) => {
-          modal.classList.add('case-details-swal');
-        },
-        html: `
-          <div class="text-start case-details-modal">
-            <div class="case-details-section">
-              <h6 class="case-details-title">Case Information</h6>
-              <div class="row g-3 mb-3">
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Type:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.type || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Status:</span> <span class="case-detail-value">${this.escapeHtml(this.statusLabel(fullCase.status))}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Client:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.clientName || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Phone:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.clientPhone || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">MSISDN:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.msisdn || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Offer:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.offre || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Pack:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.desPack || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.commentaire || '-')}</span></div></div>
-                <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Location:</span> <span class="case-detail-value">${this.escapeHtml(`${fullCase.localite || '-'}, ${fullCase.delegation || '-'}, ${fullCase.gouvernorat || '-'}`)}</span></div></div>
-                ${fullCase.type === 'PLAINTE' ? `
-                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Contact CL2:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.contactCl2 || '-')}</span></div></div>
-                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Source:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.source || '-')}</span></div></div>
-                  <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Complaint detail:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.complaintDetail || '-')}</span></div></div>
-                  <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Complaint description:</span> <span class="case-detail-value">${this.escapeHtml(fullCase.complaintDescription || '-')}</span></div></div>
-                ` : ''}
-              </div>
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">Assignment Chain</h6>
-              <div class="row g-3 mb-3">
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Owner ZM:</span> <span class="case-detail-value">${this.escapeHtml(this.ownerZmLabel(fullCase))}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Supervisor STT:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.sttName, fullCase.sttEmail))}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH:</span> <span class="case-detail-value">${this.escapeHtml(this.personLabel(fullCase.techName, fullCase.techEmail))}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Execution mode:</span> <span class="case-detail-value">${this.escapeHtml(this.executionModeLabel(fullCase))}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Active executor:</span> <span class="case-detail-value">${this.escapeHtml(this.executorPersonLabel(fullCase))}</span></div></div>
-              </div>
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">RDV (Appointment)</h6>
-              <div class="row g-3 mb-3">
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Joignable:</span> <span class="case-detail-value">${rdv.joignable == null ? '-' : rdv.joignable ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Date:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(rdv.datePriseRdv))}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Abandon:</span> <span class="case-detail-value">${rdv.abandon == null ? '-' : rdv.abandon ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Cause Injoignabilite:</span> <span class="case-detail-value">${this.escapeHtml(rdv.causeInjoignabilite || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Cause Abandon:</span> <span class="case-detail-value">${this.escapeHtml(rdv.causeAbandon || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Detail:</span> <span class="case-detail-value">${this.escapeHtml(rdv.detail || '-')}</span></div></div>
-                <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(rdv.cmtRdv || '-')}</span></div></div>
-              </div>
-            </div>
-
-            ${fullCase.type === 'PLAINTE' ? `
-              <div class="case-details-section">
-                <h6 class="case-details-title">Diagnosis</h6>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Category:</span> <span class="case-detail-value">${this.escapeHtml(this.complaintCategoryLabel(diagnosis.complaintCategory))}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Field work:</span> <span class="case-detail-value">${diagnosis.requiresFieldWork == null ? '-' : diagnosis.requiresFieldWork ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">TECH needed:</span> <span class="case-detail-value">${diagnosis.requiresTechIntervention == null ? '-' : diagnosis.requiresTechIntervention ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Escalation:</span> <span class="case-detail-value">${diagnosis.requiresEscalation == null ? '-' : diagnosis.requiresEscalation ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Diagnosed at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(diagnosis.diagnosedAt))}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Diagnosed by:</span> <span class="case-detail-value">${this.escapeHtml(diagnosis.diagnosedBy || '-')}</span></div></div>
-                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Root cause:</span> <span class="case-detail-value">${this.escapeHtml(diagnosis.rootCause || '-')}</span></div></div>
-                  <div class="col-md-6"><div class="case-detail-item"><span class="case-detail-label">Diagnosis comment:</span> <span class="case-detail-value">${this.escapeHtml(diagnosis.diagnosisComment || '-')}</span></div></div>
-                </div>
-              </div>
-
-              <div class="case-details-section">
-                <h6 class="case-details-title">Resolution</h6>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Type:</span> <span class="case-detail-value">${this.escapeHtml(resolution.resolutionType || '-')}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Validation status:</span> <span class="case-detail-value">${this.escapeHtml(resolution.validationStatus || '-')}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Submitted at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(resolution.submittedAt))}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Submitted by:</span> <span class="case-detail-value">${this.escapeHtml(resolution.submittedBy || '-')}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Validated at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(resolution.validatedAt))}</span></div></div>
-                  <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Reopened at:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(resolution.reopenedAt))}</span></div></div>
-                  <div class="col-md-12"><div class="case-detail-item"><span class="case-detail-label">Resolution comment:</span> <span class="case-detail-value">${this.escapeHtml(resolution.resolutionComment || '-')}</span></div></div>
-                </div>
-              </div>
-            ` : ''}
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">Work</h6>
-              <div class="row g-3 mb-3">
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Result:</span> <span class="case-detail-value">${this.escapeHtml(work.repTravauxStt || '-')}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Date End:</span> <span class="case-detail-value">${this.escapeHtml(this.asDateLabel(work.dateFinTrv))}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(work.cmtTrvStt || '-')}</span></div></div>
-              </div>
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">Work GPS Location</h6>
-              ${this.renderWorkLocationHtml(work)}
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">Work Proof</h6>
-              ${this.renderProofsHtml(proofs)}
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">Technical Metrics</h6>
-              <div class="row g-3 mb-3">
-                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">Cable:</span> <span class="case-detail-value">${this.asMetric(metrics.metrageCable)}</span></div></div>
-                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">PV:</span> <span class="case-detail-value">${this.asMetric(metrics.nombrePv)}</span></div></div>
-                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">DL:</span> <span class="case-detail-value">${this.asMetric(metrics.debitDl)}</span></div></div>
-                <div class="col-md-3"><div class="case-detail-item"><span class="case-detail-label">UL:</span> <span class="case-detail-value">${this.asMetric(metrics.debitUl)}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">RSRP:</span> <span class="case-detail-value">${this.asMetric(metrics.rsrp)}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">RSRQ:</span> <span class="case-detail-value">${this.asMetric(metrics.rsrq)}</span></div></div>
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">SINR:</span> <span class="case-detail-value">${this.asMetric(metrics.sinr)}</span></div></div>
-              </div>
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">ZM Validation</h6>
-              <div class="row g-3 mb-3">
-                <div class="col-md-4"><div class="case-detail-item"><span class="case-detail-label">Approved:</span> <span class="case-detail-value">${validation.approved == null ? '-' : validation.approved ? '&#10003; Yes' : '&#10007; No'}</span></div></div>
-                <div class="col-md-8"><div class="case-detail-item"><span class="case-detail-label">Comment:</span> <span class="case-detail-value">${this.escapeHtml(validation.comment || '-')}</span></div></div>
-              </div>
-            </div>
-
-            <div class="case-details-section">
-              <h6 class="case-details-title">Case Timeline</h6>
-              ${this.renderTimelineHtml(timeline)}
-            </div>
-          </div>
-        `,
-        denyButtonText: 'Download',
-        cancelButtonText: 'Download',
-        showDenyButton: true,
-        confirmButtonText: 'Close',
-        confirmButtonColor: '#e30613',
-        denyButtonColor: '#1b9aaa',
-        preConfirm: () => {
-          return true;
-        },
-        preDeny: () => {
-          void this.onCaseDetailsDownload(fullCase);
-          return false;
-        }
-      });
+      this.caseDetailData = fullCase;
+      this.caseDetailVisible = true;
     } catch (err: any) {
       console.error('Failed to load case details:', err);
       const message = err?.error?.message ?? 'Failed to load case details';
@@ -1636,6 +1492,15 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       this.zone.run(() => this.cdr.detectChanges());
     }
   }
+
+  onCaseDetailClose(): void {
+    this.caseDetailVisible = false;
+  }
+
+  async onCaseDetailDownload(caseData: CaseResponse): Promise<void> {
+    await this.onCaseDetailsDownload(caseData);
+  }
+
 
   async onCaseDetailsDownload(caseData: CaseResponse): Promise<void> {
     try {

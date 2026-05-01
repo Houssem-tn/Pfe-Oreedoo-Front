@@ -220,3 +220,15 @@
     </article>
   </div>
 </div>
+
+<app-governorate-selector
+  [visible]="govSelectorVisible()"
+  (visibleChange)="govSelectorVisible.set($event)"
+  [selected]="govSelectorSelected()"
+  [governorateOptions]="govSelectorOptions()"
+  [title]="'Validate Coverage Zones for ' + (govSelectorPendingStt()?.fullName ?? '')"
+  description="Approve the governorates you want to activate for this STT inside your territory."
+  confirmText="Validate zones"
+  (save)="onGovSave($event)"
+  (cancel)="onGovCancel()"
+></app-governorate-selector>

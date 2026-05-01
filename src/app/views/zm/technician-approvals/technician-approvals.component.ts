@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { TechInvitation, TechInvitationService } from '../../../core/invitations/tech-invitation.service';
 import { SwalService } from '../../../core/ui/swal.service';
 
@@ -12,6 +12,7 @@ import { SwalService } from '../../../core/ui/swal.service';
 export class TechnicianApprovalsComponent implements OnInit {
   private readonly invitationService = inject(TechInvitationService);
   private readonly swal = inject(SwalService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   protected loading = false;
   protected actionLoadingId: string | null = null;
@@ -32,10 +33,12 @@ export class TechnicianApprovalsComponent implements OnInit {
       next: (data) => {
         this.invitations = data;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.errorMessage = err?.error?.message || 'Failed to load pending approvals';
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }

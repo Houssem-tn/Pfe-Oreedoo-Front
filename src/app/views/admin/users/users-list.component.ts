@@ -4,12 +4,12 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
-import Swal from 'sweetalert2';
 
 import { AppUser } from '../../../core/users/user.model';
 import { UserService } from '../../../core/users/user.service';
 import { TUNISIA_GOVERNORATES, normalizeGovernorateList } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
+import { GovernorateSelectorComponent } from '../../../shared/modals/governorate-selector/governorate-selector.component';
 
 interface UserSummaryCard {
   label: string;
@@ -21,7 +21,7 @@ interface UserSummaryCard {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, FormsModule, IconDirective],
+  imports: [CommonModule, RouterLink, DatePipe, FormsModule, IconDirective, GovernorateSelectorComponent],
   templateUrl: './users-list.component.html',
   styleUrl: './users-list.component.scss'
 })
@@ -42,6 +42,17 @@ export class UsersListComponent implements OnInit {
   searchTerm = '';
   selectedRole = '';
   selectedStatus = '';
+
+  // Governorate selector modal state
+  govSelectorVisible = false;
+  govSelectorTitle = '';
+  govSelectorDescription = '';
+  govSelectorConfirmText = '';
+  govSelectorOptions: string[] = [];
+  govSelectorSelected: string[] = [];
+  govSelectorAllowEmpty = false;
+  private govSelectorPendingUser: AppUser | null = null;
+  private govSelectorMode: 'zm' | 'stt' = 'zm';
 
   currentPage = 1;
   pageSize = 5;
@@ -130,39 +141,45 @@ export class UsersListComponent implements OnInit {
       });
   }
 
-  async openAssignGovernoratesModal(zm: AppUser): Promise<void> {
-    const availableGovernorates = this.availableGovernoratesForZm(zm);
-    const result = await this.openGovernoratePicker(
-      `Assign Governorates to ${zm.fullName}`,
-      'Only governorates not already assigned to another ZM are shown here. Leave everything unchecked if you want this ZM to stay free.',
-      availableGovernorates,
-      this.governoratesFor(zm),
-      'Save governorates',
-      true
-    );
-
-    if (!result.isConfirmed || !result.value) {
-      return;
-    }
-
-    this.assignGovernorates(zm, result.value);
+  openAssignGovernoratesModal(zm: AppUser): void {
+    const available = this.availableGovernoratesForZm(zm);
+    this.govSelectorPendingUser = zm;
+    this.govSelectorMode = 'zm';
+    this.govSelectorTitle = `Assign Governorates to ${zm.fullName}`;
+    this.govSelectorDescription = 'Only governorates not already assigned to another ZM are shown here. Leave everything unchecked if you want this ZM to stay free.';
+    this.govSelectorConfirmText = 'Save governorates';
+    this.govSelectorOptions = available;
+    this.govSelectorSelected = this.governoratesFor(zm);
+    this.govSelectorAllowEmpty = true;
+    this.govSelectorVisible = true;
   }
 
-  async openSetCoverageAreasModal(stt: AppUser): Promise<void> {
-    const result = await this.openGovernoratePicker(
-      `Set Coverage Areas for ${stt.fullName}`,
-      'Saving replaces the current governorates this STT can support across zones.',
-      this.governorateOptions,
-      this.coverageAreasFor(stt),
-      'Save coverage areas',
-      false
-    );
+  openSetCoverageAreasModal(stt: AppUser): void {
+    this.govSelectorPendingUser = stt;
+    this.govSelectorMode = 'stt';
+    this.govSelectorTitle = `Set Coverage Areas for ${stt.fullName}`;
+    this.govSelectorDescription = 'Saving replaces the current governorates this STT can support across zones.';
+    this.govSelectorConfirmText = 'Save coverage areas';
+    this.govSelectorOptions = [...this.governorateOptions];
+    this.govSelectorSelected = this.coverageAreasFor(stt);
+    this.govSelectorAllowEmpty = false;
+    this.govSelectorVisible = true;
+  }
 
-    if (!result.isConfirmed || !result.value) {
-      return;
+  onGovSave(selected: string[]): void {
+    this.govSelectorVisible = false;
+    const user = this.govSelectorPendingUser;
+    if (!user) return;
+
+    if (this.govSelectorMode === 'zm') {
+      this.assignGovernorates(user, selected);
+    } else {
+      this.assignCoverageAreas(user, selected);
     }
+  }
 
-    this.assignCoverageAreas(stt, result.value);
+  onGovCancel(): void {
+    this.govSelectorVisible = false;
   }
 
   async toggleBan(user: AppUser): Promise<void> {
@@ -597,115 +614,6 @@ export class UsersListComponent implements OnInit {
 
   private mergeUser(updated: AppUser): void {
     this.users = this.users.map((user) => user.id === updated.id ? updated : user);
-  }
-
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
-  private openGovernoratePicker(
-    titleText: string,
-    hint: string,
-    availableGovernorates: string[],
-    currentGovernorates: string[],
-    confirmButtonText: string,
-    allowEmptySelection: boolean
-  ): Promise<import('sweetalert2').SweetAlertResult<string[]>> {
-    const selectedGovernorates = new Set(
-      currentGovernorates.filter((governorate) => availableGovernorates.includes(governorate))
-    );
-
-    return Swal.fire<string[]>({
-      titleText,
-      width: 760,
-      html: `
-        <div class="user-governorates-modal">
-          <div class="user-governorates-modal__toolbar">
-            <label class="user-governorates-modal__toggle">
-              <input id="sw-governorates-all" type="checkbox" ${availableGovernorates.length > 0 && selectedGovernorates.size === availableGovernorates.length ? 'checked' : ''} />
-              <span>Select all governorates</span>
-            </label>
-            <div class="user-governorates-modal__hint">
-              ${this.escapeHtml(hint)}
-            </div>
-          </div>
-
-          <div class="user-governorates-modal__grid">
-            ${availableGovernorates.map((governorate) => `
-              <label class="user-governorates-modal__option">
-                <input
-                  type="checkbox"
-                  name="sw-governorate"
-                  value="${this.escapeHtml(governorate)}"
-                  ${selectedGovernorates.has(governorate) ? 'checked' : ''}
-                />
-                <span>${this.escapeHtml(governorate)}</span>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      `,
-      customClass: {
-        popup: 'user-governorates-popup'
-      },
-      showCancelButton: true,
-      confirmButtonText,
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#321fdb',
-      didOpen: () => {
-        const popup = Swal.getPopup();
-        if (!popup) {
-          return;
-        }
-
-        const selectAll = popup.querySelector<HTMLInputElement>('#sw-governorates-all');
-        const checkboxes = Array.from(
-          popup.querySelectorAll<HTMLInputElement>('input[name="sw-governorate"]')
-        );
-
-        const syncSelectAll = () => {
-          if (!selectAll) {
-            return;
-          }
-
-          selectAll.checked = checkboxes.length > 0 && checkboxes.every((checkbox) => checkbox.checked);
-        };
-
-        selectAll?.addEventListener('change', () => {
-          checkboxes.forEach((checkbox) => {
-            checkbox.checked = !!selectAll.checked;
-          });
-        });
-
-        checkboxes.forEach((checkbox) => {
-          checkbox.addEventListener('change', syncSelectAll);
-        });
-
-        syncSelectAll();
-      },
-      preConfirm: () => {
-        const popup = Swal.getPopup();
-        if (!popup) {
-          return [];
-        }
-
-        const selected = Array.from(
-          popup.querySelectorAll<HTMLInputElement>('input[name="sw-governorate"]:checked')
-        ).map((checkbox) => checkbox.value);
-
-        if (!allowEmptySelection && selected.length === 0) {
-          Swal.showValidationMessage('Select at least one governorate');
-          return undefined;
-        }
-
-        return selected;
-      }
-    });
   }
 
   private availableGovernoratesForZm(zm: AppUser): string[] {

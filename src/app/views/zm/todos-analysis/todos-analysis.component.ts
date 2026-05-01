@@ -268,8 +268,11 @@ export class TodosAnalysisComponent implements OnInit {
           this.analytics = response.analytics;
           this.expandedInvalidReason = response.analytics.invalidReasonSummaries[0]?.reason ?? null;
           this.invalidReasonPage = 1;
-          this.buildCharts(response.analytics);
           this.cdr.detectChanges();
+          setTimeout(() => {
+            this.buildCharts(response.analytics);
+            this.cdr.detectChanges();
+          });
         },
         error: (err) => {
           this.selectedAnalysis = null;
