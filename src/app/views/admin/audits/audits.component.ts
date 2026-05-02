@@ -51,10 +51,10 @@ export class AuditsComponent {
     {
       title: 'Stock Auditing',
       description: 'Monitor stock movements and inventory-related actions.',
-      route: '/admin/audits',
+      route: '/admin/audits/stock',
       icon: 'cilStorage',
-      enabled: false,
-      signal: 'Prepared for warehouse and technician stock visibility.',
+      enabled: true,
+      signal: 'Full audit trail of DPM creation, confirmations, and STT→TECH distributions.',
       highlights: [
         'Movement journal by operator',
         'Inventory adjustments and reasons',

@@ -70,7 +70,7 @@
                 <app-searchable-select
                   [(ngModel)]="line.equipmentId"
                   (ngModelChange)="onEquipmentChange(line)"
-                  [options]="equipmentListOptions"
+                  [options]="equipmentOptionsFor(line)"
                   placeholder="Select equipment…">
                 </app-searchable-select>
               }

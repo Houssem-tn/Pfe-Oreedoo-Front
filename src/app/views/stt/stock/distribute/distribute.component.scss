@@ -88,7 +88,6 @@
   box-shadow: var(--dist-shadow);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .dist-panel-header {
@@ -96,6 +95,7 @@
   background:
     linear-gradient(135deg, rgba(229, 36, 59, 0.07), rgba(127, 18, 39, 0.05));
   border-bottom: 1px solid var(--dist-border);
+  border-radius: 1.45rem 1.45rem 0 0;
   display: flex;
   font-size: 0.97rem;
   font-weight: 800;
@@ -189,7 +189,6 @@
   box-shadow: var(--dist-shadow);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .dist-form-body {

@@ -30,7 +30,6 @@
   box-shadow: var(--dpm-shadow);
   margin: 0 auto;
   max-width: 760px;
-  overflow: hidden;
 }
 
 /* ─── Header ──────────────────────────────────────────────────────── */
@@ -40,6 +39,7 @@
     radial-gradient(circle at top right, rgba(229, 36, 59, 0.18), transparent 34%),
     linear-gradient(135deg, #fff5f6 0%, #ffe8eb 100%);
   border-bottom: 1px solid var(--dpm-border);
+  border-radius: 1.45rem 1.45rem 0 0;
   padding: 1.5rem 1.6rem 1.3rem;
 }
 

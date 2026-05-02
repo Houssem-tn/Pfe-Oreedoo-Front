@@ -104,13 +104,18 @@ export class CreateDpmComponent implements OnInit {
     }));
   }
 
-  get equipmentListOptions(): SelectOption[] {
-    return this.equipment.map(eq => ({
-      value: eq.id,
-      label: eq.name,
-      subtitle: eq.unit ? `Unit: ${eq.unit}` : (eq.description ?? undefined),
-      imageUrl: eq.imageUrl ?? undefined
-    }));
+  equipmentOptionsFor(line: DpmLine): SelectOption[] {
+    const usedIds = new Set(
+      this.lines.map(l => l.equipmentId).filter(id => id && id !== line.equipmentId)
+    );
+    return this.equipment
+      .filter(eq => !usedIds.has(eq.id))
+      .map(eq => ({
+        value: eq.id,
+        label: eq.name,
+        subtitle: eq.unit ? `Unit: ${eq.unit}` : (eq.description ?? undefined),
+        imageUrl: eq.imageUrl ?? undefined
+      }));
   }
 
   get canSubmit(): boolean {

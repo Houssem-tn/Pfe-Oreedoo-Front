@@ -3,14 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import { IconDirective } from '@coreui/icons-angular';
-import {
-  CardComponent, CardBodyComponent, CardHeaderComponent,
-  BadgeComponent, SpinnerComponent, TableDirective,
-  FormControlDirective, ButtonDirective,
-  ColComponent, RowComponent,
-  ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent
-} from '@coreui/angular';
+import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { DpmRequest, DpmStatus } from '../../../../core/stock/stock.model';
@@ -18,15 +11,9 @@ import { SwalService } from '../../../../core/ui/swal.service';
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule, DatePipe, FormsModule, RouterLink, IconDirective,
-    CardComponent, CardBodyComponent, CardHeaderComponent,
-    BadgeComponent, SpinnerComponent, TableDirective,
-    FormControlDirective, ButtonDirective,
-    ColComponent, RowComponent,
-    ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent
-  ],
-  templateUrl: './zm-stock-tracking.component.html'
+  imports: [CommonModule, DatePipe, FormsModule, RouterLink, SpinnerComponent],
+  templateUrl: './zm-stock-tracking.component.html',
+  styleUrls: ['./zm-stock-tracking.component.scss']
 })
 export class ZmStockTrackingComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
@@ -44,19 +31,14 @@ export class ZmStockTrackingComponent implements OnInit {
   detailDpm: DpmRequest | null = null;
   detailVisible = false;
 
-  ngOnInit(): void {
-    this.load();
-  }
+  ngOnInit(): void { this.load(); }
 
   load(): void {
     this.loading = true;
     this.error = null;
     this.stockSvc.getMyDpms()
       .pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
-      .subscribe({
-        next: d => this.dpms = d,
-        error: e => this.error = e.message
-      });
+      .subscribe({ next: d => this.dpms = d, error: e => this.error = e.message });
   }
 
   openDetail(dpm: DpmRequest): void {
@@ -86,12 +68,8 @@ export class ZmStockTrackingComponent implements OnInit {
     });
   }
 
-  statusColor(s: DpmStatus): string {
-    const m: Record<DpmStatus, string> = {
-      PENDING_STT_CONFIRMATION: 'warning', PARTIALLY_CONFIRMED: 'info',
-      FULLY_CONFIRMED: 'success', REJECTED: 'danger', CANCELLED: 'secondary'
-    };
-    return m[s] ?? 'secondary';
+  countByStatus(status: DpmStatus): number {
+    return this.dpms.filter(d => d.status === status).length;
   }
 
   statusLabel(s: DpmStatus): string {

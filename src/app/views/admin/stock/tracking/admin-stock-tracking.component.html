@@ -1,199 +1,318 @@
-<c-card>
-  <c-card-header><strong>Stock Tracking — Admin Overview</strong></c-card-header>
-  <c-card-body>
-    @if (error) { <div class="alert alert-danger">{{ error }}</div> }
-    @if (loading) { <div class="text-center py-4"><c-spinner size="sm"></c-spinner> Loading…</div> }
+<div class="track-shell">
 
-    <!-- Tab Nav -->
-    <c-nav variant="tabs" class="mb-3">
-      <c-nav-item>
-        <a cNavLink [active]="activeTab === 'dpms'" (click)="setTab('dpms')" style="cursor:pointer">
-          DPM Requests
-        </a>
-      </c-nav-item>
-      <c-nav-item>
-        <a cNavLink [active]="activeTab === 'stt'" (click)="setTab('stt')" style="cursor:pointer">
-          STT Stocks
-        </a>
-      </c-nav-item>
-      <c-nav-item>
-        <a cNavLink [active]="activeTab === 'tech'" (click)="setTab('tech')" style="cursor:pointer">
-          TECH Stocks
-        </a>
-      </c-nav-item>
-      <c-nav-item>
-        <a cNavLink [active]="activeTab === 'movements'" (click)="setTab('movements')" style="cursor:pointer">
-          Audit Log
-        </a>
-      </c-nav-item>
-    </c-nav>
+  <!-- Hero header -->
+  <div class="track-hero">
+    <div class="track-hero__left">
+      <div class="track-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        Admin Overview
+      </div>
+      <h1 class="track-title">Stock Tracking</h1>
+      <p class="track-desc">Monitor DPM flow, inventory levels and stock movements across the network.</p>
+    </div>
+    <div class="track-hero__stats">
+      <div class="track-stat-pill">
+        <span class="track-stat-pill__value">{{ dpms.length }}</span>
+        <span class="track-stat-pill__label">DPMs</span>
+      </div>
+      <div class="track-stat-pill">
+        <span class="track-stat-pill__value">{{ sttStocks.length }}</span>
+        <span class="track-stat-pill__label">STTs</span>
+      </div>
+      <div class="track-stat-pill">
+        <span class="track-stat-pill__value">{{ techStocks.length }}</span>
+        <span class="track-stat-pill__label">TECHs</span>
+      </div>
+      <button class="track-refresh-btn" type="button" (click)="loadAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
 
-    <!-- DPMs tab -->
-    @if (activeTab === 'dpms') {
-      <div class="d-flex gap-2 mb-3 flex-wrap">
-        <input cFormControl type="text" placeholder="Search DPM, ZM, STT…"
-               [(ngModel)]="dpmFilter" style="max-width:260px" />
-        <select cFormControl [(ngModel)]="statusFilter" style="max-width:200px">
+  <!-- Tabs -->
+  <div class="track-tabs">
+    <button class="track-tab" [class.track-tab--active]="activeTab === 'dpms'"
+            (click)="setTab('dpms')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+      </svg>
+      DPM Requests
+      <span class="track-tab__count">{{ dpms.length }}</span>
+    </button>
+    <button class="track-tab" [class.track-tab--active]="activeTab === 'stt'"
+            (click)="setTab('stt')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+      </svg>
+      STT Stocks
+      <span class="track-tab__count">{{ sttStocks.length }}</span>
+    </button>
+    <button class="track-tab" [class.track-tab--active]="activeTab === 'tech'"
+            (click)="setTab('tech')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
+      </svg>
+      TECH Stocks
+      <span class="track-tab__count">{{ techStocks.length }}</span>
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="track-alert">{{ error }}</div>
+  }
+
+  @if (loading) {
+    <div class="track-loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading stock data…</span>
+    </div>
+  }
+
+  <!-- ─── DPM Requests tab ──────────────────────────────────────────── -->
+  @if (activeTab === 'dpms') {
+    <div class="track-card">
+      <div class="track-toolbar">
+        <div class="track-search-wrap">
+          <svg class="track-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input class="track-search" type="text" placeholder="Search DPM #, ZM, STT…"
+                 [(ngModel)]="dpmFilter" />
+        </div>
+        <select class="track-status-select" [(ngModel)]="statusFilter">
           <option value="">All statuses</option>
           <option value="PENDING_STT_CONFIRMATION">Pending</option>
-          <option value="PARTIALLY_CONFIRMED">Partial</option>
-          <option value="FULLY_CONFIRMED">Confirmed</option>
+          <option value="PARTIALLY_CONFIRMED">Partially Confirmed</option>
+          <option value="FULLY_CONFIRMED">Fully Confirmed</option>
           <option value="REJECTED">Rejected</option>
           <option value="CANCELLED">Cancelled</option>
         </select>
       </div>
-      <table cTable hover responsive>
-        <thead>
-          <tr>
-            <th>DPM #</th><th>ZM</th><th>STT</th><th>Items</th>
-            <th>Status</th><th>Delivery Person</th><th>Created</th><th>Events</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (d of filteredDpms; track d.id) {
+
+      <div class="track-table-wrap">
+        <table class="track-table">
+          <thead>
             <tr>
-              <td><strong>{{ d.dpmNumber }}</strong></td>
-              <td>{{ d.zmName }}</td>
-              <td>{{ d.sttName }}</td>
-              <td>{{ d.items.length }} line(s)</td>
-              <td><c-badge [color]="statusColor(d.status)">{{ statusLabel(d.status) }}</c-badge></td>
-              <td>{{ d.deliveryPersonName }}</td>
-              <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
-              <td>{{ d.timeline.length }}</td>
+              <th>DPM #</th>
+              <th>ZM</th>
+              <th>STT</th>
+              <th>Status</th>
+              <th>Items</th>
+              <th>Delivery Person</th>
+              <th>Created</th>
+              <th>Events</th>
             </tr>
-            <!-- DPM items detail -->
-            <tr class="table-light">
-              <td colspan="8">
-                <div class="d-flex flex-wrap gap-2 ps-2">
-                  @for (item of d.items; track item.equipmentId) {
-                    <span class="badge bg-light text-dark border">
-                      {{ item.equipmentName }}:
-                      req <strong>{{ item.requestedQuantity }}</strong>
-                      @if (item.confirmedQuantity != null) {
-                        / conf <strong>{{ item.confirmedQuantity }}</strong>
-                        @if (item.shortageQuantity && item.shortageQuantity > 0) {
-                          <span class="text-danger"> (−{{ item.shortageQuantity }})</span>
+          </thead>
+          <tbody>
+            @for (d of filteredDpms; track d.id) {
+              <tr class="track-row-main">
+                <td><span class="track-dpm-num">{{ d.dpmNumber }}</span></td>
+                <td>
+                  <div class="track-actor">{{ d.zmName }}</div>
+                  <div class="track-actor-sub">{{ d.zmEmail }}</div>
+                </td>
+                <td>
+                  <div class="track-actor">{{ d.sttName }}</div>
+                  <div class="track-actor-sub">{{ d.sttEmail }}</div>
+                </td>
+                <td>
+                  <span class="track-status-pill"
+                        [class.track-status-pill--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
+                        [class.track-status-pill--partial]="d.status === 'PARTIALLY_CONFIRMED'"
+                        [class.track-status-pill--confirmed]="d.status === 'FULLY_CONFIRMED'"
+                        [class.track-status-pill--rejected]="d.status === 'REJECTED'"
+                        [class.track-status-pill--cancelled]="d.status === 'CANCELLED'">
+                    {{ statusLabel(d.status) }}
+                  </span>
+                </td>
+                <td>{{ d.items.length }} line(s)</td>
+                <td>{{ d.deliveryPersonName }}</td>
+                <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+                <td>{{ d.timeline.length }}</td>
+              </tr>
+              <!-- Items detail sub-row -->
+              <tr class="track-row-items">
+                <td colspan="8">
+                  <div class="track-items-strip">
+                    @for (item of d.items; track item.equipmentId) {
+                      <span class="track-item-chip">
+                        {{ item.equipmentName }}
+                        &nbsp;req <strong>{{ item.requestedQuantity }}</strong>
+                        @if (item.confirmedQuantity != null) {
+                          &nbsp;/ conf <strong>{{ item.confirmedQuantity }}</strong>
+                          @if (item.shortageQuantity && item.shortageQuantity > 0) {
+                            <span class="track-shortage">&minus;{{ item.shortageQuantity }}</span>
+                          }
                         }
-                      }
-                    </span>
-                  }
+                      </span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="track-table-empty">No DPMs found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ─── STT Stocks tab ────────────────────────────────────────────── -->
+  @if (activeTab === 'stt') {
+    @if (sttStocks.length === 0) {
+      <div class="track-cards-empty">No STT stocks recorded yet.</div>
+    } @else {
+      <div class="track-grid">
+        @for (s of sttStocks; track s.sttId) {
+          <div class="track-stt-card">
+
+            <!-- Identity -->
+            <div class="track-card-identity">
+              <span class="track-avatar track-avatar--stt">{{ userInitials(s.sttId) }}</span>
+              <div class="track-identity-info">
+                <div class="track-identity-name">{{ userName(s.sttId) }}</div>
+                <div class="track-identity-email">{{ userEmail(s.sttId) }}</div>
+                <span class="track-role-pill track-role-pill--stt">STT</span>
+              </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="track-card-stats">
+              <div class="track-card-stat">
+                <div class="track-card-stat__val">{{ sttTotalReceived(s) }}</div>
+                <div class="track-card-stat__lbl">Received</div>
+              </div>
+              <div class="track-card-stat">
+                <div class="track-card-stat__val track-card-stat__val--dist">
+                  {{ sttTotalDistributed(s) }}
                 </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr><td colspan="8" class="text-center text-muted py-3">No DPMs found.</td></tr>
-          }
-        </tbody>
-      </table>
-    }
+                <div class="track-card-stat__lbl">Distributed</div>
+              </div>
+              <div class="track-card-stat">
+                <div class="track-card-stat__val track-card-stat__val--avail">
+                  {{ sttTotalAvailable(s) }}
+                </div>
+                <div class="track-card-stat__lbl">Available</div>
+              </div>
+            </div>
 
-    <!-- STT Stocks tab -->
-    @if (activeTab === 'stt') {
-      <table cTable hover responsive>
-        <thead>
-          <tr>
-            <th>STT ID</th><th>Lines</th>
-            <th class="text-center">Total Received</th>
-            <th class="text-center">Total Distributed</th>
-            <th class="text-center">Available</th>
-            <th>Last Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (s of sttStocks; track s.sttId) {
-            <tr>
-              <td>{{ s.sttId }}</td>
-              <td>{{ s.items.length }}</td>
-              <td class="text-center">{{ sttTotalReceived(s) }}</td>
-              <td class="text-center">{{ sttTotalDistributed(s) }}</td>
-              <td class="text-center"><strong class="text-success">{{ sttTotalAvailable(s) }}</strong></td>
-              <td>{{ s.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}</td>
-            </tr>
-            @for (item of s.items; track item.equipmentId) {
-              <tr class="table-light">
-                <td></td>
-                <td colspan="5">
-                  <small>
-                    <strong>{{ item.equipmentName }}</strong>:
-                    received {{ item.totalReceived }},
-                    distributed {{ item.totalDistributedToTechs }},
-                    available <strong class="text-success">{{ item.availableQuantity }}</strong>
-                  </small>
-                </td>
-              </tr>
-            }
-          } @empty {
-            <tr><td colspan="6" class="text-center text-muted py-3">No STT stocks yet.</td></tr>
-          }
-        </tbody>
-      </table>
-    }
+            <!-- Progress bar -->
+            <div class="track-card-progress">
+              <div class="track-progress-label">
+                <span>Availability ratio</span>
+                <span class="track-progress-pct">{{ sttAvailPct(s) }}%</span>
+              </div>
+              <div class="track-progress-bar">
+                <div class="track-progress-fill"
+                     [class.track-progress-fill--good]="sttAvailPct(s) >= 60"
+                     [class.track-progress-fill--medium]="sttAvailPct(s) >= 25 && sttAvailPct(s) < 60"
+                     [class.track-progress-fill--low]="sttAvailPct(s) < 25"
+                     [style.width.%]="sttAvailPct(s)">
+                </div>
+              </div>
+            </div>
 
-    <!-- TECH Stocks tab -->
-    @if (activeTab === 'tech') {
-      <table cTable hover responsive>
-        <thead>
-          <tr>
-            <th>TECH ID</th><th>STT ID</th>
-            <th>Lines</th><th class="text-center">Total Received</th>
-            <th>Last Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (t of techStocks; track t.techId) {
-            <tr>
-              <td>{{ t.techId }}</td>
-              <td>{{ t.sttId }}</td>
-              <td>{{ t.items.length }}</td>
-              <td class="text-center">{{ techTotalReceived(t) }}</td>
-              <td>{{ t.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}</td>
-            </tr>
-            @for (item of t.items; track item.equipmentId) {
-              <tr class="table-light">
-                <td></td>
-                <td colspan="4">
-                  <small><strong>{{ item.equipmentName }}</strong>: {{ item.receivedQuantity }}</small>
-                </td>
-              </tr>
-            }
-          } @empty {
-            <tr><td colspan="5" class="text-center text-muted py-3">No TECH stocks yet.</td></tr>
-          }
-        </tbody>
-      </table>
-    }
+            <!-- Items -->
+            <div class="track-card-items">
+              <div class="track-card-items-title">Equipment Breakdown</div>
+              <div class="track-card-chips">
+                @for (item of s.items; track item.equipmentId) {
+                  <span class="track-card-chip">
+                    {{ item.equipmentName }}:
+                    <strong>{{ item.availableQuantity }}</strong> avail
+                    / {{ item.totalReceived }} recv
+                  </span>
+                } @empty {
+                  <span style="color:var(--t-muted);font-size:0.82rem">No items.</span>
+                }
+              </div>
+              @if (s.lastUpdatedAt) {
+                <div style="margin-top:0.55rem;color:var(--t-muted);font-size:0.76rem">
+                  Updated {{ s.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}
+                </div>
+              }
+            </div>
 
-    <!-- Audit Log tab -->
-    @if (activeTab === 'movements') {
-      <table cTable hover responsive>
-        <thead>
-          <tr>
-            <th>Type</th><th>From</th><th>To</th>
-            <th>Equipment</th><th class="text-center">Qty</th>
-            <th>Reference</th><th>Date</th><th>By</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (m of movements; track m.id) {
-            <tr>
-              <td>
-                <c-badge color="primary" class="text-uppercase" style="font-size:0.65rem">
-                  {{ m.movementType }}
-                </c-badge>
-              </td>
-              <td><small>{{ m.fromActorRole }}<br />{{ m.fromActorId }}</small></td>
-              <td><small>{{ m.toActorRole }}<br />{{ m.toActorId }}</small></td>
-              <td>{{ m.equipmentName }}</td>
-              <td class="text-center"><strong>{{ m.quantity }}</strong></td>
-              <td><code style="font-size:0.7rem">{{ m.referenceId }}</code></td>
-              <td>{{ m.performedAt | date:'dd/MM/yy HH:mm' }}</td>
-              <td><small>{{ m.performedBy }}</small></td>
-            </tr>
-          } @empty {
-            <tr><td colspan="8" class="text-center text-muted py-3">No movements recorded.</td></tr>
-          }
-        </tbody>
-      </table>
+          </div>
+        }
+      </div>
     }
-  </c-card-body>
-</c-card>
+  }
+
+  <!-- ─── TECH Stocks tab ───────────────────────────────────────────── -->
+  @if (activeTab === 'tech') {
+    @if (techStocks.length === 0) {
+      <div class="track-cards-empty">No TECH stocks recorded yet.</div>
+    } @else {
+      <div class="track-grid">
+        @for (t of techStocks; track t.techId) {
+          <div class="track-tech-card">
+
+            <!-- Identity -->
+            <div class="track-card-identity">
+              <span class="track-avatar track-avatar--tech">{{ userInitials(t.techId) }}</span>
+              <div class="track-identity-info">
+                <div class="track-identity-name">{{ userName(t.techId) }}</div>
+                <div class="track-identity-email">{{ userEmail(t.techId) }}</div>
+                <span class="track-role-pill track-role-pill--tech">TECH</span>
+              </div>
+            </div>
+
+            <!-- Stats (2 columns: items count + total received) -->
+            <div class="track-card-stats" style="grid-template-columns: 1fr 1fr">
+              <div class="track-card-stat">
+                <div class="track-card-stat__val">{{ t.items.length }}</div>
+                <div class="track-card-stat__lbl">Item types</div>
+              </div>
+              <div class="track-card-stat">
+                <div class="track-card-stat__val track-card-stat__val--avail">
+                  {{ techTotalReceived(t) }}
+                </div>
+                <div class="track-card-stat__lbl">Total Received</div>
+              </div>
+            </div>
+
+            <!-- Items -->
+            <div class="track-card-items">
+              @if (t.sttId) {
+                <div class="track-under-stt">
+                  Under STT: <strong>{{ userName(t.sttId) }}</strong>
+                </div>
+              }
+              <div class="track-card-items-title">Equipment</div>
+              <div class="track-card-chips">
+                @for (item of t.items; track item.equipmentId) {
+                  <span class="track-card-chip">
+                    {{ item.equipmentName }}: <strong>{{ item.receivedQuantity }}</strong>
+                  </span>
+                } @empty {
+                  <span style="color:var(--t-muted);font-size:0.82rem">No items.</span>
+                }
+              </div>
+              @if (t.lastUpdatedAt) {
+                <div style="margin-top:0.55rem;color:var(--t-muted);font-size:0.76rem">
+                  Updated {{ t.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}
+                </div>
+              }
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+  }
+
+
+</div>

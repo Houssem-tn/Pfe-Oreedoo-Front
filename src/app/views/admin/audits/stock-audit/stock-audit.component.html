@@ -1,0 +1,384 @@
+<div class="sa-shell">
+
+  <!-- Back -->
+  <a class="sa-back" routerLink="/admin/audits">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M19 12H5M12 5l-7 7 7 7"></path>
+    </svg>
+    Audit Center
+  </a>
+
+  <!-- Hero -->
+  <div class="sa-hero">
+    <div class="sa-hero__copy">
+      <div class="sa-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        Stock Audit
+      </div>
+      <h1 class="sa-title">DPM Audit Trail</h1>
+      <p class="sa-desc">
+        Full traceability per DPM — from ZM request through STT confirmation to TECH distribution.
+        Click any row to open the complete flow.
+      </p>
+    </div>
+
+    <div class="sa-stats">
+      <div class="sa-stat">
+        <span class="sa-stat__value">{{ dpms.length }}</span>
+        <span class="sa-stat__label">Total</span>
+        <span class="sa-stat__dot sa-stat__dot--total"></span>
+      </div>
+      <div class="sa-stat">
+        <span class="sa-stat__value">{{ countByStatus('PENDING_STT_CONFIRMATION') }}</span>
+        <span class="sa-stat__label">Pending</span>
+        <span class="sa-stat__dot sa-stat__dot--pending"></span>
+      </div>
+      <div class="sa-stat">
+        <span class="sa-stat__value">{{ countByStatus('FULLY_CONFIRMED') }}</span>
+        <span class="sa-stat__label">Confirmed</span>
+        <span class="sa-stat__dot sa-stat__dot--confirmed"></span>
+      </div>
+      <div class="sa-stat">
+        <span class="sa-stat__value">{{ countByStatus('REJECTED') }}</span>
+        <span class="sa-stat__label">Rejected</span>
+        <span class="sa-stat__dot sa-stat__dot--rejected"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="sa-toolbar">
+    <div class="sa-search-wrap">
+      <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input class="sa-search" type="text" [(ngModel)]="searchFilter"
+             placeholder="Search DPM #, ZM, STT…" />
+    </div>
+    <select class="sa-select" [(ngModel)]="statusFilter">
+      <option value="">All statuses</option>
+      <option value="PENDING_STT_CONFIRMATION">Pending</option>
+      <option value="PARTIALLY_CONFIRMED">Partial</option>
+      <option value="FULLY_CONFIRMED">Confirmed</option>
+      <option value="REJECTED">Rejected</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+    <select class="sa-select" [(ngModel)]="zmFilter">
+      <option value="">All ZMs</option>
+      @for (zm of zmOptions; track zm.id) {
+        <option [value]="zm.id">{{ zm.name }}</option>
+      }
+    </select>
+    <span class="sa-count">{{ filtered.length }} DPM{{ filtered.length !== 1 ? 's' : '' }}</span>
+  </div>
+
+  @if (error) {
+    <div class="sa-alert">{{ error }}</div>
+  }
+
+  @if (loading) {
+    <div class="sa-loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading DPM audit trail…</span>
+    </div>
+  }
+
+  @if (!loading) {
+    <div class="sa-card">
+      @if (filtered.length === 0) {
+        <div class="sa-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          No DPMs match your filter.
+        </div>
+      }
+
+      <div class="sa-dpm-list">
+        @for (d of filtered; track d.id) {
+          <div class="sa-dpm-row"
+               [class.sa-dpm-row--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
+               [class.sa-dpm-row--partial]="d.status === 'PARTIALLY_CONFIRMED'"
+               [class.sa-dpm-row--confirmed]="d.status === 'FULLY_CONFIRMED'"
+               [class.sa-dpm-row--rejected]="d.status === 'REJECTED'"
+               [class.sa-dpm-row--cancelled]="d.status === 'CANCELLED'"
+               (click)="openDpm(d)">
+
+            <span class="sa-dpm-num">{{ d.dpmNumber }}</span>
+
+            <div class="sa-dpm-actors">
+              <span class="sa-role-badge sa-role-badge--zm">ZM</span>
+              <span class="sa-dpm-actor-name">{{ d.zmName }}</span>
+              <svg class="sa-dpm-arrow-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7"></path>
+              </svg>
+              <span class="sa-role-badge sa-role-badge--stt">STT</span>
+              <span class="sa-dpm-actor-name">{{ d.sttName }}</span>
+            </div>
+
+            <span class="sa-pill"
+                  [class.sa-pill--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
+                  [class.sa-pill--partial]="d.status === 'PARTIALLY_CONFIRMED'"
+                  [class.sa-pill--confirmed]="d.status === 'FULLY_CONFIRMED'"
+                  [class.sa-pill--rejected]="d.status === 'REJECTED'"
+                  [class.sa-pill--cancelled]="d.status === 'CANCELLED'">
+              {{ statusLabel(d.status) }}
+            </span>
+
+            <div class="sa-dpm-meta">
+              <span>{{ d.items.length }} item{{ d.items.length !== 1 ? 's' : '' }}</span>
+              <span>{{ d.createdAt | date:'dd MMM yyyy' }}</span>
+            </div>
+
+            <svg class="sa-dpm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M9 18l6-6-6-6"></path>
+            </svg>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Flow panel overlay ──────────────────────────────────────── -->
+  @if (selectedDpm && panelVisible) {
+    <div class="sa-backdrop" (click)="panelVisible = false">
+      <div class="sa-panel" (click)="$event.stopPropagation()">
+
+        <!-- Panel header -->
+        <div class="sa-panel-head">
+          <div class="sa-panel-head__left">
+            <span class="sa-panel-dpm">{{ selectedDpm.dpmNumber }}</span>
+            <span class="sa-pill"
+                  [class.sa-pill--pending]="selectedDpm.status === 'PENDING_STT_CONFIRMATION'"
+                  [class.sa-pill--partial]="selectedDpm.status === 'PARTIALLY_CONFIRMED'"
+                  [class.sa-pill--confirmed]="selectedDpm.status === 'FULLY_CONFIRMED'"
+                  [class.sa-pill--rejected]="selectedDpm.status === 'REJECTED'"
+                  [class.sa-pill--cancelled]="selectedDpm.status === 'CANCELLED'">
+              {{ statusLabel(selectedDpm.status) }}
+            </span>
+          </div>
+          <button class="sa-panel-close" type="button" (click)="panelVisible = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Flow -->
+        <div class="sa-flow">
+
+          <!-- ── Stage 1: ZM Request ───────────────────────────── -->
+          <div class="sa-stage sa-stage--create">
+            <div class="sa-stage-head">
+              <div class="sa-stage-num sa-stage-num--create">1</div>
+              <div>
+                <div class="sa-stage-label">ZM Request</div>
+                <div class="sa-stage-date">{{ selectedDpm.createdAt | date:'dd MMM yyyy, HH:mm' }}</div>
+              </div>
+            </div>
+            <div class="sa-stage-body">
+
+              <div class="sa-actor-card">
+                <div class="sa-actor-av sa-actor-av--zm">{{ nameInitials(selectedDpm.zmName) }}</div>
+                <div class="sa-actor-info">
+                  <span class="sa-actor-name">{{ selectedDpm.zmName }}</span>
+                  <span class="sa-actor-email">{{ selectedDpm.zmEmail }}</span>
+                  <span class="sa-role-badge sa-role-badge--zm">ZM</span>
+                </div>
+              </div>
+
+              <div class="sa-detail-row">
+                <span class="sa-detail-label">Delivery Person</span>
+                <span class="sa-detail-value">{{ selectedDpm.deliveryPersonName }}</span>
+              </div>
+              @if (selectedDpm.notes) {
+                <div class="sa-detail-row">
+                  <span class="sa-detail-label">Notes</span>
+                  <span class="sa-detail-value">{{ selectedDpm.notes }}</span>
+                </div>
+              }
+
+              <div class="sa-section-title">Items Requested</div>
+              <div class="sa-items-list">
+                @for (item of selectedDpm.items; track item.equipmentId) {
+                  <div class="sa-item-chip">
+                    @if (item.equipmentImageUrl) {
+                      <img class="sa-item-img" [src]="item.equipmentImageUrl" alt="" />
+                    }
+                    {{ item.equipmentName }}
+                    <strong>× {{ item.requestedQuantity }}</strong>
+                  </div>
+                }
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Connector -->
+          <div class="sa-connector">
+            <div class="sa-connector__line"></div>
+            <svg class="sa-connector__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+
+          <!-- ── Stage 2: STT Confirmation ─────────────────────── -->
+          <div class="sa-stage"
+               [class.sa-stage--confirm]="selectedDpm.status === 'FULLY_CONFIRMED' || selectedDpm.status === 'PARTIALLY_CONFIRMED'"
+               [class.sa-stage--awaiting]="selectedDpm.status === 'PENDING_STT_CONFIRMATION'"
+               [class.sa-stage--rejected]="selectedDpm.status === 'REJECTED' || selectedDpm.status === 'CANCELLED'">
+            <div class="sa-stage-head">
+              <div class="sa-stage-num"
+                   [class.sa-stage-num--confirm]="selectedDpm.status === 'FULLY_CONFIRMED' || selectedDpm.status === 'PARTIALLY_CONFIRMED'"
+                   [class.sa-stage-num--awaiting]="selectedDpm.status === 'PENDING_STT_CONFIRMATION'"
+                   [class.sa-stage-num--rejected]="selectedDpm.status === 'REJECTED' || selectedDpm.status === 'CANCELLED'">2</div>
+              <div>
+                <div class="sa-stage-label">STT Confirmation</div>
+                @if (selectedDpm.confirmedAt) {
+                  <div class="sa-stage-date">{{ selectedDpm.confirmedAt | date:'dd MMM yyyy, HH:mm' }}</div>
+                } @else {
+                  <div class="sa-stage-date sa-stage-date--muted">Awaiting response</div>
+                }
+              </div>
+            </div>
+            <div class="sa-stage-body">
+
+              <div class="sa-actor-card">
+                <div class="sa-actor-av sa-actor-av--stt">{{ nameInitials(selectedDpm.sttName) }}</div>
+                <div class="sa-actor-info">
+                  <span class="sa-actor-name">{{ selectedDpm.sttName }}</span>
+                  <span class="sa-actor-email">{{ selectedDpm.sttEmail }}</span>
+                  <span class="sa-role-badge sa-role-badge--stt">STT</span>
+                </div>
+              </div>
+
+              <!-- Confirmation table -->
+              <div class="sa-section-title">Item Confirmation</div>
+              <div class="sa-conf-table">
+                <div class="sa-conf-row sa-conf-row--head">
+                  <span>Equipment</span><span>Req.</span><span>Conf.</span><span>Result</span>
+                </div>
+                @for (item of selectedDpm.items; track item.equipmentId) {
+                  <div class="sa-conf-row">
+                    <span class="sa-conf-name">{{ item.equipmentName }}</span>
+                    <span class="sa-conf-num">{{ item.requestedQuantity }}</span>
+                    <span class="sa-conf-num">
+                      @if (item.confirmedQuantity != null) { {{ item.confirmedQuantity }}
+                      } @else { <span class="sa-muted-text">—</span> }
+                    </span>
+                    <span>
+                      @if (item.confirmedQuantity == null) {
+                        <span class="sa-badge sa-badge--wait">Pending</span>
+                      } @else if (item.confirmedQuantity >= item.requestedQuantity) {
+                        <span class="sa-badge sa-badge--ok">Full</span>
+                      } @else if (item.confirmedQuantity > 0) {
+                        <span class="sa-badge sa-badge--short">−{{ item.shortageQuantity }}</span>
+                      } @else {
+                        <span class="sa-badge sa-badge--zero">Rejected</span>
+                      }
+                    </span>
+                  </div>
+                }
+              </div>
+
+              <!-- Activity timeline -->
+              @if (selectedDpm.timeline.length > 0) {
+                <div class="sa-section-title" style="margin-top:1.1rem">Activity</div>
+                <div class="sa-mini-tl">
+                  @for (ev of selectedDpm.timeline; track $index) {
+                    <div class="sa-mini-tl__entry">
+                      <div class="sa-mini-tl__dot"></div>
+                      <div>
+                        <div class="sa-mini-tl__meta">{{ ev.occurredAt | date:'dd/MM/yy HH:mm' }} · {{ ev.performedByRole }}</div>
+                        <div class="sa-mini-tl__desc">{{ ev.description }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+            </div>
+          </div>
+
+          <!-- Connector to stage 3 -->
+          @if (distributionsFor(selectedDpm).length > 0 ||
+               selectedDpm.status === 'FULLY_CONFIRMED' ||
+               selectedDpm.status === 'PARTIALLY_CONFIRMED') {
+            <div class="sa-connector"
+                 [class.sa-connector--muted]="distributionsFor(selectedDpm).length === 0">
+              <div class="sa-connector__line"></div>
+              <svg class="sa-connector__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+
+            <!-- ── Stage 3: TECH Distribution ──────────────────── -->
+            <div class="sa-stage"
+                 [class.sa-stage--distribute]="distributionsFor(selectedDpm).length > 0"
+                 [class.sa-stage--awaiting]="distributionsFor(selectedDpm).length === 0">
+              <div class="sa-stage-head">
+                <div class="sa-stage-num"
+                     [class.sa-stage-num--distribute]="distributionsFor(selectedDpm).length > 0"
+                     [class.sa-stage-num--awaiting]="distributionsFor(selectedDpm).length === 0">3</div>
+                <div>
+                  <div class="sa-stage-label">TECH Distribution</div>
+                  @if (distributionsFor(selectedDpm).length > 0) {
+                    <div class="sa-stage-date">{{ distributionTechs(selectedDpm).length }} technician{{ distributionTechs(selectedDpm).length !== 1 ? 's' : '' }}</div>
+                  } @else {
+                    <div class="sa-stage-date sa-stage-date--muted">Not yet distributed</div>
+                  }
+                </div>
+              </div>
+
+              @if (distributionsFor(selectedDpm).length > 0) {
+                <div class="sa-stage-body">
+                  @for (techId of distributionTechs(selectedDpm); track techId) {
+                    <div class="sa-dist-block">
+                      <div class="sa-actor-card">
+                        <div class="sa-actor-av sa-actor-av--tech">{{ nameInitials(userName(techId)) }}</div>
+                        <div class="sa-actor-info">
+                          <span class="sa-actor-name">{{ userName(techId) }}</span>
+                          @if (userEmail(techId)) {
+                            <span class="sa-actor-email">{{ userEmail(techId) }}</span>
+                          }
+                          <span class="sa-role-badge sa-role-badge--tech">TECH</span>
+                        </div>
+                      </div>
+                      <div class="sa-dist-items">
+                        @for (m of itemsForTech(selectedDpm, techId); track m.id) {
+                          <div class="sa-dist-line">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+                              <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+                            </svg>
+                            <span>{{ m.equipmentName }}</span>
+                            <strong>× {{ m.quantity }}</strong>
+                            <span class="sa-dist-date">{{ m.performedAt | date:'dd/MM/yy HH:mm' }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+        </div>
+
+        <!-- Panel footer -->
+        <div class="sa-panel-foot">
+          <button class="sa-panel-foot__btn" type="button" (click)="panelVisible = false">Close</button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>
