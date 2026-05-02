@@ -62,5 +62,22 @@ export const navZm: INavData[] = [
     name: 'Reports',
     url: '/zm/reports',
     iconComponent: { name: 'cilChart' }
+  },
+
+  {
+    title: true,
+    name: 'Stock'
+  },
+
+  {
+    name: 'My DPMs',
+    url: '/zm/stock/my-tracking',
+    iconComponent: { name: 'cilStorage' }
+  },
+
+  {
+    name: 'Create DPM',
+    url: '/zm/stock/create-dpm',
+    iconComponent: { name: 'cilPlus' }
   }
 ];

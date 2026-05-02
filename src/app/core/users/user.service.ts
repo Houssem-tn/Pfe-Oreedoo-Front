@@ -101,6 +101,10 @@ export class UserService {
     return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts/${sttId}/techs`);
   }
 
+  getMyTechs(): Observable<AppUser[]> {
+    return this.http.get<AppUser[]>(`${this.usersUrl}/me/techs`);
+  }
+
   getMyTechsForStt(sttId: string): Observable<AppUser[]> {
     return this.getMySttTechs(sttId).pipe(
       map((users) => (users ?? []).filter((u) => u.role === 'ROLE_TECH' && u.status === 'APPROVED' && !!u.enabled))

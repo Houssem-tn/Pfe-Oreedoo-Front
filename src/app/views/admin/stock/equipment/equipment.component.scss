@@ -1,0 +1,310 @@
+:host {
+  display: block;
+}
+
+.equip-shell {
+  --equip-primary: #e5243b;
+  --equip-primary-strong: #b5112d;
+  --equip-accent: #7f1227;
+  --equip-bg:
+    radial-gradient(circle at top right, rgba(229, 36, 59, 0.08), transparent 34%),
+    radial-gradient(circle at left bottom, rgba(132, 14, 31, 0.08), transparent 28%),
+    linear-gradient(180deg, #fff6f7 0%, #fff0f2 48%, #ffe8eb 100%);
+  --equip-surface: rgba(255, 255, 255, 0.95);
+  --equip-surface-soft: rgba(255, 244, 246, 0.92);
+  --equip-border: rgba(130, 14, 30, 0.1);
+  --equip-shadow: 0 20px 52px rgba(130, 14, 30, 0.1);
+  --equip-text: #3f1020;
+  --equip-muted: #8a5a67;
+  background: var(--equip-bg);
+  border-radius: 2rem;
+  color: var(--equip-text);
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+/* ─── Card ────────────────────────────────────────────────────────── */
+
+.equip-card {
+  animation: equipFadeUp 0.38s ease both;
+  background: var(--equip-surface);
+  border: 1px solid var(--equip-border);
+  border-radius: 1.45rem;
+  box-shadow: var(--equip-shadow);
+  overflow: hidden;
+}
+
+.equip-card-header {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(229, 36, 59, 0.06), rgba(127, 18, 39, 0.04));
+  border-bottom: 1px solid var(--equip-border);
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+}
+
+.equip-card-title {
+  color: var(--equip-text);
+  font-size: 0.97rem;
+  font-weight: 800;
+}
+
+.equip-new-btn {
+  align-items: center;
+  background: linear-gradient(135deg, var(--equip-primary), var(--equip-primary-strong));
+  border: none;
+  border-radius: 0.85rem;
+  box-shadow: 0 10px 22px rgba(181, 17, 45, 0.2);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+
+  svg {
+    height: 0.9rem;
+    width: 0.9rem;
+  }
+
+  &:hover {
+    box-shadow: 0 14px 28px rgba(181, 17, 45, 0.26);
+    transform: translateY(-1px);
+  }
+}
+
+/* ─── Toolbar ─────────────────────────────────────────────────────── */
+
+.equip-toolbar {
+  padding: 0.85rem 1.2rem;
+}
+
+.equip-search-wrap {
+  max-width: 360px;
+  position: relative;
+}
+
+.equip-search-icon {
+  color: var(--equip-muted);
+  height: 1rem;
+  left: 0.9rem;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+}
+
+.equip-search {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid var(--equip-border);
+  border-radius: 0.9rem;
+  color: var(--equip-text);
+  font-size: 0.94rem;
+  min-height: 2.8rem;
+  outline: none;
+  padding: 0.65rem 1rem 0.65rem 2.5rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  width: 100%;
+
+  &:focus {
+    border-color: rgba(229, 36, 59, 0.3);
+    box-shadow: 0 0 0 4px rgba(229, 36, 59, 0.08);
+  }
+
+  &::placeholder {
+    color: var(--equip-muted);
+  }
+}
+
+/* ─── Table ───────────────────────────────────────────────────────── */
+
+.equip-table-wrap {
+  overflow-x: auto;
+  padding: 0 1rem 1rem;
+}
+
+table.equip-table {
+  border-collapse: collapse;
+  width: 100%;
+
+  th {
+    background: rgba(229, 36, 59, 0.04);
+    border-bottom: 1.5px solid var(--equip-border);
+    color: var(--equip-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 0.8rem 0.9rem;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  td {
+    border-bottom: 1px solid rgba(130, 14, 30, 0.06);
+    color: var(--equip-text);
+    font-size: 0.9rem;
+    padding: 0.78rem 0.9rem;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  tr:hover td {
+    background: rgba(229, 36, 59, 0.025);
+  }
+}
+
+.equip-img {
+  border: 1px solid var(--equip-border);
+  border-radius: 0.6rem;
+  height: 3rem;
+  object-fit: cover;
+  width: 3rem;
+}
+
+.equip-img-placeholder {
+  align-items: center;
+  background: rgba(229, 36, 59, 0.06);
+  border-radius: 0.6rem;
+  color: var(--equip-primary);
+  display: inline-flex;
+  height: 3rem;
+  justify-content: center;
+  width: 3rem;
+
+  svg {
+    height: 1.2rem;
+    width: 1.2rem;
+  }
+}
+
+.equip-name {
+  color: var(--equip-text);
+  font-weight: 700;
+}
+
+.equip-status-badge {
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+
+  &--active {
+    background: rgba(31, 139, 104, 0.14);
+    color: #14664b;
+  }
+
+  &--inactive {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+  }
+}
+
+.equip-action-btn {
+  align-items: center;
+  background: none;
+  border: 1.5px solid var(--equip-border);
+  border-radius: 0.6rem;
+  cursor: pointer;
+  display: inline-flex;
+  height: 2.1rem;
+  justify-content: center;
+  margin-right: 0.4rem;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  width: 2.1rem;
+
+  svg {
+    height: 0.9rem;
+    width: 0.9rem;
+  }
+
+  &--edit {
+    color: #1d5fa8;
+
+    &:hover {
+      background: rgba(37, 99, 235, 0.08);
+      border-color: rgba(37, 99, 235, 0.25);
+    }
+  }
+
+  &--deactivate {
+    color: #9f132b;
+
+    &:hover {
+      background: rgba(159, 19, 43, 0.08);
+      border-color: rgba(159, 19, 43, 0.25);
+    }
+  }
+}
+
+.equip-table-empty {
+  color: var(--equip-muted);
+  font-size: 0.9rem;
+  padding: 2.5rem;
+  text-align: center;
+}
+
+/* ─── Modal Form ──────────────────────────────────────────────────── */
+
+.equip-modal-field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.equip-modal-label {
+  color: var(--equip-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.equip-img-preview {
+  border: 1px solid var(--equip-border);
+  border-radius: 0.75rem;
+  height: 6.5rem;
+  margin-top: 0.5rem;
+  object-fit: cover;
+  width: 6.5rem;
+}
+
+/* ─── Alert ───────────────────────────────────────────────────────── */
+
+.equip-alert {
+  background: rgba(159, 19, 43, 0.07);
+  border: 1px solid rgba(159, 19, 43, 0.15);
+  border-radius: 0.85rem;
+  color: #9f132b;
+  font-size: 0.9rem;
+  margin: 0 1rem;
+  padding: 0.8rem 1rem;
+}
+
+@keyframes equipFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .equip-shell {
+    border-radius: 1.35rem;
+    padding: 1rem;
+  }
+}

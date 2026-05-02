@@ -1,0 +1,199 @@
+<c-card>
+  <c-card-header><strong>Stock Tracking — Admin Overview</strong></c-card-header>
+  <c-card-body>
+    @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+    @if (loading) { <div class="text-center py-4"><c-spinner size="sm"></c-spinner> Loading…</div> }
+
+    <!-- Tab Nav -->
+    <c-nav variant="tabs" class="mb-3">
+      <c-nav-item>
+        <a cNavLink [active]="activeTab === 'dpms'" (click)="setTab('dpms')" style="cursor:pointer">
+          DPM Requests
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink [active]="activeTab === 'stt'" (click)="setTab('stt')" style="cursor:pointer">
+          STT Stocks
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink [active]="activeTab === 'tech'" (click)="setTab('tech')" style="cursor:pointer">
+          TECH Stocks
+        </a>
+      </c-nav-item>
+      <c-nav-item>
+        <a cNavLink [active]="activeTab === 'movements'" (click)="setTab('movements')" style="cursor:pointer">
+          Audit Log
+        </a>
+      </c-nav-item>
+    </c-nav>
+
+    <!-- DPMs tab -->
+    @if (activeTab === 'dpms') {
+      <div class="d-flex gap-2 mb-3 flex-wrap">
+        <input cFormControl type="text" placeholder="Search DPM, ZM, STT…"
+               [(ngModel)]="dpmFilter" style="max-width:260px" />
+        <select cFormControl [(ngModel)]="statusFilter" style="max-width:200px">
+          <option value="">All statuses</option>
+          <option value="PENDING_STT_CONFIRMATION">Pending</option>
+          <option value="PARTIALLY_CONFIRMED">Partial</option>
+          <option value="FULLY_CONFIRMED">Confirmed</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>DPM #</th><th>ZM</th><th>STT</th><th>Items</th>
+            <th>Status</th><th>Delivery Person</th><th>Created</th><th>Events</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of filteredDpms; track d.id) {
+            <tr>
+              <td><strong>{{ d.dpmNumber }}</strong></td>
+              <td>{{ d.zmName }}</td>
+              <td>{{ d.sttName }}</td>
+              <td>{{ d.items.length }} line(s)</td>
+              <td><c-badge [color]="statusColor(d.status)">{{ statusLabel(d.status) }}</c-badge></td>
+              <td>{{ d.deliveryPersonName }}</td>
+              <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+              <td>{{ d.timeline.length }}</td>
+            </tr>
+            <!-- DPM items detail -->
+            <tr class="table-light">
+              <td colspan="8">
+                <div class="d-flex flex-wrap gap-2 ps-2">
+                  @for (item of d.items; track item.equipmentId) {
+                    <span class="badge bg-light text-dark border">
+                      {{ item.equipmentName }}:
+                      req <strong>{{ item.requestedQuantity }}</strong>
+                      @if (item.confirmedQuantity != null) {
+                        / conf <strong>{{ item.confirmedQuantity }}</strong>
+                        @if (item.shortageQuantity && item.shortageQuantity > 0) {
+                          <span class="text-danger"> (−{{ item.shortageQuantity }})</span>
+                        }
+                      }
+                    </span>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="text-center text-muted py-3">No DPMs found.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <!-- STT Stocks tab -->
+    @if (activeTab === 'stt') {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>STT ID</th><th>Lines</th>
+            <th class="text-center">Total Received</th>
+            <th class="text-center">Total Distributed</th>
+            <th class="text-center">Available</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of sttStocks; track s.sttId) {
+            <tr>
+              <td>{{ s.sttId }}</td>
+              <td>{{ s.items.length }}</td>
+              <td class="text-center">{{ sttTotalReceived(s) }}</td>
+              <td class="text-center">{{ sttTotalDistributed(s) }}</td>
+              <td class="text-center"><strong class="text-success">{{ sttTotalAvailable(s) }}</strong></td>
+              <td>{{ s.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}</td>
+            </tr>
+            @for (item of s.items; track item.equipmentId) {
+              <tr class="table-light">
+                <td></td>
+                <td colspan="5">
+                  <small>
+                    <strong>{{ item.equipmentName }}</strong>:
+                    received {{ item.totalReceived }},
+                    distributed {{ item.totalDistributedToTechs }},
+                    available <strong class="text-success">{{ item.availableQuantity }}</strong>
+                  </small>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr><td colspan="6" class="text-center text-muted py-3">No STT stocks yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <!-- TECH Stocks tab -->
+    @if (activeTab === 'tech') {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>TECH ID</th><th>STT ID</th>
+            <th>Lines</th><th class="text-center">Total Received</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of techStocks; track t.techId) {
+            <tr>
+              <td>{{ t.techId }}</td>
+              <td>{{ t.sttId }}</td>
+              <td>{{ t.items.length }}</td>
+              <td class="text-center">{{ techTotalReceived(t) }}</td>
+              <td>{{ t.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}</td>
+            </tr>
+            @for (item of t.items; track item.equipmentId) {
+              <tr class="table-light">
+                <td></td>
+                <td colspan="4">
+                  <small><strong>{{ item.equipmentName }}</strong>: {{ item.receivedQuantity }}</small>
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr><td colspan="5" class="text-center text-muted py-3">No TECH stocks yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    <!-- Audit Log tab -->
+    @if (activeTab === 'movements') {
+      <table cTable hover responsive>
+        <thead>
+          <tr>
+            <th>Type</th><th>From</th><th>To</th>
+            <th>Equipment</th><th class="text-center">Qty</th>
+            <th>Reference</th><th>Date</th><th>By</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of movements; track m.id) {
+            <tr>
+              <td>
+                <c-badge color="primary" class="text-uppercase" style="font-size:0.65rem">
+                  {{ m.movementType }}
+                </c-badge>
+              </td>
+              <td><small>{{ m.fromActorRole }}<br />{{ m.fromActorId }}</small></td>
+              <td><small>{{ m.toActorRole }}<br />{{ m.toActorId }}</small></td>
+              <td>{{ m.equipmentName }}</td>
+              <td class="text-center"><strong>{{ m.quantity }}</strong></td>
+              <td><code style="font-size:0.7rem">{{ m.referenceId }}</code></td>
+              <td>{{ m.performedAt | date:'dd/MM/yy HH:mm' }}</td>
+              <td><small>{{ m.performedBy }}</small></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="text-center text-muted py-3">No movements recorded.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>

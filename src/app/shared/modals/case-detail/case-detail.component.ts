@@ -1,7 +1,6 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import {
-  BadgeComponent,
   ButtonCloseDirective,
   ButtonDirective,
   ModalBodyComponent,
@@ -24,7 +23,6 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    DatePipe,
     ModalComponent,
     ModalHeaderComponent,
     ModalTitleDirective,
@@ -32,7 +30,6 @@ import {
     ModalBodyComponent,
     ModalFooterComponent,
     ButtonDirective,
-    BadgeComponent,
     IconDirective
   ],
   templateUrl: './case-detail.component.html',

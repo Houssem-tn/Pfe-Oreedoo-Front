@@ -44,6 +44,12 @@ export const routes: Routes = [
           import('./field-case-detail.component').then((m) => m.FieldCaseDetailComponent)
       },
       {
+        path: 'stock/my-stock',
+        loadComponent: () =>
+          import('../tech/stock/my-stock/tech-my-stock.component').then((m) => m.TechMyStockComponent),
+        data: { title: 'My Stock' }
+      },
+      {
         path: 'history',
         loadComponent: () =>
           import('./field-history.component').then((m) => m.FieldHistoryComponent)

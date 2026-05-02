@@ -32,6 +32,8 @@ export interface AppUser {
   assignedSttId?: string | null;
   assignedSttEmail?: string | null;
 
+  canCreateDpm?: boolean;
+
   assignedZmId?: string | null;
   assignedZmEmail?: string | null;
   assignedGovernorates?: string[] | null;

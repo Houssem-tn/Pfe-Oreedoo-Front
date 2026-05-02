@@ -1,0 +1,139 @@
+<div class="equip-shell">
+
+  <div class="equip-card">
+
+    <div class="equip-card-header">
+      <span class="equip-card-title">Equipment Catalogue</span>
+      <button class="equip-new-btn" type="button" (click)="openCreate()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        New Equipment
+      </button>
+    </div>
+
+    @if (error) {
+      <div class="equip-alert">{{ error }}</div>
+    }
+
+    <div class="equip-toolbar">
+      <div class="equip-search-wrap">
+        <svg class="equip-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input class="equip-search" type="text" placeholder="Search by name…"
+               [(ngModel)]="searchTerm" />
+      </div>
+    </div>
+
+    @if (loading) {
+      <div style="padding:2rem;text-align:center"><c-spinner size="sm"></c-spinner> Loading…</div>
+    } @else {
+      <div class="equip-table-wrap">
+        <table class="equip-table">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Unit</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (eq of filtered; track eq.id) {
+              <tr>
+                <td>
+                  @if (eq.imageUrl) {
+                    <img class="equip-img" [src]="eq.imageUrl" alt="" />
+                  } @else {
+                    <span class="equip-img-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                    </span>
+                  }
+                </td>
+                <td><span class="equip-name">{{ eq.name }}</span></td>
+                <td>{{ eq.description || '—' }}</td>
+                <td>{{ eq.unit || '—' }}</td>
+                <td>
+                  <span class="equip-status-badge"
+                        [class.equip-status-badge--active]="eq.active"
+                        [class.equip-status-badge--inactive]="!eq.active">
+                    {{ eq.active ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <button class="equip-action-btn equip-action-btn--edit" type="button"
+                          (click)="openEdit(eq)" title="Edit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  @if (eq.active) {
+                    <button class="equip-action-btn equip-action-btn--deactivate" type="button"
+                            (click)="deactivate(eq)" title="Deactivate">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                      </svg>
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="equip-table-empty">No equipment found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+  </div>
+
+</div>
+
+<!-- Create / Edit Modal -->
+<c-modal [visible]="modalVisible" (visibleChange)="modalVisible = $event">
+  <c-modal-header>
+    <strong>{{ editingId ? 'Edit Equipment' : 'New Equipment' }}</strong>
+  </c-modal-header>
+  <c-modal-body>
+    <div class="equip-modal-field">
+      <label cLabel>Name *</label>
+      <input cFormControl type="text" [(ngModel)]="form.name" placeholder="e.g. Optical Fiber Cable" />
+    </div>
+    <div class="equip-modal-field">
+      <label cLabel>Description</label>
+      <input cFormControl type="text" [(ngModel)]="form.description" placeholder="Optional description" />
+    </div>
+    <div class="equip-modal-field">
+      <label cLabel>Unit</label>
+      <input cFormControl type="text" [(ngModel)]="form.unit" placeholder="e.g. meters, pcs" />
+    </div>
+    <div class="equip-modal-field">
+      <label cLabel>Image</label>
+      <input cFormControl type="file" accept="image/*" (change)="onImageSelected($event)" />
+      @if (imagePreview) {
+        <div class="mt-2">
+          <img class="equip-img-preview" [src]="imagePreview" alt="preview" />
+        </div>
+      }
+    </div>
+  </c-modal-body>
+  <c-modal-footer>
+    <button cButton color="secondary" variant="outline" (click)="modalVisible = false">Cancel</button>
+    <button cButton color="primary" [disabled]="saving || !form.name.trim()" (click)="save()">
+      @if (saving) { <c-spinner size="sm" class="me-1"></c-spinner> }
+      {{ editingId ? 'Update' : 'Create' }}
+    </button>
+  </c-modal-footer>
+</c-modal>

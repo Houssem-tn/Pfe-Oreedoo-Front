@@ -1,0 +1,132 @@
+<div class="stock-dash">
+
+  @if (error) {
+    <div class="dash-alert">{{ error }}</div>
+  }
+
+  <!-- Stat cards -->
+  <div class="dash-stats">
+
+    <div class="dash-stat dash-stat--primary">
+      <div class="dash-stat__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+      </div>
+      <div class="dash-stat__value">{{ incomingDpms.length }}</div>
+      <div class="dash-stat__label">Pending DPMs</div>
+      <a class="dash-stat__action" routerLink="/stt/stock/incoming-dpms">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"></path>
+        </svg>
+        Review
+      </a>
+    </div>
+
+    <div class="dash-stat dash-stat--success">
+      <div class="dash-stat__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+          <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+        </svg>
+      </div>
+      @if (loading) {
+        <c-spinner size="sm"></c-spinner>
+      } @else {
+        <div class="dash-stat__value">{{ totalAvailable }}</div>
+      }
+      <div class="dash-stat__label">Units Available</div>
+      <a class="dash-stat__action" routerLink="/stt/stock/distribute">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"></path>
+        </svg>
+        Distribute
+      </a>
+    </div>
+
+    <div class="dash-stat dash-stat--info">
+      <div class="dash-stat__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
+        </svg>
+      </div>
+      <div class="dash-stat__value">{{ techStocks.length }}</div>
+      <div class="dash-stat__label">TECHs with Stock</div>
+    </div>
+
+  </div>
+
+  <!-- My stock table -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <span>My Stock</span>
+      @if (loading) { <c-spinner size="sm"></c-spinner> }
+    </div>
+    <div class="dash-card-body">
+      @if (!loading && (!stock || stock.items.length === 0)) {
+        <div class="dash-empty">No stock received yet.</div>
+      } @else if (!loading) {
+        <div class="dash-table-wrap">
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>Equipment</th>
+                <th>Total Received</th>
+                <th>Distributed</th>
+                <th>Available</th>
+                <th>Last Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of stock!.items; track item.equipmentId) {
+                <tr>
+                  <td><strong>{{ item.equipmentName }}</strong></td>
+                  <td>{{ item.totalReceived }}</td>
+                  <td>{{ item.totalDistributedToTechs }}</td>
+                  <td>
+                    <span class="dash-qty-badge"
+                          [class.dash-qty-badge--avail]="item.availableQuantity > 0"
+                          [class.dash-qty-badge--zero]="item.availableQuantity === 0">
+                      {{ item.availableQuantity }}
+                    </span>
+                  </td>
+                  <td><small>{{ item.lastReceivedAt | date:'dd/MM/yy' }}</small></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- TECHs stock -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <span>My TECHs' Stocks</span>
+    </div>
+    <div class="dash-card-body">
+      @if (techStocks.length === 0) {
+        <div class="dash-empty">No TECH has received stock yet.</div>
+      } @else {
+        <div class="dash-tech-list">
+          @for (ts of techStocks; track ts.techId) {
+            <div class="dash-tech-row">
+              <div class="dash-tech-name">TECH: {{ ts.techId }}</div>
+              <div class="dash-tech-chips">
+                @for (ti of ts.items; track ti.equipmentId) {
+                  <span class="dash-tech-chip">
+                    {{ ti.equipmentName }}: <strong>{{ ti.receivedQuantity }}</strong>
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+</div>

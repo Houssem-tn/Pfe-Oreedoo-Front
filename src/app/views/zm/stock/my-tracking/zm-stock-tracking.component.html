@@ -1,0 +1,146 @@
+<c-card>
+  <c-card-header class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <strong>My DPM Requests</strong>
+    <a cButton color="primary" size="sm" routerLink="/zm/stock/create-dpm">
+      <svg cIcon name="cilPlus" class="me-1"></svg> New DPM
+    </a>
+  </c-card-header>
+  <c-card-body>
+    @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <select cFormControl [(ngModel)]="filterStatus" style="max-width:180px">
+        <option value="">All statuses</option>
+        <option value="PENDING_STT_CONFIRMATION">Pending</option>
+        <option value="PARTIALLY_CONFIRMED">Partial</option>
+        <option value="FULLY_CONFIRMED">Confirmed</option>
+        <option value="REJECTED">Rejected</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+      <input cFormControl type="text" placeholder="Filter by STT name…" [(ngModel)]="filterStt" style="max-width:220px" />
+      <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
+        <svg cIcon name="cilReload"></svg>
+      </button>
+    </div>
+
+    @if (loading) {
+      <div class="text-center py-4"><c-spinner size="sm"></c-spinner> Loading…</div>
+    } @else {
+      <table cTable hover responsive>
+        <thead>
+          <tr><th>DPM #</th><th>STT</th><th>Items</th><th>Status</th><th>Delivery Person</th><th>Created</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          @for (d of filtered; track d.id) {
+            <tr>
+              <td><strong>{{ d.dpmNumber }}</strong></td>
+              <td>{{ d.sttName }}</td>
+              <td>
+                @for (item of d.items; track item.equipmentId) {
+                  <span class="badge bg-light text-dark border me-1">
+                    {{ item.equipmentName }}: {{ item.requestedQuantity }}
+                    @if (item.confirmedQuantity != null) {
+                      →
+                      <span [class]="item.shortageQuantity && item.shortageQuantity > 0 ? 'text-warning' : 'text-success'">
+                        {{ item.confirmedQuantity }}
+                      </span>
+                    }
+                  </span>
+                }
+              </td>
+              <td><c-badge [color]="statusColor(d.status)">{{ statusLabel(d.status) }}</c-badge></td>
+              <td>{{ d.deliveryPersonName }}</td>
+              <td>{{ d.createdAt | date:'dd/MM/yy' }}</td>
+              <td>
+                <button cButton color="info" size="sm" variant="outline" class="me-1" (click)="openDetail(d)">
+                  <svg cIcon name="cilInfo"></svg>
+                </button>
+                @if (d.status === 'PENDING_STT_CONFIRMATION') {
+                  <button cButton color="danger" size="sm" variant="outline" (click)="cancelDpm(d)">
+                    <svg cIcon name="cilBan"></svg>
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="text-center text-muted py-4">No DPM requests yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </c-card-body>
+</c-card>
+
+<!-- DPM Detail Modal -->
+@if (detailDpm) {
+  <c-modal [visible]="detailVisible" (visibleChange)="detailVisible = $event" size="lg">
+    <c-modal-header>
+      <strong>{{ detailDpm.dpmNumber }}</strong>
+      <c-badge [color]="statusColor(detailDpm.status)" class="ms-2">{{ statusLabel(detailDpm.status) }}</c-badge>
+    </c-modal-header>
+    <c-modal-body>
+      <c-row class="mb-3">
+        <c-col [md]="6">
+          <p class="mb-1"><small class="text-muted">STT</small><br /><strong>{{ detailDpm.sttName }}</strong></p>
+          <p class="mb-1"><small class="text-muted">Delivery Person</small><br />{{ detailDpm.deliveryPersonName }}</p>
+        </c-col>
+        <c-col [md]="6">
+          <p class="mb-1"><small class="text-muted">Created</small><br />{{ detailDpm.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          @if (detailDpm.confirmedAt) {
+            <p class="mb-1"><small class="text-muted">Confirmed</small><br />{{ detailDpm.confirmedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          }
+        </c-col>
+      </c-row>
+
+      <!-- Items -->
+      <h6>Equipment Items</h6>
+      <table cTable small responsive class="mb-3">
+        <thead><tr><th>Equipment</th><th>Requested</th><th>Confirmed</th><th>Shortage</th><th>Note</th></tr></thead>
+        <tbody>
+          @for (item of detailDpm.items; track item.equipmentId) {
+            <tr>
+              <td>
+                @if (item.equipmentImageUrl) {
+                  <img [src]="item.equipmentImageUrl" width="32" height="32"
+                       style="object-fit:cover;border-radius:4px;margin-right:6px" />
+                }
+                {{ item.equipmentName }}
+              </td>
+              <td>{{ item.requestedQuantity }}</td>
+              <td>
+                @if (item.confirmedQuantity != null) {
+                  <span [class]="item.confirmedQuantity < item.requestedQuantity ? 'text-warning fw-bold' : 'text-success fw-bold'">
+                    {{ item.confirmedQuantity }}
+                  </span>
+                } @else { <span class="text-muted">—</span> }
+              </td>
+              <td>
+                @if (item.shortageQuantity && item.shortageQuantity > 0) {
+                  <span class="text-danger fw-bold">−{{ item.shortageQuantity }}</span>
+                } @else { — }
+              </td>
+              <td><small>{{ item.confirmationNote || '—' }}</small></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Timeline -->
+      <h6>Timeline</h6>
+      <div class="position-relative ps-4" style="border-left:2px solid #dee2e6">
+        @for (ev of detailDpm.timeline; track $index) {
+          <div class="mb-3 position-relative">
+            <div class="position-absolute" style="left:-1.2rem;top:2px;width:12px;height:12px;border-radius:50%;background:#0d6efd;border:2px solid #fff;box-shadow:0 0 0 2px #0d6efd"></div>
+            <small class="text-muted">{{ ev.occurredAt | date:'dd/MM/yyyy HH:mm' }} · {{ ev.performedByRole }}</small>
+            <p class="mb-0">{{ ev.description }}</p>
+          </div>
+        } @empty {
+          <p class="text-muted">No timeline events yet.</p>
+        }
+      </div>
+    </c-modal-body>
+    <c-modal-footer>
+      <button cButton color="secondary" variant="outline" (click)="detailVisible = false">Close</button>
+    </c-modal-footer>
+  </c-modal>
+}

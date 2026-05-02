@@ -332,23 +332,23 @@
       </div>
       <dl class="cd-grid">
         <dt>Resolution type</dt>
-        <dd>{{ val(caseData.resolution?.resolutionType) }}</dd>
+        <dd>{{ val(caseData.resolution.resolutionType) }}</dd>
 
         <dt>Validation status</dt>
-        <dd>{{ humanizeStatus(caseData.resolution?.validationStatus) }}</dd>
+        <dd>{{ humanizeStatus(caseData.resolution.validationStatus) }}</dd>
 
         <dt>Submitted at</dt>
-        <dd>{{ dateVal(caseData.resolution?.submittedAt) }}</dd>
+        <dd>{{ dateVal(caseData.resolution.submittedAt) }}</dd>
 
         <dt>Submitted by</dt>
-        <dd>{{ val(caseData.resolution?.submittedBy) }}</dd>
+        <dd>{{ val(caseData.resolution.submittedBy) }}</dd>
 
         <dt>Validated at</dt>
-        <dd>{{ dateVal(caseData.resolution?.validatedAt) }}</dd>
+        <dd>{{ dateVal(caseData.resolution.validatedAt) }}</dd>
 
-        <ng-container *ngIf="caseData.resolution?.resolutionComment">
+        <ng-container *ngIf="caseData.resolution.resolutionComment">
           <dt>Comment</dt>
-          <dd class="cd-multiline">{{ caseData.resolution?.resolutionComment }}</dd>
+          <dd class="cd-multiline">{{ caseData.resolution.resolutionComment }}</dd>
         </ng-container>
       </dl>
     </div>

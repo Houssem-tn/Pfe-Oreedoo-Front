@@ -1,0 +1,177 @@
+<div class="idpm-shell">
+
+  <div class="idpm-card">
+    <div class="idpm-card-header">
+      <span class="idpm-card-title">Incoming DPM Requests</span>
+      <button class="idpm-refresh-btn" type="button" (click)="load()" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        </svg>
+      </button>
+    </div>
+
+    @if (error) {
+      <div class="idpm-alert idpm-alert--error">{{ error }}</div>
+    }
+
+    @if (loading) {
+      <div style="padding:2rem;text-align:center"><c-spinner size="sm"></c-spinner></div>
+    } @else {
+      <div class="idpm-table-wrap">
+        <table class="idpm-table">
+          <thead>
+            <tr>
+              <th>DPM #</th>
+              <th>ZM</th>
+              <th>Delivery Person</th>
+              <th>Items</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of dpms; track d.id) {
+              <tr>
+                <td><span class="idpm-dpm-num">{{ d.dpmNumber }}</span></td>
+                <td>
+                  <div class="idpm-user-name">{{ d.zmName }}</div>
+                  <div class="idpm-user-email">{{ d.zmEmail }}</div>
+                </td>
+                <td>{{ d.deliveryPersonName }}</td>
+                <td>
+                  @for (item of d.items; track item.equipmentId) {
+                    <span class="idpm-item-chip">{{ item.equipmentName }}: {{ item.requestedQuantity }}</span>
+                  }
+                </td>
+                <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+                <td>
+                  <button class="idpm-confirm-btn" type="button" (click)="openConfirm(d)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Confirm
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="idpm-table-empty">No pending DPMs.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Confirmation Modal -->
+  @if (confirmingDpm) {
+    <c-modal [visible]="confirmModalVisible" (visibleChange)="confirmModalVisible = $event" size="lg">
+      <c-modal-header>
+        <strong>Confirm DPM {{ confirmingDpm.dpmNumber }}</strong>
+      </c-modal-header>
+      <c-modal-body>
+
+        <div class="idpm-modal-meta">
+          <div class="idpm-modal-meta-row">
+            <span class="idpm-modal-meta-label">ZM</span>
+            <span class="idpm-modal-meta-value">{{ confirmingDpm.zmName }}</span>
+            <span class="idpm-modal-meta-label">Delivery</span>
+            <span class="idpm-modal-meta-value">{{ confirmingDpm.deliveryPersonName }}</span>
+            @if (confirmingDpm.notes) {
+              <span class="idpm-modal-meta-label">Notes</span>
+              <span class="idpm-modal-meta-value">{{ confirmingDpm.notes }}</span>
+            }
+          </div>
+        </div>
+
+        <!-- Reject toggle -->
+        <div class="idpm-reject-toggle">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="rejectSwitch"
+                   [checked]="isRejecting" (change)="toggleReject()" />
+            <label class="form-check-label idpm-reject-label" for="rejectSwitch">
+              Reject entire DPM
+            </label>
+          </div>
+        </div>
+
+        @if (isRejecting) {
+          <div class="mb-3">
+            <label cLabel>Rejection reason</label>
+            <input cFormControl type="text" [(ngModel)]="rejectReason"
+                   placeholder="Reason for rejection" />
+          </div>
+        }
+
+        <!-- Items table -->
+        <table cTable small responsive>
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              <th class="text-center">Requested</th>
+              <th class="text-center" style="min-width:160px">Received Qty</th>
+              <th>Note (optional)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of confirmLines; track line.equipmentId; let i = $index) {
+              <tr>
+                <td>
+                  @if (line.equipmentImageUrl) {
+                    <img [src]="line.equipmentImageUrl" width="32" height="32"
+                         style="object-fit:cover;border-radius:6px;margin-right:6px;vertical-align:middle" />
+                  }
+                  {{ line.equipmentName }}
+                </td>
+                <td class="text-center">{{ line.requestedQuantity }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-1 justify-content-center">
+                    <button cButton color="secondary" size="sm" variant="outline"
+                            (click)="decrement(line)" [disabled]="line.confirmedQty <= 0 || isRejecting">−</button>
+                    <input cFormControl type="number" min="0" [max]="line.requestedQuantity"
+                           [(ngModel)]="line.confirmedQty" [disabled]="isRejecting"
+                           style="width:72px;text-align:center" />
+                    <button cButton color="secondary" size="sm" variant="outline"
+                            (click)="increment(line)"
+                            [disabled]="line.confirmedQty >= line.requestedQuantity || isRejecting">+</button>
+                  </div>
+                  @if (!isRejecting && line.confirmedQty < line.requestedQuantity) {
+                    <small class="text-warning d-block text-center mt-1">
+                      −{{ line.requestedQuantity - line.confirmedQty }} shortage
+                    </small>
+                  }
+                </td>
+                <td>
+                  <input cFormControl type="text" [(ngModel)]="line.note"
+                         placeholder="e.g. damaged" [disabled]="isRejecting" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (!isRejecting && shortage > 0) {
+          <div class="idpm-shortage-alert">
+            Total shortage: <strong>{{ shortage }}</strong> unit(s) — DPM will be
+            marked as <strong>Partially Confirmed</strong>.
+          </div>
+        }
+
+      </c-modal-body>
+      <c-modal-footer>
+        <button cButton color="secondary" variant="outline"
+                (click)="confirmModalVisible = false">Cancel</button>
+        <button cButton [color]="isRejecting ? 'danger' : 'success'"
+                [disabled]="confirming || (isRejecting && !rejectReason.trim())"
+                (click)="submitConfirmation()">
+          @if (confirming) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          {{ isRejecting ? 'Reject DPM' : 'Submit Confirmation' }}
+        </button>
+      </c-modal-footer>
+    </c-modal>
+  }
+
+</div>

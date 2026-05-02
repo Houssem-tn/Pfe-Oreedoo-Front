@@ -71,9 +71,20 @@ export const navAdmin: INavData[] = [
   },
 
   {
-    name: 'Stock',
-    url: '/admin/stock',
-    iconComponent: { name: 'cil-storage' }
+    title: true,
+    name: 'Stock Management'
+  },
+
+  {
+    name: 'Equipment',
+    url: '/admin/stock/equipment',
+    iconComponent: { name: 'cilStorage' }
+  },
+
+  {
+    name: 'Stock Tracking',
+    url: '/admin/stock/tracking',
+    iconComponent: { name: 'cilChartLine' }
   },
 
   {

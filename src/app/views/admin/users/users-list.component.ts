@@ -37,6 +37,7 @@ export class UsersListComponent implements OnInit {
   assigningGovernoratesZmId: string | null = null;
   assigningCoverageSttId: string | null = null;
   togglingUserId: string | null = null;
+  togglingDpmId: string | null = null;
   error: string | null = null;
 
   searchTerm = '';
@@ -226,6 +227,51 @@ export class UsersListComponent implements OnInit {
           const message = err?.error?.message ?? 'Failed to update user access';
           this.error = message;
           void this.swal.error('Access update failed', message);
+        }
+      });
+  }
+
+  isTogglingDpm(id: string): boolean {
+    return this.togglingDpmId === id;
+  }
+
+  async toggleDpmPermission(user: AppUser): Promise<void> {
+    const willGrant = !user.canCreateDpm;
+    const actionLabel = willGrant ? 'Grant DPM permission' : 'Revoke DPM permission';
+    const confirm = await this.swal.confirmAction(
+      `${actionLabel} for ${user.fullName}?`,
+      willGrant
+        ? 'This ZM will be able to create DPM requests.'
+        : 'This ZM will no longer be able to create DPM requests.',
+      actionLabel
+    );
+
+    if (!confirm.isConfirmed) return;
+
+    this.togglingDpmId = user.id;
+    this.error = null;
+
+    this.usersSvc.update(user.id, { canCreateDpm: willGrant })
+      .pipe(
+        finalize(() => {
+          this.togglingDpmId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.mergeUser(updated);
+          void this.swal.success(
+            willGrant ? 'DPM permission granted' : 'DPM permission revoked',
+            willGrant
+              ? `${updated.fullName} can now create DPM requests.`
+              : `${updated.fullName} can no longer create DPM requests.`
+          );
+        },
+        error: (err) => {
+          const message = err?.error?.message ?? 'Failed to update DPM permission';
+          this.error = message;
+          void this.swal.error('Update failed', message);
         }
       });
   }

@@ -78,5 +78,24 @@ export const routes: Routes = [
       import('./audits/users-audit/users-audit.component').then(m => m.UsersAuditComponent)
   },
 
+  // Stock Management
+  {
+    path: 'stock',
+    redirectTo: 'stock/equipment',
+    pathMatch: 'full'
+  },
+  {
+    path: 'stock/equipment',
+    loadComponent: () =>
+      import('./stock/equipment/equipment.component').then(m => m.EquipmentComponent),
+    data: { title: 'Equipment' }
+  },
+  {
+    path: 'stock/tracking',
+    loadComponent: () =>
+      import('./stock/tracking/admin-stock-tracking.component').then(m => m.AdminStockTrackingComponent),
+    data: { title: 'Stock Tracking' }
+  },
+
   { path: '', redirectTo: 'users', pathMatch: 'full' }
 ];

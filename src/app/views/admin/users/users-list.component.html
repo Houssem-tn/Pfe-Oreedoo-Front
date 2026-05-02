@@ -305,6 +305,27 @@
             <ng-template #noGovernorates>
               <div class="user-card__territory-empty">No governorates assigned yet.</div>
             </ng-template>
+
+            <div class="user-card__territory-header" style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle, #e5e7eb)">
+              <div class="user-card__assignment-copy">
+                <div class="user-card__assignment-title">DPM permission</div>
+                <div class="user-card__assignment-value">
+                  {{ user.canCreateDpm ? 'Can create DPM requests' : 'Cannot create DPM requests' }}
+                </div>
+              </div>
+
+              <button
+                *ngIf="user.status === 'APPROVED'"
+                type="button"
+                class="user-button"
+                [ngClass]="user.canCreateDpm ? 'user-button--danger' : 'user-button--soft'"
+                [disabled]="isTogglingDpm(user.id)"
+                (click)="toggleDpmPermission(user)"
+              >
+                <svg cIcon [name]="user.canCreateDpm ? 'cilBan' : 'cilCheckCircle'"></svg>
+                {{ isTogglingDpm(user.id) ? 'Saving...' : (user.canCreateDpm ? 'Revoke DPM' : 'Allow DPM') }}
+              </button>
+            </div>
           </div>
 
           <div class="user-card__actions">
