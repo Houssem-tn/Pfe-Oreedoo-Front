@@ -114,7 +114,10 @@
         <div class="dash-tech-list">
           @for (ts of techStocks; track ts.techId) {
             <div class="dash-tech-row">
-              <div class="dash-tech-name">TECH: {{ ts.techId }}</div>
+              <div class="dash-tech-name">
+                <span class="dash-tech-avatar">{{ userInitials(ts.techId) }}</span>
+                {{ userName(ts.techId) }}
+              </div>
               <div class="dash-tech-chips">
                 @for (ti of ts.items; track ti.equipmentId) {
                   <span class="dash-tech-chip">

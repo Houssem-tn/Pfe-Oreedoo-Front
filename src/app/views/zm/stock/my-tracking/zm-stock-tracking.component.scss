@@ -341,6 +341,7 @@
 
 /* Action buttons */
 .zt-btn-detail,
+.zt-btn-pdf,
 .zt-btn-cancel {
   display: inline-flex;
   align-items: center;
@@ -361,6 +362,13 @@
   color: #1d4ed8;
   margin-right: 0.35rem;
   &:hover { background: rgba(59, 130, 246, 0.2); }
+}
+
+.zt-btn-pdf {
+  background: rgba(16, 185, 129, 0.1);
+  color: #065f46;
+  margin-right: 0.35rem;
+  &:hover { background: rgba(16, 185, 129, 0.2); }
 }
 
 .zt-btn-cancel {

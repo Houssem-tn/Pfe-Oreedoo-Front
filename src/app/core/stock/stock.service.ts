@@ -6,6 +6,7 @@ import {
   ConfirmDpmRequest,
   CreateDpmRequest,
   CreateEquipmentRequest,
+  DistributableDpm,
   DistributeToTechRequest,
   DpmRequest,
   Equipment,
@@ -73,6 +74,14 @@ export class StockService {
     return this.http.get<DpmRequest[]>(`${this.url}/zm/my-dpms`);
   }
 
+  zmGetMySttsStocks(): Observable<SttStock[]> {
+    return this.http.get<SttStock[]>(`${this.url}/zm/my-stts-stocks`);
+  }
+
+  zmGetMyTechsStocks(): Observable<TechStock[]> {
+    return this.http.get<TechStock[]>(`${this.url}/zm/my-techs-stocks`);
+  }
+
   // ── STT scoped ────────────────────────────────────────────────────────────
 
   getIncomingDpms(): Observable<DpmRequest[]> {
@@ -97,6 +106,10 @@ export class StockService {
 
   getMyTechsStocks(): Observable<TechStock[]> {
     return this.http.get<TechStock[]>(`${this.url}/stt/tech-stocks`);
+  }
+
+  getDistributableDpms(): Observable<DistributableDpm[]> {
+    return this.http.get<DistributableDpm[]>(`${this.url}/stt/distributable-dpms`);
   }
 
   // ── TECH scoped ───────────────────────────────────────────────────────────

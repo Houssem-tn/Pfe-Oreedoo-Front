@@ -1,20 +1,18 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import { IconDirective } from '@coreui/icons-angular';
-import {
-  CardComponent, CardBodyComponent, CardHeaderComponent,
-  ButtonDirective, SpinnerComponent, FormControlDirective,
-  FormLabelDirective, ColComponent, RowComponent,
-  TableDirective, BadgeComponent
-} from '@coreui/angular';
+import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import {
-  DistributeToTechRequest, DistributionItemRequest,
-  SttStock, SttStockItem, SttDistribution
+  DistributableDpm,
+  DistributeToTechRequest,
+  DistributionItemRequest,
+  SttDistribution
 } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/searchable-select/searchable-select.component';
@@ -28,63 +26,53 @@ interface DistributionLine {
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule, DatePipe, FormsModule, IconDirective,
-    CardComponent, CardBodyComponent, CardHeaderComponent,
-    ButtonDirective, SpinnerComponent, FormControlDirective,
-    FormLabelDirective, ColComponent, RowComponent,
-    TableDirective, BadgeComponent,
-    SearchableSelectComponent
-  ],
+  imports: [CommonModule, DatePipe, FormsModule, SpinnerComponent, SearchableSelectComponent],
   templateUrl: './distribute.component.html',
   styleUrls: ['./distribute.component.scss']
 })
 export class DistributeComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
   private readonly userSvc = inject(UserService);
+  private readonly authStore = inject(AuthStore);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
-  myStock: SttStock | null = null;
+  distributableDpms: DistributableDpm[] = [];
   techs: AppUser[] = [];
   distributions: SttDistribution[] = [];
 
-  loadingStock = false;
-  loadingTechs = false;
+  loading = false;
   loadingHistory = false;
   submitting = false;
   error: string | null = null;
   successMsg: string | null = null;
 
   selectedTechId = '';
+  selectedDpmId = '';
   notes = '';
   lines: DistributionLine[] = [];
 
   activeTab: 'distribute' | 'history' = 'distribute';
 
   ngOnInit(): void {
-    this.loadStock();
-    this.loadTechs();
+    this.loadData();
     this.loadHistory();
   }
 
-  loadStock(): void {
-    this.loadingStock = true;
-    this.stockSvc.getMySttStock()
-      .pipe(finalize(() => { this.loadingStock = false; this.zone.run(() => this.cdr.detectChanges()); }))
-      .subscribe({
-        next: s => { this.myStock = s; this.lines = []; },
-        error: e => this.error = e.message
-      });
-  }
+  get currentUser() { return this.authStore.user(); }
 
-  loadTechs(): void {
-    this.loadingTechs = true;
-    this.userSvc.getMyTechs()
-      .pipe(finalize(() => { this.loadingTechs = false; this.zone.run(() => this.cdr.detectChanges()); }))
+  loadData(): void {
+    this.loading = true;
+    forkJoin({
+      dpms: this.stockSvc.getDistributableDpms(),
+      techs: this.userSvc.getMyTechs()
+    }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: list => this.techs = list,
-        error: () => {}
+        next: ({ dpms, techs }) => {
+          this.distributableDpms = dpms;
+          this.techs = techs;
+        },
+        error: e => this.error = e.message
       });
   }
 
@@ -92,17 +80,24 @@ export class DistributeComponent implements OnInit {
     this.loadingHistory = true;
     this.stockSvc.getMyDistributions()
       .pipe(finalize(() => { this.loadingHistory = false; this.zone.run(() => this.cdr.detectChanges()); }))
-      .subscribe({
-        next: d => this.distributions = d,
-        error: () => {}
-      });
+      .subscribe({ next: d => this.distributions = d, error: () => {} });
   }
 
-  addLine(): void {
-    this.lines.push({ equipmentId: '', equipmentName: '', available: 0, quantity: 1 });
+  get selectedDpm(): DistributableDpm | null {
+    return this.distributableDpms.find(d => d.id === this.selectedDpmId) ?? null;
   }
 
-  removeLine(i: number): void { this.lines.splice(i, 1); }
+  onDpmSelect(dpmId: string): void {
+    this.selectedDpmId = dpmId;
+    const dpm = this.distributableDpms.find(d => d.id === dpmId);
+    if (!dpm) { this.lines = []; return; }
+    this.lines = dpm.items.map(item => ({
+      equipmentId: item.equipmentId,
+      equipmentName: item.equipmentName,
+      available: item.remainingQuantity,
+      quantity: item.remainingQuantity
+    }));
+  }
 
   decrementQuantity(line: DistributionLine): void {
     if (line.quantity > 1) line.quantity--;
@@ -112,44 +107,52 @@ export class DistributeComponent implements OnInit {
     if (line.quantity < line.available) line.quantity++;
   }
 
-  onEquipmentChange(line: DistributionLine): void {
-    const si = this.myStock?.items.find(i => i.equipmentId === line.equipmentId);
-    if (si) {
-      line.equipmentName = si.equipmentName;
-      line.available = si.availableQuantity;
-      if (line.quantity > line.available) line.quantity = line.available;
-    }
-  }
-
-  get availableItems(): SttStockItem[] {
-    return (this.myStock?.items ?? []).filter(i => i.availableQuantity > 0);
-  }
+  removeLine(i: number): void { this.lines.splice(i, 1); }
 
   get techOptions(): SelectOption[] {
-    return this.techs.map(t => ({
-      value: t.id,
-      label: t.fullName,
-      subtitle: t.email,
-      initials: t.fullName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-      avatarColor: '#e5243b',
-      badge: 'TECH',
-      badgeColor: 'info' as const
-    }));
-  }
-
-  get equipmentOptions(): SelectOption[] {
-    return this.availableItems.map(si => ({
-      value: si.equipmentId,
-      label: si.equipmentName,
-      subtitle: `Available: ${si.availableQuantity}`,
-      badge: `${si.availableQuantity}`,
-      badgeColor: (si.availableQuantity > 5 ? 'success' : si.availableQuantity > 0 ? 'warning' : 'secondary') as SelectOption['badgeColor']
-    }));
+    const opts: SelectOption[] = [];
+    const me = this.currentUser;
+    if (me?.id) {
+      const meName = me.fullName ?? me.username ?? '';
+      opts.push({
+        value: me.id,
+        label: `${meName} (Self)`,
+        subtitle: me.email ?? '',
+        initials: meName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'ME',
+        avatarColor: '#f59e0b',
+        badge: 'SELF',
+        badgeColor: 'warning' as const
+      });
+    }
+    for (const t of this.techs) {
+      if (t.id === me?.id) continue;
+      opts.push({
+        value: t.id,
+        label: t.fullName,
+        subtitle: t.email,
+        initials: t.fullName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase(),
+        avatarColor: '#e5243b',
+        badge: 'TECH',
+        badgeColor: 'info' as const
+      });
+    }
+    return opts;
   }
 
   get canSubmit(): boolean {
-    return !!this.selectedTechId && this.lines.length > 0 &&
-      this.lines.every(l => !!l.equipmentId && l.quantity > 0 && l.quantity <= l.available);
+    return !!this.selectedTechId && !!this.selectedDpmId &&
+      this.lines.length > 0 &&
+      this.lines.every(l => l.quantity > 0 && l.quantity <= l.available);
+  }
+
+  isSelfDistribution(techId: string): boolean {
+    return !!this.currentUser?.id && techId === this.currentUser.id;
+  }
+
+  dpmLabel(d: SttDistribution): string {
+    if (!d.dpmId) return '—';
+    const dpm = this.distributableDpms.find(x => x.id === d.dpmId);
+    return dpm ? dpm.dpmNumber : d.dpmId.slice(-6);
   }
 
   submit(): void {
@@ -159,6 +162,7 @@ export class DistributeComponent implements OnInit {
     this.successMsg = null;
     const payload: DistributeToTechRequest = {
       techId: this.selectedTechId,
+      dpmId: this.selectedDpmId,
       notes: this.notes.trim() || undefined,
       items: this.lines.map<DistributionItemRequest>(l => ({
         equipmentId: l.equipmentId,
@@ -171,9 +175,10 @@ export class DistributeComponent implements OnInit {
         next: () => {
           this.successMsg = 'Distribution recorded successfully.';
           this.selectedTechId = '';
+          this.selectedDpmId = '';
           this.notes = '';
           this.lines = [];
-          this.loadStock();
+          this.loadData();
           this.loadHistory();
         },
         error: e => this.error = e.error?.message ?? e.message

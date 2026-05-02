@@ -234,10 +234,27 @@ table.dash-table {
 }
 
 .dash-tech-name {
+  align-items: center;
   color: var(--dash-text);
+  display: flex;
   font-size: 0.9rem;
   font-weight: 800;
+  gap: 0.6rem;
   margin-bottom: 0.5rem;
+}
+
+.dash-tech-avatar {
+  align-items: center;
+  background: linear-gradient(135deg, var(--dash-primary), var(--dash-accent));
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  height: 1.9rem;
+  justify-content: center;
+  width: 1.9rem;
 }
 
 .dash-tech-chips {

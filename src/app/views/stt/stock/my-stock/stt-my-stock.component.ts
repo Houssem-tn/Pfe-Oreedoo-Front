@@ -1,7 +1,10 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { finalize } from 'rxjs/operators';
+import { of } from 'rxjs';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
   BadgeComponent, SpinnerComponent, TableDirective,
@@ -9,7 +12,9 @@ import {
 } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
+import { UserService } from '../../../../core/users/user.service';
 import { DpmRequest, DpmStatus, SttStock, TechStock } from '../../../../core/stock/stock.model';
+import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
   standalone: true,
@@ -24,12 +29,14 @@ import { DpmRequest, DpmStatus, SttStock, TechStock } from '../../../../core/sto
 })
 export class SttMyStockComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
+  private readonly userSvc = inject(UserService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
   stock: SttStock | null = null;
   incomingDpms: DpmRequest[] = [];
   techStocks: TechStock[] = [];
+  userMap = new Map<string, AppUser>();
 
   loading = false;
   error: string | null = null;
@@ -38,11 +45,36 @@ export class SttMyStockComponent implements OnInit {
 
   loadAll(): void {
     this.loading = true;
-    this.stockSvc.getMySttStock().subscribe({ next: s => this.stock = s, error: e => this.error = e.message });
-    this.stockSvc.getIncomingDpms().subscribe({ next: d => this.incomingDpms = d });
-    this.stockSvc.getMyTechsStocks()
-      .pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
-      .subscribe({ next: t => this.techStocks = t });
+    this.error = null;
+    forkJoin({
+      me:          this.userSvc.getMe(),
+      techs:       this.userSvc.getMyTechs().pipe(catchError(() => of([] as AppUser[]))),
+      stock:       this.stockSvc.getMySttStock().pipe(catchError(() => of(null))),
+      incomingDpms: this.stockSvc.getIncomingDpms().pipe(catchError(() => of([] as DpmRequest[]))),
+      techStocks:  this.stockSvc.getMyTechsStocks().pipe(catchError(() => of([] as TechStock[])))
+    }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: ({ me, techs, stock, incomingDpms, techStocks }) => {
+          const map = new Map<string, AppUser>();
+          map.set(me.id, me);
+          for (const u of techs) map.set(u.id, u);
+          this.userMap = map;
+          this.stock = stock;
+          this.incomingDpms = incomingDpms;
+          this.techStocks = techStocks;
+        },
+        error: e => this.error = e.message
+      });
+  }
+
+  userName(id: string): string {
+    return this.userMap.get(id)?.fullName ?? id;
+  }
+
+  userInitials(id: string): string {
+    const name = this.userMap.get(id)?.fullName;
+    if (!name) return '??';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
   get totalAvailable(): number {

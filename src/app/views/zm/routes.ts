@@ -69,6 +69,12 @@ export const routes: Routes = [
       import('./stock/my-tracking/zm-stock-tracking.component').then(m => m.ZmStockTrackingComponent),
     data: { title: 'My DPM Tracking' }
   },
+  {
+    path: 'stock/team-stock',
+    loadComponent: () =>
+      import('./stock/team-stock/zm-team-stock.component').then(m => m.ZmTeamStockComponent),
+    data: { title: 'Team Stock Overview' }
+  },
 
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 

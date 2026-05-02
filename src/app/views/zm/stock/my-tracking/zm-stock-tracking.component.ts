@@ -8,6 +8,7 @@ import { SpinnerComponent } from '@coreui/angular';
 import { StockService } from '../../../../core/stock/stock.service';
 import { DpmRequest, DpmStatus } from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
+import { DpmPdfService } from '../../../../core/pdf/dpm-pdf.service';
 
 @Component({
   standalone: true,
@@ -18,6 +19,7 @@ import { SwalService } from '../../../../core/ui/swal.service';
 export class ZmStockTrackingComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
   private readonly swal = inject(SwalService);
+  private readonly pdfSvc = inject(DpmPdfService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
@@ -70,6 +72,10 @@ export class ZmStockTrackingComponent implements OnInit {
 
   countByStatus(status: DpmStatus): number {
     return this.dpms.filter(d => d.status === status).length;
+  }
+
+  downloadPdf(dpm: DpmRequest): void {
+    this.pdfSvc.download(dpm);
   }
 
   statusLabel(s: DpmStatus): string {

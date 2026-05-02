@@ -79,5 +79,10 @@ export const navZm: INavData[] = [
     name: 'Create DPM',
     url: '/zm/stock/create-dpm',
     iconComponent: { name: 'cilPlus' }
+  },
+  {
+    name: 'Team Stock',
+    url: '/zm/stock/team-stock',
+    iconComponent: { name: 'cilPeople' }
   }
 ];

@@ -26,6 +26,7 @@ export class StockAuditComponent implements OnInit {
 
   dpms: DpmRequest[] = [];
   movementsByRef = new Map<string, StockMovement[]>();
+  allMovements: StockMovement[] = [];
   userMap = new Map<string, AppUser>();
 
   loading = false;
@@ -54,6 +55,7 @@ export class StockAuditComponent implements OnInit {
       .subscribe({
         next: ({ dpms, movements }) => {
           this.dpms = dpms;
+          this.allMovements = movements;
           const map = new Map<string, StockMovement[]>();
           for (const m of movements) {
             if (!m.referenceId) continue;
@@ -95,8 +97,12 @@ export class StockAuditComponent implements OnInit {
   }
 
   distributionsFor(dpm: DpmRequest): StockMovement[] {
-    return (this.movementsByRef.get(dpm.id) ?? [])
+    const byRef = (this.movementsByRef.get(dpm.id) ?? [])
       .filter(m => m.movementType === 'STT_TO_TECH_DISTRIBUTION');
+    if (byRef.length > 0) return byRef;
+    return this.allMovements.filter(
+      m => m.movementType === 'STT_TO_TECH_DISTRIBUTION' && m.fromActorId === dpm.sttId
+    );
   }
 
   distributionTechs(dpm: DpmRequest): string[] {

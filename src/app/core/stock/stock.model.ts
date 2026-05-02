@@ -103,10 +103,29 @@ export interface SttDistribution {
   techId: string;
   techName: string;
   techEmail?: string;
+  dpmId?: string;
   items: DistributionItem[];
   distributedAt: string;
   notes?: string;
   distributedBy?: string;
+}
+
+export interface DistributableDpmItem {
+  equipmentId: string;
+  equipmentName: string;
+  confirmedQuantity: number;
+  distributedQuantity: number;
+  remainingQuantity: number;
+}
+
+export interface DistributableDpm {
+  id: string;
+  dpmNumber: string;
+  zmName: string;
+  status: DpmStatus;
+  createdAt: string;
+  confirmedAt?: string;
+  items: DistributableDpmItem[];
 }
 
 export interface StockMovement {
@@ -162,6 +181,7 @@ export interface DistributionItemRequest {
 
 export interface DistributeToTechRequest {
   techId: string;
+  dpmId?: string;
   items: DistributionItemRequest[];
   notes?: string;
 }

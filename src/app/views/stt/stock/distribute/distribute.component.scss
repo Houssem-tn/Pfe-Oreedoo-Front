@@ -180,6 +180,151 @@
   text-align: center;
 }
 
+/* ─── Steps ───────────────────────────────────────────────────────── */
+
+.dist-step {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.dist-step__label {
+  align-items: center;
+  color: var(--dist-text);
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 800;
+  gap: 0.5rem;
+}
+
+.dist-step__num {
+  align-items: center;
+  background: linear-gradient(135deg, var(--dist-primary), var(--dist-primary-strong));
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  height: 1.5rem;
+  justify-content: center;
+  width: 1.5rem;
+}
+
+/* ─── DPM Picker ──────────────────────────────────────────────────── */
+
+.dist-loading {
+  align-items: center;
+  color: var(--dist-muted);
+  display: flex;
+  font-size: 0.9rem;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.dist-no-dpms {
+  background: rgba(229, 36, 59, 0.04);
+  border: 1.5px dashed rgba(130, 14, 30, 0.14);
+  border-radius: 1rem;
+  color: var(--dist-muted);
+  font-size: 0.9rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.dist-dpm-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.dist-dpm-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1.5px solid var(--dist-border);
+  border-radius: 1.1rem;
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: rgba(229, 36, 59, 0.25);
+    box-shadow: 0 6px 18px rgba(229, 36, 59, 0.09);
+  }
+
+  &--selected {
+    background: rgba(229, 36, 59, 0.04);
+    border-color: var(--dist-primary);
+    box-shadow: 0 0 0 3px rgba(229, 36, 59, 0.12);
+  }
+}
+
+.dist-dpm-card__head {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.dist-dpm-card__num {
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.dist-dpm-status {
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+
+  &--full    { background: rgba(16, 185, 129, 0.13); color: #065f46; }
+  &--partial { background: rgba(245, 158, 11, 0.13); color: #92400e; }
+}
+
+.dist-dpm-card__zm {
+  color: var(--dist-muted);
+  font-size: 0.78rem;
+  margin-bottom: 0.55rem;
+}
+
+.dist-dpm-card__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dist-dpm-item-chip {
+  background: rgba(229, 36, 59, 0.06);
+  border-radius: 999px;
+  color: var(--dist-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+
+  small { color: var(--dist-muted); font-weight: 600; margin-left: 0.2rem; }
+}
+
+/* ─── Line name ───────────────────────────────────────────────────── */
+
+.dist-line-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── DPM ref badge in history ────────────────────────────────────── */
+
+.dist-dpm-ref {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 999px;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+}
+
 /* ─── Form Panel ──────────────────────────────────────────────────── */
 
 .dist-form-panel {
@@ -298,7 +443,7 @@
   align-items: center;
   display: grid;
   gap: 0.65rem;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
 }
 
 .dist-qty-control {
@@ -519,6 +664,18 @@ table.dist-table {
   font-size: 0.9rem;
   padding: 2rem;
   text-align: center;
+}
+
+.dist-self-badge {
+  background: rgba(245, 158, 11, 0.14);
+  border-radius: 999px;
+  color: #92400e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin-left: 0.45rem;
+  padding: 0.15rem 0.5rem;
+  vertical-align: middle;
 }
 
 /* ─── Animation ───────────────────────────────────────────────────── */

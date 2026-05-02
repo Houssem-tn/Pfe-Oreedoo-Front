@@ -19,132 +19,127 @@
   </div>
 
   @if (activeTab === 'distribute') {
-    <div class="dist-layout">
+    <div class="dist-form-panel">
+      <div class="dist-panel-header">Distribute to TECH</div>
 
-      <!-- Stock panel -->
-      <div class="dist-stock-panel">
-        <div class="dist-panel-header">
-          <span>Available Stock</span>
-          @if (loadingStock) {
-            <c-spinner size="sm"></c-spinner>
-          }
-        </div>
-        <div class="dist-stock-list">
-          @if (!loadingStock && (!myStock || myStock.items.length === 0)) {
-            <div class="dist-stock-empty">No stock available.</div>
-          }
-          @for (item of myStock?.items ?? []; track item.equipmentId) {
-            <div class="dist-stock-item">
-              <span class="dist-stock-name">{{ item.equipmentName }}</span>
-              <div class="dist-stock-badges">
-                <span class="dist-qty-badge" [class.dist-qty-badge--avail]="item.availableQuantity > 0"
-                      [class.dist-qty-badge--zero]="item.availableQuantity === 0">
-                  {{ item.availableQuantity }} avail.
-                </span>
-                <span class="dist-stock-meta">recv {{ item.totalReceived }} / dist {{ item.totalDistributedToTechs }}</span>
+      <div class="dist-form-body">
+        @if (error) {
+          <div class="dist-alert dist-alert--error">{{ error }}</div>
+        }
+        @if (successMsg) {
+          <div class="dist-alert dist-alert--success">{{ successMsg }}</div>
+        }
+
+        @if (loading) {
+          <div class="dist-loading"><c-spinner size="sm"></c-spinner> Loading…</div>
+        } @else {
+
+          <!-- Step 1: Select TECH -->
+          <div class="dist-step">
+            <div class="dist-step__label">
+              <span class="dist-step__num">1</span> Select Technician
+            </div>
+            <app-searchable-select
+              [(ngModel)]="selectedTechId"
+              [options]="techOptions"
+              placeholder="Search and select a technician…">
+            </app-searchable-select>
+          </div>
+
+          <!-- Step 2: Select DPM -->
+          <div class="dist-step">
+            <div class="dist-step__label">
+              <span class="dist-step__num">2</span> Select DPM to distribute from
+            </div>
+            @if (distributableDpms.length === 0) {
+              <div class="dist-no-dpms">No confirmed DPMs with remaining stock.</div>
+            } @else {
+              <div class="dist-dpm-grid">
+                @for (dpm of distributableDpms; track dpm.id) {
+                  <div class="dist-dpm-card"
+                       [class.dist-dpm-card--selected]="selectedDpmId === dpm.id"
+                       (click)="onDpmSelect(dpm.id)">
+                    <div class="dist-dpm-card__head">
+                      <span class="dist-dpm-card__num">{{ dpm.dpmNumber }}</span>
+                      <span class="dist-dpm-status"
+                            [class.dist-dpm-status--full]="dpm.status === 'FULLY_CONFIRMED'"
+                            [class.dist-dpm-status--partial]="dpm.status === 'PARTIALLY_CONFIRMED'">
+                        {{ dpm.status === 'FULLY_CONFIRMED' ? 'Full' : 'Partial' }}
+                      </span>
+                    </div>
+                    <div class="dist-dpm-card__zm">ZM: {{ dpm.zmName }}</div>
+                    <div class="dist-dpm-card__items">
+                      @for (item of dpm.items; track item.equipmentId) {
+                        <span class="dist-dpm-item-chip">
+                          {{ item.equipmentName }}:
+                          <strong>{{ item.remainingQuantity }}</strong>
+                          <small>/ {{ item.confirmedQuantity }}</small>
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Step 3: Configure quantities -->
+          @if (selectedDpm) {
+            <div class="dist-step">
+              <div class="dist-step__label">
+                <span class="dist-step__num">3</span>
+                Adjust quantities — distributing from <strong>{{ selectedDpm.dpmNumber }}</strong>
+              </div>
+
+              <div class="dist-lines-list">
+                @for (line of lines; track $index; let i = $index) {
+                  <div class="dist-line-card">
+                    <div class="dist-line-row">
+                      <span class="dist-line-name">{{ line.equipmentName }}</span>
+                      <div class="dist-qty-control">
+                        <button class="dist-qty-btn" type="button"
+                                (click)="decrementQuantity(line)" [disabled]="line.quantity <= 1">−</button>
+                        <input class="dist-qty-input" type="number" min="1" [max]="line.available"
+                               [(ngModel)]="line.quantity" />
+                        <button class="dist-qty-btn" type="button"
+                                (click)="incrementQuantity(line)" [disabled]="line.quantity >= line.available">+</button>
+                        <span class="dist-qty-max">/ {{ line.available }} avail.</span>
+                      </div>
+                      <button class="dist-remove-btn" type="button" (click)="removeLine(i)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
+                    @if (line.quantity > line.available && line.available > 0) {
+                      <div class="dist-line-warning">Exceeds available quantity!</div>
+                    }
+                  </div>
+                }
+                @if (lines.length === 0) {
+                  <div class="dist-lines-empty">All items removed — select a DPM again to reset.</div>
+                }
+              </div>
+
+              <!-- Notes -->
+              <div class="dist-field" style="margin-top:1rem">
+                <label class="dist-label">Notes (optional)</label>
+                <input class="dist-input" type="text" [(ngModel)]="notes"
+                       placeholder="Any notes about this distribution" />
               </div>
             </div>
           }
-        </div>
+
+        }
       </div>
 
-      <!-- Form panel -->
-      <div class="dist-form-panel">
-        <div class="dist-panel-header">
-          Distribute to TECH
-        </div>
-
-        <div class="dist-form-body">
-          @if (error) {
-            <div class="dist-alert dist-alert--error">{{ error }}</div>
-          }
-          @if (successMsg) {
-            <div class="dist-alert dist-alert--success">{{ successMsg }}</div>
-          }
-
-          <!-- Tech selector -->
-          <div class="dist-field">
-            <label class="dist-label">Select TECH *</label>
-            @if (loadingTechs) {
-              <c-spinner size="sm"></c-spinner>
-            } @else {
-              <app-searchable-select
-                [(ngModel)]="selectedTechId"
-                [options]="techOptions"
-                placeholder="Search and select a technician…">
-              </app-searchable-select>
-            }
-          </div>
-
-          <!-- Notes -->
-          <div class="dist-field">
-            <label class="dist-label">Notes</label>
-            <input class="dist-input" type="text" [(ngModel)]="notes"
-                   placeholder="Optional notes about this distribution" />
-          </div>
-
-          <!-- Equipment lines -->
-          <div>
-            <div class="dist-lines-header">
-              <span class="dist-lines-title">Equipment Lines *</span>
-              <button class="dist-add-btn" (click)="addLine()" [disabled]="availableItems.length === 0">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Add Line
-              </button>
-            </div>
-
-            <div class="dist-lines-list" style="margin-top:0.65rem">
-              @if (lines.length === 0) {
-                <div class="dist-lines-empty">No lines yet — click "Add Line" to start.</div>
-              }
-              @for (line of lines; track $index; let i = $index) {
-                <div class="dist-line-card">
-                  <div class="dist-line-row">
-                    <app-searchable-select
-                      [(ngModel)]="line.equipmentId"
-                      (ngModelChange)="onEquipmentChange(line)"
-                      [options]="equipmentOptions"
-                      placeholder="Select equipment…">
-                    </app-searchable-select>
-
-                    <div class="dist-qty-control">
-                      <button class="dist-qty-btn" type="button"
-                              (click)="decrementQuantity(line)" [disabled]="line.quantity <= 1">−</button>
-                      <input class="dist-qty-input" type="number" min="1" [max]="line.available"
-                             [(ngModel)]="line.quantity" />
-                      <button class="dist-qty-btn" type="button"
-                              (click)="incrementQuantity(line)" [disabled]="line.quantity >= line.available">+</button>
-                      <span class="dist-qty-max">/ {{ line.available }}</span>
-                    </div>
-
-                    <button class="dist-remove-btn" type="button" (click)="removeLine(i)">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
-                  </div>
-                  @if (line.quantity > line.available && line.available > 0) {
-                    <div class="dist-line-warning">Exceeds available quantity!</div>
-                  }
-                </div>
-              }
-            </div>
-          </div>
-        </div>
-
-        <div class="dist-form-footer">
-          <button class="dist-submit-btn" type="button"
-                  [disabled]="!canSubmit || submitting" (click)="submit()">
-            @if (submitting) {
-              <c-spinner size="sm"></c-spinner>
-            }
-            Distribute
-          </button>
-        </div>
+      <div class="dist-form-footer">
+        <button class="dist-submit-btn" type="button"
+                [disabled]="!canSubmit || submitting" (click)="submit()">
+          @if (submitting) { <c-spinner size="sm"></c-spinner> }
+          Distribute
+        </button>
       </div>
-
     </div>
   }
 
@@ -159,6 +154,7 @@
             <thead>
               <tr>
                 <th>TECH</th>
+                <th>DPM</th>
                 <th>Items</th>
                 <th>Date</th>
                 <th>Notes</th>
@@ -167,7 +163,19 @@
             <tbody>
               @for (d of distributions; track d.id) {
                 <tr>
-                  <td><strong>{{ d.techName }}</strong></td>
+                  <td>
+                    <strong>{{ d.techName }}</strong>
+                    @if (isSelfDistribution(d.techId)) {
+                      <span class="dist-self-badge">SELF</span>
+                    }
+                  </td>
+                  <td>
+                    @if (d.dpmId) {
+                      <span class="dist-dpm-ref">{{ dpmLabel(d) }}</span>
+                    } @else {
+                      <span style="color:#94a3b8">—</span>
+                    }
+                  </td>
                   <td>
                     @for (i of d.items; track i.equipmentId) {
                       <span class="dist-item-chip">{{ i.equipmentName }}: {{ i.quantity }}</span>
@@ -178,7 +186,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="4" class="dist-table-empty">No distributions yet.</td>
+                  <td colspan="5" class="dist-table-empty">No distributions yet.</td>
                 </tr>
               }
             </tbody>
