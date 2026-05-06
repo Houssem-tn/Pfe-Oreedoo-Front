@@ -13,7 +13,6 @@ import {
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
 import { Equipment, CreateDpmRequest, DpmItemRequest } from '../../../../core/stock/stock.model';
-import { AppUser } from '../../../../core/users/user.model';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/searchable-select/searchable-select.component';
 
 interface DpmLine {
@@ -43,7 +42,7 @@ export class CreateDpmComponent implements OnInit {
   private readonly zone = inject(NgZone);
 
   equipment: Equipment[] = [];
-  stts: AppUser[] = [];
+  stts: { id: string; fullName: string; email: string }[] = [];
   loadingEquipment = false;
   loadingStts = false;
   submitting = false;
@@ -68,7 +67,7 @@ export class CreateDpmComponent implements OnInit {
 
   loadStts(): void {
     this.loadingStts = true;
-    this.userSvc.getMySttsForZm()
+    this.userSvc.getAllActiveStts()
       .pipe(finalize(() => { this.loadingStts = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({ next: list => this.stts = list, error: () => {} });
   }

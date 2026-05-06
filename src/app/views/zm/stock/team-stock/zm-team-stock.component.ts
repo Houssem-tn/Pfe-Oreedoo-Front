@@ -7,7 +7,7 @@ import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
-import { SttStock, TechStock } from '../../../../core/stock/stock.model';
+import { SttStock, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -24,8 +24,10 @@ export class ZmTeamStockComponent implements OnInit {
 
   sttStocks: SttStock[] = [];
   techStocks: TechStock[] = [];
+  techUsages: TechStockUsage[] = [];
   sttMap = new Map<string, AppUser>();
   techMap = new Map<string, AppUser>();
+  techUsageMap = new Map<string, TechStockUsage[]>();
 
   loading = false;
   error: string | null = null;
@@ -41,9 +43,10 @@ export class ZmTeamStockComponent implements OnInit {
     forkJoin({
       dpms:       this.stockSvc.getMyDpms(),
       sttStocks:  this.stockSvc.zmGetMySttsStocks(),
-      techStocks: this.stockSvc.zmGetMyTechsStocks()
+      techStocks: this.stockSvc.zmGetMyTechsStocks(),
+      techUsages: this.stockSvc.zmGetMyTechsUsages()
     }).pipe(
-      switchMap(({ dpms, sttStocks, techStocks }) => {
+      switchMap(({ dpms, sttStocks, techStocks, techUsages }) => {
         // Build sttMap from DPM data — covers every STT ever targeted, regardless of assignedZmId
         const sttMap = new Map<string, AppUser>();
         for (const d of dpms) {
@@ -59,12 +62,12 @@ export class ZmTeamStockComponent implements OnInit {
           : [of([] as AppUser[])];
 
         return forkJoin({ techLists: forkJoin(techCalls) }).pipe(
-          map(({ techLists }) => ({ techLists, sttStocks, techStocks }))
+          map(({ techLists }) => ({ techLists, sttStocks, techStocks, techUsages }))
         );
       }),
       finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); })
     ).subscribe({
-      next: ({ techLists, sttStocks, techStocks }) => {
+      next: ({ techLists, sttStocks, techStocks, techUsages }) => {
         const tMap = new Map<string, AppUser>();
         for (const [id, stt] of this.sttMap) tMap.set(id, stt);
         for (const list of techLists) {
@@ -73,6 +76,8 @@ export class ZmTeamStockComponent implements OnInit {
         this.techMap = tMap;
         this.sttStocks = sttStocks;
         this.techStocks = techStocks;
+        this.techUsages = techUsages;
+        this.techUsageMap = this.groupTechUsages(techUsages);
         this.expandedSttIds = new Set(sttStocks.map(s => s.sttId));
       },
       error: e => this.error = e.message
@@ -124,7 +129,12 @@ export class ZmTeamStockComponent implements OnInit {
 
   get totalTechUnits(): number {
     return this.techStocks.reduce((sum, t) =>
-      sum + t.items.reduce((a, i) => a + i.receivedQuantity, 0), 0);
+      sum + t.items.reduce((a, i) => a + i.remainingQuantity, 0), 0);
+  }
+
+  get totalTechUsedUnits(): number {
+    return this.techStocks.reduce((sum, t) =>
+      sum + t.items.reduce((a, i) => a + i.usedQuantity, 0), 0);
   }
 
   isSelfExecutor(ts: TechStock): boolean {
@@ -133,5 +143,21 @@ export class ZmTeamStockComponent implements OnInit {
 
   sttAvailableUnits(ss: SttStock): number {
     return ss.items.reduce((sum, i) => sum + i.availableQuantity, 0);
+  }
+
+  techUsagesForTech(techId: string): TechStockUsage[] {
+    return this.techUsageMap.get(techId) ?? [];
+  }
+
+  private groupTechUsages(usages: TechStockUsage[]): Map<string, TechStockUsage[]> {
+    const grouped = new Map<string, TechStockUsage[]>();
+
+    for (const usage of usages) {
+      const current = grouped.get(usage.techId) ?? [];
+      current.push(usage);
+      grouped.set(usage.techId, current);
+    }
+
+    return grouped;
   }
 }

@@ -39,6 +39,7 @@ export interface AppUser {
   assignedGovernorates?: string[] | null;
   coveredGovernorates?: string[] | null;
   requestedGovernorates?: string[] | null;
+  coverageByModule?: Record<string, string[]> | null;
 
   validatedAt?: string | null;
   validatedBy?: string | null;

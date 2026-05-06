@@ -3,28 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
-import {
-  CardComponent, CardBodyComponent, CardHeaderComponent,
-  ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
-  ButtonDirective, BadgeComponent, SpinnerComponent,
-  TableDirective, FormControlDirective, FormLabelDirective,
-  ColComponent, RowComponent
-} from '@coreui/angular';
+import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { Equipment, CreateEquipmentRequest } from '../../../../core/stock/stock.model';
+import { Equipment, CreateEquipmentRequest, StockUnit } from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule, FormsModule, IconDirective,
-    CardComponent, CardBodyComponent, CardHeaderComponent,
-    ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
-    ButtonDirective, BadgeComponent, SpinnerComponent,
-    TableDirective, FormControlDirective, FormLabelDirective,
-    ColComponent, RowComponent
-  ],
+  imports: [CommonModule, FormsModule, IconDirective, SpinnerComponent],
   templateUrl: './equipment.component.html',
   styleUrls: ['./equipment.component.scss']
 })
@@ -42,7 +29,12 @@ export class EquipmentComponent implements OnInit {
   modalVisible = false;
   editingId: string | null = null;
 
-  form: CreateEquipmentRequest = { name: '', description: '', unit: '' };
+  readonly unitOptions: { value: StockUnit; label: string }[] = [
+    { value: 'METERS', label: 'Meters' },
+    { value: 'PIECES', label: 'Pieces' }
+  ];
+
+  form: CreateEquipmentRequest = { name: '', description: '', unit: undefined };
   selectedImage: File | null = null;
   imagePreview: string | null = null;
 
@@ -65,7 +57,7 @@ export class EquipmentComponent implements OnInit {
 
   openCreate(): void {
     this.editingId = null;
-    this.form = { name: '', description: '', unit: '' };
+    this.form = { name: '', description: '', unit: undefined };
     this.selectedImage = null;
     this.imagePreview = null;
     this.modalVisible = true;
@@ -73,7 +65,7 @@ export class EquipmentComponent implements OnInit {
 
   openEdit(eq: Equipment): void {
     this.editingId = eq.id;
-    this.form = { name: eq.name, description: eq.description ?? '', unit: eq.unit ?? '' };
+    this.form = { name: eq.name, description: eq.description ?? '', unit: eq.unit };
     this.selectedImage = null;
     this.imagePreview = eq.imageUrl ?? null;
     this.modalVisible = true;
@@ -119,5 +111,11 @@ export class EquipmentComponent implements OnInit {
   get filtered(): Equipment[] {
     const t = this.searchTerm.toLowerCase();
     return t ? this.equipment.filter(e => e.name.toLowerCase().includes(t)) : this.equipment;
+  }
+
+  unitLabel(unit?: StockUnit): string {
+    if (unit === 'METERS') return 'Meters';
+    if (unit === 'PIECES') return 'Pieces';
+    return '—';
   }
 }

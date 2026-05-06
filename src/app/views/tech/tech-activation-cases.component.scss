@@ -524,6 +524,7 @@
 .tech-search input,
 .tech-select,
 .tech-field input,
+.tech-field select,
 .tech-field textarea {
   background: transparent;
   border: 0;
@@ -1556,6 +1557,7 @@
 }
 
 .tech-field input,
+.tech-field select,
 .tech-field textarea {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(130, 14, 30, 0.12);
@@ -1591,6 +1593,195 @@
   font-size: var(--text-xs);
   margin-top: var(--space-sm);
   display: block;
+}
+
+.tech-stock-helper {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.tech-stock-helper__top {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-md);
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.tech-stock-helper__hint {
+  color: var(--tech-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.tech-stock-helper__summary {
+  align-items: flex-end;
+  background: rgba(229, 36, 59, 0.06);
+  border: 1px solid rgba(229, 36, 59, 0.1);
+  border-radius: 1rem;
+  display: grid;
+  min-width: 7.5rem;
+  padding: var(--space-md);
+  text-align: right;
+
+  strong {
+    color: var(--tech-primary-strong);
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  span,
+  small {
+    color: var(--tech-muted);
+  }
+
+  small {
+    font-size: var(--text-xs);
+  }
+}
+
+.tech-stock-list {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.tech-stock-item {
+  background: rgba(255, 245, 247, 0.92);
+  border: 1px solid rgba(130, 14, 30, 0.08);
+  border-radius: 1rem;
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.tech-stock-item--empty {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.tech-stock-item--warning {
+  background: rgba(188, 122, 0, 0.08);
+  border-color: rgba(188, 122, 0, 0.18);
+}
+
+.tech-stock-item__head,
+.tech-stock-item__meta,
+.tech-stock-form__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.tech-stock-item__head strong {
+  color: var(--tech-ink);
+  font-size: var(--text-base);
+}
+
+.tech-stock-item__head span {
+  color: var(--tech-primary-strong);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.tech-stock-item__meta span,
+.tech-stock-form__context {
+  color: var(--tech-muted);
+  font-size: var(--text-xs);
+}
+
+.tech-stock-form {
+  background: rgba(255, 245, 247, 0.72);
+  border: 1px solid rgba(130, 14, 30, 0.08);
+  border-radius: 1.15rem;
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.tech-stock-form__grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tech-stock-form__context {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 0.9rem;
+  padding: var(--space-md);
+}
+
+// ── Usage picker (dropdown rows) ─────────────────────────────────────────────
+
+.tech-usage-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &__row {
+    align-items: center;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: 1fr 4.5rem 2rem;
+  }
+
+  &__select {
+    appearance: auto;
+    background: #fff;
+    border: 1px solid rgba(130, 14, 30, 0.2);
+    border-radius: 0.75rem;
+    color: var(--tech-ink);
+    font-size: var(--text-sm);
+    min-width: 0;
+    padding: 0.5rem 0.625rem;
+    width: 100%;
+  }
+
+  &__qty {
+    background: #fff;
+    border: 1px solid rgba(130, 14, 30, 0.2);
+    border-radius: 0.75rem;
+    color: var(--tech-ink);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    padding: 0.5rem 0.375rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  &__remove {
+    align-items: center;
+    background: none;
+    border: 1px solid rgba(229, 36, 59, 0.35);
+    border-radius: 0.5rem;
+    color: #c0192b;
+    cursor: pointer;
+    display: flex;
+    font-size: 1rem;
+    height: 2rem;
+    justify-content: center;
+    padding: 0;
+    width: 2rem;
+
+    &:hover:not(:disabled) { background: rgba(229, 36, 59, 0.08); }
+    &:disabled { cursor: not-allowed; opacity: 0.45; }
+  }
+
+  &__add {
+    background: none;
+    border: 1px dashed rgba(130, 14, 30, 0.3);
+    border-radius: 0.75rem;
+    color: var(--tech-primary-strong, #820e1e);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    padding: 0.5rem;
+    width: 100%;
+
+    &:hover:not(:disabled) { background: rgba(130, 14, 30, 0.04); }
+    &:disabled { cursor: not-allowed; opacity: 0.5; }
+  }
 }
 
 // ============================================================
@@ -1739,7 +1930,9 @@
   .tech-case-card__header,
   .tech-panel__header,
   .tech-panel__navigator,
-  .tech-proof-preview {
+  .tech-proof-preview,
+  .tech-stock-helper__top,
+  .tech-stock-form__actions {
     flex-direction: column;
   }
 

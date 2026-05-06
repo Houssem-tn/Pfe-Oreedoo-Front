@@ -111,7 +111,7 @@
               <th>Items</th>
               <th>Delivery Person</th>
               <th>Created</th>
-              <th>Events</th>
+              <th>Track</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +139,14 @@
                 <td>{{ d.items.length }} line(s)</td>
                 <td>{{ d.deliveryPersonName }}</td>
                 <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
-                <td>{{ d.timeline.length }}</td>
+                <td>
+                  <button class="track-btn-detail" type="button" (click)="openDetail(d)" title="View DPM timeline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Track
+                  </button>
+                </td>
               </tr>
               <!-- Items detail sub-row -->
               <tr class="track-row-items">
@@ -270,17 +277,29 @@
               </div>
             </div>
 
-            <!-- Stats (2 columns: items count + total received) -->
-            <div class="track-card-stats" style="grid-template-columns: 1fr 1fr">
+            <!-- Stats -->
+            <div class="track-card-stats" style="grid-template-columns: repeat(4, 1fr)">
               <div class="track-card-stat">
                 <div class="track-card-stat__val">{{ t.items.length }}</div>
                 <div class="track-card-stat__lbl">Item types</div>
               </div>
               <div class="track-card-stat">
-                <div class="track-card-stat__val track-card-stat__val--avail">
+                <div class="track-card-stat__val">
                   {{ techTotalReceived(t) }}
                 </div>
-                <div class="track-card-stat__lbl">Total Received</div>
+                <div class="track-card-stat__lbl">Received</div>
+              </div>
+              <div class="track-card-stat">
+                <div class="track-card-stat__val track-card-stat__val--dist">
+                  {{ techTotalUsed(t) }}
+                </div>
+                <div class="track-card-stat__lbl">Used</div>
+              </div>
+              <div class="track-card-stat">
+                <div class="track-card-stat__val track-card-stat__val--avail">
+                  {{ techTotalRemaining(t) }}
+                </div>
+                <div class="track-card-stat__lbl">Remaining</div>
               </div>
             </div>
 
@@ -291,16 +310,52 @@
                   Under STT: <strong>{{ userName(t.sttId) }}</strong>
                 </div>
               }
-              <div class="track-card-items-title">Equipment</div>
-              <div class="track-card-chips">
+              <div class="track-card-items-title">Equipment balance</div>
+              <div class="track-tech-item-list">
                 @for (item of t.items; track item.equipmentId) {
-                  <span class="track-card-chip">
-                    {{ item.equipmentName }}: <strong>{{ item.receivedQuantity }}</strong>
-                  </span>
+                  <div class="track-tech-item">
+                    <div class="track-tech-item__name">
+                      {{ item.equipmentName }}
+                      @if (item.unit) {
+                        <small>{{ item.unit }}</small>
+                      }
+                    </div>
+                    <div class="track-tech-item__stats">
+                      <span>Recv <strong>{{ item.receivedQuantity }}</strong></span>
+                      <span>Used <strong>{{ item.usedQuantity }}</strong></span>
+                      <span>Rem <strong>{{ item.remainingQuantity }}</strong></span>
+                    </div>
+                  </div>
                 } @empty {
                   <span style="color:var(--t-muted);font-size:0.82rem">No items.</span>
                 }
               </div>
+
+              <div class="track-card-items-title" style="margin-top:1rem">Usage by case</div>
+              @if (techUsagesFor(t.techId).length === 0) {
+                <span style="color:var(--t-muted);font-size:0.82rem">No usage declarations yet.</span>
+              } @else {
+                <div class="track-usage-list">
+                  @for (usage of techUsagesFor(t.techId); track usage.id) {
+                    <div class="track-usage-card">
+                      <div class="track-usage-head">
+                        <div class="track-usage-case">Case {{ usage.caseReference }}</div>
+                        <div class="track-usage-time">{{ usage.declaredAt | date:'dd/MM/yy HH:mm' }}</div>
+                      </div>
+                      <div class="track-usage-items">
+                        @for (item of usage.items; track item.equipmentId) {
+                          <span class="track-usage-chip">
+                            {{ item.equipmentName }} <strong>x{{ item.quantity }}</strong>
+                          </span>
+                        }
+                      </div>
+                      @if (usage.notes) {
+                        <div class="track-usage-note">{{ usage.notes }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
               @if (t.lastUpdatedAt) {
                 <div style="margin-top:0.55rem;color:var(--t-muted);font-size:0.76rem">
                   Updated {{ t.lastUpdatedAt | date:'dd/MM/yy HH:mm' }}
@@ -316,3 +371,190 @@
 
 
 </div>
+
+<!-- DPM Detail overlay -->
+@if (detailDpm && detailVisible) {
+  <div class="track-overlay-backdrop" (click)="detailVisible = false">
+    <div class="track-overlay-panel" (click)="$event.stopPropagation()">
+
+      <div class="track-panel-header">
+        <div class="track-panel-title">
+          {{ detailDpm.dpmNumber }}
+          <span class="track-status-pill"
+                [class.track-status-pill--pending]="detailDpm.status === 'PENDING_STT_CONFIRMATION'"
+                [class.track-status-pill--partial]="detailDpm.status === 'PARTIALLY_CONFIRMED'"
+                [class.track-status-pill--confirmed]="detailDpm.status === 'FULLY_CONFIRMED'"
+                [class.track-status-pill--rejected]="detailDpm.status === 'REJECTED'"
+                [class.track-status-pill--cancelled]="detailDpm.status === 'CANCELLED'">
+            {{ statusLabel(detailDpm.status) }}
+          </span>
+        </div>
+        <button class="track-panel-close" type="button" (click)="detailVisible = false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="track-panel-body">
+
+        <!-- Meta grid -->
+        <div class="track-panel-meta">
+          <div class="track-meta-item">
+            <span class="track-meta-label">Zone Manager</span>
+            <span class="track-meta-value">{{ detailDpm.zmName }}</span>
+            <span class="track-meta-sub">{{ detailDpm.zmEmail }}</span>
+          </div>
+          <div class="track-meta-item">
+            <span class="track-meta-label">STT</span>
+            <span class="track-meta-value">{{ detailDpm.sttName }}</span>
+            <span class="track-meta-sub">{{ detailDpm.sttEmail }}</span>
+          </div>
+          <div class="track-meta-item">
+            <span class="track-meta-label">Delivery Person</span>
+            <span class="track-meta-value">{{ detailDpm.deliveryPersonName || '—' }}</span>
+          </div>
+          <div class="track-meta-item">
+            <span class="track-meta-label">Created</span>
+            <span class="track-meta-value">{{ detailDpm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          @if (detailDpm.confirmedAt) {
+            <div class="track-meta-item">
+              <span class="track-meta-label">Confirmed</span>
+              <span class="track-meta-value">{{ detailDpm.confirmedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          }
+          @if (detailDpm.notes) {
+            <div class="track-meta-item track-meta-item--full">
+              <span class="track-meta-label">Notes</span>
+              <span class="track-meta-value">{{ detailDpm.notes }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Equipment items -->
+        <div>
+          <div class="track-panel-section-title">Equipment Items</div>
+          <table class="track-panel-table">
+            <thead>
+              <tr>
+                <th>Equipment</th>
+                <th>Requested</th>
+                <th>Confirmed</th>
+                <th>Shortage</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of detailDpm.items; track item.equipmentId) {
+                <tr>
+                  <td>
+                    @if (item.equipmentImageUrl) {
+                      <img [src]="item.equipmentImageUrl" width="26" height="26"
+                           style="object-fit:cover;border-radius:4px;margin-right:6px;vertical-align:middle" />
+                    }
+                    {{ item.equipmentName }}
+                  </td>
+                  <td>{{ item.requestedQuantity }}</td>
+                  <td>
+                    @if (item.confirmedQuantity != null) {
+                      <span [class]="item.confirmedQuantity < item.requestedQuantity ? 'track-conf-warn' : 'track-conf-ok'">
+                        {{ item.confirmedQuantity }}
+                      </span>
+                    } @else {
+                      <span class="track-conf-none">—</span>
+                    }
+                  </td>
+                  <td>
+                    @if (item.shortageQuantity && item.shortageQuantity > 0) {
+                      <span class="track-shortage-val">−{{ item.shortageQuantity }}</span>
+                    } @else { — }
+                  </td>
+                  <td><small>{{ item.confirmationNote || '—' }}</small></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TECH Distributions -->
+        <div>
+          <div class="track-panel-section-title">
+            TECH Distributions
+            @if (loadingDetail) {
+              <span style="font-size:0.72rem;color:var(--t-muted);font-weight:400;letter-spacing:0">loading…</span>
+            } @else {
+              <span class="track-tl-count">{{ detailTechDistributions.length }}</span>
+            }
+          </div>
+          @if (detailTechDistributions.length === 0 && !loadingDetail) {
+            <p style="color:var(--t-muted);font-size:0.87rem;margin:0">No TECH distributions linked to this DPM yet.</p>
+          }
+          @if (detailTechDistributions.length > 0) {
+            <div class="track-dist-list">
+              @for (dist of detailTechDistributions; track dist.id) {
+                <div class="track-dist-card">
+                  <div class="track-dist-header">
+                    <div class="track-dist-tech">
+                      <span class="track-dist-avatar">{{ nameInitials(dist.techName) }}</span>
+                      <div>
+                        <div class="track-dist-name">{{ dist.techName || '—' }}</div>
+                        @if (dist.techEmail) {
+                          <div class="track-dist-email">{{ dist.techEmail }}</div>
+                        }
+                      </div>
+                    </div>
+                    <span class="track-dist-time">{{ dist.distributedAt | date:'dd/MM/yy HH:mm' }}</span>
+                  </div>
+                  <div class="track-dist-chips">
+                    @for (item of dist.items; track item.equipmentId) {
+                      <span class="track-dist-chip">
+                        {{ item.equipmentName }} <strong>×{{ item.quantity }}</strong>
+                      </span>
+                    }
+                  </div>
+                  @if (dist.notes) {
+                    <div class="track-dist-notes">{{ dist.notes }}</div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Timeline -->
+        <div>
+          <div class="track-panel-section-title">
+            Timeline
+            <span class="track-tl-count">{{ detailDpm.timeline.length }} event{{ detailDpm.timeline.length !== 1 ? 's' : '' }}</span>
+          </div>
+          @if (detailDpm.timeline.length === 0) {
+            <p class="track-tl-empty">No timeline events yet.</p>
+          } @else {
+            <div class="track-dtl-timeline">
+              @for (ev of detailDpm.timeline; track $index) {
+                <div class="track-dtl-entry">
+                  <div class="track-dtl-dot"></div>
+                  <div>
+                    <div class="track-dtl-meta">
+                      {{ ev.occurredAt | date:'dd/MM/yyyy HH:mm' }}
+                      <span class="track-dtl-role">{{ ev.performedByRole }}</span>
+                    </div>
+                    <p class="track-dtl-desc">{{ ev.description }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+      </div>
+
+      <div class="track-panel-footer">
+        <button class="track-close-btn" type="button" (click)="detailVisible = false">Close</button>
+      </div>
+
+    </div>
+  </div>
+}

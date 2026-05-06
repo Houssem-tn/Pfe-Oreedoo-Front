@@ -15,7 +15,7 @@ import { UserService } from '../../core/users/user.service';
 interface FieldNavItem {
   label: string;
   icon: string;
-  path: 'home' | 'tasks' | 'history' | 'profile';
+  path: 'home' | 'tasks' | 'history' | 'profile' | 'stock/my-stock';
   exact: boolean;
 }
 
@@ -43,7 +43,15 @@ export class FieldLayoutComponent implements OnInit, OnDestroy {
   navBase = '/tech';
   notificationsOpen = false;
 
-  readonly navItems: FieldNavItem[] = [
+  readonly techNavItems: FieldNavItem[] = [
+    { label: 'Home', icon: 'cilHome', path: 'home', exact: true },
+    { label: 'Tasks', icon: 'cilTask', path: 'tasks', exact: false },
+    { label: 'My Stock', icon: 'cilStorage', path: 'stock/my-stock', exact: false },
+    { label: 'History', icon: 'cilClock', path: 'history', exact: true },
+    { label: 'Profile', icon: 'cilUser', path: 'profile', exact: true }
+  ];
+
+  readonly sttNavItems: FieldNavItem[] = [
     { label: 'Home', icon: 'cilHome', path: 'home', exact: true },
     { label: 'Tasks', icon: 'cilTask', path: 'tasks', exact: false },
     { label: 'History', icon: 'cilClock', path: 'history', exact: true },
@@ -74,6 +82,10 @@ export class FieldLayoutComponent implements OnInit, OnDestroy {
 
   get roleLabel(): string {
     return this.navBase.startsWith('/stt') ? 'STT execution' : 'TECH field';
+  }
+
+  get navItems(): FieldNavItem[] {
+    return this.navBase.startsWith('/stt') ? this.sttNavItems : this.techNavItems;
   }
 
   linkFor(path: FieldNavItem['path']): string {

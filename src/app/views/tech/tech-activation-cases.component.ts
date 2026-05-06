@@ -21,6 +21,12 @@ import {
 } from '../../core/cases/models/case.model';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
+import { StockService } from '../../core/stock/stock.service';
+import {
+  DeclareTechUsageRequest,
+  TechStock,
+  TechStockItem
+} from '../../core/stock/stock.model';
 import {
   extractMetrics,
   extractRdv,
@@ -67,7 +73,6 @@ interface TechWorkForm {
   repTravauxStt: string;
   dateFinTrv: string;
   cmtTrvStt: string;
-  metrageCable: string;
   nombrePv: string;
   debitDl: string;
   debitUl: string;
@@ -75,6 +80,7 @@ interface TechWorkForm {
   rsrq: string;
   sinr: string;
 }
+
 
 interface TechGeoSnapshot {
   latitude: number;
@@ -111,6 +117,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private readonly casesService = inject(CasesService);
   private readonly authStore = inject(AuthStore);
   private readonly notificationsStore = inject(NotificationStoreService);
+  private readonly stockService = inject(StockService);
   private readonly route = inject(ActivatedRoute);
 
   loading = false;
@@ -136,9 +143,15 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   selectedCaseDetails: CaseResponse | null = null;
   activePanel: TechPanel = 'details';
   panelLoading = false;
+  techStockLoading = false;
+  stockBusy = false;
+  techStockError: string | null = null;
+  stockNotice: TechBanner | null = null;
 
   rdvForm: TechRdvForm = this.createEmptyRdvForm();
   workForm: TechWorkForm = this.createEmptyWorkForm();
+  usageLines: Array<{ equipmentId: string; quantity: string }> = [];
+  techStock: TechStock | null = null;
   proofDrafts: Record<string, TechProofDraft> = {};
   private pendingProofLocation: TechGeoSnapshot | null = null;
   private pendingProofSource: TechProofSource | null = null;
@@ -192,6 +205,10 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get currentRole(): string | null {
     return this.authStore.role();
+  }
+
+  get isTechRole(): boolean {
+    return this.currentRole === 'ROLE_TECH';
   }
 
   get isSttWorkspace(): boolean {
@@ -392,6 +409,25 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get uploadedProofs(): CaseProofFile[] {
     return [...(this.selectedCase?.workProofs ?? [])];
+  }
+
+  get techStockItems(): TechStockItem[] {
+    return [...(this.techStock?.items ?? [])].sort((left, right) => {
+      const availabilityDelta = right.remainingQuantity - left.remainingQuantity;
+      if (availabilityDelta !== 0) {
+        return availabilityDelta;
+      }
+
+      return left.equipmentName.localeCompare(right.equipmentName);
+    });
+  }
+
+  get techStockRemainingTotal(): number {
+    return this.techStockItems.reduce((sum, item) => sum + item.remainingQuantity, 0);
+  }
+
+  get techStockUsedTotal(): number {
+    return this.techStockItems.reduce((sum, item) => sum + item.usedQuantity, 0);
   }
 
   loadCases(): void {
@@ -654,6 +690,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   openPanel(item: CaseResponse, panel: TechPanel): void {
     this.banner = null;
     this.panelError = null;
+    this.stockNotice = null;
     this.focusCasePage(item.id);
     this.selectedCaseId = item.id;
     this.activePanel = panel;
@@ -667,6 +704,10 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       this.workForm = this.createWorkForm(item);
     }
 
+    if (this.isTechRole) {
+      this.loadTechStock(true);
+    }
+
     this.loadCaseDetails(item.id);
   }
 
@@ -676,6 +717,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.activePanel = 'details';
     this.panelLoading = false;
     this.panelError = null;
+    this.stockNotice = null;
   }
 
   switchPanel(panel: TechPanel): void {
@@ -1030,11 +1072,77 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       : 'bg-dark-subtle text-dark-emphasis tech-pill';
   }
 
+  addUsageLine(): void {
+    this.usageLines = [...this.usageLines, { equipmentId: '', quantity: '' }];
+  }
+
+  removeUsageLine(index: number): void {
+    this.usageLines = this.usageLines.filter((_, i) => i !== index);
+  }
+
+  async submitStockUsage(): Promise<void> {
+    const target = this.selectedCase;
+    if (!target || !this.isTechRole) return;
+
+    const validLines = this.usageLines.filter((l) => {
+      const qty = Number(l.quantity);
+      return l.equipmentId && Number.isFinite(qty) && qty > 0;
+    });
+
+    if (!validLines.length) {
+      this.stockNotice = { tone: 'danger', text: 'Select at least one item with a valid quantity.' };
+      return;
+    }
+
+    this.stockBusy = true;
+    this.stockNotice = null;
+
+    try {
+      const payload: DeclareTechUsageRequest = {
+        caseId: target.id,
+        items: validLines.map((l) => {
+          const si = this.techStockItems.find((i) => i.equipmentId === l.equipmentId)!;
+          return { equipmentId: si.equipmentId, equipmentName: si.equipmentName, unit: si.unit, quantity: Number(l.quantity) };
+        })
+      };
+
+      const response = await firstValueFrom(this.stockService.declareMyTechUsage(payload));
+      this.techStock = response.stock ?? this.techStock;
+      this.usageLines = [{ equipmentId: '', quantity: '' }];
+
+      this.stockNotice = response.hasWarnings
+        ? { tone: 'warning', text: response.warnings.join(' ') }
+        : { tone: 'success', text: `Usage saved for CRM ${target.crmCase}. Stock updated.` };
+    } catch (err: any) {
+      console.error('Failed to declare TECH stock usage', err);
+      this.stockNotice = { tone: 'danger', text: err?.error?.message ?? 'Unable to declare stock usage.' };
+    } finally {
+      this.stockBusy = false;
+    }
+  }
+
+
+  stockQuantityLabel(quantity: number, unit?: string | null): string {
+    const suffix = this.stockUnitLabel(unit);
+    return `${quantity} ${suffix}`;
+  }
+
+  stockUnitLabel(unit?: string | null): string {
+    if (unit === 'METERS') {
+      return 'm';
+    }
+
+    if (unit === 'PIECES') {
+      return 'pcs';
+    }
+
+    return unit?.trim() || 'units';
+  }
+
   detailMetricEntries(item: CaseResponse): Array<{ label: string; value: string }> {
     const metrics = extractMetrics(item);
 
     return [
-      { label: 'Cable', value: this.metricValue(metrics.metrageCable) },
       { label: 'PV', value: this.metricValue(metrics.nombrePv) },
       { label: 'DL', value: this.metricValue(metrics.debitDl) },
       { label: 'UL', value: this.metricValue(metrics.debitUl) },
@@ -1104,6 +1212,34 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       });
   }
 
+  loadTechStock(resetSelection = false): void {
+    if (!this.isTechRole || this.techStockLoading) {
+      return;
+    }
+
+    this.techStockLoading = true;
+    this.techStockError = null;
+
+    if (resetSelection) {
+      this.usageLines = [{ equipmentId: '', quantity: '' }];
+    }
+
+    this.stockService.getMyTechStock()
+      .pipe(finalize(() => {
+        this.techStockLoading = false;
+      }))
+      .subscribe({
+        next: (stock) => {
+          this.techStock = stock;
+          this.syncUsageSelection();
+        },
+        error: (err) => {
+          console.error('Failed to load TECH stock helper', err);
+          this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
+        }
+      });
+  }
+
   private matchesQuickFilter(item: CaseResponse): boolean {
     switch (this.quickFilter) {
       case 'urgent': {
@@ -1161,7 +1297,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       repTravauxStt: '',
       dateFinTrv: '',
       cmtTrvStt: '',
-      metrageCable: '',
       nombrePv: '',
       debitDl: '',
       debitUl: '',
@@ -1193,7 +1328,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       repTravauxStt: work.repTravauxStt ?? '',
       dateFinTrv: toDateTimeLocal(work.dateFinTrv) || toDateTimeLocal(new Date().toISOString()),
       cmtTrvStt: work.cmtTrvStt ?? '',
-      metrageCable: toInputNumber(metrics.metrageCable),
       nombrePv: toInputNumber(metrics.nombrePv),
       debitDl: toInputNumber(metrics.debitDl),
       debitUl: toInputNumber(metrics.debitUl),
@@ -1217,7 +1351,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       repTravauxStt,
       dateFinTrv,
       cmtTrvStt,
-      metrageCable: toMaybeNumber(this.workForm.metrageCable),
       nombrePv: toMaybeNumber(this.workForm.nombrePv),
       debitDl: toMaybeNumber(this.workForm.debitDl),
       debitUl: toMaybeNumber(this.workForm.debitUl),
@@ -1600,9 +1733,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       case 'workCmtTrvStt':
         this.workForm.cmtTrvStt = fieldValue;
         break;
-      case 'workMetrageCable':
-        this.workForm.metrageCable = fieldValue;
-        break;
       case 'workNombrePv':
         this.workForm.nombrePv = fieldValue;
         break;
@@ -1809,6 +1939,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       && item.executorRole === 'STT'
       && !!item.sttId
       && item.executorId === item.sttId;
+  }
+
+  private syncUsageSelection(): void {
+    if (!this.usageLines.length) {
+      this.usageLines = [{ equipmentId: '', quantity: '' }];
+    }
   }
 
   private toNullable(value?: string | null): string | null {

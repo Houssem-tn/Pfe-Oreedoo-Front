@@ -1,13 +1,14 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
 import {
-  DpmRequest, DpmStatus, SttStock, TechStock
+  DpmRequest, DpmStatus, SttDistribution, SttStock, TechStock, TechStockUsage
 } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
@@ -26,7 +27,9 @@ export class AdminStockTrackingComponent implements OnInit {
   dpms: DpmRequest[] = [];
   sttStocks: SttStock[] = [];
   techStocks: TechStock[] = [];
+  techUsages: TechStockUsage[] = [];
   userMap = new Map<string, AppUser>();
+  techUsageMap = new Map<string, TechStockUsage[]>();
 
   loading = false;
   error: string | null = null;
@@ -35,26 +38,58 @@ export class AdminStockTrackingComponent implements OnInit {
   dpmFilter = '';
   statusFilter: DpmStatus | '' = '';
 
+  detailDpm: DpmRequest | null = null;
+  detailTechDistributions: SttDistribution[] = [];
+  detailVisible = false;
+  loadingDetail = false;
+
   ngOnInit(): void { this.loadAll(); }
 
   loadAll(): void {
     this.loading = true;
     this.error = null;
-    this.userSvc.getAll().subscribe({
-      next: list => { this.userMap = new Map(list.map(u => [u.id, u])); }
-    });
-    this.stockSvc.adminGetAllDpms().subscribe({
-      next: d => this.dpms = d, error: e => this.error = e.message
-    });
-    this.stockSvc.adminGetAllSttStocks().subscribe({ next: d => this.sttStocks = d });
-    this.stockSvc.adminGetAllTechStocks()
-      .pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
-      .subscribe({ next: d => this.techStocks = d });
+    forkJoin({
+      users:      this.userSvc.getAll(),
+      dpms:       this.stockSvc.adminGetAllDpms(),
+      sttStocks:  this.stockSvc.adminGetAllSttStocks(),
+      techStocks: this.stockSvc.adminGetAllTechStocks(),
+      techUsages: this.stockSvc.adminGetAllTechUsages()
+    }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: ({ users, dpms, sttStocks, techStocks, techUsages }) => {
+          this.userMap   = new Map(users.map(u => [u.id, u]));
+          this.dpms      = dpms;
+          this.sttStocks = sttStocks;
+          this.techStocks = techStocks;
+          this.techUsages = techUsages;
+          this.techUsageMap = this.groupTechUsages(techUsages);
+        },
+        error: e => this.error = e.message
+      });
   }
 
   setTab(tab: 'dpms' | 'stt' | 'tech'): void {
     this.activeTab = tab;
     this.cdr.detectChanges();
+  }
+
+  openDetail(d: DpmRequest): void {
+    this.detailDpm = d;
+    this.detailTechDistributions = [];
+    this.loadingDetail = true;
+    this.detailVisible = true;
+    this.cdr.detectChanges();
+    this.stockSvc.adminGetDpmTracking(d.id)
+      .pipe(finalize(() => { this.loadingDetail = false; this.cdr.detectChanges(); }))
+      .subscribe({
+        next: t => { this.detailTechDistributions = t.techDistributions; this.cdr.detectChanges(); },
+        error: e => { this.error = e.message; }
+      });
+  }
+
+  nameInitials(name?: string): string {
+    if (!name) return '?';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
   userName(id: string): string {
@@ -91,6 +126,9 @@ export class AdminStockTrackingComponent implements OnInit {
   }
 
   techTotalReceived(t: TechStock): number { return t.items.reduce((s, i) => s + i.receivedQuantity, 0); }
+  techTotalUsed(t: TechStock): number { return t.items.reduce((s, i) => s + i.usedQuantity, 0); }
+  techTotalRemaining(t: TechStock): number { return t.items.reduce((s, i) => s + i.remainingQuantity, 0); }
+  techUsagesFor(techId: string): TechStockUsage[] { return this.techUsageMap.get(techId) ?? []; }
 
   statusLabel(status: DpmStatus): string {
     const m: Record<DpmStatus, string> = {
@@ -98,6 +136,18 @@ export class AdminStockTrackingComponent implements OnInit {
       FULLY_CONFIRMED: 'Confirmed', REJECTED: 'Rejected', CANCELLED: 'Cancelled'
     };
     return m[status] ?? status;
+  }
+
+  private groupTechUsages(usages: TechStockUsage[]): Map<string, TechStockUsage[]> {
+    const grouped = new Map<string, TechStockUsage[]>();
+
+    for (const usage of usages) {
+      const current = grouped.get(usage.techId) ?? [];
+      current.push(usage);
+      grouped.set(usage.techId, current);
+    }
+
+    return grouped;
   }
 
 }

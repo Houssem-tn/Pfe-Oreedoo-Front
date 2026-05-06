@@ -5,6 +5,8 @@ export type DpmStatus =
   | 'REJECTED'
   | 'CANCELLED';
 
+export type StockUnit = 'METERS' | 'PIECES';
+
 export type StockMovementType =
   | 'DPM_CREATED'
   | 'DPM_CONFIRMED'
@@ -14,7 +16,7 @@ export interface Equipment {
   id: string;
   name: string;
   description?: string;
-  unit?: string;
+  unit?: StockUnit;
   imageFileId?: string;
   imageUrl?: string;
   active: boolean;
@@ -27,6 +29,7 @@ export interface DpmItem {
   equipmentId: string;
   equipmentName: string;
   equipmentImageUrl?: string;
+  unit?: string;
   requestedQuantity: number;
   confirmedQuantity?: number;
   shortageQuantity?: number;
@@ -79,7 +82,10 @@ export interface SttStock {
 export interface TechStockItem {
   equipmentId: string;
   equipmentName: string;
+  unit?: string;
   receivedQuantity: number;
+  usedQuantity: number;
+  remainingQuantity: number;
   lastReceivedAt?: string;
 }
 
@@ -91,9 +97,27 @@ export interface TechStock {
   lastUpdatedAt?: string;
 }
 
+export interface TechStockUsageItem {
+  equipmentId: string;
+  equipmentName: string;
+  unit?: string;
+  quantity: number;
+}
+
+export interface TechStockUsage {
+  id: string;
+  techId: string;
+  caseId: string;
+  caseReference: string;
+  items: TechStockUsageItem[];
+  declaredAt: string;
+  notes?: string;
+}
+
 export interface DistributionItem {
   equipmentId: string;
   equipmentName: string;
+  unit?: string;
   quantity: number;
 }
 
@@ -108,6 +132,31 @@ export interface SttDistribution {
   distributedAt: string;
   notes?: string;
   distributedBy?: string;
+}
+
+export interface DpmTracking {
+  dpm: DpmRequest;
+  techDistributions: SttDistribution[];
+}
+
+export interface ZmDpmAuditItem {
+  dpm: DpmRequest;
+  distributions: SttDistribution[];
+  partiallyConfirmed: boolean;
+  overDistributed: boolean;
+}
+
+export interface ZmStockAudit {
+  zmId: string;
+  zmName: string;
+  zmEmail: string;
+  totalDpms: number;
+  pendingCount: number;
+  confirmedCount: number;
+  rejectedCount: number;
+  cancelledCount: number;
+  warningCount: number;
+  dpms: ZmDpmAuditItem[];
 }
 
 export interface DistributableDpmItem {
@@ -148,7 +197,7 @@ export interface StockMovement {
 export interface CreateEquipmentRequest {
   name: string;
   description?: string;
-  unit?: string;
+  unit?: StockUnit;
 }
 
 export interface DpmItemRequest {
@@ -184,4 +233,24 @@ export interface DistributeToTechRequest {
   dpmId?: string;
   items: DistributionItemRequest[];
   notes?: string;
+}
+
+export interface DeclareTechUsageItemRequest {
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  quantity: number;
+}
+
+export interface DeclareTechUsageRequest {
+  caseId: string;
+  items: DeclareTechUsageItemRequest[];
+  notes?: string;
+}
+
+export interface DeclareTechUsageResponse {
+  stock: TechStock;
+  usage: TechStockUsage;
+  hasWarnings: boolean;
+  warnings: string[];
 }

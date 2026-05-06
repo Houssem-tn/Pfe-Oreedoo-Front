@@ -30,6 +30,12 @@ import {
   fieldStatusLabel
 } from './field-case-utils';
 import { OcrService } from '../../core/ocr/ocr.service';
+import { StockService } from '../../core/stock/stock.service';
+import {
+  DeclareTechUsageRequest,
+  TechStock,
+  TechStockItem
+} from '../../core/stock/stock.model';
 
 type FieldExecutionStep = 'rdv' | 'diagnosis' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
@@ -54,13 +60,17 @@ interface FieldWorkForm {
   repTravauxStt: string;
   dateFinTrv: string;
   cmtTrvStt: string;
-  metrageCable: string;
   nombrePv: string;
   debitDl: string;
   debitUl: string;
   rsrp: string;
   rsrq: string;
   sinr: string;
+}
+
+interface FieldUsageLine {
+  equipmentId: string;
+  quantity: string;
 }
 
 interface FieldDiagnosisForm {
@@ -106,16 +116,22 @@ interface FieldGeoSnapshot {
         </div>
 
         <nav class="field-stepper" aria-label="Execution steps">
-          <button
-            *ngFor="let step of steps"
-            type="button"
-            class="field-step-tab"
-            [class.field-step-tab--active]="activeStep === step.key"
-            (click)="activeStep = step.key"
-          >
-            <svg cIcon [name]="step.icon"></svg>
-            {{ step.label }}
-          </button>
+          <ng-container *ngFor="let step of steps; let i = index; let last = last">
+            <button
+              type="button"
+              class="field-step"
+              [class.field-step--done]="stepState(step) === 'completed'"
+              [class.field-step--active]="stepState(step) === 'active'"
+              (click)="activeStep = step.key"
+            >
+              <div class="field-step__bubble">
+                <svg cIcon name="cilCheck" *ngIf="stepState(step) === 'completed'"></svg>
+                <span *ngIf="stepState(step) !== 'completed'">{{ i + 1 }}</span>
+              </div>
+              <span class="field-step__label">{{ step.label }}</span>
+            </button>
+            <div class="field-step__line" *ngIf="!last" [class.field-step__line--done]="stepState(step) === 'completed'"></div>
+          </ng-container>
         </nav>
 
         <form class="field-card field-form-grid" *ngIf="activeStep === 'rdv'" (ngSubmit)="saveRdv()">
@@ -266,14 +282,49 @@ interface FieldGeoSnapshot {
         <section class="field-card field-form-grid" *ngIf="activeStep === 'metrics'">
           <div class="field-section-title">
             <h2>Metrics step</h2>
-            <span>Technical data</span>
+            <span>{{ isTechRole ? 'Used stock and technical data' : 'Technical data' }}</span>
+          </div>
+
+          <div class="field-form-grid" *ngIf="isTechRole">
+            <div class="field-section-title">
+              <span>Used stock</span>
+            </div>
+
+            <div *ngIf="techStockLoading" class="field-loading">
+              <span class="field-spinner"></span>
+              Loading stock...
+            </div>
+
+            <div *ngIf="techStockError" class="field-banner field-banner--danger">{{ techStockError }}</div>
+
+            <ng-container *ngIf="!techStockLoading && techStockItems.length > 0">
+              <div class="field-usage-picker">
+                <div class="field-usage-line" *ngFor="let line of usageLines; let i = index">
+                  <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" [name]="'fuEq_' + i" [disabled]="stockBusy">
+                    <option value="">Item...</option>
+                    <option *ngFor="let item of techStockItems" [value]="item.equipmentId">
+                      {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                    </option>
+                  </select>
+                  <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fuQty_' + i" [disabled]="stockBusy" placeholder="Qty" />
+                  <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="stockBusy" *ngIf="usageLines.length > 1">×</button>
+                </div>
+                <button class="field-usage-add" type="button" (click)="addUsageLine()" [disabled]="stockBusy">+ Add item</button>
+              </div>
+
+              <div class="field-button-row">
+                <button class="field-button field-button--primary" type="button" (click)="submitStockUsage()" [disabled]="stockBusy">
+                  {{ stockBusy ? 'Saving...' : 'Declare' }}
+                </button>
+              </div>
+            </ng-container>
+
+            <div class="field-fact" *ngIf="!techStockLoading && !techStockError && techStockItems.length === 0">
+              <span>No stock assigned yet</span>
+            </div>
           </div>
 
           <div class="field-form-grid field-form-grid--two">
-            <label class="field-label">
-              Cable length
-              <input class="field-input" type="number" step="0.01" name="metrageCable" [(ngModel)]="workForm.metrageCable" />
-            </label>
             <label class="field-label">
               PV count
               <input class="field-input" type="number" step="1" name="nombrePv" [(ngModel)]="workForm.nombrePv" />
@@ -412,6 +463,7 @@ export class FieldExecutionComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
   private readonly ocrService = inject(OcrService);
+  private readonly stockService = inject(StockService);
 
   loading = false;
   actionBusy = false;
@@ -420,6 +472,10 @@ export class FieldExecutionComponent implements OnInit {
   bannerTone: BannerTone = 'info';
   activeStep: FieldExecutionStep = 'rdv';
   caseItem: CaseResponse | null = null;
+  techStockLoading = false;
+  stockBusy = false;
+  techStockError: string | null = null;
+  techStock: TechStock | null = null;
   proofFile: File | null = null;
   proofPreviewUrl: string | null = null;
   ocrSignalBusy = false;
@@ -440,6 +496,7 @@ export class FieldExecutionComponent implements OnInit {
   rdvForm: FieldRdvForm = this.emptyRdvForm();
   diagnosisForm: FieldDiagnosisForm = this.emptyDiagnosisForm();
   workForm: FieldWorkForm = this.emptyWorkForm();
+  usageLines: FieldUsageLine[] = [];
 
   get steps(): FieldExecutionStepItem[] {
     const steps: FieldExecutionStepItem[] = [
@@ -463,8 +520,42 @@ export class FieldExecutionComponent implements OnInit {
     return this.caseItem?.type === 'PLAINTE';
   }
 
+  stepState(step: FieldExecutionStepItem): 'completed' | 'active' | 'future' {
+    const keys = this.steps.map((s) => s.key);
+    const activeIndex = keys.indexOf(this.activeStep);
+    const stepIndex = keys.indexOf(step.key);
+    if (stepIndex < activeIndex) return 'completed';
+    if (stepIndex === activeIndex) return 'active';
+    return 'future';
+  }
+
   get canEditDiagnosis(): boolean {
     return this.showDiagnosisStep && this.authStore.role() === 'ROLE_STT';
+  }
+
+  get isTechRole(): boolean {
+    return this.authStore.role() === 'ROLE_TECH';
+  }
+
+  get techStockItems(): TechStockItem[] {
+    return [...(this.techStock?.items ?? [])].sort((left, right) => {
+      const availabilityDelta = right.remainingQuantity - left.remainingQuantity;
+      if (availabilityDelta !== 0) {
+        return availabilityDelta;
+      }
+
+      return left.equipmentName.localeCompare(right.equipmentName);
+    });
+  }
+
+  addUsageLine(): void {
+    this.usageLines = [...this.usageLines, { equipmentId: '', quantity: '' }];
+    this.render();
+  }
+
+  removeUsageLine(index: number): void {
+    this.usageLines = this.usageLines.filter((_, i) => i !== index);
+    this.render();
   }
 
   ngOnInit(): void {
@@ -493,6 +584,10 @@ export class FieldExecutionComponent implements OnInit {
 
   location(item: CaseResponse): string {
     return fieldCaseLocation(item);
+  }
+
+  stockQuantityLabel(quantity: number, unit?: string | null): string {
+    return `${quantity} ${this.stockUnitLabel(unit)}`;
   }
 
   saveRdv(): void {
@@ -717,6 +812,49 @@ export class FieldExecutionComponent implements OnInit {
     }
   }
 
+  async submitStockUsage(): Promise<void> {
+    const target = this.caseItem;
+    if (!target || !this.isTechRole) return;
+
+    const validLines = this.usageLines.filter((l) => {
+      const qty = Number(l.quantity);
+      return l.equipmentId && Number.isFinite(qty) && qty > 0;
+    });
+
+    if (!validLines.length) {
+      this.showBanner('Select at least one item with a valid quantity.', 'danger');
+      return;
+    }
+
+    this.stockBusy = true;
+    this.showBanner('Saving stock usage...', 'info');
+
+    try {
+      const payload: DeclareTechUsageRequest = {
+        caseId: target.id,
+        items: validLines.map((l) => {
+          const si = this.techStockItems.find((i) => i.equipmentId === l.equipmentId)!;
+          return { equipmentId: si.equipmentId, equipmentName: si.equipmentName, unit: si.unit, quantity: Number(l.quantity) };
+        })
+      };
+
+      const response = await firstValueFrom(this.stockService.declareMyTechUsage(payload));
+      this.techStock = response.stock ?? this.techStock;
+      this.usageLines = [{ equipmentId: '', quantity: '' }];
+
+      this.showBanner(
+        response.hasWarnings ? response.warnings.join(' ') : `Usage saved for CRM ${target.crmCase}.`,
+        response.hasWarnings ? 'warning' : 'success'
+      );
+    } catch (err: any) {
+      console.error('Failed to declare TECH stock usage from field execution', err);
+      this.showBanner(err?.error?.message ?? 'Unable to declare stock usage for this case.', 'danger');
+    } finally {
+      this.stockBusy = false;
+      this.render();
+    }
+  }
+
   private loadCase(caseId: string): void {
     this.loading = true;
     this.error = null;
@@ -732,6 +870,13 @@ export class FieldExecutionComponent implements OnInit {
           this.rdvForm = this.createRdvForm(item);
           this.diagnosisForm = this.createDiagnosisForm(item);
           this.workForm = this.createWorkForm(item);
+          if (this.isTechRole) {
+            this.loadTechStock(true);
+          } else {
+            this.techStock = null;
+            this.techStockError = null;
+            this.usageLines = [];
+          }
           if (item.type !== 'PLAINTE' && this.activeStep === 'diagnosis') {
             this.activeStep = 'work';
           }
@@ -809,7 +954,6 @@ export class FieldExecutionComponent implements OnInit {
       repTravauxStt,
       dateFinTrv,
       cmtTrvStt,
-      metrageCable: toMaybeNumber(this.workForm.metrageCable),
       nombrePv: toMaybeNumber(this.workForm.nombrePv),
       debitDl: toMaybeNumber(this.workForm.debitDl),
       debitUl: toMaybeNumber(this.workForm.debitUl),
@@ -845,7 +989,6 @@ export class FieldExecutionComponent implements OnInit {
       repTravauxStt: work.repTravauxStt ?? '',
       dateFinTrv: toDateTimeLocal(work.dateFinTrv) || toDateTimeLocal(new Date().toISOString()),
       cmtTrvStt: work.cmtTrvStt ?? '',
-      metrageCable: metrics.metrageCable == null ? '' : String(metrics.metrageCable),
       nombrePv: metrics.nombrePv == null ? '' : String(metrics.nombrePv),
       debitDl: metrics.debitDl == null ? '' : String(metrics.debitDl),
       debitUl: metrics.debitUl == null ? '' : String(metrics.debitUl),
@@ -896,7 +1039,6 @@ export class FieldExecutionComponent implements OnInit {
       repTravauxStt: '',
       dateFinTrv: '',
       cmtTrvStt: '',
-      metrageCable: '',
       nombrePv: '',
       debitDl: '',
       debitUl: '',
@@ -904,6 +1046,35 @@ export class FieldExecutionComponent implements OnInit {
       rsrq: '',
       sinr: ''
     };
+  }
+
+  loadTechStock(resetSelection = false): void {
+    if (!this.isTechRole || this.techStockLoading) {
+      return;
+    }
+
+    this.techStockLoading = true;
+    this.techStockError = null;
+
+    if (resetSelection) {
+      this.usageLines = [{ equipmentId: '', quantity: '' }];
+    }
+
+    this.stockService.getMyTechStock()
+      .pipe(finalize(() => {
+        this.techStockLoading = false;
+        this.render();
+      }))
+      .subscribe({
+        next: (stock) => {
+          this.techStock = stock;
+          this.syncUsageSelection();
+        },
+        error: (err) => {
+          console.error('Failed to load TECH stock for field execution', err);
+          this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
+        }
+      });
   }
 
   private async captureLocation(): Promise<FieldGeoSnapshot | null> {
@@ -957,6 +1128,24 @@ export class FieldExecutionComponent implements OnInit {
   private toNullable(value: string): string | null {
     const trimmed = value.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private stockUnitLabel(unit?: string | null): string {
+    if (unit === 'METERS') {
+      return 'm';
+    }
+
+    if (unit === 'PIECES') {
+      return 'pcs';
+    }
+
+    return unit?.trim() || 'units';
+  }
+
+  private syncUsageSelection(): void {
+    if (!this.usageLines.length) {
+      this.usageLines = [{ equipmentId: '', quantity: '' }];
+    }
   }
 
   private showBanner(message: string, tone: BannerTone): void {

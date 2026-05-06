@@ -6,7 +6,7 @@ import { finalize } from 'rxjs/operators';
 import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { DpmRequest, DpmStatus } from '../../../../core/stock/stock.model';
+import { DpmRequest, DpmStatus, SttDistribution } from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
 import { DpmPdfService } from '../../../../core/pdf/dpm-pdf.service';
 
@@ -31,7 +31,9 @@ export class ZmStockTrackingComponent implements OnInit {
   filterStt = '';
 
   detailDpm: DpmRequest | null = null;
+  detailTechDistributions: SttDistribution[] = [];
   detailVisible = false;
+  loadingDetail = false;
 
   ngOnInit(): void { this.load(); }
 
@@ -45,7 +47,20 @@ export class ZmStockTrackingComponent implements OnInit {
 
   openDetail(dpm: DpmRequest): void {
     this.detailDpm = dpm;
+    this.detailTechDistributions = [];
+    this.loadingDetail = true;
     this.detailVisible = true;
+    this.stockSvc.zmGetDpmTracking(dpm.id)
+      .pipe(finalize(() => { this.loadingDetail = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: t => { this.detailTechDistributions = t.techDistributions; this.cdr.detectChanges(); },
+        error: () => { /* non-critical: show panel without distributions */ }
+      });
+  }
+
+  nameInitials(name?: string): string {
+    if (!name) return '?';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
   cancelDpm(dpm: DpmRequest): void {

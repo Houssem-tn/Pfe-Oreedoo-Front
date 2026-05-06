@@ -360,7 +360,13 @@
 .zt-btn-detail {
   background: rgba(59, 130, 246, 0.1);
   color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  gap: 0.3rem;
+  height: auto;
   margin-right: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  width: auto;
   &:hover { background: rgba(59, 130, 246, 0.2); }
 }
 
@@ -518,6 +524,108 @@
 .zt-conf-warn  { color: #b45309; font-weight: 700; }
 .zt-conf-none  { color: var(--zt-muted); }
 .zt-shortage-val { color: var(--zt-primary); font-weight: 700; }
+
+/* TECH Distribution cards */
+.zt-dist-count {
+  background: rgba(130, 14, 30, 0.08);
+  border-radius: 999px;
+  color: var(--zt-primary-dark);
+  font-size: 0.68rem;
+  font-weight: 800;
+  margin-left: 0.35rem;
+  padding: 0.12rem 0.45rem;
+}
+
+.zt-dist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.zt-dist-card {
+  background: rgba(249, 245, 246, 0.85);
+  border: 1px solid var(--zt-border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.zt-dist-header {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+
+.zt-dist-tech {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.zt-dist-avatar {
+  align-items: center;
+  background: linear-gradient(135deg, var(--zt-primary), var(--zt-primary-dark));
+  border-radius: 7px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 800;
+  height: 1.85rem;
+  justify-content: center;
+  width: 1.85rem;
+}
+
+.zt-dist-name {
+  color: var(--zt-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zt-dist-email {
+  color: var(--zt-muted);
+  font-size: 0.74rem;
+}
+
+.zt-dist-time {
+  color: var(--zt-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.zt-dist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.zt-dist-chip {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(130, 14, 30, 0.1);
+  border-radius: 20px;
+  color: var(--zt-text);
+  font-size: 0.75rem;
+  padding: 0.22rem 0.6rem;
+
+  strong {
+    color: var(--zt-primary-dark);
+    font-weight: 800;
+  }
+}
+
+.zt-dist-notes {
+  color: var(--zt-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
 
 /* Timeline in panel */
 .zt-timeline {

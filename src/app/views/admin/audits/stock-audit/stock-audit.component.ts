@@ -7,9 +7,40 @@ import { finalize } from 'rxjs/operators';
 import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { UserService } from '../../../../core/users/user.service';
-import { DpmRequest, DpmStatus, StockMovement } from '../../../../core/stock/stock.model';
-import { AppUser } from '../../../../core/users/user.model';
+import {
+  DpmRequest, DpmStatus, SttDistribution, ZmStockAudit
+} from '../../../../core/stock/stock.model';
+
+interface ZmCard {
+  id: string;
+  name: string;
+  email: string;
+  total: number;
+  pending: number;
+  confirmed: number;
+  rejected: number;
+}
+
+interface ItemAuditEntry {
+  dpm: DpmRequest;
+  requestedQty: number;
+  confirmedQty: number | null;
+  shortageQty: number | null;
+}
+
+interface ItemAuditRow {
+  equipmentId: string;
+  equipmentName: string;
+  unit?: string;
+  totalRequested: number;
+  totalConfirmed: number;
+  totalShortage: number;
+  dpmCount: number;
+  pendingCount: number;
+  confirmedCount: number;
+  rejectedCount: number;
+  entries: ItemAuditEntry[];
+}
 
 @Component({
   standalone: true,
@@ -20,113 +51,163 @@ import { AppUser } from '../../../../core/users/user.model';
 })
 export class StockAuditComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
-  private readonly userSvc = inject(UserService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
   dpms: DpmRequest[] = [];
-  movementsByRef = new Map<string, StockMovement[]>();
-  allMovements: StockMovement[] = [];
-  userMap = new Map<string, AppUser>();
+  distributionsByDpmId = new Map<string, SttDistribution[]>();
 
   loading = false;
   error: string | null = null;
 
-  searchFilter = '';
-  statusFilter: DpmStatus | '' = '';
-  zmFilter = '';
+  activeView: 'zm' | 'stock' = 'zm';
+  zmSearch = '';
+  itemSearch = '';
+
+  zmAudit: ZmStockAudit | null = null;
+  loadingZmAudit = false;
+  zmAuditVisible = false;
 
   selectedDpm: DpmRequest | null = null;
+  selectedDpmDistributions: SttDistribution[] = [];
   panelVisible = false;
+
+  selectedItemRow: ItemAuditRow | null = null;
+  itemPanelVisible = false;
 
   ngOnInit(): void { this.load(); }
 
   load(): void {
     this.loading = true;
     this.error = null;
-    this.userSvc.getAll().subscribe({
-      next: list => { this.userMap = new Map(list.map(u => [u.id, u])); }
-    });
     forkJoin({
-      dpms: this.stockSvc.adminGetAllDpms(),
-      movements: this.stockSvc.adminGetAllMovements()
+      dpms:          this.stockSvc.adminGetAllDpms(),
+      distributions: this.stockSvc.adminGetAllDistributions()
     })
       .pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: ({ dpms, movements }) => {
+        next: ({ dpms, distributions }) => {
           this.dpms = dpms;
-          this.allMovements = movements;
-          const map = new Map<string, StockMovement[]>();
-          for (const m of movements) {
-            if (!m.referenceId) continue;
-            const arr = map.get(m.referenceId) ?? [];
-            arr.push(m);
-            map.set(m.referenceId, arr);
+          const map = new Map<string, SttDistribution[]>();
+          for (const d of distributions) {
+            if (!d.dpmId) continue;
+            const arr = map.get(d.dpmId) ?? [];
+            arr.push(d);
+            map.set(d.dpmId, arr);
           }
-          this.movementsByRef = map;
+          this.distributionsByDpmId = map;
         },
         error: e => this.error = e.message
       });
   }
 
-  openDpm(dpm: DpmRequest): void {
+  openZmAudit(zmId: string): void {
+    this.zmAudit = null;
+    this.loadingZmAudit = true;
+    this.zmAuditVisible = true;
+    this.error = null;
+    this.stockSvc.adminGetZmStockAudit(zmId)
+      .pipe(finalize(() => { this.loadingZmAudit = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: audit => { this.zmAudit = audit; this.cdr.detectChanges(); },
+        error: e => { this.error = e.message; }
+      });
+  }
+
+  closeZmAudit(): void {
+    this.zmAuditVisible = false;
+    this.zmAudit = null;
+  }
+
+  openDpm(dpm: DpmRequest, distributions?: SttDistribution[]): void {
     this.selectedDpm = dpm;
+    this.selectedDpmDistributions = distributions ?? this.distributionsByDpmId.get(dpm.id) ?? [];
     this.panelVisible = true;
+    this.cdr.detectChanges();
   }
 
-  get zmOptions(): { id: string; name: string }[] {
-    const seen = new Map<string, string>();
-    for (const d of this.dpms) seen.set(d.zmId, d.zmName);
-    return [...seen.entries()]
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+  openItemPanel(row: ItemAuditRow): void {
+    this.selectedItemRow = row;
+    this.itemPanelVisible = true;
+    this.cdr.detectChanges();
   }
 
-  get filtered(): DpmRequest[] {
-    return this.dpms.filter(d => {
-      if (this.statusFilter && d.status !== this.statusFilter) return false;
-      if (this.zmFilter && d.zmId !== this.zmFilter) return false;
-      if (this.searchFilter.trim()) {
-        const q = this.searchFilter.toLowerCase();
-        if (!d.dpmNumber.toLowerCase().includes(q) &&
-            !d.zmName.toLowerCase().includes(q) &&
-            !d.sttName.toLowerCase().includes(q)) return false;
+  get zmCards(): ZmCard[] {
+    const map = new Map<string, ZmCard>();
+    for (const d of this.dpms) {
+      if (!map.has(d.zmId)) {
+        map.set(d.zmId, { id: d.zmId, name: d.zmName, email: d.zmEmail, total: 0, pending: 0, confirmed: 0, rejected: 0 });
       }
-      return true;
-    });
+      const c = map.get(d.zmId)!;
+      c.total++;
+      if (d.status === 'PENDING_STT_CONFIRMATION') c.pending++;
+      else if (d.status === 'FULLY_CONFIRMED' || d.status === 'PARTIALLY_CONFIRMED') c.confirmed++;
+      else if (d.status === 'REJECTED' || d.status === 'CANCELLED') c.rejected++;
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  distributionsFor(dpm: DpmRequest): StockMovement[] {
-    const byRef = (this.movementsByRef.get(dpm.id) ?? [])
-      .filter(m => m.movementType === 'STT_TO_TECH_DISTRIBUTION');
-    if (byRef.length > 0) return byRef;
-    return this.allMovements.filter(
-      m => m.movementType === 'STT_TO_TECH_DISTRIBUTION' && m.fromActorId === dpm.sttId
-    );
+  get filteredZmCards(): ZmCard[] {
+    if (!this.zmSearch.trim()) return this.zmCards;
+    const q = this.zmSearch.toLowerCase();
+    return this.zmCards.filter(z => z.name.toLowerCase().includes(q) || z.email.toLowerCase().includes(q));
   }
 
-  distributionTechs(dpm: DpmRequest): string[] {
-    return [...new Set(
-      this.distributionsFor(dpm).filter(m => m.toActorId).map(m => m.toActorId!)
-    )];
+  get itemAuditRows(): ItemAuditRow[] {
+    const map = new Map<string, ItemAuditRow>();
+    for (const dpm of this.dpms) {
+      for (const item of dpm.items) {
+        if (!map.has(item.equipmentId)) {
+          map.set(item.equipmentId, {
+            equipmentId: item.equipmentId,
+            equipmentName: item.equipmentName,
+            unit: item.unit,
+            totalRequested: 0,
+            totalConfirmed: 0,
+            totalShortage: 0,
+            dpmCount: 0,
+            pendingCount: 0,
+            confirmedCount: 0,
+            rejectedCount: 0,
+            entries: []
+          });
+        }
+        const row = map.get(item.equipmentId)!;
+        row.totalRequested += item.requestedQuantity;
+        if (item.confirmedQuantity != null) row.totalConfirmed += item.confirmedQuantity;
+        if (item.shortageQuantity != null) row.totalShortage += item.shortageQuantity;
+        row.dpmCount++;
+        if (dpm.status === 'PENDING_STT_CONFIRMATION') row.pendingCount++;
+        else if (dpm.status === 'FULLY_CONFIRMED' || dpm.status === 'PARTIALLY_CONFIRMED') row.confirmedCount++;
+        else if (dpm.status === 'REJECTED' || dpm.status === 'CANCELLED') row.rejectedCount++;
+        row.entries.push({
+          dpm,
+          requestedQty: item.requestedQuantity,
+          confirmedQty: item.confirmedQuantity ?? null,
+          shortageQty: item.shortageQuantity ?? null
+        });
+      }
+    }
+    return [...map.values()].sort((a, b) => a.equipmentName.localeCompare(b.equipmentName));
   }
 
-  itemsForTech(dpm: DpmRequest, techId: string): StockMovement[] {
-    return this.distributionsFor(dpm).filter(m => m.toActorId === techId);
+  get filteredItemRows(): ItemAuditRow[] {
+    const rows = this.itemAuditRows;
+    if (!this.itemSearch.trim()) return rows;
+    const q = this.itemSearch.toLowerCase();
+    return rows.filter(r => r.equipmentName.toLowerCase().includes(q));
+  }
+
+  totalItemsRequested(): number {
+    return this.itemAuditRows.reduce((s, r) => s + r.totalRequested, 0);
   }
 
   nameInitials(name: string): string {
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
-  userName(id: string | undefined): string {
-    if (!id) return '—';
-    return this.userMap.get(id)?.fullName ?? `#${id.slice(-6)}`;
-  }
-
-  userEmail(id: string | undefined): string {
-    if (!id) return '';
-    return this.userMap.get(id)?.email ?? '';
+  formatQty(qty: number, unit?: string): string {
+    return unit === 'METERS' ? `${qty} m` : `×${qty}`;
   }
 
   statusLabel(s: DpmStatus): string {

@@ -473,6 +473,88 @@
               </article>
             </div>
 
+            @if (isTechRole) {
+              <article class="tech-detail-card tech-stock-helper">
+                <div class="tech-stock-helper__top">
+                  <div>
+                    <div class="tech-detail-card__title">Stock helper</div>
+                    <div class="tech-stock-helper__hint">
+                      Declare used equipment for CRM {{ selected.crmCase }} without leaving the case detail panel.
+                    </div>
+                  </div>
+
+                  @if (techStockItems.length > 0) {
+                    <div class="tech-stock-helper__summary">
+                      <strong>{{ techStockRemainingTotal }}</strong>
+                      <span>remaining</span>
+                      <small>{{ techStockUsedTotal }} used</small>
+                    </div>
+                  }
+                </div>
+
+                @if (techStockLoading) {
+                  <div class="tech-panel__loading">Refreshing your stock helper...</div>
+                }
+
+                @if (techStockError) {
+                  <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
+                }
+
+                @if (stockNotice) {
+                  <div class="tech-banner" [ngClass]="'tech-banner--' + stockNotice.tone">
+                    {{ stockNotice.text }}
+                  </div>
+                }
+
+                @if (!techStockLoading && techStockItems.length > 0) {
+                  <div class="tech-usage-picker">
+                    @for (line of usageLines; track $index; let i = $index) {
+                      <div class="tech-usage-picker__row">
+                        <select
+                          class="tech-usage-picker__select"
+                          [(ngModel)]="line.equipmentId"
+                          [name]="'dEq_' + i"
+                          [disabled]="stockBusy"
+                        >
+                          <option value="">Item...</option>
+                          @for (item of techStockItems; track item.equipmentId) {
+                            <option [value]="item.equipmentId">
+                              {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                            </option>
+                          }
+                        </select>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          class="tech-usage-picker__qty"
+                          [(ngModel)]="line.quantity"
+                          [name]="'dQty_' + i"
+                          [disabled]="stockBusy"
+                          placeholder="Qty"
+                        />
+                        @if (usageLines.length > 1) {
+                          <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="stockBusy">×</button>
+                        }
+                      </div>
+                    }
+                    <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="stockBusy">+ Add item</button>
+                  </div>
+
+                  <div class="tech-stock-form__actions">
+                    <button type="button" class="btn-tech btn-tech--primary" (click)="submitStockUsage()" [disabled]="stockBusy">
+                      <svg cIcon name="cilSave"></svg>
+                      {{ stockBusy ? 'Saving...' : 'Declare' }}
+                    </button>
+                  </div>
+                } @else if (!techStockLoading && !techStockError) {
+                  <div class="tech-empty tech-empty--inline">
+                    <div class="tech-empty__hint">No stock assigned to your account yet.</div>
+                  </div>
+                }
+              </article>
+            }
+
             <article class="tech-detail-card">
               <div class="tech-detail-card__title">Proof and GPS trace</div>
               <div class="tech-detail-card__body">
@@ -662,7 +744,7 @@
             <div class="tech-form__intro">
               <div class="tech-form__title">Work and proof</div>
               <div class="tech-form__hint">
-                Attach the proof photo, save its GPS position, then submit the work update in one clean mobile flow.
+                Attach the proof photo, save its GPS position, declare used stock, then submit the work update in one clean mobile flow.
               </div>
             </div>
 
@@ -766,12 +848,71 @@
             </div>
 
             <div class="tech-form__section">
+              <div class="tech-form__section-title">Used stock</div>
+
+              @if (techStockLoading) {
+                <div class="tech-panel__loading">Loading stock...</div>
+              }
+
+              @if (techStockError) {
+                <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
+              }
+
+              @if (stockNotice) {
+                <div class="tech-banner" [ngClass]="'tech-banner--' + stockNotice.tone">{{ stockNotice.text }}</div>
+              }
+
+              @if (!techStockLoading && techStockItems.length > 0) {
+                <div class="tech-usage-picker">
+                  @for (line of usageLines; track $index; let i = $index) {
+                    <div class="tech-usage-picker__row">
+                      <select
+                        class="tech-usage-picker__select"
+                        [(ngModel)]="line.equipmentId"
+                        [name]="'wEq_' + i"
+                        [disabled]="stockBusy"
+                      >
+                        <option value="">Item...</option>
+                        @for (item of techStockItems; track item.equipmentId) {
+                          <option [value]="item.equipmentId">
+                            {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                          </option>
+                        }
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        class="tech-usage-picker__qty"
+                        [(ngModel)]="line.quantity"
+                        [name]="'wQty_' + i"
+                        [disabled]="stockBusy"
+                        placeholder="Qty"
+                      />
+                      @if (usageLines.length > 1) {
+                        <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="stockBusy">×</button>
+                      }
+                    </div>
+                  }
+                  <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="stockBusy">+ Add item</button>
+                </div>
+
+                <div class="tech-stock-form__actions">
+                  <button type="button" class="btn-tech btn-tech--primary" (click)="submitStockUsage()" [disabled]="stockBusy">
+                    <svg cIcon name="cilSave"></svg>
+                    {{ stockBusy ? 'Saving...' : 'Declare' }}
+                  </button>
+                </div>
+              } @else if (!techStockLoading && !techStockError) {
+                <div class="tech-empty tech-empty--inline">
+                  <div class="tech-empty__hint">No stock assigned to your account yet.</div>
+                </div>
+              }
+            </div>
+
+            <div class="tech-form__section">
               <div class="tech-form__section-title">Technical metrics</div>
               <div class="tech-metric-input-grid">
-                <label class="tech-field">
-                  <span>Cable length</span>
-                  <input type="number" step="0.01" name="workMetrageCable" [(ngModel)]="workForm.metrageCable" />
-                </label>
                 <label class="tech-field">
                   <span>PV count</span>
                   <input type="number" step="1" name="workNombrePv" [(ngModel)]="workForm.nombrePv" />

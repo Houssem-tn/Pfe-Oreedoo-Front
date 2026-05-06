@@ -6,30 +6,72 @@
     </button>
   </c-card-header>
   <c-card-body>
-    @if (error) { <div class="alert alert-danger">{{ error }}</div> }
+    @if (error) {
+      <div class="alert alert-danger">{{ error }}</div>
+    }
 
     @if (loading) {
-      <div class="text-center py-4"><c-spinner size="sm"></c-spinner> Loading your stock…</div>
+      <div class="text-center py-4">
+        <c-spinner size="sm"></c-spinner>
+        Loading your stock...
+      </div>
     } @else if (!stock || stock.items.length === 0) {
       <div class="text-center text-muted py-4">
         <svg cIcon name="cilStorage" size="3xl" class="mb-2 text-secondary"></svg>
         <p>You have not received any equipment yet.</p>
       </div>
     } @else {
-      <!-- Total badge -->
-      <div class="mb-3">
-        <c-badge color="info" class="fs-6">{{ total }} total units across {{ stock.items.length }} equipment type(s)</c-badge>
-      </div>
+      <c-row class="g-3 mb-3">
+        <c-col [sm]="4">
+          <div class="border rounded p-3 h-100 bg-light">
+            <small class="text-muted d-block mb-1">Received</small>
+            <div class="fs-4 fw-bold text-dark">{{ totalReceived }}</div>
+          </div>
+        </c-col>
+        <c-col [sm]="4">
+          <div class="border rounded p-3 h-100 bg-light">
+            <small class="text-muted d-block mb-1">Used</small>
+            <div class="fs-4 fw-bold text-danger">{{ totalUsed }}</div>
+          </div>
+        </c-col>
+        <c-col [sm]="4">
+          <div class="border rounded p-3 h-100 bg-light">
+            <small class="text-muted d-block mb-1">Remaining</small>
+            <div class="fs-4 fw-bold text-success">{{ totalRemaining }}</div>
+          </div>
+        </c-col>
+      </c-row>
 
       <c-row class="g-3">
         @for (item of stock.items; track item.equipmentId) {
           <c-col [sm]="6" [lg]="4">
-            <div class="border rounded p-3 h-100">
-              <div class="fw-semibold mb-1">{{ item.equipmentName }}</div>
-              <div class="fs-3 fw-bold text-primary">{{ item.receivedQuantity }}</div>
-              <small class="text-muted">units received</small>
+            <div class="border rounded p-3 h-100 shadow-sm">
+              <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                <div>
+                  <div class="fw-semibold mb-1">{{ item.equipmentName }}</div>
+                  <small class="text-muted">{{ unitName(item) }}</small>
+                </div>
+                <c-badge [color]="item.remainingQuantity > 0 ? 'success' : 'danger'">
+                  {{ item.remainingQuantity }} left
+                </c-badge>
+              </div>
+
+              <div class="fs-3 fw-bold text-primary mb-3">
+                {{ item.remainingQuantity }}
+                <small class="fs-6 text-muted">{{ unitLabel(item) }}</small>
+              </div>
+
+              <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted">Received</span>
+                <strong>{{ item.receivedQuantity }} {{ unitLabel(item) }}</strong>
+              </div>
+              <div class="d-flex justify-content-between small mb-2">
+                <span class="text-muted">Used</span>
+                <strong class="text-danger">{{ item.usedQuantity }} {{ unitLabel(item) }}</strong>
+              </div>
+
               @if (item.lastReceivedAt) {
-                <div class="mt-2">
+                <div class="pt-2 mt-2 border-top">
                   <small class="text-muted">Last received: {{ item.lastReceivedAt | date:'dd/MM/yyyy' }}</small>
                 </div>
               }

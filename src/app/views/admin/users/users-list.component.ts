@@ -6,7 +6,7 @@ import { finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
 
 import { AppUser } from '../../../core/users/user.model';
-import { UserService } from '../../../core/users/user.service';
+import { CaseModuleType, UserService } from '../../../core/users/user.service';
 import { TUNISIA_GOVERNORATES, normalizeGovernorateList } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
 import { GovernorateSelectorComponent } from '../../../shared/modals/governorate-selector/governorate-selector.component';
@@ -53,7 +53,22 @@ export class UsersListComponent implements OnInit {
   govSelectorSelected: string[] = [];
   govSelectorAllowEmpty = false;
   private govSelectorPendingUser: AppUser | null = null;
-  private govSelectorMode: 'zm' | 'stt' = 'zm';
+  private govSelectorMode: 'zm' | 'stt' | 'zm-module' = 'zm';
+
+  // Module picker state (step 1 of ZM coverage assignment)
+  modulePickerVisible = false;
+  modulePickerPendingZm: AppUser | null = null;
+  private activeModuleType: CaseModuleType | null = null;
+
+  // Coverage detail drawer
+  coverageDrawerVisible = false;
+  coverageDrawerUser: AppUser | null = null;
+
+  readonly moduleTypes: { type: CaseModuleType; label: string }[] = [
+    { type: 'ACT', label: 'Activation' },
+    { type: 'RES', label: 'Résiliation' },
+    { type: 'PLT', label: 'Plainte' }
+  ];
 
   currentPage = 1;
   pageSize = 5;
@@ -174,6 +189,8 @@ export class UsersListComponent implements OnInit {
 
     if (this.govSelectorMode === 'zm') {
       this.assignGovernorates(user, selected);
+    } else if (this.govSelectorMode === 'zm-module') {
+      this.assignCoverageByModule(user, this.activeModuleType!, selected);
     } else {
       this.assignCoverageAreas(user, selected);
     }
@@ -181,6 +198,83 @@ export class UsersListComponent implements OnInit {
 
   onGovCancel(): void {
     this.govSelectorVisible = false;
+  }
+
+  openAssignCoverageModal(zm: AppUser): void {
+    this.modulePickerPendingZm = zm;
+    this.modulePickerVisible = true;
+    this.activeModuleType = null;
+  }
+
+  onModuleSelected(moduleType: CaseModuleType): void {
+    this.activeModuleType = moduleType;
+    this.modulePickerVisible = false;
+    const zm = this.modulePickerPendingZm!;
+    const available = this.availableGovernoratesForZmModule(zm, moduleType);
+
+    this.govSelectorPendingUser = zm;
+    this.govSelectorMode = 'zm-module';
+    this.govSelectorTitle = `Assign ${this.moduleLabel(moduleType)} coverage — ${zm.fullName}`;
+    this.govSelectorDescription = `Select governorates for ${this.moduleLabel(moduleType)} (${moduleType}). Only governorates not already assigned to another ZM for this module are shown.`;
+    this.govSelectorConfirmText = `Save ${moduleType} coverage`;
+    this.govSelectorOptions = available;
+    this.govSelectorSelected = this.governoratesForModule(zm, moduleType);
+    this.govSelectorAllowEmpty = true;
+    this.govSelectorVisible = true;
+  }
+
+  onModulePickerCancel(): void {
+    this.modulePickerVisible = false;
+  }
+
+  openCoverageDrawer(user: AppUser): void {
+    this.coverageDrawerUser = user;
+    this.coverageDrawerVisible = true;
+  }
+
+  openAssignCoverageFromDrawer(): void {
+    const user = this.coverageDrawerUser;
+    if (!user) return;
+
+    this.closeCoverageDrawer();
+    this.openAssignCoverageModal(user);
+  }
+
+  openSetCoverageAreasFromDrawer(): void {
+    const user = this.coverageDrawerUser;
+    if (!user) return;
+
+    this.closeCoverageDrawer();
+    this.openSetCoverageAreasModal(user);
+  }
+
+  closeCoverageDrawer(): void {
+    this.coverageDrawerVisible = false;
+    this.coverageDrawerUser = null;
+  }
+
+  governoratesForModule(user: AppUser | null | undefined, moduleType: CaseModuleType): string[] {
+    if (!user) {
+      return [];
+    }
+
+    const coverage = user.coverageByModule;
+    if (coverage && coverage[moduleType] && coverage[moduleType].length > 0) {
+      return normalizeGovernorateList(coverage[moduleType]);
+    }
+    if (moduleType === 'ACT') {
+      return normalizeGovernorateList(user.assignedGovernorates ?? []);
+    }
+    return [];
+  }
+
+  moduleLabel(moduleType: CaseModuleType): string {
+    const labels: Record<CaseModuleType, string> = {
+      ACT: 'Activation',
+      RES: 'Résiliation',
+      PLT: 'Plainte'
+    };
+    return labels[moduleType];
   }
 
   async toggleBan(user: AppUser): Promise<void> {
@@ -571,13 +665,13 @@ export class UsersListComponent implements OnInit {
   }
 
   governorateSummary(user: AppUser): string {
-    const count = this.governoratesFor(user).length;
-
-    if (count === 0) {
-      return 'No governorates assigned';
+    const actCount = this.governoratesForModule(user, 'ACT').length;
+    const resCount = this.governoratesForModule(user, 'RES').length;
+    const pltCount = this.governoratesForModule(user, 'PLT').length;
+    if (actCount + resCount + pltCount === 0) {
+      return 'No module coverage assigned';
     }
-
-    return `${count} governorate${count > 1 ? 's' : ''} assigned`;
+    return `ACT ${actCount} · RES ${resCount} · PLT ${pltCount}`;
   }
 
   coverageSummary(user: AppUser): string {
@@ -673,5 +767,42 @@ export class UsersListComponent implements OnInit {
     return this.governorateOptions.filter(
       (governorate) => currentGovernorates.has(governorate) || !assignedToOtherZms.has(governorate)
     );
+  }
+
+  private availableGovernoratesForZmModule(zm: AppUser, moduleType: CaseModuleType): string[] {
+    const currentGovernorates = new Set(this.governoratesForModule(zm, moduleType));
+    const assignedToOtherZms = new Set(
+      this.users
+        .filter((user) => user.role === 'ROLE_ZM' && user.id !== zm.id)
+        .flatMap((user) => this.governoratesForModule(user, moduleType))
+    );
+    return this.governorateOptions.filter(
+      (gov) => currentGovernorates.has(gov) || !assignedToOtherZms.has(gov)
+    );
+  }
+
+  private assignCoverageByModule(zm: AppUser, moduleType: CaseModuleType, governorates: string[]): void {
+    this.error = null;
+    this.assigningGovernoratesZmId = zm.id;
+
+    this.usersSvc.updateZmCoverageByModule(zm.id, moduleType, governorates)
+      .pipe(
+        finalize(() => {
+          this.assigningGovernoratesZmId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.mergeUser(updated);
+          void this.swal.success('Coverage saved', `${this.moduleLabel(moduleType)} coverage updated for ${updated.fullName}.`);
+        },
+        error: (err) => {
+          console.error('Error assigning module coverage:', err);
+          const message = err?.error?.message ?? 'Failed to assign coverage';
+          this.error = message;
+          void this.swal.error('Coverage assignment failed', message);
+        }
+      });
   }
 }

@@ -19,15 +19,19 @@
       </div>
       <h1 class="sa-title">DPM Audit Trail</h1>
       <p class="sa-desc">
-        Full traceability per DPM — from ZM request through STT confirmation to TECH distribution.
-        Click any row to open the complete flow.
+        Full traceability — ZM requests, STT confirmations, quantities, dates, and TECH distributions.
       </p>
     </div>
 
     <div class="sa-stats">
       <div class="sa-stat">
+        <span class="sa-stat__value">{{ zmCards.length }}</span>
+        <span class="sa-stat__label">ZMs</span>
+        <span class="sa-stat__dot sa-stat__dot--total"></span>
+      </div>
+      <div class="sa-stat">
         <span class="sa-stat__value">{{ dpms.length }}</span>
-        <span class="sa-stat__label">Total</span>
+        <span class="sa-stat__label">Total DPMs</span>
         <span class="sa-stat__dot sa-stat__dot--total"></span>
       </div>
       <div class="sa-stat">
@@ -48,31 +52,24 @@
     </div>
   </div>
 
-  <!-- Toolbar -->
-  <div class="sa-toolbar">
-    <div class="sa-search-wrap">
-      <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  <!-- View toggle -->
+  <div class="sa-view-toggle">
+    <button class="sa-view-btn" [class.sa-view-btn--active]="activeView === 'zm'"
+            type="button" (click)="activeView = 'zm'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="8" r="4"></circle>
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path>
       </svg>
-      <input class="sa-search" type="text" [(ngModel)]="searchFilter"
-             placeholder="Search DPM #, ZM, STT…" />
-    </div>
-    <select class="sa-select" [(ngModel)]="statusFilter">
-      <option value="">All statuses</option>
-      <option value="PENDING_STT_CONFIRMATION">Pending</option>
-      <option value="PARTIALLY_CONFIRMED">Partial</option>
-      <option value="FULLY_CONFIRMED">Confirmed</option>
-      <option value="REJECTED">Rejected</option>
-      <option value="CANCELLED">Cancelled</option>
-    </select>
-    <select class="sa-select" [(ngModel)]="zmFilter">
-      <option value="">All ZMs</option>
-      @for (zm of zmOptions; track zm.id) {
-        <option [value]="zm.id">{{ zm.name }}</option>
-      }
-    </select>
-    <span class="sa-count">{{ filtered.length }} DPM{{ filtered.length !== 1 ? 's' : '' }}</span>
+      By Zone Manager
+    </button>
+    <button class="sa-view-btn" [class.sa-view-btn--active]="activeView === 'stock'"
+            type="button" (click)="activeView = 'stock'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+      </svg>
+      By Equipment
+    </button>
   </div>
 
   @if (error) {
@@ -86,70 +83,486 @@
     </div>
   }
 
-  @if (!loading) {
-    <div class="sa-card">
-      @if (filtered.length === 0) {
-        <div class="sa-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          No DPMs match your filter.
-        </div>
-      }
+  <!-- ══════════════════════ ZM VIEW ══════════════════════ -->
+  @if (!loading && activeView === 'zm') {
 
-      <div class="sa-dpm-list">
-        @for (d of filtered; track d.id) {
-          <div class="sa-dpm-row"
-               [class.sa-dpm-row--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
-               [class.sa-dpm-row--partial]="d.status === 'PARTIALLY_CONFIRMED'"
-               [class.sa-dpm-row--confirmed]="d.status === 'FULLY_CONFIRMED'"
-               [class.sa-dpm-row--rejected]="d.status === 'REJECTED'"
-               [class.sa-dpm-row--cancelled]="d.status === 'CANCELLED'"
-               (click)="openDpm(d)">
+    <div class="sa-zm-search-row">
+      <div class="sa-search-wrap">
+        <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input class="sa-search" type="text" [(ngModel)]="zmSearch" placeholder="Search zone manager…" />
+      </div>
+      <span class="sa-count">{{ filteredZmCards.length }} ZM{{ filteredZmCards.length !== 1 ? 's' : '' }}</span>
+    </div>
 
-            <span class="sa-dpm-num">{{ d.dpmNumber }}</span>
+    @if (filteredZmCards.length === 0) {
+      <div class="sa-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>No zone managers found.</span>
+      </div>
+    }
 
-            <div class="sa-dpm-actors">
-              <span class="sa-role-badge sa-role-badge--zm">ZM</span>
-              <span class="sa-dpm-actor-name">{{ d.zmName }}</span>
-              <svg class="sa-dpm-arrow-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7"></path>
-              </svg>
-              <span class="sa-role-badge sa-role-badge--stt">STT</span>
-              <span class="sa-dpm-actor-name">{{ d.sttName }}</span>
+    <div class="sa-zm-cards">
+      @for (zm of filteredZmCards; track zm.id) {
+        <button class="sa-zm-card" type="button" (click)="openZmAudit(zm.id)">
+
+          <div class="sa-zm-card__top">
+            <div class="sa-actor-av sa-actor-av--zm sa-actor-av--lg">{{ nameInitials(zm.name) }}</div>
+            <div class="sa-zm-card__info">
+              <span class="sa-zm-card__name">{{ zm.name }}</span>
+              <span class="sa-zm-card__email">{{ zm.email }}</span>
             </div>
+          </div>
 
-            <span class="sa-pill"
-                  [class.sa-pill--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
-                  [class.sa-pill--partial]="d.status === 'PARTIALLY_CONFIRMED'"
-                  [class.sa-pill--confirmed]="d.status === 'FULLY_CONFIRMED'"
-                  [class.sa-pill--rejected]="d.status === 'REJECTED'"
-                  [class.sa-pill--cancelled]="d.status === 'CANCELLED'">
-              {{ statusLabel(d.status) }}
+          <div class="sa-zm-card__stats">
+            <span class="sa-zm-card__stat">
+              <span class="sa-zm-card__stat-val">{{ zm.total }}</span>
+              <span class="sa-zm-card__stat-lbl">Total</span>
             </span>
+            @if (zm.pending > 0) {
+              <span class="sa-zm-card__stat sa-zm-card__stat--pending">
+                <span class="sa-zm-card__stat-val">{{ zm.pending }}</span>
+                <span class="sa-zm-card__stat-lbl">Pending</span>
+              </span>
+            }
+            @if (zm.confirmed > 0) {
+              <span class="sa-zm-card__stat sa-zm-card__stat--confirmed">
+                <span class="sa-zm-card__stat-val">{{ zm.confirmed }}</span>
+                <span class="sa-zm-card__stat-lbl">Confirmed</span>
+              </span>
+            }
+            @if (zm.rejected > 0) {
+              <span class="sa-zm-card__stat sa-zm-card__stat--rejected">
+                <span class="sa-zm-card__stat-val">{{ zm.rejected }}</span>
+                <span class="sa-zm-card__stat-lbl">Rejected</span>
+              </span>
+            }
+          </div>
 
-            <div class="sa-dpm-meta">
-              <span>{{ d.items.length }} item{{ d.items.length !== 1 ? 's' : '' }}</span>
-              <span>{{ d.createdAt | date:'dd MMM yyyy' }}</span>
-            </div>
-
-            <svg class="sa-dpm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M9 18l6-6-6-6"></path>
+          <div class="sa-zm-card__action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            Audit ZM
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
             </svg>
           </div>
+
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════ STOCK / ITEM VIEW ══════════════════════ -->
+  @if (!loading && activeView === 'stock') {
+
+    <!-- Search + summary bar -->
+    <div class="sa-zm-search-row">
+      <div class="sa-search-wrap">
+        <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input class="sa-search" type="text" [(ngModel)]="itemSearch" placeholder="Search equipment…" />
+      </div>
+      <span class="sa-count">{{ filteredItemRows.length }} item{{ filteredItemRows.length !== 1 ? 's' : '' }}</span>
+    </div>
+
+    @if (filteredItemRows.length === 0) {
+      <div class="sa-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>No equipment found.</span>
+      </div>
+    }
+
+    <div class="sa-card">
+      <!-- Table header -->
+      <div class="sa-item-table-head">
+        <span>Equipment</span>
+        <span>DPMs</span>
+        <span>Requested</span>
+        <span>Confirmed</span>
+        <span>Shortage</span>
+        <span></span>
+      </div>
+
+      @for (row of filteredItemRows; track row.equipmentId) {
+        <div class="sa-item-row" (click)="openItemPanel(row)">
+
+          <div class="sa-item-row__name">
+            <span class="sa-item-eq-name">{{ row.equipmentName }}</span>
+            @if (row.unit) {
+              <span class="sa-item-unit-pill">{{ row.unit === 'METERS' ? 'm' : 'pcs' }}</span>
+            }
+          </div>
+
+          <div class="sa-item-row__cell">
+            <span class="sa-item-num">{{ row.dpmCount }}</span>
+            @if (row.pendingCount > 0) {
+              <span class="sa-item-sub-pill sa-item-sub-pill--pending">{{ row.pendingCount }} pending</span>
+            }
+          </div>
+
+          <div class="sa-item-row__cell">
+            <span class="sa-item-num sa-item-num--req">
+              {{ row.unit === 'METERS' ? row.totalRequested + ' m' : '×' + row.totalRequested }}
+            </span>
+          </div>
+
+          <div class="sa-item-row__cell">
+            @if (row.confirmedCount > 0 || row.totalConfirmed > 0) {
+              <span class="sa-item-num sa-item-num--conf">
+                {{ row.unit === 'METERS' ? row.totalConfirmed + ' m' : '×' + row.totalConfirmed }}
+              </span>
+            } @else {
+              <span class="sa-item-num sa-item-num--muted">—</span>
+            }
+          </div>
+
+          <div class="sa-item-row__cell">
+            @if (row.totalShortage > 0) {
+              <span class="sa-item-num sa-item-num--short">
+                −{{ row.unit === 'METERS' ? row.totalShortage + ' m' : row.totalShortage }}
+              </span>
+            } @else {
+              <span class="sa-item-num sa-item-num--muted">—</span>
+            }
+          </div>
+
+          <svg class="sa-dpm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6"></path>
+          </svg>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── ZM Audit overlay ────────────────────────────────────────────── -->
+  @if (zmAuditVisible) {
+    <div class="sa-backdrop" (click)="closeZmAudit()">
+      <div class="sa-panel sa-panel--wide" (click)="$event.stopPropagation()">
+
+        <div class="sa-panel-head">
+          <div class="sa-panel-head__left">
+            <span class="sa-panel-dpm">ZM Audit</span>
+            @if (zmAudit) {
+              <span class="sa-role-badge sa-role-badge--zm">{{ zmAudit.zmName }}</span>
+            }
+          </div>
+          <button class="sa-panel-close" type="button" (click)="closeZmAudit()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        @if (loadingZmAudit) {
+          <div class="sa-loading" style="padding:3rem">
+            <c-spinner size="sm"></c-spinner>
+            <span>Loading ZM audit…</span>
+          </div>
         }
+
+        @if (zmAudit && !loadingZmAudit) {
+          <div class="sa-flow" style="padding:1.25rem">
+
+            <div class="sa-zm-header">
+              <div class="sa-zm-profile">
+                <div class="sa-actor-av sa-actor-av--zm sa-actor-av--lg">{{ nameInitials(zmAudit.zmName) }}</div>
+                <div class="sa-zm-profile__info">
+                  <div class="sa-zm-name">{{ zmAudit.zmName }}</div>
+                  <div class="sa-zm-email">{{ zmAudit.zmEmail }}</div>
+                  <span class="sa-role-badge sa-role-badge--zm">ZM</span>
+                </div>
+              </div>
+
+              <div class="sa-zm-stats-grid">
+                <div class="sa-zm-sc">
+                  <span class="sa-zm-sc__val">{{ zmAudit.totalDpms }}</span>
+                  <span class="sa-zm-sc__lbl">Total DPMs</span>
+                </div>
+                <div class="sa-zm-sc">
+                  <span class="sa-zm-sc__val sa-zm-sc__val--pending">{{ zmAudit.pendingCount }}</span>
+                  <span class="sa-zm-sc__lbl">Pending</span>
+                </div>
+                <div class="sa-zm-sc">
+                  <span class="sa-zm-sc__val sa-zm-sc__val--ok">{{ zmAudit.confirmedCount }}</span>
+                  <span class="sa-zm-sc__lbl">Confirmed</span>
+                </div>
+                <div class="sa-zm-sc">
+                  <span class="sa-zm-sc__val sa-zm-sc__val--reject">{{ zmAudit.rejectedCount }}</span>
+                  <span class="sa-zm-sc__lbl">Rejected</span>
+                </div>
+                <div class="sa-zm-sc" [class.sa-zm-sc--warn]="zmAudit.warningCount > 0">
+                  <span class="sa-zm-sc__val" [class.sa-zm-sc__val--reject]="zmAudit.warningCount > 0">{{ zmAudit.warningCount }}</span>
+                  <span class="sa-zm-sc__lbl">Warnings</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="sa-section-title" style="margin-top:1.25rem;margin-bottom:0.6rem">
+              DPM Breakdown — {{ zmAudit.dpms.length }} request{{ zmAudit.dpms.length !== 1 ? 's' : '' }}
+            </div>
+
+            @if (zmAudit.dpms.length === 0) {
+              <p class="sa-muted-text" style="font-size:0.875rem">No DPM requests found for this ZM.</p>
+            }
+
+            <div class="sa-dpm-list sa-dpm-list--audit">
+              @for (item of zmAudit.dpms; track item.dpm.id) {
+                <div class="sa-audit-row"
+                     [class.sa-dpm-row--pending]="item.dpm.status === 'PENDING_STT_CONFIRMATION'"
+                     [class.sa-dpm-row--partial]="item.dpm.status === 'PARTIALLY_CONFIRMED'"
+                     [class.sa-dpm-row--confirmed]="item.dpm.status === 'FULLY_CONFIRMED'"
+                     [class.sa-dpm-row--rejected]="item.dpm.status === 'REJECTED'"
+                     [class.sa-dpm-row--cancelled]="item.dpm.status === 'CANCELLED'"
+                     (click)="openDpm(item.dpm, item.distributions)">
+
+                  <div class="sa-audit-row__top">
+                    <span class="sa-dpm-num">{{ item.dpm.dpmNumber }}</span>
+                    <div class="sa-dpm-actors">
+                      <span class="sa-role-badge sa-role-badge--stt">STT</span>
+                      <span class="sa-dpm-actor-name">{{ item.dpm.sttName }}</span>
+                    </div>
+                    <span class="sa-pill"
+                          [class.sa-pill--pending]="item.dpm.status === 'PENDING_STT_CONFIRMATION'"
+                          [class.sa-pill--partial]="item.dpm.status === 'PARTIALLY_CONFIRMED'"
+                          [class.sa-pill--confirmed]="item.dpm.status === 'FULLY_CONFIRMED'"
+                          [class.sa-pill--rejected]="item.dpm.status === 'REJECTED'"
+                          [class.sa-pill--cancelled]="item.dpm.status === 'CANCELLED'">
+                      {{ statusLabel(item.dpm.status) }}
+                    </span>
+                    <span class="sa-audit-date">{{ item.dpm.createdAt | date:'dd MMM yyyy' }}</span>
+                    <div class="sa-audit-warns">
+                      @if (item.partiallyConfirmed) {
+                        <span class="sa-warn-tag sa-warn-tag--partial">Partial Confirm</span>
+                      }
+                      @if (item.overDistributed) {
+                        <span class="sa-warn-tag sa-warn-tag--over">Over-Distributed</span>
+                      }
+                    </div>
+                    <svg class="sa-dpm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M9 18l6-6-6-6"></path>
+                    </svg>
+                  </div>
+
+                  <div class="sa-audit-row__items">
+                    @for (eq of item.dpm.items; track eq.equipmentId) {
+                      <span class="sa-audit-item-chip">
+                        {{ eq.equipmentName }}
+                        <span class="sa-audit-item-chip__req">{{ formatQty(eq.requestedQuantity, eq.unit) }}</span>
+                        @if (eq.confirmedQuantity != null) {
+                          <span class="sa-audit-item-chip__sep">→</span>
+                          <span class="sa-audit-item-chip__conf"
+                                [class.sa-audit-item-chip__conf--short]="eq.confirmedQuantity < eq.requestedQuantity">
+                            {{ formatQty(eq.confirmedQuantity, eq.unit) }}
+                          </span>
+                        }
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+          </div>
+        }
+
+        <div class="sa-panel-foot">
+          <button class="sa-panel-foot__btn" type="button" (click)="closeZmAudit()">Close</button>
+        </div>
+
       </div>
     </div>
   }
 
-  <!-- ── Flow panel overlay ──────────────────────────────────────── -->
+  <!-- ── Item audit panel ────────────────────────────────────────────── -->
+  @if (selectedItemRow && itemPanelVisible) {
+    <div class="sa-backdrop" (click)="itemPanelVisible = false">
+      <div class="sa-panel sa-panel--wide" (click)="$event.stopPropagation()">
+
+        <div class="sa-panel-head">
+          <div class="sa-panel-head__left">
+            <span class="sa-panel-dpm">{{ selectedItemRow.equipmentName }}</span>
+            @if (selectedItemRow.unit) {
+              <span class="sa-item-unit-pill">{{ selectedItemRow.unit === 'METERS' ? 'meters' : 'pieces' }}</span>
+            }
+          </div>
+          <button class="sa-panel-close" type="button" (click)="itemPanelVisible = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Item summary header -->
+        <div class="sa-item-panel-summary">
+          <div class="sa-zm-sc">
+            <span class="sa-zm-sc__val">{{ selectedItemRow.dpmCount }}</span>
+            <span class="sa-zm-sc__lbl">DPMs</span>
+          </div>
+          <div class="sa-zm-sc">
+            <span class="sa-zm-sc__val">
+              {{ selectedItemRow.unit === 'METERS' ? selectedItemRow.totalRequested + ' m' : '×' + selectedItemRow.totalRequested }}
+            </span>
+            <span class="sa-zm-sc__lbl">Requested</span>
+          </div>
+          <div class="sa-zm-sc">
+            <span class="sa-zm-sc__val sa-zm-sc__val--ok">
+              {{ selectedItemRow.unit === 'METERS' ? selectedItemRow.totalConfirmed + ' m' : '×' + selectedItemRow.totalConfirmed }}
+            </span>
+            <span class="sa-zm-sc__lbl">Confirmed</span>
+          </div>
+          @if (selectedItemRow.totalShortage > 0) {
+            <div class="sa-zm-sc sa-zm-sc--warn">
+              <span class="sa-zm-sc__val sa-zm-sc__val--reject">
+                −{{ selectedItemRow.unit === 'METERS' ? selectedItemRow.totalShortage + ' m' : selectedItemRow.totalShortage }}
+              </span>
+              <span class="sa-zm-sc__lbl">Shortage</span>
+            </div>
+          }
+          <div class="sa-zm-sc">
+            <span class="sa-zm-sc__val sa-zm-sc__val--pending">{{ selectedItemRow.pendingCount }}</span>
+            <span class="sa-zm-sc__lbl">Pending</span>
+          </div>
+        </div>
+
+        <!-- Per-DPM entries -->
+        <div style="padding: 0 1.25rem 1.25rem">
+          <div class="sa-section-title" style="margin-bottom:0.65rem">
+            All requests — {{ selectedItemRow.entries.length }} entr{{ selectedItemRow.entries.length !== 1 ? 'ies' : 'y' }}
+          </div>
+
+          <div class="sa-dpm-list sa-dpm-list--audit">
+            @for (entry of selectedItemRow.entries; track entry.dpm.id) {
+              <div class="sa-item-entry"
+                   [class.sa-dpm-row--pending]="entry.dpm.status === 'PENDING_STT_CONFIRMATION'"
+                   [class.sa-dpm-row--partial]="entry.dpm.status === 'PARTIALLY_CONFIRMED'"
+                   [class.sa-dpm-row--confirmed]="entry.dpm.status === 'FULLY_CONFIRMED'"
+                   [class.sa-dpm-row--rejected]="entry.dpm.status === 'REJECTED'"
+                   [class.sa-dpm-row--cancelled]="entry.dpm.status === 'CANCELLED'"
+                   (click)="openDpm(entry.dpm)">
+
+                <!-- Row top: DPM number + actors + status + date -->
+                <div class="sa-item-entry__top">
+                  <span class="sa-dpm-num">{{ entry.dpm.dpmNumber }}</span>
+
+                  <div class="sa-dpm-actors">
+                    <div class="sa-actor-av sa-actor-av--zm" style="width:22px;height:22px;font-size:0.6rem;border-radius:6px">
+                      {{ nameInitials(entry.dpm.zmName) }}
+                    </div>
+                    <span class="sa-dpm-actor-name">{{ entry.dpm.zmName }}</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--sa-muted);flex-shrink:0">
+                      <path d="M5 12h14M12 5l7 7-7 7"></path>
+                    </svg>
+                    <div class="sa-actor-av sa-actor-av--stt" style="width:22px;height:22px;font-size:0.6rem;border-radius:6px">
+                      {{ nameInitials(entry.dpm.sttName) }}
+                    </div>
+                    <span class="sa-dpm-actor-name">{{ entry.dpm.sttName }}</span>
+                  </div>
+
+                  <span class="sa-pill"
+                        [class.sa-pill--pending]="entry.dpm.status === 'PENDING_STT_CONFIRMATION'"
+                        [class.sa-pill--partial]="entry.dpm.status === 'PARTIALLY_CONFIRMED'"
+                        [class.sa-pill--confirmed]="entry.dpm.status === 'FULLY_CONFIRMED'"
+                        [class.sa-pill--rejected]="entry.dpm.status === 'REJECTED'"
+                        [class.sa-pill--cancelled]="entry.dpm.status === 'CANCELLED'">
+                    {{ statusLabel(entry.dpm.status) }}
+                  </span>
+                </div>
+
+                <!-- Row bottom: qty row + dates -->
+                <div class="sa-item-entry__detail">
+                  <!-- Quantities -->
+                  <div class="sa-item-entry__qty-row">
+                    <div class="sa-item-qty-block">
+                      <span class="sa-item-qty-lbl">Requested</span>
+                      <span class="sa-item-qty-val">
+                        {{ selectedItemRow.unit === 'METERS' ? entry.requestedQty + ' m' : '×' + entry.requestedQty }}
+                      </span>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--sa-muted);flex-shrink:0">
+                      <path d="M5 12h14M12 5l7 7-7 7"></path>
+                    </svg>
+                    <div class="sa-item-qty-block">
+                      <span class="sa-item-qty-lbl">Confirmed</span>
+                      @if (entry.confirmedQty != null) {
+                        <span class="sa-item-qty-val"
+                              [class.sa-item-qty-val--ok]="entry.confirmedQty >= entry.requestedQty"
+                              [class.sa-item-qty-val--short]="entry.confirmedQty < entry.requestedQty && entry.confirmedQty > 0"
+                              [class.sa-item-qty-val--zero]="entry.confirmedQty === 0">
+                          {{ selectedItemRow.unit === 'METERS' ? entry.confirmedQty + ' m' : '×' + entry.confirmedQty }}
+                        </span>
+                      } @else {
+                        <span class="sa-item-qty-val sa-item-qty-val--pending">Pending</span>
+                      }
+                    </div>
+                    @if (entry.shortageQty && entry.shortageQty > 0) {
+                      <div class="sa-item-qty-block">
+                        <span class="sa-item-qty-lbl">Shortage</span>
+                        <span class="sa-item-qty-val sa-item-qty-val--short">
+                          −{{ selectedItemRow.unit === 'METERS' ? entry.shortageQty + ' m' : entry.shortageQty }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Dates -->
+                  <div class="sa-item-entry__dates">
+                    <span class="sa-item-date-badge">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      Requested {{ entry.dpm.createdAt | date:'dd MMM yyyy' }}
+                    </span>
+                    @if (entry.dpm.confirmedAt) {
+                      <span class="sa-item-date-badge sa-item-date-badge--conf">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Confirmed {{ entry.dpm.confirmedAt | date:'dd MMM yyyy' }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <svg class="sa-dpm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M9 18l6-6-6-6"></path>
+                </svg>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="sa-panel-foot">
+          <button class="sa-panel-foot__btn" type="button" (click)="itemPanelVisible = false">Close</button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ── Flow panel overlay ──────────────────────────────────────────── -->
   @if (selectedDpm && panelVisible) {
     <div class="sa-backdrop" (click)="panelVisible = false">
       <div class="sa-panel" (click)="$event.stopPropagation()">
 
-        <!-- Panel header -->
         <div class="sa-panel-head">
           <div class="sa-panel-head__left">
             <span class="sa-panel-dpm">{{ selectedDpm.dpmNumber }}</span>
@@ -170,10 +583,8 @@
           </button>
         </div>
 
-        <!-- Flow -->
         <div class="sa-flow">
 
-          <!-- ── Stage 1: ZM Request ───────────────────────────── -->
           <div class="sa-stage sa-stage--create">
             <div class="sa-stage-head">
               <div class="sa-stage-num sa-stage-num--create">1</div>
@@ -183,7 +594,6 @@
               </div>
             </div>
             <div class="sa-stage-body">
-
               <div class="sa-actor-card">
                 <div class="sa-actor-av sa-actor-av--zm">{{ nameInitials(selectedDpm.zmName) }}</div>
                 <div class="sa-actor-info">
@@ -192,7 +602,6 @@
                   <span class="sa-role-badge sa-role-badge--zm">ZM</span>
                 </div>
               </div>
-
               <div class="sa-detail-row">
                 <span class="sa-detail-label">Delivery Person</span>
                 <span class="sa-detail-value">{{ selectedDpm.deliveryPersonName }}</span>
@@ -203,7 +612,6 @@
                   <span class="sa-detail-value">{{ selectedDpm.notes }}</span>
                 </div>
               }
-
               <div class="sa-section-title">Items Requested</div>
               <div class="sa-items-list">
                 @for (item of selectedDpm.items; track item.equipmentId) {
@@ -212,15 +620,13 @@
                       <img class="sa-item-img" [src]="item.equipmentImageUrl" alt="" />
                     }
                     {{ item.equipmentName }}
-                    <strong>× {{ item.requestedQuantity }}</strong>
+                    <strong>{{ formatQty(item.requestedQuantity, item.unit) }}</strong>
                   </div>
                 }
               </div>
-
             </div>
           </div>
 
-          <!-- Connector -->
           <div class="sa-connector">
             <div class="sa-connector__line"></div>
             <svg class="sa-connector__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -228,7 +634,6 @@
             </svg>
           </div>
 
-          <!-- ── Stage 2: STT Confirmation ─────────────────────── -->
           <div class="sa-stage"
                [class.sa-stage--confirm]="selectedDpm.status === 'FULLY_CONFIRMED' || selectedDpm.status === 'PARTIALLY_CONFIRMED'"
                [class.sa-stage--awaiting]="selectedDpm.status === 'PENDING_STT_CONFIRMATION'"
@@ -248,7 +653,6 @@
               </div>
             </div>
             <div class="sa-stage-body">
-
               <div class="sa-actor-card">
                 <div class="sa-actor-av sa-actor-av--stt">{{ nameInitials(selectedDpm.sttName) }}</div>
                 <div class="sa-actor-info">
@@ -257,8 +661,6 @@
                   <span class="sa-role-badge sa-role-badge--stt">STT</span>
                 </div>
               </div>
-
-              <!-- Confirmation table -->
               <div class="sa-section-title">Item Confirmation</div>
               <div class="sa-conf-table">
                 <div class="sa-conf-row sa-conf-row--head">
@@ -286,8 +688,6 @@
                   </div>
                 }
               </div>
-
-              <!-- Activity timeline -->
               @if (selectedDpm.timeline.length > 0) {
                 <div class="sa-section-title" style="margin-top:1.1rem">Activity</div>
                 <div class="sa-mini-tl">
@@ -302,67 +702,67 @@
                   }
                 </div>
               }
-
             </div>
           </div>
 
-          <!-- Connector to stage 3 -->
-          @if (distributionsFor(selectedDpm).length > 0 ||
+          @if (selectedDpmDistributions.length > 0 ||
                selectedDpm.status === 'FULLY_CONFIRMED' ||
                selectedDpm.status === 'PARTIALLY_CONFIRMED') {
-            <div class="sa-connector"
-                 [class.sa-connector--muted]="distributionsFor(selectedDpm).length === 0">
+            <div class="sa-connector" [class.sa-connector--muted]="selectedDpmDistributions.length === 0">
               <div class="sa-connector__line"></div>
               <svg class="sa-connector__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </div>
 
-            <!-- ── Stage 3: TECH Distribution ──────────────────── -->
             <div class="sa-stage"
-                 [class.sa-stage--distribute]="distributionsFor(selectedDpm).length > 0"
-                 [class.sa-stage--awaiting]="distributionsFor(selectedDpm).length === 0">
+                 [class.sa-stage--distribute]="selectedDpmDistributions.length > 0"
+                 [class.sa-stage--awaiting]="selectedDpmDistributions.length === 0">
               <div class="sa-stage-head">
                 <div class="sa-stage-num"
-                     [class.sa-stage-num--distribute]="distributionsFor(selectedDpm).length > 0"
-                     [class.sa-stage-num--awaiting]="distributionsFor(selectedDpm).length === 0">3</div>
+                     [class.sa-stage-num--distribute]="selectedDpmDistributions.length > 0"
+                     [class.sa-stage-num--awaiting]="selectedDpmDistributions.length === 0">3</div>
                 <div>
                   <div class="sa-stage-label">TECH Distribution</div>
-                  @if (distributionsFor(selectedDpm).length > 0) {
-                    <div class="sa-stage-date">{{ distributionTechs(selectedDpm).length }} technician{{ distributionTechs(selectedDpm).length !== 1 ? 's' : '' }}</div>
+                  @if (selectedDpmDistributions.length > 0) {
+                    <div class="sa-stage-date">
+                      {{ selectedDpmDistributions.length }} distribution{{ selectedDpmDistributions.length !== 1 ? 's' : '' }}
+                    </div>
                   } @else {
                     <div class="sa-stage-date sa-stage-date--muted">Not yet distributed</div>
                   }
                 </div>
               </div>
-
-              @if (distributionsFor(selectedDpm).length > 0) {
+              @if (selectedDpmDistributions.length > 0) {
                 <div class="sa-stage-body">
-                  @for (techId of distributionTechs(selectedDpm); track techId) {
+                  @for (dist of selectedDpmDistributions; track dist.id) {
                     <div class="sa-dist-block">
                       <div class="sa-actor-card">
-                        <div class="sa-actor-av sa-actor-av--tech">{{ nameInitials(userName(techId)) }}</div>
+                        <div class="sa-actor-av sa-actor-av--tech">{{ nameInitials(dist.techName || '?') }}</div>
                         <div class="sa-actor-info">
-                          <span class="sa-actor-name">{{ userName(techId) }}</span>
-                          @if (userEmail(techId)) {
-                            <span class="sa-actor-email">{{ userEmail(techId) }}</span>
+                          <span class="sa-actor-name">{{ dist.techName || '—' }}</span>
+                          @if (dist.techEmail) {
+                            <span class="sa-actor-email">{{ dist.techEmail }}</span>
                           }
                           <span class="sa-role-badge sa-role-badge--tech">TECH</span>
                         </div>
                       </div>
                       <div class="sa-dist-items">
-                        @for (m of itemsForTech(selectedDpm, techId); track m.id) {
+                        @for (item of dist.items; track item.equipmentId) {
                           <div class="sa-dist-line">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <rect x="2" y="7" width="20" height="14" rx="2"></rect>
                               <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
                             </svg>
-                            <span>{{ m.equipmentName }}</span>
-                            <strong>× {{ m.quantity }}</strong>
-                            <span class="sa-dist-date">{{ m.performedAt | date:'dd/MM/yy HH:mm' }}</span>
+                            <span>{{ item.equipmentName }}</span>
+                            <strong>{{ formatQty(item.quantity, item.unit) }}</strong>
+                            <span class="sa-dist-date">{{ dist.distributedAt | date:'dd/MM/yy HH:mm' }}</span>
                           </div>
                         }
                       </div>
+                      @if (dist.notes) {
+                        <div class="sa-dist-note">{{ dist.notes }}</div>
+                      }
                     </div>
                   }
                 </div>
@@ -372,7 +772,6 @@
 
         </div>
 
-        <!-- Panel footer -->
         <div class="sa-panel-foot">
           <button class="sa-panel-foot__btn" type="button" (click)="panelVisible = false">Close</button>
         </div>

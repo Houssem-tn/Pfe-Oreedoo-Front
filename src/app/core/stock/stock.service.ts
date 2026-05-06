@@ -3,17 +3,22 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../http/api.config';
 import {
+  DeclareTechUsageRequest,
+  DeclareTechUsageResponse,
   ConfirmDpmRequest,
   CreateDpmRequest,
   CreateEquipmentRequest,
   DistributableDpm,
   DistributeToTechRequest,
   DpmRequest,
+  DpmTracking,
   Equipment,
   StockMovement,
   SttDistribution,
   SttStock,
-  TechStock
+  TechStock,
+  TechStockUsage,
+  ZmStockAudit
 } from './stock.model';
 
 @Injectable({ providedIn: 'root' })
@@ -74,6 +79,10 @@ export class StockService {
     return this.http.get<DpmRequest[]>(`${this.url}/zm/my-dpms`);
   }
 
+  zmGetDpmTracking(id: string): Observable<DpmTracking> {
+    return this.http.get<DpmTracking>(`${this.url}/zm/my-dpms/${id}/tracking`);
+  }
+
   zmGetMySttsStocks(): Observable<SttStock[]> {
     return this.http.get<SttStock[]>(`${this.url}/zm/my-stts-stocks`);
   }
@@ -118,10 +127,18 @@ export class StockService {
     return this.http.get<TechStock>(`${this.url}/tech/my-stock`);
   }
 
+  declareMyTechUsage(payload: DeclareTechUsageRequest): Observable<DeclareTechUsageResponse> {
+    return this.http.post<DeclareTechUsageResponse>(`${this.url}/tech/usage`, payload);
+  }
+
   // ── Admin scoped ──────────────────────────────────────────────────────────
 
   adminGetAllDpms(): Observable<DpmRequest[]> {
     return this.http.get<DpmRequest[]>(`${this.url}/admin/dpms`);
+  }
+
+  adminGetDpmTracking(id: string): Observable<DpmTracking> {
+    return this.http.get<DpmTracking>(`${this.url}/admin/dpms/${id}/tracking`);
   }
 
   adminGetAllSttStocks(): Observable<SttStock[]> {
@@ -132,11 +149,27 @@ export class StockService {
     return this.http.get<TechStock[]>(`${this.url}/admin/tech-stocks`);
   }
 
+  adminGetAllTechUsages(): Observable<TechStockUsage[]> {
+    return this.http.get<TechStockUsage[]>(`${this.url}/admin/tech-usages`);
+  }
+
   adminGetAllMovements(): Observable<StockMovement[]> {
     return this.http.get<StockMovement[]>(`${this.url}/admin/movements`);
   }
 
   adminGetMovementsByReference(referenceId: string): Observable<StockMovement[]> {
     return this.http.get<StockMovement[]>(`${this.url}/admin/movements/reference/${referenceId}`);
+  }
+
+  adminGetAllDistributions(): Observable<SttDistribution[]> {
+    return this.http.get<SttDistribution[]>(`${this.url}/admin/distributions`);
+  }
+
+  adminGetZmStockAudit(zmId: string): Observable<ZmStockAudit> {
+    return this.http.get<ZmStockAudit>(`${this.url}/admin/audit/zm/${zmId}`);
+  }
+
+  zmGetMyTechsUsages(): Observable<TechStockUsage[]> {
+    return this.http.get<TechStockUsage[]>(`${this.url}/zm/my-techs-usages`);
   }
 }

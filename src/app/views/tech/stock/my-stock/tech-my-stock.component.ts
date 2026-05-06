@@ -9,7 +9,7 @@ import {
 } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { TechStock } from '../../../../core/stock/stock.model';
+import { TechStock, TechStockItem } from '../../../../core/stock/stock.model';
 
 @Component({
   standalone: true,
@@ -38,7 +38,23 @@ export class TechMyStockComponent implements OnInit {
     });
   }
 
-  get total(): number {
+  get totalReceived(): number {
     return (this.stock?.items ?? []).reduce((s, i) => s + i.receivedQuantity, 0);
+  }
+
+  get totalUsed(): number {
+    return (this.stock?.items ?? []).reduce((s, i) => s + i.usedQuantity, 0);
+  }
+
+  get totalRemaining(): number {
+    return (this.stock?.items ?? []).reduce((s, i) => s + i.remainingQuantity, 0);
+  }
+
+  unitLabel(item: TechStockItem): string {
+    return item.unit === 'METERS' ? 'm' : 'pcs';
+  }
+
+  unitName(item: TechStockItem): string {
+    return item.unit === 'METERS' ? 'Meters' : 'Pieces';
   }
 }

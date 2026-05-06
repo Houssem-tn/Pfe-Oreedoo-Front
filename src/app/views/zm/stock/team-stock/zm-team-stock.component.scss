@@ -367,9 +367,102 @@ table.ts-table {
 }
 
 .ts-tech-card__items {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ts-tech-balance,
+.ts-tech-usage__card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(130, 14, 30, 0.08);
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.ts-tech-balance__name {
+  align-items: center;
+  color: var(--ts-text);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+  margin-bottom: 0.45rem;
+
+  small {
+    color: var(--ts-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+}
+
+.ts-tech-balance__stats,
+.ts-tech-usage__head,
+.ts-tech-usage__items {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.ts-tech-balance__stats {
+  span {
+    background: rgba(255, 245, 247, 0.94);
+    border-radius: 999px;
+    color: var(--ts-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 0.18rem 0.5rem;
+  }
+
+  strong {
+    color: var(--ts-text);
+  }
+}
+
+.ts-tech-usage {
+  margin-top: 0.75rem;
+}
+
+.ts-tech-usage__title {
+  color: var(--ts-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.55rem;
+  text-transform: uppercase;
+}
+
+.ts-tech-usage__list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ts-tech-usage__head {
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+
+  strong {
+    color: var(--ts-primary-dark);
+    font-size: 0.8rem;
+  }
+
+  span {
+    color: var(--ts-muted);
+    font-size: 0.72rem;
+  }
+}
+
+.ts-tech-usage__items {
+  justify-content: flex-start;
+}
+
+.ts-tech-usage__note {
+  color: var(--ts-muted);
+  font-size: 0.78rem;
+  margin-top: 0.45rem;
 }
 
 /* ─── Avatars ─────────────────────────────────────────────────────── */

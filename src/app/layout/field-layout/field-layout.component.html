@@ -70,7 +70,11 @@
     <router-outlet />
   </main>
 
-  <nav class="field-bottom-nav" aria-label="Field navigation">
+  <nav
+    class="field-bottom-nav"
+    aria-label="Field navigation"
+    [style.gridTemplateColumns]="'repeat(' + navItems.length + ', minmax(0, 1fr))'"
+  >
     <a
       *ngFor="let item of navItems"
       class="field-bottom-nav__item"

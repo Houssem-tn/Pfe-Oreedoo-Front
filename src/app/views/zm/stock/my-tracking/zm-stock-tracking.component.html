@@ -123,12 +123,11 @@
                 <td>{{ d.deliveryPersonName }}</td>
                 <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
                 <td>
-                  <button class="zt-btn-detail" type="button" (click)="openDetail(d)" title="View details">
+                  <button class="zt-btn-detail" type="button" (click)="openDetail(d)" title="Track DPM timeline">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                     </svg>
+                    Track
                   </button>
                   <button class="zt-btn-pdf" type="button" (click)="downloadPdf(d)" title="Download PDF">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -274,6 +273,51 @@
                 }
               </tbody>
             </table>
+          </div>
+
+          <!-- TECH Distributions -->
+          <div>
+            <div class="zt-panel-section-title">
+              TECH Distributions
+              @if (loadingDetail) {
+                <span style="font-size:0.72rem;font-weight:400;color:var(--zt-muted);letter-spacing:0"> loading…</span>
+              } @else {
+                <span class="zt-dist-count">{{ detailTechDistributions.length }}</span>
+              }
+            </div>
+            @if (detailTechDistributions.length === 0 && !loadingDetail) {
+              <p class="zt-tl-empty">No TECH distributions linked to this DPM yet.</p>
+            }
+            @if (detailTechDistributions.length > 0) {
+              <div class="zt-dist-list">
+                @for (dist of detailTechDistributions; track dist.id) {
+                  <div class="zt-dist-card">
+                    <div class="zt-dist-header">
+                      <div class="zt-dist-tech">
+                        <span class="zt-dist-avatar">{{ nameInitials(dist.techName) }}</span>
+                        <div>
+                          <div class="zt-dist-name">{{ dist.techName || '—' }}</div>
+                          @if (dist.techEmail) {
+                            <div class="zt-dist-email">{{ dist.techEmail }}</div>
+                          }
+                        </div>
+                      </div>
+                      <span class="zt-dist-time">{{ dist.distributedAt | date:'dd/MM/yy HH:mm' }}</span>
+                    </div>
+                    <div class="zt-dist-chips">
+                      @for (item of dist.items; track item.equipmentId) {
+                        <span class="zt-dist-chip">
+                          {{ item.equipmentName }} <strong>×{{ item.quantity }}</strong>
+                        </span>
+                      }
+                    </div>
+                    @if (dist.notes) {
+                      <div class="zt-dist-notes">{{ dist.notes }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            }
           </div>
 
           <!-- Timeline -->

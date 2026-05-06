@@ -213,120 +213,120 @@
             </div>
           </div>
 
-          <div class="user-card__details">
-            <div class="user-card__detail">
-              <span class="user-card__detail-label">Created at</span>
-              <strong>{{ user.createdAt ? (user.createdAt | date:'dd MMM yyyy, HH:mm') : 'Not available' }}</strong>
-            </div>
-
-            <div class="user-card__detail">
-              <span class="user-card__detail-label">Last login</span>
-              <strong>{{ user.lastLoginAt ? (user.lastLoginAt | date:'dd MMM yyyy, HH:mm') : 'No login yet' }}</strong>
-            </div>
-
-            <div class="user-card__detail">
-              <span class="user-card__detail-label">{{ territoryDetailLabel(user) }}</span>
-              <strong>{{ territoryDetailValue(user) }}</strong>
-            </div>
-
-            <div class="user-card__detail">
-              <span class="user-card__detail-label">Validated by</span>
-              <strong>{{ user.validatedBy || 'Not validated yet' }}</strong>
-            </div>
-          </div>
-
-          <div
-            class="user-card__territory"
-            *ngIf="user.role === 'ROLE_STT'"
-          >
-            <div class="user-card__territory-header">
-              <div class="user-card__assignment-copy">
-                <div class="user-card__assignment-title">Coverage areas</div>
-                <div class="user-card__assignment-value">{{ coverageSummary(user) }}</div>
+          <div class="user-card__body">
+            <div class="user-card__details">
+              <div class="user-card__detail">
+                <span class="user-card__detail-label">Created at</span>
+                <strong>{{ user.createdAt ? (user.createdAt | date:'dd MMM yyyy, HH:mm') : 'Not available' }}</strong>
               </div>
 
-              <button
-                *ngIf="canSetCoverageAreas(user)"
-                type="button"
-                class="user-button user-button--soft"
-                [disabled]="isAssigningCoverage(user.id)"
-                (click)="openSetCoverageAreasModal(user)"
-              >
-                <svg cIcon [name]="coverageAreasFor(user).length ? 'cilPencil' : 'cilPlus'"></svg>
-                {{ isAssigningCoverage(user.id) ? 'Saving...' : 'Set Coverage Areas' }}
-              </button>
-            </div>
-
-            <div class="user-card__territory-chips" *ngIf="coverageAreasFor(user).length > 0; else noCoverageAreas">
-              <span
-                class="user-governorate-chip"
-                *ngFor="let governorate of coverageAreasFor(user); trackBy: trackGovernorate"
-              >
-                {{ governorate }}
-              </span>
-            </div>
-
-            <ng-template #noCoverageAreas>
-              <div class="user-card__territory-empty">No coverage areas defined yet.</div>
-            </ng-template>
-          </div>
-
-          <div
-            class="user-card__territory"
-            *ngIf="user.role === 'ROLE_ZM'"
-          >
-            <div class="user-card__territory-header">
-              <div class="user-card__assignment-copy">
-                <div class="user-card__assignment-title">Territorial coverage</div>
-                <div class="user-card__assignment-value">{{ governorateSummary(user) }}</div>
+              <div class="user-card__detail">
+                <span class="user-card__detail-label">Last login</span>
+                <strong>{{ user.lastLoginAt ? (user.lastLoginAt | date:'dd MMM yyyy, HH:mm') : 'No login yet' }}</strong>
               </div>
 
-              <button
-                *ngIf="canAssignGovernorates(user)"
-                type="button"
-                class="user-button user-button--soft"
-                [disabled]="isAssigningGovernorates(user.id)"
-                (click)="openAssignGovernoratesModal(user)"
-              >
-                <svg cIcon [name]="governoratesFor(user).length ? 'cilPencil' : 'cilPlus'"></svg>
-                {{ isAssigningGovernorates(user.id) ? 'Saving...' : 'Assign Governorates' }}
-              </button>
+              <div class="user-card__detail">
+                <span class="user-card__detail-label">{{ territoryDetailLabel(user) }}</span>
+                <strong>{{ territoryDetailValue(user) }}</strong>
+              </div>
+
+              <div class="user-card__detail">
+                <span class="user-card__detail-label">Validated by</span>
+                <strong>{{ user.validatedBy || 'Not validated yet' }}</strong>
+              </div>
             </div>
 
-            <div class="user-card__territory-chips" *ngIf="governoratesFor(user).length > 0; else noGovernorates">
-              <span
-                class="user-governorate-chip"
-                *ngFor="let governorate of governoratesFor(user); trackBy: trackGovernorate"
-              >
-                {{ governorate }}
-              </span>
+            <div class="user-card__territory" *ngIf="user.role === 'ROLE_STT'">
+              <div class="user-card__territory-header">
+                <div class="user-card__assignment-copy">
+                  <div class="user-card__assignment-title">Coverage areas</div>
+                  <div class="user-card__assignment-value">{{ coverageSummary(user) }}</div>
+                </div>
+                <div class="user-card__terr-btns">
+                  <button
+                    *ngIf="coverageAreasFor(user).length > 0"
+                    type="button"
+                    class="user-button user-button--sm user-button--ghost"
+                    (click)="openCoverageDrawer(user)"
+                  >
+                    <svg cIcon name="cilMap"></svg> View
+                  </button>
+                  <button
+                    *ngIf="canSetCoverageAreas(user)"
+                    type="button"
+                    class="user-button user-button--sm user-button--soft"
+                    [disabled]="isAssigningCoverage(user.id)"
+                    (click)="openSetCoverageAreasModal(user)"
+                  >
+                    <svg cIcon [name]="coverageAreasFor(user).length ? 'cilPencil' : 'cilPlus'"></svg>
+                    {{ isAssigningCoverage(user.id) ? 'Saving...' : (coverageAreasFor(user).length ? 'Edit' : 'Set') }}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <ng-template #noGovernorates>
-              <div class="user-card__territory-empty">No governorates assigned yet.</div>
-            </ng-template>
-
-            <div class="user-card__territory-header" style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle, #e5e7eb)">
-              <div class="user-card__assignment-copy">
-                <div class="user-card__assignment-title">DPM permission</div>
-                <div class="user-card__assignment-value">
-                  {{ user.canCreateDpm ? 'Can create DPM requests' : 'Cannot create DPM requests' }}
+            <div class="user-card__territory" *ngIf="user.role === 'ROLE_ZM'">
+              <div class="user-card__territory-header">
+                <div class="user-card__assignment-copy">
+                  <div class="user-card__assignment-title">Territorial coverage</div>
+                  <div class="user-card__coverage-pills">
+                    <span class="ucov-pill ucov-pill--act">
+                      <span class="ucov-pill__tag">ACT</span>
+                      <span class="ucov-pill__count">{{ governoratesForModule(user, 'ACT').length }}</span>
+                    </span>
+                    <span class="ucov-pill ucov-pill--res">
+                      <span class="ucov-pill__tag">RES</span>
+                      <span class="ucov-pill__count">{{ governoratesForModule(user, 'RES').length }}</span>
+                    </span>
+                    <span class="ucov-pill ucov-pill--plt">
+                      <span class="ucov-pill__tag">PLT</span>
+                      <span class="ucov-pill__count">{{ governoratesForModule(user, 'PLT').length }}</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="user-card__terr-btns">
+                  <button
+                    type="button"
+                    class="user-button user-button--sm user-button--ghost"
+                    (click)="openCoverageDrawer(user)"
+                  >
+                    <svg cIcon name="cilMap"></svg> View
+                  </button>
+                  <button
+                    *ngIf="canAssignGovernorates(user)"
+                    type="button"
+                    class="user-button user-button--sm user-button--soft"
+                    [disabled]="isAssigningGovernorates(user.id)"
+                    (click)="openAssignCoverageModal(user)"
+                  >
+                    <svg cIcon name="cilMap"></svg>
+                    {{ isAssigningGovernorates(user.id) ? 'Saving...' : 'Assign' }}
+                  </button>
                 </div>
               </div>
 
-              <button
-                *ngIf="user.status === 'APPROVED'"
-                type="button"
-                class="user-button"
-                [ngClass]="user.canCreateDpm ? 'user-button--danger' : 'user-button--soft'"
-                [disabled]="isTogglingDpm(user.id)"
-                (click)="toggleDpmPermission(user)"
-              >
-                <svg cIcon [name]="user.canCreateDpm ? 'cilBan' : 'cilCheckCircle'"></svg>
-                {{ isTogglingDpm(user.id) ? 'Saving...' : (user.canCreateDpm ? 'Revoke DPM' : 'Allow DPM') }}
-              </button>
+              <div class="user-card__territory-header" style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle, #e5e7eb)">
+                <div class="user-card__assignment-copy">
+                  <div class="user-card__assignment-title">DPM permission</div>
+                  <div class="user-card__assignment-value">
+                    {{ user.canCreateDpm ? 'Can create DPM requests' : 'Cannot create DPM requests' }}
+                  </div>
+                </div>
+
+                <button
+                  *ngIf="user.status === 'APPROVED'"
+                  type="button"
+                  class="user-button"
+                  [ngClass]="user.canCreateDpm ? 'user-button--danger' : 'user-button--soft'"
+                  [disabled]="isTogglingDpm(user.id)"
+                  (click)="toggleDpmPermission(user)"
+                >
+                  <svg cIcon [name]="user.canCreateDpm ? 'cilBan' : 'cilCheckCircle'"></svg>
+                  {{ isTogglingDpm(user.id) ? 'Saving...' : (user.canCreateDpm ? 'Revoke DPM' : 'Allow DPM') }}
+                </button>
+              </div>
             </div>
-          </div>
+          </div><!-- /user-card__body -->
 
           <div class="user-card__actions">
             <a
@@ -432,3 +432,133 @@
   (save)="onGovSave($event)"
   (cancel)="onGovCancel()"
 ></app-governorate-selector>
+
+<!-- ─── Coverage Detail Modal ─────────────────────────────────────────── -->
+<div class="cov-modal-backdrop" *ngIf="coverageDrawerVisible" (click)="closeCoverageDrawer()">
+  <div class="cov-modal" (click)="$event.stopPropagation()">
+
+    <div class="cov-modal__header">
+      <div class="cov-modal__avatar">{{ coverageDrawerUser ? initialsFor(coverageDrawerUser) : '' }}</div>
+      <div class="cov-modal__identity">
+        <div class="cov-modal__name">{{ coverageDrawerUser?.fullName }}</div>
+        <div class="cov-modal__role">{{ coverageDrawerUser ? formatRole(effectiveRole(coverageDrawerUser)) : '' }}</div>
+      </div>
+      <button type="button" class="cov-modal__close" (click)="closeCoverageDrawer()">
+        <svg cIcon name="cilX"></svg>
+      </button>
+    </div>
+
+    <ng-container *ngIf="coverageDrawerUser?.role === 'ROLE_ZM'">
+      <div class="cov-modal__body">
+        <div class="cov-module" *ngFor="let m of moduleTypes">
+          <div class="cov-module__header">
+            <span class="user-card__module-tag user-card__module-tag--{{ m.type.toLowerCase() }}">{{ m.type }}</span>
+            <span class="cov-module__label">{{ m.label }}</span>
+            <span class="cov-module__count">{{ governoratesForModule(coverageDrawerUser!, m.type).length }} gov.</span>
+          </div>
+          <div class="cov-module__chips" *ngIf="governoratesForModule(coverageDrawerUser!, m.type).length > 0; else noModGovs">
+            <span class="user-governorate-chip" *ngFor="let g of governoratesForModule(coverageDrawerUser!, m.type); trackBy: trackGovernorate">{{ g }}</span>
+          </div>
+          <ng-template #noModGovs>
+            <div class="cov-module__empty">No coverage assigned for this module.</div>
+          </ng-template>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="coverageDrawerUser?.role === 'ROLE_STT'">
+      <div class="cov-modal__body">
+        <div class="cov-module">
+          <div class="cov-module__header">
+            <span class="cov-module__label">Coverage Areas</span>
+            <span class="cov-module__count">{{ coverageAreasFor(coverageDrawerUser!).length }} area(s)</span>
+          </div>
+          <div class="cov-module__chips" *ngIf="coverageAreasFor(coverageDrawerUser!).length > 0; else noSttGovs">
+            <span class="user-governorate-chip" *ngFor="let g of coverageAreasFor(coverageDrawerUser!); trackBy: trackGovernorate">{{ g }}</span>
+          </div>
+          <ng-template #noSttGovs>
+            <div class="cov-module__empty">No coverage areas defined yet.</div>
+          </ng-template>
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="cov-modal__footer">
+      <button type="button" class="user-button user-button--ghost" (click)="closeCoverageDrawer()">Close</button>
+      <button
+        *ngIf="coverageDrawerUser?.role === 'ROLE_ZM' && canAssignGovernorates(coverageDrawerUser!)"
+        type="button"
+        class="user-button user-button--soft"
+        [disabled]="isAssigningGovernorates(coverageDrawerUser!.id)"
+        (click)="openAssignCoverageFromDrawer()"
+      >
+        <svg cIcon name="cilMap"></svg> Assign Coverage
+      </button>
+      <button
+        *ngIf="coverageDrawerUser?.role === 'ROLE_STT' && canSetCoverageAreas(coverageDrawerUser!)"
+        type="button"
+        class="user-button user-button--soft"
+        [disabled]="isAssigningCoverage(coverageDrawerUser!.id)"
+        (click)="openSetCoverageAreasFromDrawer()"
+      >
+        <svg cIcon [name]="coverageAreasFor(coverageDrawerUser!).length ? 'cilPencil' : 'cilPlus'"></svg>
+        Set Coverage Areas
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div class="module-picker-backdrop" *ngIf="modulePickerVisible" (click)="onModulePickerCancel()">
+  <div class="module-picker" (click)="$event.stopPropagation()">
+    <div class="module-picker__header">
+      <div>
+        <div class="module-picker__eyebrow">Assign Coverage</div>
+        <div class="module-picker__title">
+          Choose a module for <strong>{{ modulePickerPendingZm?.fullName }}</strong>
+        </div>
+      </div>
+      <button type="button" class="module-picker__close" (click)="onModulePickerCancel()">
+        <svg cIcon name="cilX"></svg>
+      </button>
+    </div>
+    <p class="module-picker__hint">
+      Select which module coverage you want to assign governorates to. Each module's coverage is stored independently.
+    </p>
+    <div class="module-picker__options">
+      <button
+        type="button"
+        class="module-picker__option module-picker__option--act"
+        (click)="onModuleSelected('ACT')"
+      >
+        <span class="module-picker__option-tag">ACT</span>
+        <span class="module-picker__option-label">Activation</span>
+        <span class="module-picker__option-count">
+          {{ modulePickerPendingZm ? governoratesForModule(modulePickerPendingZm, 'ACT').length : 0 }} gov.
+        </span>
+      </button>
+      <button
+        type="button"
+        class="module-picker__option module-picker__option--res"
+        (click)="onModuleSelected('RES')"
+      >
+        <span class="module-picker__option-tag">RES</span>
+        <span class="module-picker__option-label">Résiliation</span>
+        <span class="module-picker__option-count">
+          {{ modulePickerPendingZm ? governoratesForModule(modulePickerPendingZm, 'RES').length : 0 }} gov.
+        </span>
+      </button>
+      <button
+        type="button"
+        class="module-picker__option module-picker__option--plt"
+        (click)="onModuleSelected('PLT')"
+      >
+        <span class="module-picker__option-tag">PLT</span>
+        <span class="module-picker__option-label">Plainte</span>
+        <span class="module-picker__option-count">
+          {{ modulePickerPendingZm ? governoratesForModule(modulePickerPendingZm, 'PLT').length : 0 }} gov.
+        </span>
+      </button>
+    </div>
+  </div>
+</div>

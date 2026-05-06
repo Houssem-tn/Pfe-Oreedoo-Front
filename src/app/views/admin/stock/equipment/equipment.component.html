@@ -60,7 +60,7 @@
                 </td>
                 <td><span class="equip-name">{{ eq.name }}</span></td>
                 <td>{{ eq.description || '—' }}</td>
-                <td>{{ eq.unit || '—' }}</td>
+                <td>{{ unitLabel(eq.unit) }}</td>
                 <td>
                   <span class="equip-status-badge"
                         [class.equip-status-badge--active]="eq.active"
@@ -101,39 +101,139 @@
 
 </div>
 
-<!-- Create / Edit Modal -->
-<c-modal [visible]="modalVisible" (visibleChange)="modalVisible = $event">
-  <c-modal-header>
-    <strong>{{ editingId ? 'Edit Equipment' : 'New Equipment' }}</strong>
-  </c-modal-header>
-  <c-modal-body>
-    <div class="equip-modal-field">
-      <label cLabel>Name *</label>
-      <input cFormControl type="text" [(ngModel)]="form.name" placeholder="e.g. Optical Fiber Cable" />
-    </div>
-    <div class="equip-modal-field">
-      <label cLabel>Description</label>
-      <input cFormControl type="text" [(ngModel)]="form.description" placeholder="Optional description" />
-    </div>
-    <div class="equip-modal-field">
-      <label cLabel>Unit</label>
-      <input cFormControl type="text" [(ngModel)]="form.unit" placeholder="e.g. meters, pcs" />
-    </div>
-    <div class="equip-modal-field">
-      <label cLabel>Image</label>
-      <input cFormControl type="file" accept="image/*" (change)="onImageSelected($event)" />
-      @if (imagePreview) {
-        <div class="mt-2">
-          <img class="equip-img-preview" [src]="imagePreview" alt="preview" />
+<!-- ─── Create / Edit Modal ─────────────────────────────────────────── -->
+@if (modalVisible) {
+  <div class="eq-modal-backdrop" (click)="modalVisible = false">
+    <div class="eq-modal" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="eq-modal-header">
+        <div class="eq-modal-header__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"></path>
+          </svg>
         </div>
-      }
-    </div>
-  </c-modal-body>
-  <c-modal-footer>
-    <button cButton color="secondary" variant="outline" (click)="modalVisible = false">Cancel</button>
-    <button cButton color="primary" [disabled]="saving || !form.name.trim()" (click)="save()">
-      @if (saving) { <c-spinner size="sm" class="me-1"></c-spinner> }
-      {{ editingId ? 'Update' : 'Create' }}
-    </button>
-  </c-modal-footer>
-</c-modal>
+        <div class="eq-modal-header__copy">
+          <div class="eq-modal-header__eyebrow">Equipment Catalogue</div>
+          <div class="eq-modal-header__title">
+            {{ editingId ? 'Edit Equipment' : 'New Equipment' }}
+          </div>
+          <div class="eq-modal-header__sub">
+            {{ editingId ? 'Update the details below and save.' : 'Fill in the details below to add a new item to the catalogue.' }}
+          </div>
+        </div>
+        <button class="eq-modal-close" type="button" (click)="modalVisible = false" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="eq-modal-body">
+
+        <!-- Name -->
+        <div class="eq-field">
+          <label class="eq-label">
+            Name
+            <span class="eq-label__required">*</span>
+          </label>
+          <input
+            class="eq-input"
+            type="text"
+            [(ngModel)]="form.name"
+            placeholder="e.g. Optical Fiber Cable"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Description -->
+        <div class="eq-field">
+          <label class="eq-label">Description</label>
+          <input
+            class="eq-input"
+            type="text"
+            [(ngModel)]="form.description"
+            placeholder="Optional short description"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Unit -->
+        <div class="eq-field">
+          <label class="eq-label">Unit of measure</label>
+          <div class="eq-select-wrap">
+            <select class="eq-select" [(ngModel)]="form.unit">
+              <option [ngValue]="undefined">— Select unit —</option>
+              @for (opt of unitOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+            <svg class="eq-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Image upload -->
+        <div class="eq-field">
+          <label class="eq-label">Equipment image</label>
+          <label class="eq-upload" [class.eq-upload--has-preview]="!!imagePreview">
+            @if (!imagePreview) {
+              <div class="eq-upload__placeholder">
+                <div class="eq-upload__icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                </div>
+                <div class="eq-upload__text">Click to upload an image</div>
+                <div class="eq-upload__hint">PNG, JPG, WEBP — recommended 400 × 400 px</div>
+              </div>
+            } @else {
+              <div class="eq-upload__preview-wrap">
+                <img class="eq-upload__preview-img" [src]="imagePreview" alt="preview" />
+                <div class="eq-upload__preview-overlay">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Change image
+                </div>
+              </div>
+            }
+            <input
+              class="eq-upload__input"
+              type="file"
+              accept="image/*"
+              (change)="onImageSelected($event)"
+            />
+          </label>
+        </div>
+
+      </div><!-- /body -->
+
+      <!-- Footer -->
+      <div class="eq-modal-footer">
+        <button class="eq-btn eq-btn--ghost" type="button" (click)="modalVisible = false">
+          Cancel
+        </button>
+        <button
+          class="eq-btn eq-btn--primary"
+          type="button"
+          [disabled]="saving || !form.name.trim()"
+          (click)="save()"
+        >
+          @if (saving) {
+            <span class="eq-spinner"></span>
+          }
+          {{ editingId ? 'Update Equipment' : 'Create Equipment' }}
+        </button>
+      </div>
+
+    </div><!-- /eq-modal -->
+  </div><!-- /backdrop -->
+}

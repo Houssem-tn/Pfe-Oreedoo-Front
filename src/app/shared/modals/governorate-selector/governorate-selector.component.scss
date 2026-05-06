@@ -1,5 +1,45 @@
 // ─── Modal Header ────────────────────────────────────────────────────────────
 
+:host ::ng-deep .gov-selector-modal {
+  background: rgba(20, 0, 8, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+:host ::ng-deep .gov-selector-modal .modal-content {
+  background: linear-gradient(180deg, #fff7f8 0%, #ffffff 100%);
+  background-color: #ffffff;
+  border: 1px solid rgba(130, 14, 30, 0.14);
+  border-radius: 1.5rem;
+  box-shadow: 0 28px 64px rgba(88, 12, 25, 0.22);
+  overflow: hidden;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:host ::ng-deep .gov-selector-modal .modal-header {
+  background:
+    radial-gradient(circle at top right, rgba(229, 36, 59, 0.16), transparent 36%),
+    linear-gradient(180deg, #fff7f8 0%, #fff1f3 100%);
+  border-bottom: 1px solid rgba(130, 14, 30, 0.1);
+}
+
+:host ::ng-deep .gov-selector-modal .modal-body,
+:host ::ng-deep .gov-selector-modal .modal-footer {
+  background: #ffffff;
+}
+
+:host ::ng-deep .gov-selector-modal .modal-footer {
+  border-top: 1px solid rgba(130, 14, 30, 0.1);
+}
+
+:host ::ng-deep .gov-selector-modal .btn-close {
+  background-color: #fff3f5 !important;
+  border: 1px solid rgba(130, 14, 30, 0.1);
+  border-radius: 999px;
+  opacity: 1 !important;
+}
+
 .gov-modal-header {
   display: flex;
   align-items: flex-start;
@@ -22,16 +62,16 @@
 .gov-modal-header__desc {
   margin: 0.25rem 0 0;
   font-size: 0.8rem;
-  color: var(--cui-secondary-color);
+  color: #5d4450;
   line-height: 1.4;
 }
 
 .gov-counter {
   flex-shrink: 0;
   font-size: 0.8rem;
-  color: var(--cui-secondary-color);
-  background: var(--cui-secondary-bg-subtle);
-  border: 1px solid var(--cui-border-color);
+  color: #6d4d58;
+  background: #fff1f3;
+  border: 1px solid rgba(130, 14, 30, 0.12);
   border-radius: 999px;
   padding: 0.25rem 0.75rem;
   white-space: nowrap;
@@ -75,9 +115,9 @@
   &__input {
     width: 100%;
     padding: 0.5rem 2rem 0.5rem 2.25rem;
-    border: 1.5px solid var(--cui-border-color);
+    border: 1.5px solid rgba(130, 14, 30, 0.12);
     border-radius: 0.6rem;
-    background: var(--cui-body-bg);
+    background: #ffffff;
     color: var(--cui-body-color);
     font-size: 0.875rem;
     outline: none;
@@ -136,15 +176,27 @@
   background: #e30613;
   color: #fff;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  box-shadow: 0 12px 24px rgba(181, 17, 45, 0.16);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 
   &:hover {
-    opacity: 0.88;
+    background: #c0050f;
+    border-color: #c0050f;
+    box-shadow: 0 16px 30px rgba(181, 17, 45, 0.2);
   }
 
   &--ghost {
-    background: transparent;
-    color: #e30613;
+    background: #fff4f6;
+    border-color: rgba(130, 14, 30, 0.12);
+    box-shadow: 0 10px 20px rgba(88, 12, 25, 0.08);
+    color: #b5112d;
+
+    &:hover {
+      background: #ffe8ec;
+      border-color: rgba(229, 36, 59, 0.22);
+      color: #9e1028;
+      box-shadow: 0 14px 26px rgba(88, 12, 25, 0.12);
+    }
   }
 }
 
@@ -193,9 +245,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.65rem 0.9rem;
-  border: 1.5px solid var(--cui-border-color);
+  border: 1.5px solid rgba(130, 14, 30, 0.12);
   border-radius: 0.65rem;
-  background: var(--cui-body-bg);
+  background: #ffffff;
   color: var(--cui-body-color);
   font-size: 0.84rem;
   font-weight: 500;
@@ -274,10 +326,11 @@
 
 // ─── Ooredoo Brand Buttons ────────────────────────────────────────────────────
 
-::ng-deep .btn.btn-primary {
+:host ::ng-deep .gov-selector-modal .btn.btn-primary {
   background-color: #e30613 !important;
   border-color: #e30613 !important;
   color: #fff !important;
+  box-shadow: 0 14px 30px rgba(181, 17, 45, 0.22);
 
   &:hover:not(:disabled) {
     background-color: #c0050f !important;
@@ -295,8 +348,21 @@
   }
 }
 
-::ng-deep .btn-close:hover {
-  background-color: rgba(227, 6, 19, 0.1) !important;
-  border-radius: 0.25rem;
+:host ::ng-deep .gov-selector-modal .btn.btn-ghost-secondary {
+  background-color: #fff4f6 !important;
+  border: 1px solid rgba(130, 14, 30, 0.12) !important;
+  box-shadow: 0 10px 20px rgba(88, 12, 25, 0.08);
+  color: #8e1730 !important;
+
+  &:hover:not(:disabled) {
+    background-color: #ffe8ec !important;
+    border-color: rgba(229, 36, 59, 0.22) !important;
+    color: #7f152b !important;
+  }
+}
+
+:host ::ng-deep .gov-selector-modal .btn-close:hover {
+  background-color: #ffe8ec !important;
+  border-radius: 999px;
   opacity: 1 !important;
 }

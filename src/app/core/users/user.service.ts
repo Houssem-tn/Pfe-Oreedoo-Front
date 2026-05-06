@@ -23,6 +23,8 @@ export interface AssignGovernoratesToZmRequest {
   assignedGovernorates: string[];
 }
 
+export type CaseModuleType = 'ACT' | 'RES' | 'PLT';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -79,6 +81,13 @@ export class UserService {
     );
   }
 
+  updateZmCoverageByModule(zmId: string, moduleType: CaseModuleType, governorates: string[]): Observable<AppUser> {
+    return this.http.put<AppUser>(
+      `${this.baseUrl}/admin/users/${zmId}/coverage/${moduleType}`,
+      { governorates }
+    );
+  }
+
   requestMyCoverageAreas(body: RequestCoverageAreasRequest): Observable<AppUser> {
     return this.http.put<AppUser>(`${this.usersUrl}/me/coverage-request`, body);
   }
@@ -94,6 +103,12 @@ export class UserService {
   getMySttsForZm(): Observable<AppUser[]> {
     return this.getMyStts().pipe(
       map((users) => (users ?? []).filter((u) => u.role === 'ROLE_STT' && u.status === 'APPROVED' && !!u.enabled))
+    );
+  }
+
+  getAllActiveStts(): Observable<{ id: string; fullName: string; email: string }[]> {
+    return this.http.get<{ id: string; fullName: string; email: string }[]>(
+      `${this.baseUrl}/public/stts`
     );
   }
 

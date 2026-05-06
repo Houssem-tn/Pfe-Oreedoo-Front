@@ -149,7 +149,6 @@ export function fieldMetricEntries(item: CaseResponse): FieldMetricEntry[] {
   const metrics = extractMetrics(item);
 
   return [
-    { label: 'Cable', value: metricValue(metrics.metrageCable) },
     { label: 'PV', value: metricValue(metrics.nombrePv) },
     { label: 'DL', value: metricValue(metrics.debitDl) },
     { label: 'UL', value: metricValue(metrics.debitUl) },

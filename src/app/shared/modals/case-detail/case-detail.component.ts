@@ -115,7 +115,7 @@ export class CaseDetailComponent {
 
   get hasMetrics(): boolean {
     const m = this.caseData?.metrics;
-    return !!(m?.metrageCable != null || m?.nombrePv != null ||
+    return !!(m?.nombrePv != null ||
               m?.debitDl != null || m?.debitUl != null ||
               m?.rsrp != null || m?.rsrq != null || m?.sinr != null);
   }
