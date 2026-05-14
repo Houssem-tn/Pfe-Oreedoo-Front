@@ -20,6 +20,7 @@ import { SearchableSelectComponent, SelectOption } from '../../../../shared/sear
 interface DistributionLine {
   equipmentId: string;
   equipmentName: string;
+  unit?: string;
   available: number;
   quantity: number;
 }
@@ -94,6 +95,7 @@ export class DistributeComponent implements OnInit {
     this.lines = dpm.items.map(item => ({
       equipmentId: item.equipmentId,
       equipmentName: item.equipmentName,
+      unit: item.unit,
       available: item.remainingQuantity,
       quantity: item.remainingQuantity
     }));

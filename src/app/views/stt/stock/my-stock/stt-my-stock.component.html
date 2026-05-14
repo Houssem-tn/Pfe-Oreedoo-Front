@@ -33,9 +33,9 @@
       @if (loading) {
         <c-spinner size="sm"></c-spinner>
       } @else {
-        <div class="dash-stat__value">{{ totalAvailable }}</div>
+        <div class="dash-stat__value">{{ totalAvailableLabel }}</div>
       }
-      <div class="dash-stat__label">Units Available</div>
+      <div class="dash-stat__label">Available</div>
       <a class="dash-stat__action" routerLink="/stt/stock/distribute">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M5 12h14M12 5l7 7-7 7"></path>
@@ -73,6 +73,7 @@
             <thead>
               <tr>
                 <th>Equipment</th>
+                <th>Unit</th>
                 <th>Total Received</th>
                 <th>Distributed</th>
                 <th>Available</th>
@@ -83,13 +84,14 @@
               @for (item of stock!.items; track item.equipmentId) {
                 <tr>
                   <td><strong>{{ item.equipmentName }}</strong></td>
+                  <td><small class="text-muted">{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
                   <td>{{ item.totalReceived }}</td>
                   <td>{{ item.totalDistributedToTechs }}</td>
                   <td>
                     <span class="dash-qty-badge"
                           [class.dash-qty-badge--avail]="item.availableQuantity > 0"
                           [class.dash-qty-badge--zero]="item.availableQuantity === 0">
-                      {{ item.availableQuantity }}
+                      {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
                     </span>
                   </td>
                   <td><small>{{ item.lastReceivedAt | date:'dd/MM/yy' }}</small></td>
@@ -121,7 +123,7 @@
               <div class="dash-tech-chips">
                 @for (ti of ts.items; track ti.equipmentId) {
                   <span class="dash-tech-chip">
-                    {{ ti.equipmentName }}: <strong>{{ ti.receivedQuantity }}</strong>
+                    {{ ti.equipmentName }}: <strong>{{ ti.receivedQuantity }}{{ ti.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
                   </span>
                 }
               </div>

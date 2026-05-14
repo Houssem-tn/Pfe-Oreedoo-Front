@@ -10,13 +10,23 @@ export type StockUnit = 'METERS' | 'PIECES';
 export type StockMovementType =
   | 'DPM_CREATED'
   | 'DPM_CONFIRMED'
-  | 'STT_TO_TECH_DISTRIBUTION';
+  | 'STT_TO_TECH_DISTRIBUTION'
+  | 'TECH_RECEIVED_FROM_STT'
+  | 'CASE_USAGE';
+
+export type DistributionStatus =
+  | 'PENDING_TECH_CONFIRMATION'
+  | 'CONFIRMED_BY_TECH'
+  | 'CANCELLED';
+
+export type EquipmentCategory = 'CABLE' | 'BOX' | 'ROUTER' | 'ONT' | 'OTHER';
 
 export interface Equipment {
   id: string;
   name: string;
   description?: string;
   unit?: StockUnit;
+  category?: EquipmentCategory;
   imageFileId?: string;
   imageUrl?: string;
   active: boolean;
@@ -65,6 +75,7 @@ export interface DpmRequest {
 export interface SttStockItem {
   equipmentId: string;
   equipmentName: string;
+  unit?: string;
   totalReceived: number;
   totalDistributedToTechs: number;
   availableQuantity: number;
@@ -124,14 +135,33 @@ export interface DistributionItem {
 export interface SttDistribution {
   id: string;
   sttId: string;
+  sttName?: string;
+  sttEmail?: string;
   techId: string;
   techName: string;
   techEmail?: string;
   dpmId?: string;
   items: DistributionItem[];
+  status?: DistributionStatus;
   distributedAt: string;
+  confirmedAt?: string;
+  confirmedBy?: string;
   notes?: string;
   distributedBy?: string;
+}
+
+export interface PendingDistribution {
+  id: string;
+  sttId: string;
+  sttName?: string;
+  sttEmail?: string;
+  techId: string;
+  techName: string;
+  dpmId?: string;
+  items: DistributionItem[];
+  status: DistributionStatus;
+  distributedAt: string;
+  notes?: string;
 }
 
 export interface DpmTracking {
@@ -162,6 +192,7 @@ export interface ZmStockAudit {
 export interface DistributableDpmItem {
   equipmentId: string;
   equipmentName: string;
+  unit?: string;
   confirmedQuantity: number;
   distributedQuantity: number;
   remainingQuantity: number;
@@ -184,12 +215,71 @@ export interface StockMovement {
   fromActorRole?: string;
   toActorId?: string;
   toActorRole?: string;
+  technicianId?: string;
+  caseId?: string;
   equipmentId?: string;
   equipmentName?: string;
   quantity: number;
   referenceId?: string;
+  comment?: string;
+  createdAt?: string;
+  createdBy?: string;
   performedAt: string;
   performedBy?: string;
+}
+
+// ── Case Stock Consumption Audit ─────────────────────────────────────────────
+
+export type CaseType = 'ACTIVATION' | 'PLAINTE';
+
+export interface ConsumedEquipmentItem {
+  equipmentId: string;
+  equipmentName?: string | null;
+  unit?: string | null;
+  quantityUsed: number;
+  stockBefore: number;
+  stockAfter: number;
+}
+
+export interface CaseConsumption {
+  id: string;
+  caseId: string;
+  crmCase?: string | null;
+  caseType?: CaseType | null;
+  technicianId?: string | null;
+  technicianName?: string | null;
+  sttId?: string | null;
+  sttName?: string | null;
+  zmId?: string | null;
+  zmName?: string | null;
+  consumedItems: ConsumedEquipmentItem[];
+  totalQuantityUsed: number;
+  totalItemTypes: number;
+  consumedAt?: string | null;
+  notes?: string | null;
+}
+
+export interface CaseConsumptionSummary {
+  totalConsumptions: number;
+  totalItemTypes: number;
+  totalQuantityConsumed: number;
+  cableTotalMeters: number;
+  totalBoxesUsed: number;
+  topTechnicianId?: string | null;
+  topTechnicianName?: string | null;
+  topTechnicianConsumptions: number;
+  casesWithoutStockDeclaration: number;
+}
+
+export interface CaseConsumptionFilters {
+  caseType?: string;
+  crmCase?: string;
+  zmId?: string;
+  sttId?: string;
+  technicianId?: string;
+  equipmentId?: string;
+  from?: string;
+  to?: string;
 }
 
 // ── Request payloads ──────────────────────────────────────────────────────────
@@ -198,6 +288,7 @@ export interface CreateEquipmentRequest {
   name: string;
   description?: string;
   unit?: StockUnit;
+  category?: EquipmentCategory;
 }
 
 export interface DpmItemRequest {

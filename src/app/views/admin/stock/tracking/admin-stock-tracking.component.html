@@ -155,11 +155,11 @@
                     @for (item of d.items; track item.equipmentId) {
                       <span class="track-item-chip">
                         {{ item.equipmentName }}
-                        &nbsp;req <strong>{{ item.requestedQuantity }}</strong>
+                        &nbsp;req <strong>{{ item.requestedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
                         @if (item.confirmedQuantity != null) {
-                          &nbsp;/ conf <strong>{{ item.confirmedQuantity }}</strong>
+                          &nbsp;/ conf <strong>{{ item.confirmedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
                           @if (item.shortageQuantity && item.shortageQuantity > 0) {
-                            <span class="track-shortage">&minus;{{ item.shortageQuantity }}</span>
+                            <span class="track-shortage">&minus;{{ item.shortageQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</span>
                           }
                         }
                       </span>
@@ -198,18 +198,18 @@
             <!-- Stats -->
             <div class="track-card-stats">
               <div class="track-card-stat">
-                <div class="track-card-stat__val">{{ sttTotalReceived(s) }}</div>
+                <div class="track-card-stat__val">{{ sttTotalReceivedLabel(s) }}</div>
                 <div class="track-card-stat__lbl">Received</div>
               </div>
               <div class="track-card-stat">
                 <div class="track-card-stat__val track-card-stat__val--dist">
-                  {{ sttTotalDistributed(s) }}
+                  {{ sttTotalDistributedLabel(s) }}
                 </div>
                 <div class="track-card-stat__lbl">Distributed</div>
               </div>
               <div class="track-card-stat">
                 <div class="track-card-stat__val track-card-stat__val--avail">
-                  {{ sttTotalAvailable(s) }}
+                  {{ sttTotalAvailableLabel(s) }}
                 </div>
                 <div class="track-card-stat__lbl">Available</div>
               </div>
@@ -238,8 +238,8 @@
                 @for (item of s.items; track item.equipmentId) {
                   <span class="track-card-chip">
                     {{ item.equipmentName }}:
-                    <strong>{{ item.availableQuantity }}</strong> avail
-                    / {{ item.totalReceived }} recv
+                    <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong> avail
+                    / {{ item.totalReceived }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }} recv
                   </span>
                 } @empty {
                   <span style="color:var(--t-muted);font-size:0.82rem">No items.</span>
@@ -285,19 +285,19 @@
               </div>
               <div class="track-card-stat">
                 <div class="track-card-stat__val">
-                  {{ techTotalReceived(t) }}
+                  {{ techTotalReceivedLabel(t) }}
                 </div>
                 <div class="track-card-stat__lbl">Received</div>
               </div>
               <div class="track-card-stat">
                 <div class="track-card-stat__val track-card-stat__val--dist">
-                  {{ techTotalUsed(t) }}
+                  {{ techTotalUsedLabel(t) }}
                 </div>
                 <div class="track-card-stat__lbl">Used</div>
               </div>
               <div class="track-card-stat">
                 <div class="track-card-stat__val track-card-stat__val--avail">
-                  {{ techTotalRemaining(t) }}
+                  {{ techTotalRemainingLabel(t) }}
                 </div>
                 <div class="track-card-stat__lbl">Remaining</div>
               </div>
@@ -321,9 +321,9 @@
                       }
                     </div>
                     <div class="track-tech-item__stats">
-                      <span>Recv <strong>{{ item.receivedQuantity }}</strong></span>
-                      <span>Used <strong>{{ item.usedQuantity }}</strong></span>
-                      <span>Rem <strong>{{ item.remainingQuantity }}</strong></span>
+                      <span>Recv <strong>{{ item.receivedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong></span>
+                      <span>Used <strong>{{ item.usedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong></span>
+                      <span>Rem <strong>{{ item.remainingQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong></span>
                     </div>
                   </div>
                 } @empty {
@@ -440,6 +440,7 @@
             <thead>
               <tr>
                 <th>Equipment</th>
+                <th>Unit</th>
                 <th>Requested</th>
                 <th>Confirmed</th>
                 <th>Shortage</th>
@@ -456,6 +457,7 @@
                     }
                     {{ item.equipmentName }}
                   </td>
+                  <td><small>{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
                   <td>{{ item.requestedQuantity }}</td>
                   <td>
                     @if (item.confirmedQuantity != null) {
@@ -510,7 +512,7 @@
                   <div class="track-dist-chips">
                     @for (item of dist.items; track item.equipmentId) {
                       <span class="track-dist-chip">
-                        {{ item.equipmentName }} <strong>×{{ item.quantity }}</strong>
+                        {{ item.equipmentName }} <strong>×{{ item.quantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
                       </span>
                     }
                   </div>

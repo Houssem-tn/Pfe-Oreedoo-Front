@@ -72,8 +72,8 @@
                       @for (item of dpm.items; track item.equipmentId) {
                         <span class="dist-dpm-item-chip">
                           {{ item.equipmentName }}:
-                          <strong>{{ item.remainingQuantity }}</strong>
-                          <small>/ {{ item.confirmedQuantity }}</small>
+                          <strong>{{ item.remainingQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                          <small>/ {{ item.confirmedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</small>
                         </span>
                       }
                     </div>
@@ -103,7 +103,7 @@
                                [(ngModel)]="line.quantity" />
                         <button class="dist-qty-btn" type="button"
                                 (click)="incrementQuantity(line)" [disabled]="line.quantity >= line.available">+</button>
-                        <span class="dist-qty-max">/ {{ line.available }} avail.</span>
+                        <span class="dist-qty-max">/ {{ line.available }}{{ line.unit === 'METERS' ? ' m' : ' pcs' }} avail.</span>
                       </div>
                       <button class="dist-remove-btn" type="button" (click)="removeLine(i)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -178,7 +178,7 @@
                   </td>
                   <td>
                     @for (i of d.items; track i.equipmentId) {
-                      <span class="dist-item-chip">{{ i.equipmentName }}: {{ i.quantity }}</span>
+                      <span class="dist-item-chip">{{ i.equipmentName }}: {{ i.quantity }}{{ i.unit === 'METERS' ? ' m' : ' pcs' }}</span>
                     }
                   </td>
                   <td>{{ d.distributedAt | date:'dd/MM/yy HH:mm' }}</td>

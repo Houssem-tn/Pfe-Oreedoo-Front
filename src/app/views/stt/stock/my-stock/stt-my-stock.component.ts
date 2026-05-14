@@ -77,12 +77,25 @@ export class SttMyStockComponent implements OnInit {
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
-  get totalAvailable(): number {
-    return (this.stock?.items ?? []).reduce((s, i) => s + i.availableQuantity, 0);
+  private stockLabel(meters: number, pieces: number): string {
+    const parts: string[] = [];
+    if (meters > 0) parts.push(`${meters} m`);
+    if (pieces > 0) parts.push(`${pieces} pcs`);
+    return parts.join(' / ') || '0';
   }
 
-  get totalReceived(): number {
-    return (this.stock?.items ?? []).reduce((s, i) => s + i.totalReceived, 0);
+  get totalAvailableLabel(): string {
+    const items = this.stock?.items ?? [];
+    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
+    return this.stockLabel(m, p);
+  }
+
+  get totalReceivedLabel(): string {
+    const items = this.stock?.items ?? [];
+    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.totalReceived, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.totalReceived, 0);
+    return this.stockLabel(m, p);
   }
 
   statusColor(s: DpmStatus): string {

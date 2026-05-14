@@ -1441,3 +1441,274 @@
     color: #065f46;
   }
 }
+
+/* ── Top-level audit tab toggle ──────────────────────────────────────── */
+.sa-audit-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  background: var(--sa-card-bg);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius);
+  padding: 0.35rem;
+  width: fit-content;
+}
+
+.sa-audit-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sa-muted);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--sa-radius) - 4px);
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+
+  svg { width: 15px; height: 15px; }
+
+  &:hover { background: rgba(229, 36, 59, 0.06); color: var(--sa-primary); }
+
+  &--active {
+    background: var(--sa-primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(229, 36, 59, 0.28);
+    svg { color: #fff; }
+    &:hover { background: var(--sa-primary-dark); }
+  }
+}
+
+/* ── Case Consumption summary cards ─────────────────────────────────── */
+.sa-cons-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.sa-cons-card {
+  background: var(--sa-card-bg);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--sa-shadow);
+
+  &--warn {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: rgba(245, 158, 11, 0.04);
+  }
+
+  &__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg { width: 18px; height: 18px; }
+
+    &--total  { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    &--cable  { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+    &--box    { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    &--top    { background: rgba(229, 36, 59, 0.08); color: var(--sa-primary); }
+    &--warn   { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  &__val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--sa-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__lbl {
+    font-size: 0.72rem;
+    color: var(--sa-muted);
+    font-weight: 500;
+  }
+}
+
+/* ── Consumption filters bar ────────────────────────────────────────── */
+.sa-cons-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.sa-cons-select {
+  height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--sa-border);
+  border-radius: 10px;
+  background: var(--sa-card-bg);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sa-text);
+  cursor: pointer;
+  outline: none;
+  &:focus { border-color: var(--sa-primary); box-shadow: 0 0 0 3px rgba(229,36,59,0.1); }
+}
+
+/* ── Consumption table ───────────────────────────────────────────────── */
+.sa-cons-table-head {
+  display: grid;
+  grid-template-columns: 140px 90px 160px 130px 130px 1fr 80px 140px 24px;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--sa-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--sa-border);
+}
+
+.sa-cons-row {
+  display: grid;
+  grid-template-columns: 140px 90px 160px 130px 130px 1fr 80px 140px 24px;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid rgba(130,14,30,0.06);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: rgba(229,36,59,0.03); }
+
+  &__cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+}
+
+.sa-cons-actor {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+
+  span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--sa-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.sa-actor-av--sm {
+  width: 26px;
+  height: 26px;
+  font-size: 0.62rem;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.sa-cons-item-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* ── Consumption detail modal extras ─────────────────────────────────── */
+.sa-cons-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sa-cons-actors-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Consumption detail — clean usage table ──────────────────────────── */
+.sa-usage-table {
+  border: 1px solid var(--sa-border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.sa-usage-row {
+  display: grid;
+  grid-template-columns: 1fr 140px 100px;
+  align-items: center;
+  padding: 0.7rem 1.1rem;
+  border-bottom: 1px solid rgba(130,14,30,0.06);
+
+  &:last-child { border-bottom: none; }
+
+  &--head {
+    background: rgba(229, 36, 59, 0.04);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sa-muted);
+    padding: 0.55rem 1.1rem;
+  }
+
+  &--total {
+    background: rgba(229, 36, 59, 0.03);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--sa-text);
+    border-top: 1px solid var(--sa-border);
+  }
+}
+
+.sa-usage-cell--center { text-align: center; }
+
+.sa-usage-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sa-text);
+}
+
+.sa-usage-qty {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--sa-primary);
+}
+
+.sa-usage-unit {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sa-muted);
+  background: rgba(130,14,30,0.06);
+  border-radius: 20px;
+  padding: 0.18rem 0.6rem;
+  width: fit-content;
+  margin: 0 auto;
+}
+

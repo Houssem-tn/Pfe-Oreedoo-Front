@@ -283,10 +283,125 @@
 
         <dt>Comment</dt>
         <dd class="cd-multiline">{{ val(caseData.work?.cmtTrvStt ?? caseData.cmtTrvStt) }}</dd>
+
+        <dt>Work submission GPS</dt>
+        <dd *ngIf="hasWorkLocation; else noWorkGps">
+          <a
+            [href]="mapLink(caseData.work?.locationLatitude, caseData.work?.locationLongitude) || '#'"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="cd-gps-link"
+          >
+            {{ coordinateLabel(caseData.work?.locationLatitude, caseData.work?.locationLongitude) }}
+            <svg cIcon name="cilExternalLink" size="sm"></svg>
+          </a>
+        </dd>
+        <ng-template #noWorkGps><dd>—</dd></ng-template>
+
+        <dt>GPS captured at</dt>
+        <dd>{{ dateVal(caseData.work?.locationCapturedAt) }}</dd>
+
+        <dt>GPS accuracy</dt>
+        <dd>{{ accuracyLabel(caseData.work?.locationAccuracyMeters) }}</dd>
       </dl>
     </div>
 
     <!-- ── Section: Technical Metrics (ACTIVATION) ───────────────── -->
+    <div class="cd-section" *ngIf="hasProofs">
+      <div class="cd-section__header">
+        <svg cIcon name="cilCamera" class="cd-section__icon"></svg>
+        <span>Attached Photos</span>
+      </div>
+
+      <div class="cd-proof-list">
+        <article class="cd-proof-card" *ngFor="let proof of proofs; let i = index">
+          <a
+            *ngIf="proofFileUrl(proof) as proofHref; else noProofFile"
+            class="cd-proof-card__media"
+            [href]="proofHref"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              *ngIf="hasProofPreview(proof); else proofFileFallback"
+              [src]="proofHref"
+              [alt]="proofTitle(proof, i)"
+            />
+            <ng-template #proofFileFallback>
+              <div class="cd-proof-card__placeholder">
+                <svg cIcon name="cilDescription"></svg>
+                <span>Open attachment</span>
+              </div>
+            </ng-template>
+          </a>
+          <ng-template #noProofFile>
+            <div class="cd-proof-card__media cd-proof-card__media--empty">
+              <div class="cd-proof-card__placeholder">
+                <svg cIcon name="cilDescription"></svg>
+                <span>No preview available</span>
+              </div>
+            </div>
+          </ng-template>
+
+          <div class="cd-proof-card__body">
+            <div class="cd-proof-card__eyebrow">{{ proofSourceLabel(proof.captureSource) }}</div>
+            <div class="cd-proof-card__title">{{ proofTitle(proof, i) }}</div>
+            <div class="cd-proof-card__meta">
+              Uploaded {{ dateVal(proof.createdAt) }} by {{ val(proof.uploadedBy) }}
+            </div>
+
+            <div class="cd-proof-card__actions">
+              <a
+                *ngIf="proofFileUrl(proof) as proofHref"
+                [href]="proofHref"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cd-proof-action"
+              >
+                <svg cIcon name="cilExternalLink" size="sm"></svg>
+                Open photo
+              </a>
+              <a
+                *ngIf="mapLink(proof.locationLatitude, proof.locationLongitude) as proofMapHref"
+                [href]="proofMapHref"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cd-proof-action"
+              >
+                <svg cIcon name="cilLocationPin" size="sm"></svg>
+                Open map
+              </a>
+            </div>
+
+            <dl class="cd-grid cd-grid--compact">
+              <dt>GPS coordinates</dt>
+              <dd *ngIf="hasProofLocation(proof); else noProofGps">
+                <a
+                  [href]="mapLink(proof.locationLatitude, proof.locationLongitude) || '#'"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="cd-gps-link"
+                >
+                  {{ coordinateLabel(proof.locationLatitude, proof.locationLongitude) }}
+                  <svg cIcon name="cilExternalLink" size="sm"></svg>
+                </a>
+              </dd>
+              <ng-template #noProofGps><dd>&mdash;</dd></ng-template>
+
+              <dt>Captured at</dt>
+              <dd>{{ dateVal(proof.locationCapturedAt) }}</dd>
+
+              <dt>Accuracy</dt>
+              <dd>{{ accuracyLabel(proof.locationAccuracyMeters) }}</dd>
+
+              <dt>Source</dt>
+              <dd>{{ proofSourceLabel(proof.captureSource) }}</dd>
+            </dl>
+          </div>
+        </article>
+      </div>
+    </div>
+
     <div class="cd-section cd-section--metrics" *ngIf="caseData.type === 'ACTIVATION' && hasMetrics">
       <div class="cd-section__header">
         <svg cIcon name="cilSpeedometer" class="cd-section__icon"></svg>

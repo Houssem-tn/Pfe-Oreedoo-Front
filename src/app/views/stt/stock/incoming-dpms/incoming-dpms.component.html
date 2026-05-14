@@ -42,7 +42,7 @@
                 <td>{{ d.deliveryPersonName }}</td>
                 <td>
                   @for (item of d.items; track item.equipmentId) {
-                    <span class="idpm-item-chip">{{ item.equipmentName }}: {{ item.requestedQuantity }}</span>
+                    <span class="idpm-item-chip">{{ item.equipmentName }}: {{ item.requestedQuantity }}{{ unitSuffix(item.unit) }}</span>
                   }
                 </td>
                 <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
@@ -126,7 +126,7 @@
                   }
                   {{ line.equipmentName }}
                 </td>
-                <td class="text-center">{{ line.requestedQuantity }}</td>
+                <td class="text-center">{{ line.requestedQuantity }}{{ unitSuffix(line.unit) }}</td>
                 <td>
                   <div class="d-flex align-items-center gap-1 justify-content-center">
                     <button cButton color="secondary" size="sm" variant="outline"
@@ -140,7 +140,7 @@
                   </div>
                   @if (!isRejecting && line.confirmedQty < line.requestedQuantity) {
                     <small class="text-warning d-block text-center mt-1">
-                      −{{ line.requestedQuantity - line.confirmedQty }} shortage
+                      −{{ line.requestedQuantity - line.confirmedQty }}{{ unitSuffix(line.unit) }} shortage
                     </small>
                   }
                 </td>
@@ -153,9 +153,9 @@
           </tbody>
         </table>
 
-        @if (!isRejecting && shortage > 0) {
+        @if (!isRejecting && hasShortage) {
           <div class="idpm-shortage-alert">
-            Total shortage: <strong>{{ shortage }}</strong> unit(s) — DPM will be
+            Total shortage: <strong>{{ shortageLabel }}</strong> — DPM will be
             marked as <strong>Partially Confirmed</strong>.
           </div>
         }

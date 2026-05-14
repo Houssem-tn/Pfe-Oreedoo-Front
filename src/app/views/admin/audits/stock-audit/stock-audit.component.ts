@@ -8,7 +8,12 @@ import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import {
-  DpmRequest, DpmStatus, SttDistribution, ZmStockAudit
+  CaseConsumption,
+  CaseConsumptionSummary,
+  DpmRequest,
+  DpmStatus,
+  SttDistribution,
+  ZmStockAudit
 } from '../../../../core/stock/stock.model';
 
 interface ZmCard {
@@ -54,12 +59,14 @@ export class StockAuditComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
+  // ── DPM audit state ───────────────────────────────────────────────────────
   dpms: DpmRequest[] = [];
   distributionsByDpmId = new Map<string, SttDistribution[]>();
 
   loading = false;
   error: string | null = null;
 
+  activeTab: 'dpm' | 'consumption' = 'dpm';
   activeView: 'zm' | 'stock' = 'zm';
   zmSearch = '';
   itemSearch = '';
@@ -74,6 +81,18 @@ export class StockAuditComponent implements OnInit {
 
   selectedItemRow: ItemAuditRow | null = null;
   itemPanelVisible = false;
+
+  // ── Case Consumption Audit state ─────────────────────────────────────────
+  consumptions: CaseConsumption[] = [];
+  consumptionSummary: CaseConsumptionSummary | null = null;
+  loadingConsumptions = false;
+  consumptionError: string | null = null;
+
+  consumptionSearch = '';
+  consumptionCaseTypeFilter: '' | 'ACTIVATION' | 'PLAINTE' = '';
+
+  selectedConsumption: CaseConsumption | null = null;
+  consumptionDetailVisible = false;
 
   ngOnInit(): void { this.load(); }
 
@@ -198,8 +217,91 @@ export class StockAuditComponent implements OnInit {
     return rows.filter(r => r.equipmentName.toLowerCase().includes(q));
   }
 
-  totalItemsRequested(): number {
-    return this.itemAuditRows.reduce((s, r) => s + r.totalRequested, 0);
+  totalItemsRequestedLabel(): string {
+    const rows = this.itemAuditRows;
+    const m = rows.filter(r => r.unit === 'METERS').reduce((s, r) => s + r.totalRequested, 0);
+    const p = rows.filter(r => r.unit !== 'METERS').reduce((s, r) => s + r.totalRequested, 0);
+    const parts: string[] = [];
+    if (m > 0) parts.push(`${m} m`);
+    if (p > 0) parts.push(`${p} pcs`);
+    return parts.join(' / ') || '0';
+  }
+
+  consumptionQtyLabel(c: CaseConsumption): string {
+    const items = c.consumedItems ?? [];
+    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.quantityUsed, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.quantityUsed, 0);
+    const parts: string[] = [];
+    if (m > 0) parts.push(`${m} m`);
+    if (p > 0) parts.push(`${p} pcs`);
+    return parts.join(' / ') || '0';
+  }
+
+  // ── Case Consumption tab methods ─────────────────────────────────────────
+
+  loadConsumptions(): void {
+    if (this.consumptions.length > 0 && !this.consumptionError) return;
+    this.loadingConsumptions = true;
+    this.consumptionError = null;
+    forkJoin({
+      list:    this.stockSvc.getCaseConsumptions(),
+      summary: this.stockSvc.getCaseConsumptionSummary()
+    })
+      .pipe(finalize(() => { this.loadingConsumptions = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: ({ list, summary }) => {
+          this.consumptions = list;
+          this.consumptionSummary = summary;
+        },
+        error: e => { this.consumptionError = e.message; }
+      });
+  }
+
+  switchTab(tab: 'dpm' | 'consumption'): void {
+    this.activeTab = tab;
+    if (tab === 'consumption' && this.consumptions.length === 0) {
+      this.loadConsumptions();
+    }
+  }
+
+  get filteredConsumptions(): CaseConsumption[] {
+    let list = this.consumptions;
+    if (this.consumptionCaseTypeFilter) {
+      list = list.filter(c => c.caseType === this.consumptionCaseTypeFilter);
+    }
+    if (this.consumptionSearch.trim()) {
+      const q = this.consumptionSearch.toLowerCase();
+      list = list.filter(c =>
+        (c.crmCase ?? '').toLowerCase().includes(q) ||
+        (c.technicianName ?? '').toLowerCase().includes(q) ||
+        (c.sttName ?? '').toLowerCase().includes(q) ||
+        (c.zmName ?? '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
+
+  openConsumptionDetail(c: CaseConsumption): void {
+    this.selectedConsumption = c;
+    this.consumptionDetailVisible = true;
+    this.cdr.detectChanges();
+  }
+
+  closeConsumptionDetail(): void {
+    this.consumptionDetailVisible = false;
+    this.selectedConsumption = null;
+  }
+
+  caseTypeLabel(t?: string | null): string {
+    if (t === 'ACTIVATION') return 'Activation';
+    if (t === 'PLAINTE') return 'Plainte';
+    return t ?? '-';
+  }
+
+  unitLabel(unit?: string | null): string {
+    if (unit === 'METERS') return 'm';
+    if (unit === 'PIECES') return 'pcs';
+    return unit?.trim() || 'units';
   }
 
   nameInitials(name: string): string {

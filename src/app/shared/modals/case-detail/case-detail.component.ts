@@ -13,6 +13,7 @@ import { IconDirective } from '@coreui/icons-angular';
 
 import {
   CASE_STATUS_UI,
+  CaseProofFile,
   CaseResponse,
   CaseStatus,
   CaseTimelineEvent
@@ -113,6 +114,19 @@ export class CaseDetailComponent {
     return !!(c?.latitude || c?.longitude);
   }
 
+  get hasWorkLocation(): boolean {
+    const work = this.caseData?.work;
+    return work?.locationLatitude != null && work?.locationLongitude != null;
+  }
+
+  get hasProofs(): boolean {
+    return (this.caseData?.workProofs?.length ?? 0) > 0;
+  }
+
+  get proofs(): CaseProofFile[] {
+    return [...(this.caseData?.workProofs ?? [])];
+  }
+
   get hasMetrics(): boolean {
     const m = this.caseData?.metrics;
     return !!(m?.nombrePv != null ||
@@ -139,5 +153,107 @@ export class CaseDetailComponent {
     if (t.includes('escalat')) return 'cilWarning';
     if (t.includes('reopen')) return 'cilReload';
     return 'cilHistory';
+  }
+
+  hasProofLocation(proof?: CaseProofFile | null): boolean {
+    return proof?.locationLatitude != null && proof?.locationLongitude != null;
+  }
+
+  coordinateLabel(latitude?: number | string | null, longitude?: number | string | null): string {
+    const normalizedLatitude = this.parseCoordinate(latitude);
+    const normalizedLongitude = this.parseCoordinate(longitude);
+
+    if (normalizedLatitude == null || normalizedLongitude == null) {
+      return '—';
+    }
+
+    return `${normalizedLatitude.toFixed(6)}, ${normalizedLongitude.toFixed(6)}`;
+  }
+
+  mapLink(latitude?: number | string | null, longitude?: number | string | null): string | null {
+    const normalizedLatitude = this.parseCoordinate(latitude);
+    const normalizedLongitude = this.parseCoordinate(longitude);
+
+    if (normalizedLatitude == null || normalizedLongitude == null) {
+      return null;
+    }
+
+    return `https://maps.google.com/?q=${normalizedLatitude},${normalizedLongitude}`;
+  }
+
+  accuracyLabel(value?: number | null): string {
+    if (value == null || Number.isNaN(value)) {
+      return '—';
+    }
+
+    return `${Math.round(value)} m`;
+  }
+
+  proofSourceLabel(source?: string | null): string {
+    const normalized = (source ?? '').trim().toLowerCase();
+
+    switch (normalized) {
+      case 'camera':
+        return 'Work proof photo';
+      case 'gallery':
+        return 'Gallery photo';
+      case 'speedtest_screenshot':
+        return 'Speedtest screenshot';
+      case 'signal_screenshot':
+        return 'Signal screenshot';
+      default:
+        if (!normalized) {
+          return 'Attachment';
+        }
+
+        return normalized
+          .split(/[_-]+/)
+          .map((part) => part ? part[0].toUpperCase() + part.slice(1) : '')
+          .join(' ');
+    }
+  }
+
+  proofFileUrl(proof?: CaseProofFile | null): string | null {
+    const viewUrl = proof?.viewUrl?.trim();
+    const downloadUrl = proof?.downloadUrl?.trim();
+    return viewUrl || downloadUrl || null;
+  }
+
+  hasProofFile(proof?: CaseProofFile | null): boolean {
+    return !!this.proofFileUrl(proof);
+  }
+
+  hasProofPreview(proof?: CaseProofFile | null): boolean {
+    return this.isImageProof(proof) && !!this.proofFileUrl(proof);
+  }
+
+  proofTitle(proof: CaseProofFile, index: number): string {
+    const filename = proof.originalFilename?.trim();
+    return filename || `Proof ${index + 1}`;
+  }
+
+  private isImageProof(proof?: CaseProofFile | null): boolean {
+    const contentType = proof?.contentType?.trim().toLowerCase();
+    if (contentType) {
+      return contentType.startsWith('image/');
+    }
+
+    const fileUrl = this.proofFileUrl(proof)?.toLowerCase() ?? '';
+    return ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.svg', '.avif']
+      .some((extension) => fileUrl.includes(extension));
+  }
+
+  private parseCoordinate(value?: number | string | null): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    const text = (value ?? '').toString().trim();
+    if (!text) {
+      return null;
+    }
+
+    const normalized = Number(text.replace(',', '.'));
+    return Number.isFinite(normalized) ? normalized : null;
   }
 }

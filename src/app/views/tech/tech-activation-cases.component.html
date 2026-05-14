@@ -479,17 +479,28 @@
                   <div>
                     <div class="tech-detail-card__title">Stock helper</div>
                     <div class="tech-stock-helper__hint">
-                      Declare used equipment for CRM {{ selected.crmCase }} without leaving the case detail panel.
+                      Prepare the equipment used for CRM {{ selected.crmCase }} before sending the work report.
                     </div>
                   </div>
 
-                  @if (techStockItems.length > 0) {
-                    <div class="tech-stock-helper__summary">
-                      <strong>{{ techStockRemainingTotal }}</strong>
-                      <span>remaining</span>
-                      <small>{{ techStockUsedTotal }} used</small>
-                    </div>
-                  }
+                  <div class="tech-stock-helper__actions">
+                    @if (techStockItems.length > 0) {
+                      <div class="tech-stock-helper__summary">
+                        <strong>{{ techStockRemainingTotal }}</strong>
+                        <span>remaining</span>
+                        <small>{{ techStockUsedTotal }} used</small>
+                      </div>
+                    }
+                    <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
+                            (click)="loadTechStock()" [disabled]="techStockLoading">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path>
+                      </svg>
+                      Refresh
+                    </button>
+                  </div>
                 </div>
 
                 @if (techStockLoading) {
@@ -500,12 +511,6 @@
                   <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
                 }
 
-                @if (stockNotice) {
-                  <div class="tech-banner" [ngClass]="'tech-banner--' + stockNotice.tone">
-                    {{ stockNotice.text }}
-                  </div>
-                }
-
                 @if (!techStockLoading && techStockItems.length > 0) {
                   <div class="tech-usage-picker">
                     @for (line of usageLines; track $index; let i = $index) {
@@ -514,7 +519,7 @@
                           class="tech-usage-picker__select"
                           [(ngModel)]="line.equipmentId"
                           [name]="'dEq_' + i"
-                          [disabled]="stockBusy"
+                          [disabled]="actionBusy"
                         >
                           <option value="">Item...</option>
                           @for (item of techStockItems; track item.equipmentId) {
@@ -530,22 +535,19 @@
                           class="tech-usage-picker__qty"
                           [(ngModel)]="line.quantity"
                           [name]="'dQty_' + i"
-                          [disabled]="stockBusy"
+                          [disabled]="actionBusy"
                           placeholder="Qty"
                         />
                         @if (usageLines.length > 1) {
-                          <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="stockBusy">×</button>
+                          <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="actionBusy">Remove</button>
                         }
                       </div>
                     }
-                    <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="stockBusy">+ Add item</button>
+                    <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
                   </div>
 
-                  <div class="tech-stock-form__actions">
-                    <button type="button" class="btn-tech btn-tech--primary" (click)="submitStockUsage()" [disabled]="stockBusy">
-                      <svg cIcon name="cilSave"></svg>
-                      {{ stockBusy ? 'Saving...' : 'Declare' }}
-                    </button>
+                  <div class="tech-form__hint">
+                    Leave the list empty if no equipment was consumed. Duplicate lines are merged automatically when you submit the case.
                   </div>
                 } @else if (!techStockLoading && !techStockError) {
                   <div class="tech-empty tech-empty--inline">
@@ -848,7 +850,28 @@
             </div>
 
             <div class="tech-form__section">
-              <div class="tech-form__section-title">Used stock</div>
+              <div class="tech-form__section-title-row">
+                <div class="tech-form__section-title">Used stock</div>
+                <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
+                        (click)="loadTechStock()" [disabled]="techStockLoading">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path>
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+
+              <p class="tech-form__hint">
+                Add the equipment used on this case. Stock updates when you submit the work report, not before.
+              </p>
+
+              @if (currentCaseUsedEquipment.length > 0) {
+                <div class="tech-form__hint">
+                  This case already has {{ currentCaseUsedEquipment.length }} saved equipment item{{ currentCaseUsedEquipment.length > 1 ? 's' : '' }}. Edit the lines below to adjust them.
+                </div>
+              }
 
               @if (techStockLoading) {
                 <div class="tech-panel__loading">Loading stock...</div>
@@ -856,10 +879,6 @@
 
               @if (techStockError) {
                 <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
-              }
-
-              @if (stockNotice) {
-                <div class="tech-banner" [ngClass]="'tech-banner--' + stockNotice.tone">{{ stockNotice.text }}</div>
               }
 
               @if (!techStockLoading && techStockItems.length > 0) {
@@ -870,7 +889,7 @@
                         class="tech-usage-picker__select"
                         [(ngModel)]="line.equipmentId"
                         [name]="'wEq_' + i"
-                        [disabled]="stockBusy"
+                        [disabled]="actionBusy"
                       >
                         <option value="">Item...</option>
                         @for (item of techStockItems; track item.equipmentId) {
@@ -886,22 +905,19 @@
                         class="tech-usage-picker__qty"
                         [(ngModel)]="line.quantity"
                         [name]="'wQty_' + i"
-                        [disabled]="stockBusy"
+                        [disabled]="actionBusy"
                         placeholder="Qty"
                       />
                       @if (usageLines.length > 1) {
-                        <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="stockBusy">×</button>
+                        <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="actionBusy">Remove</button>
                       }
                     </div>
                   }
-                  <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="stockBusy">+ Add item</button>
+                  <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
                 </div>
 
-                <div class="tech-stock-form__actions">
-                  <button type="button" class="btn-tech btn-tech--primary" (click)="submitStockUsage()" [disabled]="stockBusy">
-                    <svg cIcon name="cilSave"></svg>
-                    {{ stockBusy ? 'Saving...' : 'Declare' }}
-                  </button>
+                <div class="tech-form__hint">
+                  Leave the list empty if no equipment was consumed. Duplicate lines are merged automatically when you submit the case.
                 </div>
               } @else if (!techStockLoading && !techStockError) {
                 <div class="tech-empty tech-empty--inline">

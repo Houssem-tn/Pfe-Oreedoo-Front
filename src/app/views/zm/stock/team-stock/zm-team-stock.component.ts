@@ -122,27 +122,42 @@ export class ZmTeamStockComponent implements OnInit {
     }
   }
 
-  get totalSttUnits(): number {
-    return this.sttStocks.reduce((sum, s) =>
-      sum + s.items.reduce((a, i) => a + i.availableQuantity, 0), 0);
+  private stockLabel(meters: number, pieces: number): string {
+    const parts: string[] = [];
+    if (meters > 0) parts.push(`${meters} m`);
+    if (pieces > 0) parts.push(`${pieces} pcs`);
+    return parts.join(' / ') || '0';
   }
 
-  get totalTechUnits(): number {
-    return this.techStocks.reduce((sum, t) =>
-      sum + t.items.reduce((a, i) => a + i.remainingQuantity, 0), 0);
+  get totalSttUnitsLabel(): string {
+    const items = this.sttStocks.flatMap(s => s.items);
+    const m = items.filter(i => i.unit === 'METERS').reduce((a, i) => a + i.availableQuantity, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((a, i) => a + i.availableQuantity, 0);
+    return this.stockLabel(m, p);
   }
 
-  get totalTechUsedUnits(): number {
-    return this.techStocks.reduce((sum, t) =>
-      sum + t.items.reduce((a, i) => a + i.usedQuantity, 0), 0);
+  get totalTechUnitsLabel(): string {
+    const items = this.techStocks.flatMap(t => t.items);
+    const m = items.filter(i => i.unit === 'METERS').reduce((a, i) => a + i.remainingQuantity, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((a, i) => a + i.remainingQuantity, 0);
+    return this.stockLabel(m, p);
+  }
+
+  get totalTechUsedUnitsLabel(): string {
+    const items = this.techStocks.flatMap(t => t.items);
+    const m = items.filter(i => i.unit === 'METERS').reduce((a, i) => a + i.usedQuantity, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((a, i) => a + i.usedQuantity, 0);
+    return this.stockLabel(m, p);
   }
 
   isSelfExecutor(ts: TechStock): boolean {
     return ts.techId === ts.sttId;
   }
 
-  sttAvailableUnits(ss: SttStock): number {
-    return ss.items.reduce((sum, i) => sum + i.availableQuantity, 0);
+  sttAvailableLabel(ss: SttStock): string {
+    const m = ss.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
+    const p = ss.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
+    return this.stockLabel(m, p);
   }
 
   techUsagesForTech(techId: string): TechStockUsage[] {

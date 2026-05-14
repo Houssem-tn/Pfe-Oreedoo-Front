@@ -14,6 +14,7 @@ import {
   CaseResponse,
   CaseStatus,
   CaseTimelineEvent,
+  CaseUsedEquipmentItem,
   CompleteWorkRequest,
   PerformanceSummaryResponse,
   SetRdvRequest,
@@ -22,12 +23,10 @@ import {
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
 import { StockService } from '../../core/stock/stock.service';
+import { TechStock, TechStockItem } from '../../core/stock/stock.model';
 import {
-  DeclareTechUsageRequest,
-  TechStock,
-  TechStockItem
-} from '../../core/stock/stock.model';
-import {
+  buildUsedEquipmentPayload,
+  EquipmentUsageLine,
   extractMetrics,
   extractRdv,
   extractTimeline,
@@ -38,7 +37,8 @@ import {
   toDateTimeLocal,
   toInputNumber,
   toIso,
-  toMaybeNumber
+  toMaybeNumber,
+  usageLinesFromCaseItems
 } from './tech-case.helpers';
 
 type TechQuickFilter = 'urgent' | 'rdv' | 'work' | 'all';
@@ -144,13 +144,11 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   activePanel: TechPanel = 'details';
   panelLoading = false;
   techStockLoading = false;
-  stockBusy = false;
   techStockError: string | null = null;
-  stockNotice: TechBanner | null = null;
 
   rdvForm: TechRdvForm = this.createEmptyRdvForm();
   workForm: TechWorkForm = this.createEmptyWorkForm();
-  usageLines: Array<{ equipmentId: string; quantity: string }> = [];
+  usageLines: EquipmentUsageLine[] = [];
   techStock: TechStock | null = null;
   proofDrafts: Record<string, TechProofDraft> = {};
   private pendingProofLocation: TechGeoSnapshot | null = null;
@@ -422,6 +420,10 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     });
   }
 
+  get currentCaseUsedEquipment(): CaseUsedEquipmentItem[] {
+    return this.caseUsedEquipmentItems(this.selectedCase);
+  }
+
   get techStockRemainingTotal(): number {
     return this.techStockItems.reduce((sum, item) => sum + item.remainingQuantity, 0);
   }
@@ -690,7 +692,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   openPanel(item: CaseResponse, panel: TechPanel): void {
     this.banner = null;
     this.panelError = null;
-    this.stockNotice = null;
     this.focusCasePage(item.id);
     this.selectedCaseId = item.id;
     this.activePanel = panel;
@@ -702,6 +703,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
     if (panel === 'work') {
       this.workForm = this.createWorkForm(item);
+      this.setUsageLinesFromCase(item);
     }
 
     if (this.isTechRole) {
@@ -717,7 +719,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.activePanel = 'details';
     this.panelLoading = false;
     this.panelError = null;
-    this.stockNotice = null;
   }
 
   switchPanel(panel: TechPanel): void {
@@ -734,6 +735,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
     if (panel === 'work') {
       this.workForm = this.createWorkForm(target);
+      this.syncUsageSelection(target);
     }
   }
 
@@ -822,7 +824,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const payload = this.buildWorkPayload(workLocation);
+      const payload = this.buildWorkPayload(target, workLocation);
       if (!payload) {
         return;
       }
@@ -830,6 +832,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       const updated = await firstValueFrom(this.casesService.completeWork(target.id, payload));
       this.replaceCase(updated);
       this.selectedCaseDetails = updated;
+      this.setUsageLinesFromCase(updated);
       this.activePanel = 'details';
       this.loadPerformance();
       this.loadCaseDetails(target.id);
@@ -1080,48 +1083,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.usageLines = this.usageLines.filter((_, i) => i !== index);
   }
 
-  async submitStockUsage(): Promise<void> {
-    const target = this.selectedCase;
-    if (!target || !this.isTechRole) return;
-
-    const validLines = this.usageLines.filter((l) => {
-      const qty = Number(l.quantity);
-      return l.equipmentId && Number.isFinite(qty) && qty > 0;
-    });
-
-    if (!validLines.length) {
-      this.stockNotice = { tone: 'danger', text: 'Select at least one item with a valid quantity.' };
-      return;
-    }
-
-    this.stockBusy = true;
-    this.stockNotice = null;
-
-    try {
-      const payload: DeclareTechUsageRequest = {
-        caseId: target.id,
-        items: validLines.map((l) => {
-          const si = this.techStockItems.find((i) => i.equipmentId === l.equipmentId)!;
-          return { equipmentId: si.equipmentId, equipmentName: si.equipmentName, unit: si.unit, quantity: Number(l.quantity) };
-        })
-      };
-
-      const response = await firstValueFrom(this.stockService.declareMyTechUsage(payload));
-      this.techStock = response.stock ?? this.techStock;
-      this.usageLines = [{ equipmentId: '', quantity: '' }];
-
-      this.stockNotice = response.hasWarnings
-        ? { tone: 'warning', text: response.warnings.join(' ') }
-        : { tone: 'success', text: `Usage saved for CRM ${target.crmCase}. Stock updated.` };
-    } catch (err: any) {
-      console.error('Failed to declare TECH stock usage', err);
-      this.stockNotice = { tone: 'danger', text: err?.error?.message ?? 'Unable to declare stock usage.' };
-    } finally {
-      this.stockBusy = false;
-    }
-  }
-
-
   stockQuantityLabel(quantity: number, unit?: string | null): string {
     const suffix = this.stockUnitLabel(unit);
     return `${quantity} ${suffix}`;
@@ -1204,6 +1165,9 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         next: (fullCase) => {
           this.selectedCaseDetails = fullCase;
           this.replaceCase(fullCase);
+          if (this.activePanel === 'work' && this.isTechRole) {
+            this.syncUsageSelection(fullCase);
+          }
         },
         error: (err) => {
           console.error('Failed to load TECH case details', err);
@@ -1221,7 +1185,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.techStockError = null;
 
     if (resetSelection) {
-      this.usageLines = [{ equipmentId: '', quantity: '' }];
+      this.setUsageLinesFromCase(this.selectedCase);
     }
 
     this.stockService.getMyTechStock()
@@ -1231,7 +1195,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (stock) => {
           this.techStock = stock;
-          this.syncUsageSelection();
+          this.syncUsageSelection(this.selectedCase);
         },
         error: (err) => {
           console.error('Failed to load TECH stock helper', err);
@@ -1337,13 +1301,22 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     };
   }
 
-  private buildWorkPayload(location: TechGeoSnapshot): CompleteWorkRequest | null {
+  private buildWorkPayload(target: CaseResponse, location: TechGeoSnapshot): CompleteWorkRequest | null {
     const repTravauxStt = this.workForm.repTravauxStt.trim();
     const dateFinTrv = toIso(this.workForm.dateFinTrv);
     const cmtTrvStt = this.workForm.cmtTrvStt.trim();
 
     if (!repTravauxStt || !dateFinTrv || !cmtTrvStt) {
       this.banner = { tone: 'danger', text: 'Work result, end time, and comment are required.' };
+      return null;
+    }
+
+    const usedEquipmentPayload = this.isTechRole
+      ? buildUsedEquipmentPayload(this.usageLines, this.techStockItems, this.caseUsedEquipmentItems(target))
+      : { items: [], error: null };
+
+    if (usedEquipmentPayload.error) {
+      this.banner = { tone: 'danger', text: usedEquipmentPayload.error };
       return null;
     }
 
@@ -1360,7 +1333,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       locationLatitude: location.latitude,
       locationLongitude: location.longitude,
       locationCapturedAt: location.capturedAt,
-      locationAccuracyMeters: location.accuracyMeters ?? undefined
+      locationAccuracyMeters: location.accuracyMeters ?? undefined,
+      usedEquipment: this.isTechRole ? usedEquipmentPayload.items : undefined
     };
   }
 
@@ -1941,9 +1915,18 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       && item.executorId === item.sttId;
   }
 
-  private syncUsageSelection(): void {
-    if (!this.usageLines.length) {
-      this.usageLines = [{ equipmentId: '', quantity: '' }];
+  private caseUsedEquipmentItems(item?: CaseResponse | null): CaseUsedEquipmentItem[] {
+    return item ? (extractWork(item).usedEquipment ?? []) : [];
+  }
+
+  private setUsageLinesFromCase(item?: CaseResponse | null): void {
+    this.usageLines = usageLinesFromCaseItems(this.caseUsedEquipmentItems(item));
+  }
+
+  private syncUsageSelection(item?: CaseResponse | null): void {
+    const hasUserSelection = this.usageLines.some((line) => line.equipmentId.trim() || String(line.quantity ?? '').trim());
+    if (!hasUserSelection) {
+      this.setUsageLinesFromCase(item ?? this.selectedCase);
     }
   }
 

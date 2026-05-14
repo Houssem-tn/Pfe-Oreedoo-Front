@@ -117,17 +117,60 @@ export class AdminStockTrackingComponent implements OnInit {
     });
   }
 
-  sttTotalReceived(s: SttStock): number { return s.items.reduce((t, i) => t + i.totalReceived, 0); }
-  sttTotalDistributed(s: SttStock): number { return s.items.reduce((t, i) => t + i.totalDistributedToTechs, 0); }
-  sttTotalAvailable(s: SttStock): number { return s.items.reduce((t, i) => t + i.availableQuantity, 0); }
-  sttAvailPct(s: SttStock): number {
-    const r = this.sttTotalReceived(s);
-    return r ? Math.round((this.sttTotalAvailable(s) / r) * 100) : 0;
+  private stockLabel(meters: number, pieces: number): string {
+    const parts: string[] = [];
+    if (meters > 0) parts.push(`${meters} m`);
+    if (pieces > 0) parts.push(`${pieces} pcs`);
+    return parts.join(' / ') || '0';
   }
 
-  techTotalReceived(t: TechStock): number { return t.items.reduce((s, i) => s + i.receivedQuantity, 0); }
-  techTotalUsed(t: TechStock): number { return t.items.reduce((s, i) => s + i.usedQuantity, 0); }
-  techTotalRemaining(t: TechStock): number { return t.items.reduce((s, i) => s + i.remainingQuantity, 0); }
+  sttTotalReceivedLabel(s: SttStock): string {
+    return this.stockLabel(
+      s.items.filter(i => i.unit === 'METERS').reduce((t, i) => t + i.totalReceived, 0),
+      s.items.filter(i => i.unit !== 'METERS').reduce((t, i) => t + i.totalReceived, 0)
+    );
+  }
+
+  sttTotalDistributedLabel(s: SttStock): string {
+    return this.stockLabel(
+      s.items.filter(i => i.unit === 'METERS').reduce((t, i) => t + i.totalDistributedToTechs, 0),
+      s.items.filter(i => i.unit !== 'METERS').reduce((t, i) => t + i.totalDistributedToTechs, 0)
+    );
+  }
+
+  sttTotalAvailableLabel(s: SttStock): string {
+    return this.stockLabel(
+      s.items.filter(i => i.unit === 'METERS').reduce((t, i) => t + i.availableQuantity, 0),
+      s.items.filter(i => i.unit !== 'METERS').reduce((t, i) => t + i.availableQuantity, 0)
+    );
+  }
+
+  sttAvailPct(s: SttStock): number {
+    const r = s.items.reduce((t, i) => t + i.totalReceived, 0);
+    const a = s.items.reduce((t, i) => t + i.availableQuantity, 0);
+    return r ? Math.round((a / r) * 100) : 0;
+  }
+
+  techTotalReceivedLabel(t: TechStock): string {
+    return this.stockLabel(
+      t.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.receivedQuantity, 0),
+      t.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.receivedQuantity, 0)
+    );
+  }
+
+  techTotalUsedLabel(t: TechStock): string {
+    return this.stockLabel(
+      t.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.usedQuantity, 0),
+      t.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.usedQuantity, 0)
+    );
+  }
+
+  techTotalRemainingLabel(t: TechStock): string {
+    return this.stockLabel(
+      t.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.remainingQuantity, 0),
+      t.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.remainingQuantity, 0)
+    );
+  }
   techUsagesFor(techId: string): TechStockUsage[] { return this.techUsageMap.get(techId) ?? []; }
 
   statusLabel(status: DpmStatus): string {

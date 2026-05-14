@@ -16,16 +16,16 @@
         <span class="ts-chip__lbl">TECHs</span>
       </div>
       <div class="ts-chip ts-chip--stt-units">
-        <span class="ts-chip__val">{{ totalSttUnits }}</span>
-        <span class="ts-chip__lbl">STT Units Avail.</span>
+        <span class="ts-chip__val">{{ totalSttUnitsLabel }}</span>
+        <span class="ts-chip__lbl">STT Avail.</span>
       </div>
       <div class="ts-chip ts-chip--tech-units">
-        <span class="ts-chip__val">{{ totalTechUnits }}</span>
-        <span class="ts-chip__lbl">TECH Units Rem.</span>
+        <span class="ts-chip__val">{{ totalTechUnitsLabel }}</span>
+        <span class="ts-chip__lbl">TECH Rem.</span>
       </div>
       <div class="ts-chip ts-chip--tech">
-        <span class="ts-chip__val">{{ totalTechUsedUnits }}</span>
-        <span class="ts-chip__lbl">TECH Units Used</span>
+        <span class="ts-chip__val">{{ totalTechUsedUnitsLabel }}</span>
+        <span class="ts-chip__lbl">TECH Used</span>
       </div>
     </div>
   </div>
@@ -75,7 +75,7 @@
                 <div class="ts-stt-name">{{ sttName(ss.sttId) }}</div>
                 <div class="ts-stt-sub">
                   {{ ss.items.length }} equipment type{{ ss.items.length !== 1 ? 's' : '' }} ·
-                  {{ sttAvailableUnits(ss) }} units available
+                  {{ sttAvailableLabel(ss) }} available
                 </div>
               </div>
             </div>
@@ -85,7 +85,7 @@
                   <span class="ts-mini-chip"
                         [class.ts-mini-chip--avail]="item.availableQuantity > 0"
                         [class.ts-mini-chip--zero]="item.availableQuantity === 0">
-                    {{ item.equipmentName }}: <strong>{{ item.availableQuantity }}</strong> avail.
+                    {{ item.equipmentName }}: <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
                   </span>
                 }
                 @if (ss.items.length === 0) {
@@ -118,6 +118,7 @@
                       <thead>
                         <tr>
                           <th>Equipment</th>
+                          <th>Unit</th>
                           <th>Received</th>
                           <th>Distributed</th>
                           <th>Available</th>
@@ -127,13 +128,14 @@
                         @for (item of ss.items; track item.equipmentId) {
                           <tr>
                             <td><strong>{{ item.equipmentName }}</strong></td>
+                            <td><small>{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
                             <td>{{ item.totalReceived }}</td>
                             <td>{{ item.totalDistributedToTechs }}</td>
                             <td>
                               <span class="ts-qty-badge"
                                     [class.ts-qty-badge--avail]="item.availableQuantity > 0"
                                     [class.ts-qty-badge--zero]="item.availableQuantity === 0">
-                                {{ item.availableQuantity }}
+                                {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
                               </span>
                             </td>
                           </tr>

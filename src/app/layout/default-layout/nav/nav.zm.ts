@@ -84,5 +84,10 @@ export const navZm: INavData[] = [
     name: 'Team Stock',
     url: '/zm/stock/team-stock',
     iconComponent: { name: 'cilPeople' }
+  },
+  {
+    name: 'Case Stock Audit',
+    url: '/zm/stock/case-audit',
+    iconComponent: { name: 'cilChart' }
   }
 ];

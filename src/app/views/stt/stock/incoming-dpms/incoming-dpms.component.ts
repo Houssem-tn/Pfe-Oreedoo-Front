@@ -99,7 +99,24 @@ export class IncomingDpmsComponent implements OnInit {
       });
   }
 
-  get shortage(): number {
-    return this.confirmLines.reduce((s, l) => s + Math.max(0, l.requestedQuantity - l.confirmedQty), 0);
+  get hasShortage(): boolean {
+    return this.confirmLines.some(l => l.confirmedQty < l.requestedQuantity);
+  }
+
+  get shortageLabel(): string {
+    const mShort = this.confirmLines
+      .filter(l => l.unit === 'METERS')
+      .reduce((s, l) => s + Math.max(0, l.requestedQuantity - l.confirmedQty), 0);
+    const pShort = this.confirmLines
+      .filter(l => l.unit !== 'METERS')
+      .reduce((s, l) => s + Math.max(0, l.requestedQuantity - l.confirmedQty), 0);
+    const parts: string[] = [];
+    if (mShort > 0) parts.push(`${mShort} m`);
+    if (pShort > 0) parts.push(`${pShort} pcs`);
+    return parts.join(' / ') || '0';
+  }
+
+  unitSuffix(unit?: string | null): string {
+    return unit === 'METERS' ? ' m' : ' pcs';
   }
 }

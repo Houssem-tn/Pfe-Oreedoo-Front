@@ -10,18 +10,22 @@ import { CasesService } from '../../core/cases/cases.service';
 import {
   CaseDiagnosis,
   CaseResponse,
+  CaseUsedEquipmentItem,
   ComplaintCategory,
   ComplaintDiagnosisRequest,
   CompleteWorkRequest,
   SetRdvRequest
 } from '../../core/cases/models/case.model';
 import {
+  buildUsedEquipmentPayload,
+  EquipmentUsageLine,
   extractMetrics,
   extractRdv,
   extractWork,
   toDateTimeLocal,
   toIso,
-  toMaybeNumber
+  toMaybeNumber,
+  usageLinesFromCaseItems
 } from '../tech/tech-case.helpers';
 import {
   fieldBasePathFromUrl,
@@ -31,11 +35,7 @@ import {
 } from './field-case-utils';
 import { OcrService } from '../../core/ocr/ocr.service';
 import { StockService } from '../../core/stock/stock.service';
-import {
-  DeclareTechUsageRequest,
-  TechStock,
-  TechStockItem
-} from '../../core/stock/stock.model';
+import { TechStock, TechStockItem } from '../../core/stock/stock.model';
 
 type FieldExecutionStep = 'rdv' | 'diagnosis' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
@@ -68,11 +68,6 @@ interface FieldWorkForm {
   sinr: string;
 }
 
-interface FieldUsageLine {
-  equipmentId: string;
-  quantity: string;
-}
-
 interface FieldDiagnosisForm {
   complaintCategory: ComplaintCategory;
   rootCause: string;
@@ -87,6 +82,11 @@ interface FieldGeoSnapshot {
   longitude: number;
   capturedAt: string;
   accuracyMeters?: number | null;
+}
+
+interface FieldProofAttachment {
+  file: File;
+  captureSource: string;
 }
 
 @Component({
@@ -290,6 +290,14 @@ interface FieldGeoSnapshot {
               <span>Used stock</span>
             </div>
 
+            <div class="field-fact">
+              <span>Add the equipment consumed on this case. Stock updates only when the work report is finished.</span>
+            </div>
+
+            <div class="field-fact" *ngIf="currentCaseUsedEquipment.length > 0">
+              <span>This case already has {{ currentCaseUsedEquipment.length }} saved equipment item{{ currentCaseUsedEquipment.length > 1 ? 's' : '' }}. Edit the lines below to update them.</span>
+            </div>
+
             <div *ngIf="techStockLoading" class="field-loading">
               <span class="field-spinner"></span>
               Loading stock...
@@ -300,22 +308,20 @@ interface FieldGeoSnapshot {
             <ng-container *ngIf="!techStockLoading && techStockItems.length > 0">
               <div class="field-usage-picker">
                 <div class="field-usage-line" *ngFor="let line of usageLines; let i = index">
-                  <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" [name]="'fuEq_' + i" [disabled]="stockBusy">
+                  <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" [name]="'fuEq_' + i" [disabled]="actionBusy">
                     <option value="">Item...</option>
                     <option *ngFor="let item of techStockItems" [value]="item.equipmentId">
                       {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
                     </option>
                   </select>
-                  <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fuQty_' + i" [disabled]="stockBusy" placeholder="Qty" />
-                  <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="stockBusy" *ngIf="usageLines.length > 1">×</button>
+                  <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fuQty_' + i" [disabled]="actionBusy" placeholder="Qty" />
+                  <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="actionBusy" *ngIf="usageLines.length > 1">Remove</button>
                 </div>
-                <button class="field-usage-add" type="button" (click)="addUsageLine()" [disabled]="stockBusy">+ Add item</button>
+                <button class="field-usage-add" type="button" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
               </div>
 
-              <div class="field-button-row">
-                <button class="field-button field-button--primary" type="button" (click)="submitStockUsage()" [disabled]="stockBusy">
-                  {{ stockBusy ? 'Saving...' : 'Declare' }}
-                </button>
+              <div class="field-fact">
+                <span>Leave the list empty if no equipment was used. Duplicate lines are merged automatically when you finish work.</span>
               </div>
             </ng-container>
 
@@ -473,11 +479,12 @@ export class FieldExecutionComponent implements OnInit {
   activeStep: FieldExecutionStep = 'rdv';
   caseItem: CaseResponse | null = null;
   techStockLoading = false;
-  stockBusy = false;
   techStockError: string | null = null;
   techStock: TechStock | null = null;
   proofFile: File | null = null;
   proofPreviewUrl: string | null = null;
+  speedtestProofFile: File | null = null;
+  signalProofFile: File | null = null;
   ocrSignalBusy = false;
   ocrSpeedtestBusy = false;
   speedtestValidated = true;
@@ -496,7 +503,7 @@ export class FieldExecutionComponent implements OnInit {
   rdvForm: FieldRdvForm = this.emptyRdvForm();
   diagnosisForm: FieldDiagnosisForm = this.emptyDiagnosisForm();
   workForm: FieldWorkForm = this.emptyWorkForm();
-  usageLines: FieldUsageLine[] = [];
+  usageLines: EquipmentUsageLine[] = [];
 
   get steps(): FieldExecutionStepItem[] {
     const steps: FieldExecutionStepItem[] = [
@@ -546,6 +553,10 @@ export class FieldExecutionComponent implements OnInit {
 
       return left.equipmentName.localeCompare(right.equipmentName);
     });
+  }
+
+  get currentCaseUsedEquipment(): CaseUsedEquipmentItem[] {
+    return this.caseUsedEquipmentItems(this.caseItem);
   }
 
   addUsageLine(): void {
@@ -708,20 +719,42 @@ export class FieldExecutionComponent implements OnInit {
 
     try {
       let updated = await firstValueFrom(this.casesService.completeWork(target.id, payload));
+      const proofLocation = this.proofUploadLocation(payload);
 
       if (this.proofFile) {
-        const location = await this.captureLocation();
         updated = await firstValueFrom(this.casesService.uploadWorkProof(target.id, this.proofFile, {
-          locationLatitude: location?.latitude ?? null,
-          locationLongitude: location?.longitude ?? null,
-          locationCapturedAt: location?.capturedAt ?? null,
-          locationAccuracyMeters: location?.accuracyMeters ?? null,
+          ...proofLocation,
           captureSource: 'camera'
         }));
       }
 
+      const extraAttachments: FieldProofAttachment[] = [];
+
+      if (this.speedtestProofFile) {
+        extraAttachments.push({ file: this.speedtestProofFile, captureSource: 'speedtest_screenshot' });
+      }
+
+      if (this.signalProofFile) {
+        extraAttachments.push({ file: this.signalProofFile, captureSource: 'signal_screenshot' });
+      }
+
+      const hasNewAttachments = !!this.proofFile || extraAttachments.length > 0;
+      const { latestCase, failedAttachments } = await this.uploadExtraProofAttachments(target.id, extraAttachments, proofLocation);
+      if (latestCase) {
+        updated = latestCase;
+      }
+
       this.caseItem = updated;
-      this.showBanner('Work finished.', 'success');
+      this.setUsageLinesFromCase(updated);
+      this.clearPendingProofAttachments();
+      this.showBanner(
+        failedAttachments.length
+          ? `Work finished. Some attached photos could not be uploaded: ${failedAttachments.join(', ')}.`
+          : hasNewAttachments
+            ? 'Work finished and attached photos saved.'
+            : 'Work finished.',
+        failedAttachments.length ? 'warning' : 'success'
+      );
       await this.router.navigateByUrl(`${this.basePath}/tasks/${updated.id}`);
     } catch (err: any) {
       console.error('Failed to finish field work', err);
@@ -739,6 +772,7 @@ export class FieldExecutionComponent implements OnInit {
       return;
     }
 
+    this.signalProofFile = file;
     this.ocrSignalBusy = true;
     this.showBanner('Extracting signal screen with OCR...', 'info');
 
@@ -763,7 +797,7 @@ export class FieldExecutionComponent implements OnInit {
       if (filled.length === 0) {
         this.showBanner('OCR did not detect any signal values on this image.', 'warning');
       } else {
-        this.showBanner(`Signal values filled: ${filled.join(', ')}.`, 'success');
+        this.showBanner(`Signal values filled: ${filled.join(', ')}. Screenshot will be attached to the case.`, 'success');
       }
     } catch (err: any) {
       console.error('OCR signal extraction failed', err);
@@ -781,6 +815,7 @@ export class FieldExecutionComponent implements OnInit {
       return;
     }
 
+    this.speedtestProofFile = file;
     this.ocrSpeedtestBusy = true;
     this.showBanner('Extracting speedtest screen with OCR...', 'info');
 
@@ -801,56 +836,13 @@ export class FieldExecutionComponent implements OnInit {
       if (filled.length === 0) {
         this.showBanner('OCR did not detect any speedtest values on this image.', 'warning');
       } else {
-        this.showBanner(`Speedtest values filled: ${filled.join(', ')}.`, 'success');
+        this.showBanner(`Speedtest values filled: ${filled.join(', ')}. Screenshot will be attached to the case.`, 'success');
       }
     } catch (err: any) {
       console.error('OCR speedtest extraction failed', err);
       this.showBanner(err?.error?.message ?? 'Unable to extract speedtest values from this image.', 'danger');
     } finally {
       this.ocrSpeedtestBusy = false;
-      this.render();
-    }
-  }
-
-  async submitStockUsage(): Promise<void> {
-    const target = this.caseItem;
-    if (!target || !this.isTechRole) return;
-
-    const validLines = this.usageLines.filter((l) => {
-      const qty = Number(l.quantity);
-      return l.equipmentId && Number.isFinite(qty) && qty > 0;
-    });
-
-    if (!validLines.length) {
-      this.showBanner('Select at least one item with a valid quantity.', 'danger');
-      return;
-    }
-
-    this.stockBusy = true;
-    this.showBanner('Saving stock usage...', 'info');
-
-    try {
-      const payload: DeclareTechUsageRequest = {
-        caseId: target.id,
-        items: validLines.map((l) => {
-          const si = this.techStockItems.find((i) => i.equipmentId === l.equipmentId)!;
-          return { equipmentId: si.equipmentId, equipmentName: si.equipmentName, unit: si.unit, quantity: Number(l.quantity) };
-        })
-      };
-
-      const response = await firstValueFrom(this.stockService.declareMyTechUsage(payload));
-      this.techStock = response.stock ?? this.techStock;
-      this.usageLines = [{ equipmentId: '', quantity: '' }];
-
-      this.showBanner(
-        response.hasWarnings ? response.warnings.join(' ') : `Usage saved for CRM ${target.crmCase}.`,
-        response.hasWarnings ? 'warning' : 'success'
-      );
-    } catch (err: any) {
-      console.error('Failed to declare TECH stock usage from field execution', err);
-      this.showBanner(err?.error?.message ?? 'Unable to declare stock usage for this case.', 'danger');
-    } finally {
-      this.stockBusy = false;
       this.render();
     }
   }
@@ -871,6 +863,7 @@ export class FieldExecutionComponent implements OnInit {
           this.diagnosisForm = this.createDiagnosisForm(item);
           this.workForm = this.createWorkForm(item);
           if (this.isTechRole) {
+            this.setUsageLinesFromCase(item);
             this.loadTechStock(true);
           } else {
             this.techStock = null;
@@ -939,12 +932,26 @@ export class FieldExecutionComponent implements OnInit {
   }
 
   private async buildWorkPayload(): Promise<CompleteWorkRequest | null> {
+    const target = this.caseItem;
+    if (!target) {
+      return null;
+    }
+
     const repTravauxStt = this.workForm.repTravauxStt.trim();
     const dateFinTrv = toIso(this.workForm.dateFinTrv);
     const cmtTrvStt = this.workForm.cmtTrvStt.trim();
 
     if (!repTravauxStt || !dateFinTrv || !cmtTrvStt) {
       this.showBanner('Work result, end date, and comment are required.', 'danger');
+      return null;
+    }
+
+    const usedEquipmentPayload = this.isTechRole
+      ? buildUsedEquipmentPayload(this.usageLines, this.techStockItems, this.caseUsedEquipmentItems(target))
+      : { items: [], error: null };
+
+    if (usedEquipmentPayload.error) {
+      this.showBanner(usedEquipmentPayload.error, 'danger');
       return null;
     }
 
@@ -963,7 +970,8 @@ export class FieldExecutionComponent implements OnInit {
       locationLatitude: location?.latitude,
       locationLongitude: location?.longitude,
       locationCapturedAt: location?.capturedAt,
-      locationAccuracyMeters: location?.accuracyMeters ?? undefined
+      locationAccuracyMeters: location?.accuracyMeters ?? undefined,
+      usedEquipment: this.isTechRole ? usedEquipmentPayload.items : undefined
     };
   }
 
@@ -996,6 +1004,66 @@ export class FieldExecutionComponent implements OnInit {
       rsrq: metrics.rsrq == null ? '' : String(metrics.rsrq),
       sinr: metrics.sinr == null ? '' : String(metrics.sinr)
     };
+  }
+
+  private proofUploadLocation(payload: CompleteWorkRequest): {
+    locationLatitude?: number | null;
+    locationLongitude?: number | null;
+    locationCapturedAt?: string | null;
+    locationAccuracyMeters?: number | null;
+  } {
+    return {
+      locationLatitude: payload.locationLatitude ?? null,
+      locationLongitude: payload.locationLongitude ?? null,
+      locationCapturedAt: payload.locationCapturedAt ?? null,
+      locationAccuracyMeters: payload.locationAccuracyMeters ?? null
+    };
+  }
+
+  private async uploadExtraProofAttachments(
+    caseId: string,
+    attachments: FieldProofAttachment[],
+    location: {
+      locationLatitude?: number | null;
+      locationLongitude?: number | null;
+      locationCapturedAt?: string | null;
+      locationAccuracyMeters?: number | null;
+    }
+  ): Promise<{ latestCase: CaseResponse | null; failedAttachments: string[] }> {
+    let latestCase: CaseResponse | null = null;
+    const failedAttachments: string[] = [];
+
+    for (const attachment of attachments) {
+      try {
+        latestCase = await firstValueFrom(this.casesService.uploadWorkProof(caseId, attachment.file, {
+          ...location,
+          captureSource: attachment.captureSource
+        }));
+      } catch (err) {
+        console.error(`Failed to upload ${attachment.captureSource} attachment`, err);
+        failedAttachments.push(this.attachmentLabel(attachment.captureSource));
+      }
+    }
+
+    return { latestCase, failedAttachments };
+  }
+
+  private attachmentLabel(source: string): string {
+    switch (source) {
+      case 'speedtest_screenshot':
+        return 'speedtest screenshot';
+      case 'signal_screenshot':
+        return 'signal screenshot';
+      default:
+        return 'attachment';
+    }
+  }
+
+  private clearPendingProofAttachments(): void {
+    this.proofFile = null;
+    this.proofPreviewUrl = null;
+    this.speedtestProofFile = null;
+    this.signalProofFile = null;
   }
 
   private createDiagnosisForm(item: CaseResponse): FieldDiagnosisForm {
@@ -1057,7 +1125,7 @@ export class FieldExecutionComponent implements OnInit {
     this.techStockError = null;
 
     if (resetSelection) {
-      this.usageLines = [{ equipmentId: '', quantity: '' }];
+      this.setUsageLinesFromCase(this.caseItem);
     }
 
     this.stockService.getMyTechStock()
@@ -1068,7 +1136,7 @@ export class FieldExecutionComponent implements OnInit {
       .subscribe({
         next: (stock) => {
           this.techStock = stock;
-          this.syncUsageSelection();
+          this.syncUsageSelection(this.caseItem);
         },
         error: (err) => {
           console.error('Failed to load TECH stock for field execution', err);
@@ -1142,9 +1210,18 @@ export class FieldExecutionComponent implements OnInit {
     return unit?.trim() || 'units';
   }
 
-  private syncUsageSelection(): void {
-    if (!this.usageLines.length) {
-      this.usageLines = [{ equipmentId: '', quantity: '' }];
+  private caseUsedEquipmentItems(item?: CaseResponse | null): CaseUsedEquipmentItem[] {
+    return item ? (extractWork(item).usedEquipment ?? []) : [];
+  }
+
+  private setUsageLinesFromCase(item?: CaseResponse | null): void {
+    this.usageLines = usageLinesFromCaseItems(this.caseUsedEquipmentItems(item));
+  }
+
+  private syncUsageSelection(item?: CaseResponse | null): void {
+    const hasUserSelection = this.usageLines.some((line) => line.equipmentId.trim() || String(line.quantity ?? '').trim());
+    if (!hasUserSelection) {
+      this.setUsageLinesFromCase(item ?? this.caseItem);
     }
   }
 

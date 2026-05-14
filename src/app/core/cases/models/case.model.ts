@@ -189,6 +189,15 @@ export interface CaseWork {
   locationLongitude?: number | null;
   locationCapturedAt?: string | null;
   locationAccuracyMeters?: number | null;
+  usedEquipment?: CaseUsedEquipmentItem[] | null;
+  stockAppliedTechId?: string | null;
+}
+
+export interface CaseUsedEquipmentItem {
+  equipmentId: string;
+  equipmentName?: string | null;
+  unit?: string | null;
+  quantity: number;
 }
 
 export interface CaseDiagnosis {
@@ -303,6 +312,7 @@ export interface CompleteWorkRequest {
   locationLongitude?: number;
   locationCapturedAt?: string;
   locationAccuracyMeters?: number;
+  usedEquipment?: CaseUsedEquipmentItem[];
 }
 
 export interface ValidateZmRequest {

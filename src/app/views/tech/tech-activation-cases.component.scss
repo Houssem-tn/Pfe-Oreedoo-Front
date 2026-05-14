@@ -1113,6 +1113,13 @@
   }
 }
 
+.btn-tech--sm {
+  font-size: var(--text-xs);
+  gap: 0.3rem;
+  min-height: 2rem;
+  padding: 0.3rem 0.65rem;
+}
+
 .btn-tech--soft {
   background: rgba(229, 36, 59, 0.08);
   color: var(--tech-primary-strong);
@@ -1424,6 +1431,18 @@
   margin: 0 0 var(--space-md);
 }
 
+.tech-form__section-title-row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+
+  .tech-form__section-title {
+    margin: 0;
+  }
+}
+
 .tech-form__intro {
   display: grid;
   gap: var(--space-sm);
@@ -1612,6 +1631,13 @@
   color: var(--tech-muted);
   font-size: var(--text-sm);
   line-height: 1.5;
+}
+
+.tech-stock-helper__actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-sm);
 }
 
 .tech-stock-helper__summary {

@@ -3,6 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../http/api.config';
 import {
+  CaseConsumption,
+  CaseConsumptionFilters,
+  CaseConsumptionSummary,
   DeclareTechUsageRequest,
   DeclareTechUsageResponse,
   ConfirmDpmRequest,
@@ -13,6 +16,7 @@ import {
   DpmRequest,
   DpmTracking,
   Equipment,
+  PendingDistribution,
   StockMovement,
   SttDistribution,
   SttStock,
@@ -131,6 +135,18 @@ export class StockService {
     return this.http.post<DeclareTechUsageResponse>(`${this.url}/tech/usage`, payload);
   }
 
+  getMyPendingConfirmations(): Observable<PendingDistribution[]> {
+    return this.http.get<PendingDistribution[]>(`${this.url}/tech/pending-confirmations`);
+  }
+
+  getPendingConfirmationById(id: string): Observable<PendingDistribution> {
+    return this.http.get<PendingDistribution>(`${this.url}/tech/pending-confirmations/${id}`);
+  }
+
+  confirmStockReception(id: string): Observable<void> {
+    return this.http.post<void>(`${this.url}/tech/pending-confirmations/${id}/confirm`, {});
+  }
+
   // ── Admin scoped ──────────────────────────────────────────────────────────
 
   adminGetAllDpms(): Observable<DpmRequest[]> {
@@ -171,5 +187,32 @@ export class StockService {
 
   zmGetMyTechsUsages(): Observable<TechStockUsage[]> {
     return this.http.get<TechStockUsage[]>(`${this.url}/zm/my-techs-usages`);
+  }
+
+  // ── Case Stock Consumption Audit ──────────────────────────────────────────
+
+  getCaseConsumptions(filters: CaseConsumptionFilters = {}): Observable<CaseConsumption[]> {
+    const params: Record<string, string> = {};
+    if (filters.caseType)     params['caseType']     = filters.caseType;
+    if (filters.crmCase)      params['crmCase']       = filters.crmCase;
+    if (filters.zmId)         params['zmId']          = filters.zmId;
+    if (filters.sttId)        params['sttId']         = filters.sttId;
+    if (filters.technicianId) params['technicianId']  = filters.technicianId;
+    if (filters.equipmentId)  params['equipmentId']   = filters.equipmentId;
+    if (filters.from)         params['from']          = filters.from;
+    if (filters.to)           params['to']            = filters.to;
+    return this.http.get<CaseConsumption[]>(`${this.baseUrl}/api/v1/stock-audit/case-consumptions`, { params });
+  }
+
+  getCaseConsumptionById(id: string): Observable<CaseConsumption> {
+    return this.http.get<CaseConsumption>(`${this.baseUrl}/api/v1/stock-audit/case-consumptions/${id}`);
+  }
+
+  getCaseConsumptionByCaseId(caseId: string): Observable<CaseConsumption> {
+    return this.http.get<CaseConsumption>(`${this.baseUrl}/api/v1/stock-audit/case-consumptions/by-case/${caseId}`);
+  }
+
+  getCaseConsumptionSummary(): Observable<CaseConsumptionSummary> {
+    return this.http.get<CaseConsumptionSummary>(`${this.baseUrl}/api/v1/stock-audit/summary`);
   }
 }
