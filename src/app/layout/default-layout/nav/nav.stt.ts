@@ -22,6 +22,11 @@ export const navStt: INavData[] = [
     iconComponent: { name: 'cilFolder' }
   },
   {
+    name: 'Complaint Cases',
+    url: '/stt/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
+  {
     name: 'My Technicians',
     url: '/stt/my-technicians',
     iconComponent: { name: 'cilPeople' }
@@ -50,5 +55,28 @@ export const navStt: INavData[] = [
     name: 'Pre-Validate',
     url: '/stt/pre-validate',
     iconComponent: { name: 'cilCheckCircle' }
+  },
+
+  {
+    title: true,
+    name: 'Stock'
+  },
+
+  {
+    name: 'My Stock',
+    url: '/stt/stock/my-stock',
+    iconComponent: { name: 'cilStorage' }
+  },
+
+  {
+    name: 'Incoming DPMs',
+    url: '/stt/stock/incoming-dpms',
+    iconComponent: { name: 'cilInbox' }
+  },
+
+  {
+    name: 'Distribute to TECH',
+    url: '/stt/stock/distribute',
+    iconComponent: { name: 'cilArrowCircleRight' }
   }
 ];

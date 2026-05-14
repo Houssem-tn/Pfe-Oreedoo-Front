@@ -7,8 +7,9 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   password: string;
@@ -23,12 +24,23 @@ export interface PublicSttOption {
 }
 
 export interface AuthResponse {
-  accessToken: string;
+  accessToken?: string;
+  token?: string;
+  tokenType?: string;
+  role?: Role;
+  user?: {
+    id?: string;
+    fullName?: string;
+    email?: string;
+    status?: AccountStatus;
+    role?: Role;
+  };
 }
 
 export interface AuthUser {
   id?: string;
   username?: string;
+  fullName?: string;
   email?: string;
   role: Role;
   status?: AccountStatus;
@@ -36,6 +48,8 @@ export interface AuthUser {
 
 export interface JwtClaims {
   sub: string;
+  name?: string;
+  fullName?: string;
   role?: Role;
   roles?: Role[];
   status?: AccountStatus;

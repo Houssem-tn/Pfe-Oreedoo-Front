@@ -1,4 +1,8 @@
-export type CaseType = 'ACTIVATION';
+export type CaseType = 'ACTIVATION' | 'PLAINTE';
+
+export type ExecutorRole = 'STT' | 'TECH';
+
+export type ExecutionMode = 'STT_SELF_EXECUTION' | 'TECH_EXECUTION';
 
 export type CaseStatus =
   | 'CREATED'
@@ -6,12 +10,34 @@ export type CaseStatus =
   | 'ASSIGNED_TO_STT'
   | 'ASSIGNED_TO_TECH'
   | 'RDV_SET'
+  | 'DIAGNOSIS_STEP'
+  | 'ESCALATED'
+  | 'RESOLUTION_SUBMITTED'
+  | 'RETURNED_TO_STT'
+  | 'REOPENED'
   | 'NOT_REACHABLE'
   | 'ABANDONED'
   | 'WORK_DONE'
   | 'VALIDATED_BY_ZM'
   | 'REJECTED_BY_ZM'
   | 'CLOSED';
+
+export type ComplaintCategory =
+  | 'NETWORK_COVERAGE'
+  | 'SERVICE_QUALITY'
+  | 'INSTALLATION'
+  | 'EQUIPMENT'
+  | 'BILLING'
+  | 'ACTIVATION_FOLLOW_UP'
+  | 'CUSTOMER_EDUCATION'
+  | 'OTHER';
+
+export type ResolutionValidationStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'RETURNED_TO_STT'
+  | 'REJECTED'
+  | 'REOPENED';
 
 export type SlaStatus =
   | 'ON_TRACK'
@@ -30,6 +56,7 @@ export interface CaseResponse {
   openingDateTimos: string;
   clientName: string;
   clientPhone: string;
+  contactCl2?: string | null;
   msisdn: string;
   latitude?: string | null;
   longitude?: string | null;
@@ -42,6 +69,12 @@ export interface CaseResponse {
   siteSecteur?: string | null;
   offre?: string | null;
   desPack?: string | null;
+  typeOffreSpeed?: string | null;
+  typeClient?: string | null;
+  source?: string | null;
+  complaintDetail?: string | null;
+  complaintDescription?: string | null;
+  openDateActivation?: string | null;
   zmId?: string | null;
   zmEmail?: string | null;
   zmName?: string | null;
@@ -50,12 +83,17 @@ export interface CaseResponse {
   sttName?: string | null;
   sttEmail?: string | null;
   dateAffectationStt?: string | null;
+  executorId?: string | null;
+  executorRole?: ExecutorRole | null;
+  executionMode?: ExecutionMode | null;
   techId?: string | null;
   techEmail?: string | null;
   techName?: string | null;
   dateAffectationTech?: string | null;
   rdv?: CaseRdv | null;
+  diagnosis?: CaseDiagnosis | null;
   work?: CaseWork | null;
+  resolution?: CaseResolution | null;
   zmValidation?: CaseZmValidation | null;
   metrics?: CaseMetrics | null;
   joignable?: boolean | null;
@@ -151,6 +189,38 @@ export interface CaseWork {
   locationLongitude?: number | null;
   locationCapturedAt?: string | null;
   locationAccuracyMeters?: number | null;
+  usedEquipment?: CaseUsedEquipmentItem[] | null;
+  stockAppliedTechId?: string | null;
+}
+
+export interface CaseUsedEquipmentItem {
+  equipmentId: string;
+  equipmentName?: string | null;
+  unit?: string | null;
+  quantity: number;
+}
+
+export interface CaseDiagnosis {
+  complaintCategory?: ComplaintCategory | null;
+  rootCause?: string | null;
+  diagnosisComment?: string | null;
+  requiresFieldWork?: boolean | null;
+  requiresTechIntervention?: boolean | null;
+  requiresEscalation?: boolean | null;
+  diagnosedAt?: string | null;
+  diagnosedBy?: string | null;
+}
+
+export interface CaseResolution {
+  resolutionType?: string | null;
+  resolutionComment?: string | null;
+  validationStatus?: ResolutionValidationStatus | null;
+  submittedAt?: string | null;
+  submittedBy?: string | null;
+  validatedAt?: string | null;
+  validatedBy?: string | null;
+  reopenedAt?: string | null;
+  reopenedBy?: string | null;
 }
 
 export interface CaseMetrics {
@@ -242,11 +312,34 @@ export interface CompleteWorkRequest {
   locationLongitude?: number;
   locationCapturedAt?: string;
   locationAccuracyMeters?: number;
+  usedEquipment?: CaseUsedEquipmentItem[];
 }
 
 export interface ValidateZmRequest {
   approved: boolean;
   comment: string;
+}
+
+export interface ComplaintDiagnosisRequest {
+  complaintCategory: ComplaintCategory;
+  rootCause?: string | null;
+  diagnosisComment?: string | null;
+  requiresFieldWork: boolean;
+  requiresTechIntervention: boolean;
+  requiresEscalation: boolean;
+}
+
+export interface ReopenComplaintRequest {
+  comment?: string | null;
+}
+
+export interface ComplaintImportResponse {
+  sourceFileName: string;
+  totalRows: number;
+  createdCases: number;
+  updatedCases: number;
+  skippedRows: number;
+  warnings: string[];
 }
 
 export interface CaseStatusUi {
@@ -260,6 +353,11 @@ export const CASE_STATUS_UI: Record<CaseStatus, CaseStatusUi> = {
   ASSIGNED_TO_STT: { label: 'Assigned to STT', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
   ASSIGNED_TO_TECH: { label: 'Assigned to TECH', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
   RDV_SET: { label: 'RDV set', badgeClass: 'bg-info-subtle text-info-emphasis' },
+  DIAGNOSIS_STEP: { label: 'Diagnosis step', badgeClass: 'bg-info-subtle text-info-emphasis' },
+  ESCALATED: { label: 'Escalated', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
+  RESOLUTION_SUBMITTED: { label: 'Resolution submitted', badgeClass: 'bg-success-subtle text-success-emphasis' },
+  RETURNED_TO_STT: { label: 'Returned to STT', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
+  REOPENED: { label: 'Reopened', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
   NOT_REACHABLE: { label: 'Not reachable', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
   ABANDONED: { label: 'Abandoned', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
   WORK_DONE: { label: 'Work done', badgeClass: 'bg-success-subtle text-success-emphasis' },

@@ -3,15 +3,14 @@
     <div class="tech-tasks-hero__top">
       <div class="tech-eyebrow">
         <svg cIcon name="cilTask"></svg>
-        Ooredoo TECH mobile board
+        {{ workspaceEyebrow }}
       </div>
       <div class="tech-tasks-hero__chip">{{ totalVisibleCases }} in view</div>
     </div>
 
-    <h1>One mobile queue for urgent tasks, RDV, and work closure.</h1>
+    <h1>{{ workspaceTitle }}</h1>
     <p>
-      The board now keeps fewer tasks on screen at once, separates core actions from tools, and makes field movement
-      smoother without changing your workflow.
+      {{ workspaceSubtitle }}
     </p>
 
     <div class="tech-tasks-hero__stats">
@@ -29,14 +28,14 @@
 
       <article class="tech-hero-stat">
         <span>Completed</span>
-        <strong>{{ performance?.completedCasesCount ?? 0 }}</strong>
+        <strong>{{ completedCasesCount }}</strong>
         <small>Closed interventions</small>
       </article>
     </div>
 
     <div class="tech-tasks-hero__actions">
       <a
-        routerLink="/tech/dashboard"
+        [routerLink]="dashboardRoute"
         class="btn-tech btn-tech--ghost"
       >
         <svg cIcon name="cilGrid"></svg>
@@ -189,7 +188,7 @@
         <div class="tech-queue-overview" *ngIf="totalVisibleCases > 0">
           <div class="tech-queue-overview__stats">
             <span class="tech-queue-pill">Showing {{ pageStart }}-{{ pageEnd }} of {{ totalVisibleCases }}</span>
-            <span class="tech-queue-pill">Page {{ currentPage }} / {{ totalPages }}</span>
+            <span class="tech-queue-pill">Page {{ displayPage }} / {{ totalPages }}</span>
           </div>
 
           <div class="tech-pagination" *ngIf="totalPages > 1">
@@ -197,7 +196,7 @@
               type="button"
               class="tech-page-btn"
               (click)="goToPreviousPage()"
-              [disabled]="currentPage <= 1"
+              [disabled]="displayPage <= 1"
             >
               <svg cIcon name="cilChevronLeft"></svg>
               Prev
@@ -207,7 +206,7 @@
               type="button"
               class="tech-page-btn"
               (click)="goToNextPage()"
-              [disabled]="currentPage >= totalPages"
+              [disabled]="displayPage >= totalPages"
             >
               Next
               <svg cIcon name="cilChevronRight"></svg>
@@ -431,7 +430,12 @@
                   <div><strong>Status</strong><span>{{ statusLabel(selected.status) }}</span></div>
                   <div><strong>SLA</strong><span>{{ slaLabel(selected) }}</span></div>
                   <div><strong>Time left</strong><span>{{ slaRemaining(selected) }}</span></div>
+                  <div><strong>Supervisor STT</strong><span>{{ selected.sttName || selected.sttEmail || '-' }}</span></div>
                   <div><strong>Assigned TECH</strong><span>{{ selected.techName || selected.techEmail || '-' }}</span></div>
+                  <div>
+                    <strong>Execution mode</strong>
+                    <span>{{ selected.executionMode === 'TECH_EXECUTION' ? 'Technician execution' : selected.executionMode === 'STT_SELF_EXECUTION' ? 'STT self execution' : '-' }}</span>
+                  </div>
                 </div>
                 <div class="tech-sla-track" [ngClass]="slaTrackClass(selected)">
                   <div class="tech-sla-track__fill" [style.width.%]="slaProgress(selected)"></div>
@@ -468,6 +472,90 @@
                 </div>
               </article>
             </div>
+
+            @if (isTechRole) {
+              <article class="tech-detail-card tech-stock-helper">
+                <div class="tech-stock-helper__top">
+                  <div>
+                    <div class="tech-detail-card__title">Stock helper</div>
+                    <div class="tech-stock-helper__hint">
+                      Prepare the equipment used for CRM {{ selected.crmCase }} before sending the work report.
+                    </div>
+                  </div>
+
+                  <div class="tech-stock-helper__actions">
+                    @if (techStockItems.length > 0) {
+                      <div class="tech-stock-helper__summary">
+                        <strong>{{ techStockRemainingTotal }}</strong>
+                        <span>remaining</span>
+                        <small>{{ techStockUsedTotal }} used</small>
+                      </div>
+                    }
+                    <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
+                            (click)="loadTechStock()" [disabled]="techStockLoading">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path>
+                      </svg>
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                @if (techStockLoading) {
+                  <div class="tech-panel__loading">Refreshing your stock helper...</div>
+                }
+
+                @if (techStockError) {
+                  <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
+                }
+
+                @if (!techStockLoading && techStockItems.length > 0) {
+                  <div class="tech-usage-picker">
+                    @for (line of usageLines; track $index; let i = $index) {
+                      <div class="tech-usage-picker__row">
+                        <select
+                          class="tech-usage-picker__select"
+                          [(ngModel)]="line.equipmentId"
+                          [name]="'dEq_' + i"
+                          [disabled]="actionBusy"
+                        >
+                          <option value="">Item...</option>
+                          @for (item of techStockItems; track item.equipmentId) {
+                            <option [value]="item.equipmentId">
+                              {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                            </option>
+                          }
+                        </select>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          class="tech-usage-picker__qty"
+                          [(ngModel)]="line.quantity"
+                          [name]="'dQty_' + i"
+                          [disabled]="actionBusy"
+                          placeholder="Qty"
+                        />
+                        @if (usageLines.length > 1) {
+                          <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="actionBusy">Remove</button>
+                        }
+                      </div>
+                    }
+                    <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
+                  </div>
+
+                  <div class="tech-form__hint">
+                    Leave the list empty if no equipment was consumed. Duplicate lines are merged automatically when you submit the case.
+                  </div>
+                } @else if (!techStockLoading && !techStockError) {
+                  <div class="tech-empty tech-empty--inline">
+                    <div class="tech-empty__hint">No stock assigned to your account yet.</div>
+                  </div>
+                }
+              </article>
+            }
 
             <article class="tech-detail-card">
               <div class="tech-detail-card__title">Proof and GPS trace</div>
@@ -658,7 +746,7 @@
             <div class="tech-form__intro">
               <div class="tech-form__title">Work and proof</div>
               <div class="tech-form__hint">
-                Attach the proof photo, save its GPS position, then submit the work update in one clean mobile flow.
+                Attach the proof photo, save its GPS position, declare used stock, then submit the work update in one clean mobile flow.
               </div>
             </div>
 
@@ -677,20 +765,9 @@
                   [disabled]="actionBusy || locationBusy"
                 >
                   <svg cIcon name="cilMediaRecord"></svg>
-                  Use camera
+                  Take proof photo
                 </button>
                 <input #cameraProofInput type="file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment" data-source="camera" hidden (change)="onProofFileSelected($event)" />
-
-                <button
-                  type="button"
-                  class="btn-tech btn-tech--ghost"
-                  (click)="startProofSelection(galleryProofInput, 'gallery')"
-                  [disabled]="actionBusy || locationBusy"
-                >
-                  <svg cIcon name="cilPaperclip"></svg>
-                  Choose gallery
-                </button>
-                <input #galleryProofInput type="file" accept="image/*,.jpg,.jpeg,.png,.webp" data-source="gallery" hidden (change)="onProofFileSelected($event)" />
 
                 <button
                   *ngIf="currentProofDraft"
@@ -773,12 +850,85 @@
             </div>
 
             <div class="tech-form__section">
+              <div class="tech-form__section-title-row">
+                <div class="tech-form__section-title">Used stock</div>
+                <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
+                        (click)="loadTechStock()" [disabled]="techStockLoading">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path>
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+
+              <p class="tech-form__hint">
+                Add the equipment used on this case. Stock updates when you submit the work report, not before.
+              </p>
+
+              @if (currentCaseUsedEquipment.length > 0) {
+                <div class="tech-form__hint">
+                  This case already has {{ currentCaseUsedEquipment.length }} saved equipment item{{ currentCaseUsedEquipment.length > 1 ? 's' : '' }}. Edit the lines below to adjust them.
+                </div>
+              }
+
+              @if (techStockLoading) {
+                <div class="tech-panel__loading">Loading stock...</div>
+              }
+
+              @if (techStockError) {
+                <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
+              }
+
+              @if (!techStockLoading && techStockItems.length > 0) {
+                <div class="tech-usage-picker">
+                  @for (line of usageLines; track $index; let i = $index) {
+                    <div class="tech-usage-picker__row">
+                      <select
+                        class="tech-usage-picker__select"
+                        [(ngModel)]="line.equipmentId"
+                        [name]="'wEq_' + i"
+                        [disabled]="actionBusy"
+                      >
+                        <option value="">Item...</option>
+                        @for (item of techStockItems; track item.equipmentId) {
+                          <option [value]="item.equipmentId">
+                            {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                          </option>
+                        }
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        class="tech-usage-picker__qty"
+                        [(ngModel)]="line.quantity"
+                        [name]="'wQty_' + i"
+                        [disabled]="actionBusy"
+                        placeholder="Qty"
+                      />
+                      @if (usageLines.length > 1) {
+                        <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="actionBusy">Remove</button>
+                      }
+                    </div>
+                  }
+                  <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
+                </div>
+
+                <div class="tech-form__hint">
+                  Leave the list empty if no equipment was consumed. Duplicate lines are merged automatically when you submit the case.
+                </div>
+              } @else if (!techStockLoading && !techStockError) {
+                <div class="tech-empty tech-empty--inline">
+                  <div class="tech-empty__hint">No stock assigned to your account yet.</div>
+                </div>
+              }
+            </div>
+
+            <div class="tech-form__section">
               <div class="tech-form__section-title">Technical metrics</div>
               <div class="tech-metric-input-grid">
-                <label class="tech-field">
-                  <span>Cable length</span>
-                  <input type="number" step="0.01" name="workMetrageCable" [(ngModel)]="workForm.metrageCable" />
-                </label>
                 <label class="tech-field">
                   <span>PV count</span>
                   <input type="number" step="1" name="workNombrePv" [(ngModel)]="workForm.nombrePv" />

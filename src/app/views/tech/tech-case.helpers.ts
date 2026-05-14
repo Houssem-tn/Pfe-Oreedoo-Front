@@ -1,4 +1,5 @@
 import {
+  CaseUsedEquipmentItem,
   CaseMetrics,
   CaseRdv,
   CaseResponse,
@@ -7,6 +8,7 @@ import {
   CaseWork,
   SlaStatus
 } from '../../core/cases/models/case.model';
+import { TechStockItem } from '../../core/stock/stock.model';
 
 export interface LiveSlaState {
   status: SlaStatus | null;
@@ -14,6 +16,11 @@ export interface LiveSlaState {
   remainingSeconds: number | null;
   overdueSeconds: number;
   responseDurationSeconds: number | null;
+}
+
+export interface EquipmentUsageLine {
+  equipmentId: string;
+  quantity: string | number;
 }
 
 const DEFAULT_WARNING_THRESHOLD = 50;
@@ -163,6 +170,124 @@ export function toInputNumber(value?: number | null): string {
   return value == null ? '' : String(value);
 }
 
+export function normalizeUsedEquipmentItems(items?: CaseUsedEquipmentItem[] | null): CaseUsedEquipmentItem[] {
+  const merged = new Map<string, CaseUsedEquipmentItem>();
+  for (const item of items ?? []) {
+    const equipmentId = item?.equipmentId?.trim();
+    if (!equipmentId || !Number.isFinite(item.quantity) || item.quantity <= 0) {
+      continue;
+    }
+
+    const existing = merged.get(equipmentId);
+    if (existing) {
+      existing.quantity += item.quantity;
+      if (!existing.equipmentName && item.equipmentName) {
+        existing.equipmentName = item.equipmentName;
+      }
+      if (!existing.unit && item.unit) {
+        existing.unit = item.unit;
+      }
+      continue;
+    }
+
+    merged.set(equipmentId, {
+      equipmentId,
+      equipmentName: item.equipmentName?.trim() || null,
+      unit: item.unit?.trim() || null,
+      quantity: item.quantity
+    });
+  }
+
+  return Array.from(merged.values());
+}
+
+export function usageLinesFromCaseItems(items?: CaseUsedEquipmentItem[] | null): EquipmentUsageLine[] {
+  const normalized = normalizeUsedEquipmentItems(items);
+  if (!normalized.length) {
+    return [{ equipmentId: '', quantity: '' }];
+  }
+
+  return normalized.map((item) => ({
+    equipmentId: item.equipmentId,
+    quantity: String(item.quantity)
+  }));
+}
+
+export function buildUsedEquipmentPayload(
+  lines: EquipmentUsageLine[],
+  stockItems: TechStockItem[],
+  existingItems?: CaseUsedEquipmentItem[] | null
+): { items: CaseUsedEquipmentItem[]; error: string | null } {
+  const mergedExisting = new Map(
+    normalizeUsedEquipmentItems(existingItems).map((item) => [item.equipmentId, item])
+  );
+  const mergedSelected = new Map<string, CaseUsedEquipmentItem>();
+
+  for (const line of lines) {
+    const equipmentId = line.equipmentId.trim();
+    const quantityText = String(line.quantity ?? '').trim();
+
+    if (!equipmentId && !quantityText) {
+      continue;
+    }
+
+    if (!equipmentId || !quantityText) {
+      return {
+        items: [],
+        error: 'Complete or clear every equipment usage line before submitting work.'
+      };
+    }
+
+    const quantity = Number(quantityText);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return {
+        items: [],
+        error: 'Used equipment quantities must be positive numbers.'
+      };
+    }
+
+    const existing = mergedSelected.get(equipmentId);
+    if (existing) {
+      existing.quantity += quantity;
+      continue;
+    }
+
+    mergedSelected.set(equipmentId, {
+      equipmentId,
+      quantity
+    });
+  }
+
+  const items: CaseUsedEquipmentItem[] = [];
+  for (const selected of mergedSelected.values()) {
+    const stockItem = stockItems.find((item) => item.equipmentId === selected.equipmentId);
+    if (!stockItem) {
+      return {
+        items: [],
+        error: `The selected equipment ${selected.equipmentId} is not available in the current technician stock. Refresh stock and try again.`
+      };
+    }
+
+    const previousQuantity = mergedExisting.get(selected.equipmentId)?.quantity ?? 0;
+    const maxAllowed = stockItem.remainingQuantity + previousQuantity;
+    if (selected.quantity > maxAllowed) {
+      return {
+        items: [],
+        error: `Only ${maxAllowed} ${usageUnitLabel(stockItem.unit)} can be used for ${stockItem.equipmentName} on this case.`
+      };
+    }
+
+    items.push({
+      equipmentId: stockItem.equipmentId,
+      equipmentName: stockItem.equipmentName,
+      unit: stockItem.unit ?? null,
+      quantity: selected.quantity
+    });
+  }
+
+  return { items, error: null };
+}
+
 function resolveSlaFromTracking(
   sla?: CaseSlaTracking | null,
   nowEpochMs = Date.now()
@@ -224,23 +349,22 @@ function clamp(value: number): number {
 
 function formatSeconds(totalSeconds: number): string {
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-    return '0s';
+    return '<1m';
   }
 
   const safeSeconds = Math.floor(totalSeconds);
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const seconds = safeSeconds % 60;
 
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
 
   if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
+    return `${minutes}m`;
   }
 
-  return `${seconds}s`;
+  return '<1m';
 }
 
 function toEpochMs(value?: string | null): number | null {
@@ -250,4 +374,16 @@ function toEpochMs(value?: string | null): number | null {
 
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function usageUnitLabel(unit?: string | null): string {
+  if (unit === 'METERS') {
+    return 'm';
+  }
+
+  if (unit === 'PIECES') {
+    return 'pcs';
+  }
+
+  return unit?.trim() || 'units';
 }

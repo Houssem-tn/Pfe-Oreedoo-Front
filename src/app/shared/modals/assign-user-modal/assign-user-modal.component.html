@@ -1,0 +1,112 @@
+<c-modal
+  [visible]="visible"
+  (visibleChange)="handleVisibleChange($event)"
+  size="lg"
+  [scrollable]="true"
+  alignment="center"
+>
+  <c-modal-header class="aum-header">
+    <div class="aum-header__main">
+      <h5 cModalTitle class="aum-header__title">{{ title }}</h5>
+      <p *ngIf="description" class="aum-header__desc">{{ description }}</p>
+    </div>
+    <button cButtonClose (click)="onCancel()"></button>
+  </c-modal-header>
+
+  <c-modal-body class="aum-body">
+
+    <!-- Loading state -->
+    <div *ngIf="loading" class="aum-state aum-state--loading">
+      <div class="spinner-border aum-spinner" role="status"></div>
+      <strong>Loading available users...</strong>
+      <span>Fetching the list of eligible assignees.</span>
+    </div>
+
+    <!-- Empty state (no users at all, not loading) -->
+    <div *ngIf="!loading && users.length === 0" class="aum-state aum-state--empty">
+      <svg cIcon name="cilPeople" class="aum-state__icon"></svg>
+      <strong>No users available</strong>
+      <span>There are no eligible users to assign for this case right now.</span>
+    </div>
+
+    <ng-container *ngIf="!loading && users.length > 0">
+
+      <!-- Search + count -->
+      <div class="aum-toolbar">
+        <label class="aum-search">
+          <svg cIcon name="cilSearch" class="aum-search__icon"></svg>
+          <input
+            type="search"
+            class="aum-search__input"
+            placeholder="Search by name or email..."
+            [(ngModel)]="searchTerm"
+          />
+        </label>
+        <span class="aum-count">
+          {{ filteredUsers.length }}<span *ngIf="filteredUsers.length !== users.length"> of {{ users.length }}</span>
+        </span>
+      </div>
+
+      <!-- Current selection banner -->
+      <div *ngIf="selectedUser" class="aum-selection-banner">
+        <svg cIcon name="cilCheckCircle" class="aum-selection-banner__icon"></svg>
+        <span>
+          Selected: <strong>{{ selectedUser.fullName }}</strong>
+          <span class="aum-selection-banner__email">{{ selectedUser.email }}</span>
+        </span>
+      </div>
+
+      <!-- User cards -->
+      <div class="aum-grid" *ngIf="filteredUsers.length > 0; else noResults">
+        <button
+          type="button"
+          class="aum-card"
+          *ngFor="let user of filteredUsers"
+          [class.aum-card--selected]="selectedId === user.id"
+          [class.aum-card--current]="currentUserId === user.id && selectedId !== user.id"
+          (click)="select(user)"
+        >
+          <div class="aum-card__avatar">{{ initials(user) }}</div>
+
+          <div class="aum-card__body">
+            <div class="aum-card__name">{{ user.fullName }}</div>
+            <div class="aum-card__email">{{ user.email }}</div>
+            <div *ngIf="user.phone" class="aum-card__phone">{{ user.phone }}</div>
+          </div>
+
+          <div class="aum-card__indicators">
+            <span *ngIf="currentUserId === user.id" class="aum-badge aum-badge--current">
+              <svg cIcon name="cilCheck" size="sm"></svg>
+              Current
+            </span>
+            <span *ngIf="selectedId === user.id" class="aum-badge aum-badge--selected">
+              <svg cIcon name="cilCheckCircle" size="sm"></svg>
+              Selected
+            </span>
+          </div>
+        </button>
+      </div>
+
+      <ng-template #noResults>
+        <div class="aum-state aum-state--empty">
+          <svg cIcon name="cilSearch" class="aum-state__icon"></svg>
+          <span>No users match <strong>"{{ searchTerm }}"</strong></span>
+        </div>
+      </ng-template>
+
+    </ng-container>
+
+  </c-modal-body>
+
+  <c-modal-footer class="aum-footer">
+    <button cButton color="secondary" variant="ghost" (click)="onCancel()">Cancel</button>
+    <button
+      cButton
+      color="primary"
+      [disabled]="!selectedId || loading"
+      (click)="onSave()"
+    >
+      {{ confirmText }}
+    </button>
+  </c-modal-footer>
+</c-modal>

@@ -2,18 +2,19 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
-import Swal from 'sweetalert2';
 
 import { CasesService } from '../../../core/cases/cases.service';
 import { PerformanceSummaryResponse } from '../../../core/cases/models/case.model';
+import { normalizeGovernorateList } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
 import { UserService } from '../../../core/users/user.service';
 import { AppUser } from '../../../core/users/user.model';
+import { GovernorateSelectorComponent } from '../../../shared/modals/governorate-selector/governorate-selector.component';
 
 @Component({
   selector: 'app-my-team',
   standalone: true,
-  imports: [CommonModule, RouterLink, IconDirective],
+  imports: [CommonModule, RouterLink, IconDirective, GovernorateSelectorComponent],
   templateUrl: './my-team.component.html',
   styleUrl: './my-team.component.scss'
 })
@@ -33,6 +34,12 @@ export class MyTeamComponent implements OnInit {
   techsByStt = signal<Record<string, AppUser[]>>({});
   techLoadingByStt = signal<Record<string, boolean>>({});
   performanceByEmail = signal<Record<string, PerformanceSummaryResponse>>({});
+
+  // Governorate selector modal state
+  govSelectorVisible = signal(false);
+  govSelectorOptions = signal<string[]>([]);
+  govSelectorSelected = signal<string[]>([]);
+  govSelectorPendingStt = signal<AppUser | null>(null);
 
   ngOnInit(): void {
     this.loadMyProfile();
@@ -261,70 +268,36 @@ export class MyTeamComponent implements OnInit {
   }
 
   pendingGovernoratesFor(stt: AppUser): string[] {
-    const territory = new Set((this.zmProfile()?.assignedGovernorates ?? []).filter((item) => !!item?.trim()));
-    return (stt.requestedGovernorates ?? []).filter((governorate) => territory.has(governorate));
+    const territory = new Set(normalizeGovernorateList(this.zmProfile()?.assignedGovernorates ?? []));
+    return normalizeGovernorateList(stt.requestedGovernorates ?? []).filter((governorate) => territory.has(governorate));
   }
 
   isValidatingCoverage(sttId: string): boolean {
     return this.validatingCoverageSttId() === sttId;
   }
 
-  async openValidateCoverageModal(stt: AppUser): Promise<void> {
+  openValidateCoverageModal(stt: AppUser): void {
     const governorates = this.pendingGovernoratesFor(stt);
     if (!governorates.length) {
-      await this.swal.error('Nothing to validate', 'This STT has no pending governorate request inside your territory.');
+      void this.swal.error('Nothing to validate', 'This STT has no pending governorate request inside your territory.');
       return;
     }
 
-    const result = await Swal.fire<string[]>({
-      titleText: `Validate Zones for ${stt.fullName}`,
-      width: 720,
-      html: `
-        <div class="coverage-approval-modal">
-          <div class="coverage-approval-modal__hint">
-            Approve the governorates you want to activate for this STT inside your territory.
-          </div>
-          <div class="coverage-approval-modal__grid">
-            ${governorates.map((governorate) => `
-              <label class="coverage-approval-modal__option">
-                <input type="checkbox" name="sw-coverage-approval" value="${this.escapeHtml(governorate)}" checked />
-                <span>${this.escapeHtml(governorate)}</span>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Validate zones',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#321fdb',
-      preConfirm: () => {
-        const popup = Swal.getPopup();
-        if (!popup) {
-          return [];
-        }
+    this.govSelectorPendingStt.set(stt);
+    this.govSelectorOptions.set(governorates);
+    this.govSelectorSelected.set([...governorates]); // all pre-checked
+    this.govSelectorVisible.set(true);
+  }
 
-        const selected = Array.from(
-          popup.querySelectorAll<HTMLInputElement>('input[name="sw-coverage-approval"]:checked')
-        ).map((checkbox) => checkbox.value);
+  onGovSave(selected: string[]): void {
+    const stt = this.govSelectorPendingStt();
+    if (!stt || !selected.length) return;
 
-        if (selected.length === 0) {
-          Swal.showValidationMessage('Select at least one governorate to validate');
-          return undefined;
-        }
-
-        return selected;
-      }
-    });
-
-    if (!result.isConfirmed || !result.value?.length) {
-      return;
-    }
-
+    this.govSelectorVisible.set(false);
     this.validatingCoverageSttId.set(stt.id);
 
     this.userService.validateCoverageAreasForStt(stt.id, {
-      approvedGovernorates: result.value
+      approvedGovernorates: selected
     }).subscribe({
       next: async () => {
         this.loadMyStts();
@@ -341,12 +314,7 @@ export class MyTeamComponent implements OnInit {
     });
   }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
+  onGovCancel(): void {
+    this.govSelectorVisible.set(false);
   }
 }

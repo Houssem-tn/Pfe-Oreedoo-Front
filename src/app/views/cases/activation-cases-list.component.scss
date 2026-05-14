@@ -1,5 +1,7 @@
 :host {
   display: block;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .crm-cases-shell {
@@ -21,11 +23,28 @@
     radial-gradient(circle at top right, rgba(227, 6, 19, 0.12), transparent 28%),
     radial-gradient(circle at left bottom, rgba(255, 158, 66, 0.1), transparent 24%),
     linear-gradient(180deg, #fff6f7 0%, #f8fbfd 100%);
+  box-sizing: border-box;
   border-radius: 2rem;
   color: var(--crm-text);
   display: grid;
   gap: 1.25rem;
+  inline-size: 100%;
+  max-width: 100%;
+  overflow-x: clip;
   padding: 1.5rem;
+}
+
+.crm-cases-shell > *,
+.crm-cases-hero > *,
+.crm-filter-panel__top > *,
+.crm-table-panel,
+.crm-table-panel__header,
+.table-responsive,
+.case-ref,
+.assignment-person,
+.case-sla__top {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .crm-cases-hero,
@@ -582,6 +601,12 @@
   padding: 1rem;
 }
 
+.stt-mobile-card--executor {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 241, 244, 1));
+  border-color: rgba(227, 6, 19, 0.18);
+  box-shadow: 0 22px 42px rgba(83, 16, 24, 0.12);
+}
+
 .tech-mobile-card__top,
 .tech-mobile-card__sla {
   align-items: center;
@@ -668,10 +693,18 @@
 
 .tech-mobile-card__sla small {
   color: var(--crm-muted);
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  min-width: 4.5rem;
+  text-align: right;
 }
 
 .stt-mobile-card__sla small {
   color: var(--crm-muted);
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  min-width: 4.5rem;
+  text-align: right;
 }
 
 .tech-mobile-actions {
@@ -684,7 +717,7 @@
 .stt-mobile-actions {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .stt-mobile-card__chain {
@@ -701,7 +734,17 @@
   display: inline-flex;
   font-size: 0.76rem;
   font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0.42rem 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stt-mobile-chip--mode {
+  background: rgba(27, 154, 170, 0.1);
+  border-color: rgba(27, 154, 170, 0.16);
+  color: #0f6873;
 }
 
 .crm-table-panel__header {
@@ -724,6 +767,7 @@
 .cases-table {
   --bs-table-bg: transparent;
   margin-bottom: 0;
+  width: 100%;
 }
 
 .cases-table thead th {
@@ -773,6 +817,7 @@
 .case-location__title {
   color: var(--crm-text);
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .case-ref__meta,
@@ -785,9 +830,12 @@
 }
 
 .assignment-badge {
+  display: block;
+  flex: 1 1 auto;
   font-size: 0.72rem;
   font-weight: 700;
-  max-width: 185px;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -801,9 +849,10 @@
   align-items: center;
   border: 1px solid transparent;
   border-radius: 999px;
-  display: inline-flex;
+  display: flex;
   gap: 0.45rem;
   max-width: 100%;
+  min-width: 0;
   padding: 0.28rem 0.52rem;
 }
 
@@ -825,6 +874,12 @@
   color: #8e5f00;
 }
 
+.assignment-person--executor {
+  background: rgba(62, 85, 160, 0.11);
+  border-color: rgba(62, 85, 160, 0.18);
+  color: #334e98;
+}
+
 .assignee-avatar {
   align-items: center;
   border-radius: 999px;
@@ -836,6 +891,10 @@
   justify-content: center;
   line-height: 1;
   width: 1.45rem;
+}
+
+.assignee-avatar--executor {
+  background: rgba(62, 85, 160, 0.14);
 }
 
 .assignee-avatar--zm {
@@ -865,6 +924,10 @@
 
 .case-sla__top small {
   color: var(--crm-muted);
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  min-width: 5rem;
+  text-align: right;
 }
 
 .sla-track {
@@ -907,6 +970,14 @@
   display: flex;
   font-size: 0.84rem;
   gap: 0.45rem;
+  min-width: 0;
+}
+
+.case-execution__item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .case-execution__item + .case-execution__item {
@@ -956,6 +1027,11 @@
 .action-btn--amber {
   background: rgba(214, 139, 0, 0.16);
   color: #8e5f00;
+}
+
+.action-btn--primary {
+  background: rgba(227, 6, 19, 0.16);
+  color: var(--crm-red-deep);
 }
 
 .action-btn--ghost {

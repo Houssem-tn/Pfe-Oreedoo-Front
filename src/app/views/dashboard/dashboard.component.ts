@@ -13,9 +13,10 @@ import { IconDirective } from '@coreui/icons-angular';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { ActivationImportWorkspaceComponent } from './activation-import-workspace.component';
+import { ComplaintImportWorkspaceComponent } from './complaint-import-workspace.component';
 import { TodoImportWorkspaceComponent } from './todo-import-workspace.component';
 
-type ImportContext = 'todos' | 'activation';
+type ImportContext = 'todos' | 'activation' | 'complaint';
 
 @Component({
   selector: 'app-dashboard',
@@ -32,7 +33,8 @@ type ImportContext = 'todos' | 'activation';
     ButtonDirective,
     IconDirective,
     TodoImportWorkspaceComponent,
-    ActivationImportWorkspaceComponent
+    ActivationImportWorkspaceComponent,
+    ComplaintImportWorkspaceComponent
   ]
 })
 export class DashboardComponent implements OnInit {
@@ -52,7 +54,14 @@ export class DashboardComponent implements OnInit {
   }
 
   get importTypeLabel(): string {
-    return this.selectedImportType === 'todos' ? 'TODO import and study workspace' : 'Activation analytics and Act analysis workspace';
+    switch (this.selectedImportType) {
+      case 'activation':
+        return 'Activation CSV import and Act analysis workspace';
+      case 'complaint':
+        return 'Plainte CSV import and complaint workflow workspace';
+      default:
+        return 'TODO import and study workspace';
+    }
   }
 
   selectImportType(type: ImportContext): void {

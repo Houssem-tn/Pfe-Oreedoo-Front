@@ -8,34 +8,8 @@ import { IconDirective } from '@coreui/icons-angular';
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
 import { CreateCaseRequest } from '../../core/cases/models/case.model';
+import { TUNISIA_GOVERNORATES } from '../../core/shared/tunisia-governorates';
 import { SwalService } from '../../core/ui/swal.service';
-
-const TUNISIA_GOVERNORATES = [
-  'Tunis',
-  'Ariana',
-  'Ben Arous',
-  'Mannouba',
-  'Nabeul',
-  'Zaghouan',
-  'Bizerte',
-  'B\u00E9ja',
-  'Jendouba',
-  'Le Kef',
-  'Siliana',
-  'Sousse',
-  'Monastir',
-  'Mahdia',
-  'Sfax',
-  'Kairouan',
-  'Kasserine',
-  'Sidi Bouzid',
-  'Gab\u00E8s',
-  'M\u00E9denine',
-  'Tataouine',
-  'Gafsa',
-  'Tozeur',
-  'K\u00E9bili'
-] as const;
 
 @Component({
   selector: 'app-create-activation-case',

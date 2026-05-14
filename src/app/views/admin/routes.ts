@@ -39,7 +39,14 @@ export const routes: Routes = [
   {
     path: 'cases/activation',
     loadComponent: () =>
-      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent)
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'ACTIVATION' }
+  },
+  {
+    path: 'cases/complaint',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'PLAINTE' }
   },
   {
     path: 'cases/activation/new',
@@ -69,6 +76,32 @@ export const routes: Routes = [
     path: 'audits/users',
     loadComponent: () =>
       import('./audits/users-audit/users-audit.component').then(m => m.UsersAuditComponent)
+  },
+
+  // Stock auditing
+  {
+    path: 'audits/stock',
+    loadComponent: () =>
+      import('./audits/stock-audit/stock-audit.component').then(m => m.StockAuditComponent)
+  },
+
+  // Stock Management
+  {
+    path: 'stock',
+    redirectTo: 'stock/equipment',
+    pathMatch: 'full'
+  },
+  {
+    path: 'stock/equipment',
+    loadComponent: () =>
+      import('./stock/equipment/equipment.component').then(m => m.EquipmentComponent),
+    data: { title: 'Equipment' }
+  },
+  {
+    path: 'stock/tracking',
+    loadComponent: () =>
+      import('./stock/tracking/admin-stock-tracking.component').then(m => m.AdminStockTrackingComponent),
+    data: { title: 'Stock Tracking' }
   },
 
   { path: '', redirectTo: 'users', pathMatch: 'full' }

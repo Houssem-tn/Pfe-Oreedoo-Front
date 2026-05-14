@@ -113,6 +113,22 @@
   text-transform: uppercase;
 }
 
+.wrapper,
+.body {
+  min-width: 0;
+}
+
+.body {
+  overflow-x: clip;
+}
+
+.body > .container,
+.body > [class*='container-'] {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
 // ng-scrollbar css variables
 //.cui-scrollbar {
 //  --scrollbar-border-radius: 7px;

@@ -1,0 +1,526 @@
+<c-modal
+  [visible]="visible"
+  (visibleChange)="handleVisibleChange($event)"
+  size="xl"
+  [scrollable]="true"
+  alignment="center"
+>
+  <ng-container *ngIf="caseData">
+  <!-- Sticky header shows case ID + status badge -->
+  <c-modal-header class="cd-sticky-header">
+    <div class="cd-sticky-header__left">
+      <svg cIcon name="cilDescription" class="cd-sticky-header__icon"></svg>
+      <div>
+        <span cModalTitle class="cd-sticky-header__title">{{ caseData.crmCase }}</span>
+        <span class="cd-type-pill">{{ caseData.type === 'ACTIVATION' ? 'Activation' : 'Complaint' }}</span>
+      </div>
+    </div>
+    <div class="cd-sticky-header__right">
+      <span class="badge rounded-pill cd-status-badge" [ngClass]="statusBadgeClass(caseData.status)">
+        {{ statusLabel(caseData.status) }}
+      </span>
+      <button cButtonClose (click)="onClose()"></button>
+    </div>
+  </c-modal-header>
+
+  <c-modal-body class="cd-body">
+
+    <!-- ── Section: Case Identity ─────────────────────────────────── -->
+    <div class="cd-section">
+      <div class="cd-section__header">
+        <svg cIcon name="cilDescription" class="cd-section__icon"></svg>
+        <span>Case Identity</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>CRM Case #</dt>
+        <dd>{{ val(caseData.crmCase) }}</dd>
+
+        <dt>Type</dt>
+        <dd>{{ caseData.type === 'ACTIVATION' ? 'Activation' : 'Complaint' }}</dd>
+
+        <dt>Status</dt>
+        <dd>
+          <span class="badge rounded-pill" [ngClass]="statusBadgeClass(caseData.status)">
+            {{ statusLabel(caseData.status) }}
+          </span>
+        </dd>
+
+        <dt>Created at</dt>
+        <dd>{{ dateVal(caseData.createdAt) }}</dd>
+
+        <dt>CRM creation date</dt>
+        <dd>{{ dateVal(caseData.dateCreationCrm) }}</dd>
+
+        <dt>Opening date (TIMOS)</dt>
+        <dd>{{ dateVal(caseData.openingDateTimos) }}</dd>
+
+        <ng-container *ngIf="caseData.openDateActivation">
+          <dt>Open date activation</dt>
+          <dd>{{ dateVal(caseData.openDateActivation) }}</dd>
+        </ng-container>
+
+        <ng-container *ngIf="caseData.commentaire">
+          <dt>Comment</dt>
+          <dd class="cd-multiline">{{ caseData.commentaire }}</dd>
+        </ng-container>
+      </dl>
+    </div>
+
+    <!-- ── Section: Client Information ───────────────────────────── -->
+    <div class="cd-section">
+      <div class="cd-section__header">
+        <svg cIcon name="cilUser" class="cd-section__icon"></svg>
+        <span>Client Information</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Full name</dt>
+        <dd>{{ val(caseData.clientName) }}</dd>
+
+        <dt>Phone</dt>
+        <dd>{{ val(caseData.clientPhone) }}</dd>
+
+        <ng-container *ngIf="caseData.contactCl2">
+          <dt>Contact CL2</dt>
+          <dd>{{ val(caseData.contactCl2) }}</dd>
+        </ng-container>
+
+        <dt>MSISDN</dt>
+        <dd>{{ val(caseData.msisdn) }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Section: Location ──────────────────────────────────────── -->
+    <div class="cd-section">
+      <div class="cd-section__header">
+        <svg cIcon name="cilLocationPin" class="cd-section__icon"></svg>
+        <span>Location</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Governorate</dt>
+        <dd>{{ val(caseData.gouvernorat) }}</dd>
+
+        <dt>Delegation</dt>
+        <dd>{{ val(caseData.delegation) }}</dd>
+
+        <dt>Locality</dt>
+        <dd>{{ val(caseData.localite) }}</dd>
+
+        <ng-container *ngIf="caseData.siteSecteur">
+          <dt>Site / Sector</dt>
+          <dd>{{ val(caseData.siteSecteur) }}</dd>
+        </ng-container>
+
+        <dt>GPS coordinates</dt>
+        <dd *ngIf="hasLocation; else noGps">
+          <a
+            [href]="'https://maps.google.com/?q=' + caseData.latitude + ',' + caseData.longitude"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="cd-gps-link"
+          >
+            {{ caseData.latitude }}, {{ caseData.longitude }}
+            <svg cIcon name="cilExternalLink" size="sm"></svg>
+          </a>
+        </dd>
+        <ng-template #noGps><dd>—</dd></ng-template>
+      </dl>
+    </div>
+
+    <!-- ── Section: Offer Details ─────────────────────────────────── -->
+    <div class="cd-section" *ngIf="caseData.offre || caseData.desPack || caseData.typeClient || caseData.source || caseData.typeOffreSpeed">
+      <div class="cd-section__header">
+        <svg cIcon name="cilSpeedometer" class="cd-section__icon"></svg>
+        <span>Offer Details</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Offer</dt>
+        <dd>{{ val(caseData.offre) }}</dd>
+
+        <dt>Pack</dt>
+        <dd>{{ val(caseData.desPack) }}</dd>
+
+        <ng-container *ngIf="caseData.typeOffreSpeed">
+          <dt>Offer speed type</dt>
+          <dd>{{ val(caseData.typeOffreSpeed) }}</dd>
+        </ng-container>
+
+        <dt>Client type</dt>
+        <dd>{{ val(caseData.typeClient) }}</dd>
+
+        <ng-container *ngIf="caseData.source">
+          <dt>Source</dt>
+          <dd>{{ val(caseData.source) }}</dd>
+        </ng-container>
+      </dl>
+    </div>
+
+    <!-- ── Section: Complaint Details (PLAINTE only) ──────────────── -->
+    <div class="cd-section" *ngIf="caseData.type === 'PLAINTE' && (caseData.complaintDetail || caseData.complaintDescription)">
+      <div class="cd-section__header">
+        <svg cIcon name="cilNotes" class="cd-section__icon"></svg>
+        <span>Complaint Details</span>
+      </div>
+      <dl class="cd-grid">
+        <ng-container *ngIf="caseData.complaintDetail">
+          <dt>Detail</dt>
+          <dd class="cd-multiline">{{ caseData.complaintDetail }}</dd>
+        </ng-container>
+        <ng-container *ngIf="caseData.complaintDescription">
+          <dt>Description</dt>
+          <dd class="cd-multiline">{{ caseData.complaintDescription }}</dd>
+        </ng-container>
+      </dl>
+    </div>
+
+    <!-- ── Section: Assignment Chain ──────────────────────────────── -->
+    <div class="cd-section">
+      <div class="cd-section__header">
+        <svg cIcon name="cilPeople" class="cd-section__icon"></svg>
+        <span>Assignment Chain</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Owner ZM</dt>
+        <dd>{{ val(caseData.ownerZmName ?? caseData.zmName) }}</dd>
+
+        <dt>STT Supervisor</dt>
+        <dd>{{ val(caseData.sttName) }}</dd>
+
+        <dt>Technician</dt>
+        <dd>{{ val(caseData.techName) }}</dd>
+
+        <dt>Execution mode</dt>
+        <dd>{{ humanizeStatus(caseData.executionMode) }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Section: RDV ───────────────────────────────────────────── -->
+    <div class="cd-section">
+      <div class="cd-section__header">
+        <svg cIcon name="cilCalendar" class="cd-section__icon"></svg>
+        <span>Rendez-vous (RDV)</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Reachable (joignable)</dt>
+        <dd [class.cd-value--yes]="caseData.rdv?.joignable === true" [class.cd-value--no]="caseData.rdv?.joignable === false">
+          {{ boolVal(caseData.rdv?.joignable) }}
+        </dd>
+
+        <dt>RDV date</dt>
+        <dd>{{ dateVal(caseData.rdv?.datePriseRdv ?? caseData.datePriseRdv) }}</dd>
+
+        <dt>Cause injoignabilite</dt>
+        <dd>{{ val(caseData.rdv?.causeInjoignabilite ?? caseData.causeInjoignabilite) }}</dd>
+
+        <dt>Detail</dt>
+        <dd class="cd-multiline">{{ val(caseData.rdv?.detail ?? caseData.detail) }}</dd>
+
+        <dt>Comment</dt>
+        <dd class="cd-multiline">{{ val(caseData.rdv?.cmtRdv ?? caseData.cmtRdv) }}</dd>
+
+        <dt>Abandoned</dt>
+        <dd [class.cd-value--no]="caseData.rdv?.abandon === false">
+          {{ boolVal(caseData.rdv?.abandon ?? caseData.abandon) }}
+        </dd>
+
+        <dt>Cause abandon</dt>
+        <dd>{{ val(caseData.rdv?.causeAbandon ?? caseData.causeAbandon) }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Section: Diagnosis (PLAINTE only) ─────────────────────── -->
+    <div class="cd-section" *ngIf="caseData.type === 'PLAINTE'">
+      <div class="cd-section__header">
+        <svg cIcon name="cilMedicalCross" class="cd-section__icon"></svg>
+        <span>Diagnosis</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Category</dt>
+        <dd>{{ humanizeStatus(caseData.diagnosis?.complaintCategory) }}</dd>
+
+        <dt>Root cause</dt>
+        <dd>{{ val(caseData.diagnosis?.rootCause) }}</dd>
+
+        <dt>Requires field work</dt>
+        <dd [class.cd-value--yes]="caseData.diagnosis?.requiresFieldWork">
+          {{ boolVal(caseData.diagnosis?.requiresFieldWork) }}
+        </dd>
+
+        <dt>Requires TECH</dt>
+        <dd [class.cd-value--yes]="caseData.diagnosis?.requiresTechIntervention">
+          {{ boolVal(caseData.diagnosis?.requiresTechIntervention) }}
+        </dd>
+
+        <dt>Requires escalation</dt>
+        <dd [class.cd-value--yes]="caseData.diagnosis?.requiresEscalation">
+          {{ boolVal(caseData.diagnosis?.requiresEscalation) }}
+        </dd>
+
+        <dt>Diagnosed at</dt>
+        <dd>{{ dateVal(caseData.diagnosis?.diagnosedAt) }}</dd>
+
+        <dt>Diagnosed by</dt>
+        <dd>{{ val(caseData.diagnosis?.diagnosedBy) }}</dd>
+
+        <ng-container *ngIf="caseData.diagnosis?.diagnosisComment">
+          <dt>Comment</dt>
+          <dd class="cd-multiline">{{ caseData.diagnosis?.diagnosisComment }}</dd>
+        </ng-container>
+      </dl>
+    </div>
+
+    <!-- ── Section: Work Execution ────────────────────────────────── -->
+    <div class="cd-section">
+      <div class="cd-section__header">
+        <svg cIcon name="cilTask" class="cd-section__icon"></svg>
+        <span>Work Execution</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Result</dt>
+        <dd>{{ val(caseData.work?.repTravauxStt ?? caseData.repTravauxStt) }}</dd>
+
+        <dt>Completion date</dt>
+        <dd>{{ dateVal(caseData.work?.dateFinTrv ?? caseData.dateFinTrv) }}</dd>
+
+        <dt>Comment</dt>
+        <dd class="cd-multiline">{{ val(caseData.work?.cmtTrvStt ?? caseData.cmtTrvStt) }}</dd>
+
+        <dt>Work submission GPS</dt>
+        <dd *ngIf="hasWorkLocation; else noWorkGps">
+          <a
+            [href]="mapLink(caseData.work?.locationLatitude, caseData.work?.locationLongitude) || '#'"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="cd-gps-link"
+          >
+            {{ coordinateLabel(caseData.work?.locationLatitude, caseData.work?.locationLongitude) }}
+            <svg cIcon name="cilExternalLink" size="sm"></svg>
+          </a>
+        </dd>
+        <ng-template #noWorkGps><dd>—</dd></ng-template>
+
+        <dt>GPS captured at</dt>
+        <dd>{{ dateVal(caseData.work?.locationCapturedAt) }}</dd>
+
+        <dt>GPS accuracy</dt>
+        <dd>{{ accuracyLabel(caseData.work?.locationAccuracyMeters) }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Section: Technical Metrics (ACTIVATION) ───────────────── -->
+    <div class="cd-section" *ngIf="hasProofs">
+      <div class="cd-section__header">
+        <svg cIcon name="cilCamera" class="cd-section__icon"></svg>
+        <span>Attached Photos</span>
+      </div>
+
+      <div class="cd-proof-list">
+        <article class="cd-proof-card" *ngFor="let proof of proofs; let i = index">
+          <a
+            *ngIf="proofFileUrl(proof) as proofHref; else noProofFile"
+            class="cd-proof-card__media"
+            [href]="proofHref"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              *ngIf="hasProofPreview(proof); else proofFileFallback"
+              [src]="proofHref"
+              [alt]="proofTitle(proof, i)"
+            />
+            <ng-template #proofFileFallback>
+              <div class="cd-proof-card__placeholder">
+                <svg cIcon name="cilDescription"></svg>
+                <span>Open attachment</span>
+              </div>
+            </ng-template>
+          </a>
+          <ng-template #noProofFile>
+            <div class="cd-proof-card__media cd-proof-card__media--empty">
+              <div class="cd-proof-card__placeholder">
+                <svg cIcon name="cilDescription"></svg>
+                <span>No preview available</span>
+              </div>
+            </div>
+          </ng-template>
+
+          <div class="cd-proof-card__body">
+            <div class="cd-proof-card__eyebrow">{{ proofSourceLabel(proof.captureSource) }}</div>
+            <div class="cd-proof-card__title">{{ proofTitle(proof, i) }}</div>
+            <div class="cd-proof-card__meta">
+              Uploaded {{ dateVal(proof.createdAt) }} by {{ val(proof.uploadedBy) }}
+            </div>
+
+            <div class="cd-proof-card__actions">
+              <a
+                *ngIf="proofFileUrl(proof) as proofHref"
+                [href]="proofHref"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cd-proof-action"
+              >
+                <svg cIcon name="cilExternalLink" size="sm"></svg>
+                Open photo
+              </a>
+              <a
+                *ngIf="mapLink(proof.locationLatitude, proof.locationLongitude) as proofMapHref"
+                [href]="proofMapHref"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cd-proof-action"
+              >
+                <svg cIcon name="cilLocationPin" size="sm"></svg>
+                Open map
+              </a>
+            </div>
+
+            <dl class="cd-grid cd-grid--compact">
+              <dt>GPS coordinates</dt>
+              <dd *ngIf="hasProofLocation(proof); else noProofGps">
+                <a
+                  [href]="mapLink(proof.locationLatitude, proof.locationLongitude) || '#'"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="cd-gps-link"
+                >
+                  {{ coordinateLabel(proof.locationLatitude, proof.locationLongitude) }}
+                  <svg cIcon name="cilExternalLink" size="sm"></svg>
+                </a>
+              </dd>
+              <ng-template #noProofGps><dd>&mdash;</dd></ng-template>
+
+              <dt>Captured at</dt>
+              <dd>{{ dateVal(proof.locationCapturedAt) }}</dd>
+
+              <dt>Accuracy</dt>
+              <dd>{{ accuracyLabel(proof.locationAccuracyMeters) }}</dd>
+
+              <dt>Source</dt>
+              <dd>{{ proofSourceLabel(proof.captureSource) }}</dd>
+            </dl>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="cd-section cd-section--metrics" *ngIf="caseData.type === 'ACTIVATION' && hasMetrics">
+      <div class="cd-section__header">
+        <svg cIcon name="cilSpeedometer" class="cd-section__icon"></svg>
+        <span>Technical Metrics</span>
+      </div>
+      <div class="cd-metrics-grid">
+        <div class="cd-metric">
+          <span class="cd-metric__label">PV count</span>
+          <span class="cd-metric__value">{{ numVal(caseData.metrics?.nombrePv ?? caseData.nombrePv) }}</span>
+        </div>
+        <div class="cd-metric">
+          <span class="cd-metric__label">Download (Mbps)</span>
+          <span class="cd-metric__value">{{ numVal(caseData.metrics?.debitDl ?? caseData.debitDl) }}</span>
+        </div>
+        <div class="cd-metric">
+          <span class="cd-metric__label">Upload (Mbps)</span>
+          <span class="cd-metric__value">{{ numVal(caseData.metrics?.debitUl ?? caseData.debitUl) }}</span>
+        </div>
+        <div class="cd-metric">
+          <span class="cd-metric__label">RSRP (dBm)</span>
+          <span class="cd-metric__value">{{ numVal(caseData.metrics?.rsrp ?? caseData.rsrp) }}</span>
+        </div>
+        <div class="cd-metric">
+          <span class="cd-metric__label">RSRQ (dB)</span>
+          <span class="cd-metric__value">{{ numVal(caseData.metrics?.rsrq ?? caseData.rsrq) }}</span>
+        </div>
+        <div class="cd-metric">
+          <span class="cd-metric__label">SINR (dB)</span>
+          <span class="cd-metric__value">{{ numVal(caseData.metrics?.sinr ?? caseData.sinr) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section: Resolution (PLAINTE only) ────────────────────── -->
+    <div class="cd-section" *ngIf="caseData.type === 'PLAINTE' && caseData.resolution">
+      <div class="cd-section__header">
+        <svg cIcon name="cilCheckCircle" class="cd-section__icon"></svg>
+        <span>Resolution</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Resolution type</dt>
+        <dd>{{ val(caseData.resolution.resolutionType) }}</dd>
+
+        <dt>Validation status</dt>
+        <dd>{{ humanizeStatus(caseData.resolution.validationStatus) }}</dd>
+
+        <dt>Submitted at</dt>
+        <dd>{{ dateVal(caseData.resolution.submittedAt) }}</dd>
+
+        <dt>Submitted by</dt>
+        <dd>{{ val(caseData.resolution.submittedBy) }}</dd>
+
+        <dt>Validated at</dt>
+        <dd>{{ dateVal(caseData.resolution.validatedAt) }}</dd>
+
+        <ng-container *ngIf="caseData.resolution.resolutionComment">
+          <dt>Comment</dt>
+          <dd class="cd-multiline">{{ caseData.resolution.resolutionComment }}</dd>
+        </ng-container>
+      </dl>
+    </div>
+
+    <!-- ── Section: ZM Validation ─────────────────────────────────── -->
+    <div class="cd-section" *ngIf="caseData.zmValidation || caseData.repZm">
+      <div class="cd-section__header">
+        <svg cIcon name="cilBadge" class="cd-section__icon"></svg>
+        <span>ZM Validation</span>
+      </div>
+      <dl class="cd-grid">
+        <dt>Approved</dt>
+        <dd
+          [class.cd-value--yes]="caseData.zmValidation?.approved === true"
+          [class.cd-value--no]="caseData.zmValidation?.approved === false"
+        >
+          {{ boolVal(caseData.zmValidation?.approved) }}
+        </dd>
+
+        <dt>ZM response</dt>
+        <dd>{{ val(caseData.repZm) }}</dd>
+
+        <dt>Comment</dt>
+        <dd class="cd-multiline">{{ val(caseData.zmValidation?.comment ?? caseData.commentZm) }}</dd>
+      </dl>
+    </div>
+
+    <!-- ── Section: Timeline ──────────────────────────────────────── -->
+    <div class="cd-section cd-section--timeline" *ngIf="sortedTimeline.length > 0">
+      <div class="cd-section__header">
+        <svg cIcon name="cilHistory" class="cd-section__icon"></svg>
+        <span>Timeline</span>
+      </div>
+      <ol class="cd-timeline">
+        <li *ngFor="let event of sortedTimeline; let last = last" class="cd-timeline__item" [class.cd-timeline__item--last]="last">
+          <div class="cd-timeline__marker">
+            <svg cIcon [name]="timelineIconName(event.eventType)" size="sm"></svg>
+          </div>
+          <div class="cd-timeline__content">
+            <div class="cd-timeline__title">{{ event.title || humanizeStatus(event.eventType) }}</div>
+            <div class="cd-timeline__time">{{ dateVal(event.occurredAt) }}</div>
+            <div class="cd-timeline__actor" *ngIf="event.actor">{{ event.actor }}</div>
+            <div class="cd-timeline__details" *ngIf="event.details">{{ event.details }}</div>
+            <div class="cd-timeline__transition" *ngIf="event.previousStatus && event.newStatus">
+              <span class="badge rounded-pill" [ngClass]="statusBadgeClass(event.previousStatus)">{{ statusLabel(event.previousStatus) }}</span>
+              <svg cIcon name="cilArrowRight" size="sm"></svg>
+              <span class="badge rounded-pill" [ngClass]="statusBadgeClass(event.newStatus)">{{ statusLabel(event.newStatus) }}</span>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+  </c-modal-body>
+
+  <c-modal-footer class="cd-footer">
+    <button cButton color="secondary" variant="ghost" (click)="onClose()">Close</button>
+    <button cButton color="info" variant="outline" (click)="onDownload()">
+      <svg cIcon name="cilCloudDownload" class="me-1"></svg>
+      Download PDF
+    </button>
+  </c-modal-footer>
+  </ng-container>
+</c-modal>

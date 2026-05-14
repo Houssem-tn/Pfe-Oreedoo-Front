@@ -9,7 +9,14 @@ export const routes: Routes = [
   {
     path: 'cases/activation',
     loadComponent: () =>
-      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent)
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'ACTIVATION' }
+  },
+  {
+    path: 'cases/complaint',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'PLAINTE' }
   },
   {
     path: 'cases/activation/new',
@@ -44,6 +51,37 @@ export const routes: Routes = [
       import('./imported-todos/imported-todos.component').then(m => m.ImportedTodosComponent),
     data: { title: 'Imported Todos' }
   },
+  // Stock Management
+  {
+    path: 'stock',
+    redirectTo: 'stock/my-tracking',
+    pathMatch: 'full'
+  },
+  {
+    path: 'stock/create-dpm',
+    loadComponent: () =>
+      import('./stock/create-dpm/create-dpm.component').then(m => m.CreateDpmComponent),
+    data: { title: 'Create DPM' }
+  },
+  {
+    path: 'stock/my-tracking',
+    loadComponent: () =>
+      import('./stock/my-tracking/zm-stock-tracking.component').then(m => m.ZmStockTrackingComponent),
+    data: { title: 'My DPM Tracking' }
+  },
+  {
+    path: 'stock/team-stock',
+    loadComponent: () =>
+      import('./stock/team-stock/zm-team-stock.component').then(m => m.ZmTeamStockComponent),
+    data: { title: 'Team Stock Overview' }
+  },
+  {
+    path: 'stock/case-audit',
+    loadComponent: () =>
+      import('./stock/case-audit/zm-case-audit.component').then(m => m.ZmCaseAuditComponent),
+    data: { title: 'Case Stock Audit' }
+  },
+
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 
   {

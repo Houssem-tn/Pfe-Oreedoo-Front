@@ -20,6 +20,8 @@ import { TechRegisterRequest } from './models/tech-register-request.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private static readonly CACHED_USER_KEY = 'auth_user';
+
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly tokenService = inject(TokenService);
@@ -34,7 +36,7 @@ export class AuthService {
     }
 
     const user = this.userFromToken(token);
-    this.authStore.setUser(user);
+    this.authStore.setUser(this.mergeCachedUser(user));
 
     if (user) {
       this.notificationStore.init();
@@ -51,8 +53,9 @@ export class AuthService {
 
           this.tokenService.set(token);
 
-          const user = this.userFromToken(token);
+          const user = this.userFromAuthResponse(token, res);
           this.authStore.setUser(user);
+          this.cacheUser(user);
 
           if (user) {
             this.notificationStore.destroy();
@@ -82,6 +85,7 @@ export class AuthService {
   logout(): void {
     this.notificationStore.destroy();
     this.tokenService.clear();
+    this.clearCachedUser();
     this.authStore.clear();
   }
 
@@ -107,11 +111,78 @@ export class AuthService {
     if (!role) return null;
 
     return {
-      username: claims.sub,
+      username: claims.name ?? claims.fullName ?? claims.sub,
+      fullName: claims.fullName ?? claims.name,
       email: claims.sub,
       role,
       status: (claims as any).status ?? (claims as any).accountStatus,
     };
+  }
+
+  private userFromAuthResponse(token: string, response: AuthResponse): AuthUser | null {
+    const tokenUser = this.userFromToken(token);
+    if (!tokenUser) {
+      return null;
+    }
+
+    const responseUser = response.user;
+    return {
+      ...tokenUser,
+      id: responseUser?.id ?? tokenUser.id,
+      username: responseUser?.fullName ?? tokenUser.username,
+      fullName: responseUser?.fullName ?? tokenUser.fullName,
+      email: responseUser?.email ?? tokenUser.email,
+      role: responseUser?.role ?? response.role ?? tokenUser.role,
+      status: responseUser?.status ?? tokenUser.status
+    };
+  }
+
+  private mergeCachedUser(user: AuthUser | null): AuthUser | null {
+    if (!user) {
+      return null;
+    }
+
+    const cached = this.readCachedUser();
+    if (!cached || cached.email?.toLowerCase() !== user.email?.toLowerCase()) {
+      return user;
+    }
+
+    return {
+      ...user,
+      id: cached.id ?? user.id,
+      username: cached.fullName ?? cached.username ?? user.username,
+      fullName: cached.fullName ?? user.fullName
+    };
+  }
+
+  private cacheUser(user: AuthUser | null): void {
+    if (!user) {
+      this.clearCachedUser();
+      return;
+    }
+
+    try {
+      localStorage.setItem(AuthService.CACHED_USER_KEY, JSON.stringify(user));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  private readCachedUser(): AuthUser | null {
+    try {
+      const raw = localStorage.getItem(AuthService.CACHED_USER_KEY);
+      return raw ? JSON.parse(raw) as AuthUser : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private clearCachedUser(): void {
+    try {
+      localStorage.removeItem(AuthService.CACHED_USER_KEY);
+    } catch {
+      // ignore storage errors
+    }
   }
 
   private extractRole(claims: JwtClaims): Role | null {

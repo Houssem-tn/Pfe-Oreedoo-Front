@@ -43,7 +43,10 @@
               "src/scss/styles.scss"
             ],
             "scripts": [],
-            "allowedCommonJsDependencies": [],
+            "allowedCommonJsDependencies": [
+              "sweetalert2",
+              "@stomp/stompjs"
+            ],
             "stylePreprocessorOptions": {
               "sass": {
                 "silenceDeprecations": []
@@ -60,8 +63,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "24kb",
+                  "maximumError": "32kb"
                 }
               ],
               "outputHashing": "all"

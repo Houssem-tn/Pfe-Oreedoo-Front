@@ -39,6 +39,21 @@ export const routes: Routes = [
   },
 
   {
+    path: 'tech',
+    canActivate: [authGuard, approvedGuard],
+    canActivateChild: [roleChildGuard],
+    data: { roles: ['ROLE_TECH'], title: 'Field TECH' },
+    loadChildren: () => import('./views/field/routes').then((m) => m.routes),
+  },
+  {
+    path: 'stt/cases/execution',
+    canActivate: [authGuard, approvedGuard],
+    canActivateChild: [roleChildGuard],
+    data: { roles: ['ROLE_STT'], title: 'Field STT Execution' },
+    loadChildren: () => import('./views/field/routes').then((m) => m.routes),
+  },
+
+  {
     path: '',
     loadComponent: () => import('./layout').then((m) => m.DefaultLayoutComponent),
     data: { title: 'Home' },
@@ -59,12 +74,6 @@ export const routes: Routes = [
         canActivateChild: [roleChildGuard],
         data: { roles: ['ROLE_STT'] },
         loadChildren: () => import('./views/stt/routes').then((m) => m.routes),
-      },
-      {
-        path: 'tech',
-        canActivateChild: [roleChildGuard],
-        data: { roles: ['ROLE_TECH'] },
-        loadChildren: () => import('./views/tech/routes').then((m) => m.routes),
       },
       {
         path: 'zm',

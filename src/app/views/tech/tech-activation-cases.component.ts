@@ -14,6 +14,7 @@ import {
   CaseResponse,
   CaseStatus,
   CaseTimelineEvent,
+  CaseUsedEquipmentItem,
   CompleteWorkRequest,
   PerformanceSummaryResponse,
   SetRdvRequest,
@@ -21,7 +22,11 @@ import {
 } from '../../core/cases/models/case.model';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
+import { StockService } from '../../core/stock/stock.service';
+import { TechStock, TechStockItem } from '../../core/stock/stock.model';
 import {
+  buildUsedEquipmentPayload,
+  EquipmentUsageLine,
   extractMetrics,
   extractRdv,
   extractTimeline,
@@ -32,7 +37,8 @@ import {
   toDateTimeLocal,
   toInputNumber,
   toIso,
-  toMaybeNumber
+  toMaybeNumber,
+  usageLinesFromCaseItems
 } from './tech-case.helpers';
 
 type TechQuickFilter = 'urgent' | 'rdv' | 'work' | 'all';
@@ -67,7 +73,6 @@ interface TechWorkForm {
   repTravauxStt: string;
   dateFinTrv: string;
   cmtTrvStt: string;
-  metrageCable: string;
   nombrePv: string;
   debitDl: string;
   debitUl: string;
@@ -75,6 +80,7 @@ interface TechWorkForm {
   rsrq: string;
   sinr: string;
 }
+
 
 interface TechGeoSnapshot {
   latitude: number;
@@ -103,14 +109,15 @@ interface TechProofDraft {
   styleUrl: './tech-activation-cases.component.scss'
 })
 export class TechActivationCasesComponent implements OnInit, OnDestroy {
-  private static readonly CLOCK_TICK_MS = 1000;
-  private static readonly RESYNC_MS = 60000;
+  private static readonly CLOCK_TICK_MS = 60000;
+  private static readonly RESYNC_MS = 300000;
   private static readonly PROOF_STORAGE_KEY = 'tech-work-proof-drafts-v1';
   private static readonly MAX_PHOTO_SIZE_BYTES = 8 * 1024 * 1024;
 
   private readonly casesService = inject(CasesService);
   private readonly authStore = inject(AuthStore);
   private readonly notificationsStore = inject(NotificationStoreService);
+  private readonly stockService = inject(StockService);
   private readonly route = inject(ActivatedRoute);
 
   loading = false;
@@ -136,9 +143,13 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   selectedCaseDetails: CaseResponse | null = null;
   activePanel: TechPanel = 'details';
   panelLoading = false;
+  techStockLoading = false;
+  techStockError: string | null = null;
 
   rdvForm: TechRdvForm = this.createEmptyRdvForm();
   workForm: TechWorkForm = this.createEmptyWorkForm();
+  usageLines: EquipmentUsageLine[] = [];
+  techStock: TechStock | null = null;
   proofDrafts: Record<string, TechProofDraft> = {};
   private pendingProofLocation: TechGeoSnapshot | null = null;
   private pendingProofSource: TechProofSource | null = null;
@@ -153,6 +164,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   readonly statusOptions: Array<{ value: '' | CaseStatus; label: string }> = [
     { value: '', label: 'All statuses' },
+    { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
     { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
     { value: 'RDV_SET', label: 'RDV set' },
     { value: 'NOT_REACHABLE', label: 'Not reachable' },
@@ -189,8 +201,40 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return this.accessibleCases.filter((item) => item.status !== 'CLOSED');
   }
 
+  get currentRole(): string | null {
+    return this.authStore.role();
+  }
+
+  get isTechRole(): boolean {
+    return this.currentRole === 'ROLE_TECH';
+  }
+
+  get isSttWorkspace(): boolean {
+    return this.currentRole === 'ROLE_STT';
+  }
+
+  get workspaceEyebrow(): string {
+    return this.isSttWorkspace ? 'Ooredoo STT field execution board' : 'Ooredoo TECH mobile board';
+  }
+
+  get workspaceTitle(): string {
+    return this.isSttWorkspace
+      ? 'One mobile queue for STT self-execution, RDV, proof capture, and work closure.'
+      : 'One mobile queue for urgent tasks, RDV, and work closure.';
+  }
+
+  get workspaceSubtitle(): string {
+    return this.isSttWorkspace
+      ? 'When you take execution yourself, this workspace mirrors the technician flow so photo proof, GPS capture, and closure stay in one mobile experience.'
+      : 'The board now keeps fewer tasks on screen at once, separates core actions from tools, and makes field movement smoother without changing your workflow.';
+  }
+
+  get dashboardRoute(): string {
+    return this.isSttWorkspace ? '/stt/dashboard' : '/tech/dashboard';
+  }
+
   get accessibleCases(): CaseResponse[] {
-    return this.cases.filter((item) => this.isCaseOwnedByTech(item));
+    return this.cases.filter((item) => this.canAccessFieldWorkspace(item));
   }
 
   get urgentCount(): number {
@@ -210,6 +254,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get pendingProofCount(): number {
     return Object.keys(this.proofDrafts).length;
+  }
+
+  get completedCasesCount(): number {
+    return this.accessibleCases.filter((item) =>
+      item.status === 'WORK_DONE' || item.status === 'VALIDATED_BY_ZM' || item.status === 'CLOSED'
+    ).length;
   }
 
   get summaryCards(): TechSummaryCard[] {
@@ -246,7 +296,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   get operationalAlerts(): NotificationItem[] {
-    const relevant = new Set(['CASE_ASSIGNED_TO_TECH', 'SLA_WARNING', 'SLA_BREACHED', 'SLA_ESCALATED']);
+    const relevant = new Set(['CASE_ASSIGNED_TO_TECH', 'CASE_ASSIGNED_TO_STT', 'SLA_WARNING', 'SLA_BREACHED', 'SLA_ESCALATED']);
 
     return this.notificationsStore.latestFirst()
       .filter((item) => relevant.has(item.eventType))
@@ -274,7 +324,14 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
         return statusMatches && quickFilterMatches && searchMatches;
       })
-      .sort((left, right) => this.priorityScore(left) - this.priorityScore(right));
+      .sort((left, right) => {
+        const priorityDelta = this.priorityScore(left) - this.priorityScore(right);
+        if (priorityDelta !== 0) {
+          return priorityDelta;
+        }
+
+        return left.crmCase.localeCompare(right.crmCase);
+      });
   }
 
   get totalVisibleCases(): number {
@@ -283,6 +340,10 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.totalVisibleCases / this.pageSize));
+  }
+
+  get displayPage(): number {
+    return this.currentPageValue;
   }
 
   get pageStart(): number {
@@ -346,6 +407,29 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   get uploadedProofs(): CaseProofFile[] {
     return [...(this.selectedCase?.workProofs ?? [])];
+  }
+
+  get techStockItems(): TechStockItem[] {
+    return [...(this.techStock?.items ?? [])].sort((left, right) => {
+      const availabilityDelta = right.remainingQuantity - left.remainingQuantity;
+      if (availabilityDelta !== 0) {
+        return availabilityDelta;
+      }
+
+      return left.equipmentName.localeCompare(right.equipmentName);
+    });
+  }
+
+  get currentCaseUsedEquipment(): CaseUsedEquipmentItem[] {
+    return this.caseUsedEquipmentItems(this.selectedCase);
+  }
+
+  get techStockRemainingTotal(): number {
+    return this.techStockItems.reduce((sum, item) => sum + item.remainingQuantity, 0);
+  }
+
+  get techStockUsedTotal(): number {
+    return this.techStockItems.reduce((sum, item) => sum + item.usedQuantity, 0);
   }
 
   loadCases(): void {
@@ -544,13 +628,27 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   canSetRdv(item: CaseResponse): boolean {
-    return this.isCaseOwnedByTech(item)
-      && ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'].includes(item.status);
+    if (!this.isCaseOwnedByCurrentExecutor(item)) {
+      return false;
+    }
+
+    if (this.isCaseOwnedBySttSelfExecutor(item)) {
+      return ['ASSIGNED_TO_STT', 'RDV_SET', 'NOT_REACHABLE'].includes(item.status);
+    }
+
+    return ['ASSIGNED_TO_TECH', 'RDV_SET', 'NOT_REACHABLE'].includes(item.status);
   }
 
   canSubmitWork(item: CaseResponse): boolean {
-    return this.isCaseOwnedByTech(item)
-      && ['ASSIGNED_TO_TECH', 'RDV_SET'].includes(item.status);
+    if (!this.isCaseOwnedByCurrentExecutor(item)) {
+      return false;
+    }
+
+    if (this.isCaseOwnedBySttSelfExecutor(item)) {
+      return ['ASSIGNED_TO_STT', 'RDV_SET'].includes(item.status);
+    }
+
+    return ['ASSIGNED_TO_TECH', 'RDV_SET'].includes(item.status);
   }
 
   openPrimaryAction(item: CaseResponse): void {
@@ -605,6 +703,11 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
     if (panel === 'work') {
       this.workForm = this.createWorkForm(item);
+      this.setUsageLinesFromCase(item);
+    }
+
+    if (this.isTechRole) {
+      this.loadTechStock(true);
     }
 
     this.loadCaseDetails(item.id);
@@ -632,6 +735,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
     if (panel === 'work') {
       this.workForm = this.createWorkForm(target);
+      this.syncUsageSelection(target);
     }
   }
 
@@ -720,7 +824,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const payload = this.buildWorkPayload(workLocation);
+      const payload = this.buildWorkPayload(target, workLocation);
       if (!payload) {
         return;
       }
@@ -728,6 +832,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       const updated = await firstValueFrom(this.casesService.completeWork(target.id, payload));
       this.replaceCase(updated);
       this.selectedCaseDetails = updated;
+      this.setUsageLinesFromCase(updated);
       this.activePanel = 'details';
       this.loadPerformance();
       this.loadCaseDetails(target.id);
@@ -970,11 +1075,35 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       : 'bg-dark-subtle text-dark-emphasis tech-pill';
   }
 
+  addUsageLine(): void {
+    this.usageLines = [...this.usageLines, { equipmentId: '', quantity: '' }];
+  }
+
+  removeUsageLine(index: number): void {
+    this.usageLines = this.usageLines.filter((_, i) => i !== index);
+  }
+
+  stockQuantityLabel(quantity: number, unit?: string | null): string {
+    const suffix = this.stockUnitLabel(unit);
+    return `${quantity} ${suffix}`;
+  }
+
+  stockUnitLabel(unit?: string | null): string {
+    if (unit === 'METERS') {
+      return 'm';
+    }
+
+    if (unit === 'PIECES') {
+      return 'pcs';
+    }
+
+    return unit?.trim() || 'units';
+  }
+
   detailMetricEntries(item: CaseResponse): Array<{ label: string; value: string }> {
     const metrics = extractMetrics(item);
 
     return [
-      { label: 'Cable', value: this.metricValue(metrics.metrageCable) },
       { label: 'PV', value: this.metricValue(metrics.nombrePv) },
       { label: 'DL', value: this.metricValue(metrics.debitDl) },
       { label: 'UL', value: this.metricValue(metrics.debitUl) },
@@ -985,11 +1114,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   performanceLabel(): string {
-    if (!this.performance) {
-      return 'Waiting for performance snapshot';
+    if (!this.totalVisibleCases) {
+      return 'No active field execution right now';
     }
 
-    return `${this.performance.workCompletionProgress.toFixed(0)}% completion`;
+    const ratio = (this.completedCasesCount / this.totalVisibleCases) * 100;
+    return `${Math.round(ratio)}% completion in this field workspace`;
   }
 
   private readRouteIntent(): void {
@@ -1035,6 +1165,9 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
         next: (fullCase) => {
           this.selectedCaseDetails = fullCase;
           this.replaceCase(fullCase);
+          if (this.activePanel === 'work' && this.isTechRole) {
+            this.syncUsageSelection(fullCase);
+          }
         },
         error: (err) => {
           console.error('Failed to load TECH case details', err);
@@ -1043,10 +1176,38 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       });
   }
 
+  loadTechStock(resetSelection = false): void {
+    if (!this.isTechRole || this.techStockLoading) {
+      return;
+    }
+
+    this.techStockLoading = true;
+    this.techStockError = null;
+
+    if (resetSelection) {
+      this.setUsageLinesFromCase(this.selectedCase);
+    }
+
+    this.stockService.getMyTechStock()
+      .pipe(finalize(() => {
+        this.techStockLoading = false;
+      }))
+      .subscribe({
+        next: (stock) => {
+          this.techStock = stock;
+          this.syncUsageSelection(this.selectedCase);
+        },
+        error: (err) => {
+          console.error('Failed to load TECH stock helper', err);
+          this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
+        }
+      });
+  }
+
   private matchesQuickFilter(item: CaseResponse): boolean {
     switch (this.quickFilter) {
       case 'urgent': {
-        const status = this.slaStatus(item);
+        const status = this.snapshotSlaStatus(item);
         return status === 'WARNING' || status === 'BREACHED' || status === 'COMPLETED_LATE';
       }
       case 'rdv':
@@ -1060,11 +1221,27 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   private priorityScore(item: CaseResponse): number {
-    const sla = resolveLiveSla(item, this.nowEpochMs);
-    const deadlinePenalty = 100 - sla.progressPercent;
-    const statusPriority = item.status === 'RDV_SET' ? -10 : item.status === 'ASSIGNED_TO_TECH' ? 0 : 20;
+    const deadlinePenalty = 100 - this.snapshotSlaProgress(item);
+    const statusPriority = item.status === 'RDV_SET'
+      ? -10
+      : item.status === 'ASSIGNED_TO_TECH' || item.status === 'ASSIGNED_TO_STT'
+        ? 0
+        : 20;
     const proofPenalty = this.hasPendingProof(item) ? -5 : 0;
     return deadlinePenalty + statusPriority + proofPenalty;
+  }
+
+  private snapshotSlaStatus(item: CaseResponse): SlaStatus | null {
+    return item.slaTracking?.status ?? resolveLiveSla(item, this.nowEpochMs).status;
+  }
+
+  private snapshotSlaProgress(item: CaseResponse): number {
+    const progress = item.slaTracking?.progressPercent;
+    if (typeof progress === 'number' && Number.isFinite(progress)) {
+      return Math.max(0, Math.min(100, progress));
+    }
+
+    return resolveLiveSla(item, this.nowEpochMs).progressPercent;
   }
 
   private createEmptyRdvForm(): TechRdvForm {
@@ -1084,7 +1261,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       repTravauxStt: '',
       dateFinTrv: '',
       cmtTrvStt: '',
-      metrageCable: '',
       nombrePv: '',
       debitDl: '',
       debitUl: '',
@@ -1116,7 +1292,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       repTravauxStt: work.repTravauxStt ?? '',
       dateFinTrv: toDateTimeLocal(work.dateFinTrv) || toDateTimeLocal(new Date().toISOString()),
       cmtTrvStt: work.cmtTrvStt ?? '',
-      metrageCable: toInputNumber(metrics.metrageCable),
       nombrePv: toInputNumber(metrics.nombrePv),
       debitDl: toInputNumber(metrics.debitDl),
       debitUl: toInputNumber(metrics.debitUl),
@@ -1126,7 +1301,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     };
   }
 
-  private buildWorkPayload(location: TechGeoSnapshot): CompleteWorkRequest | null {
+  private buildWorkPayload(target: CaseResponse, location: TechGeoSnapshot): CompleteWorkRequest | null {
     const repTravauxStt = this.workForm.repTravauxStt.trim();
     const dateFinTrv = toIso(this.workForm.dateFinTrv);
     const cmtTrvStt = this.workForm.cmtTrvStt.trim();
@@ -1136,11 +1311,19 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return null;
     }
 
+    const usedEquipmentPayload = this.isTechRole
+      ? buildUsedEquipmentPayload(this.usageLines, this.techStockItems, this.caseUsedEquipmentItems(target))
+      : { items: [], error: null };
+
+    if (usedEquipmentPayload.error) {
+      this.banner = { tone: 'danger', text: usedEquipmentPayload.error };
+      return null;
+    }
+
     return {
       repTravauxStt,
       dateFinTrv,
       cmtTrvStt,
-      metrageCable: toMaybeNumber(this.workForm.metrageCable),
       nombrePv: toMaybeNumber(this.workForm.nombrePv),
       debitDl: toMaybeNumber(this.workForm.debitDl),
       debitUl: toMaybeNumber(this.workForm.debitUl),
@@ -1150,7 +1333,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       locationLatitude: location.latitude,
       locationLongitude: location.longitude,
       locationCapturedAt: location.capturedAt,
-      locationAccuracyMeters: location.accuracyMeters ?? undefined
+      locationAccuracyMeters: location.accuracyMeters ?? undefined,
+      usedEquipment: this.isTechRole ? usedEquipmentPayload.items : undefined
     };
   }
 
@@ -1523,9 +1707,6 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       case 'workCmtTrvStt':
         this.workForm.cmtTrvStt = fieldValue;
         break;
-      case 'workMetrageCable':
-        this.workForm.metrageCable = fieldValue;
-        break;
       case 'workNombrePv':
         this.workForm.nombrePv = fieldValue;
         break;
@@ -1671,12 +1852,24 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   private startClock(): void {
     this.clockHandle = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
       this.nowEpochMs = Date.now();
     }, TechActivationCasesComponent.CLOCK_TICK_MS);
   }
 
   private startResync(): void {
     this.resyncHandle = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
+      if (this.selectedCaseId || this.actionBusy || this.panelLoading || this.locationBusy) {
+        return;
+      }
+
       if (!this.loading && !this.syncing) {
         this.syncing = true;
         this.loadCases();
@@ -1692,8 +1885,49 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return (this.authStore.user()?.email ?? '').trim().toLowerCase();
   }
 
+  private canAccessFieldWorkspace(item: CaseResponse): boolean {
+    return this.isCaseOwnedByTech(item) || this.isCaseOwnedBySttSelfExecutor(item);
+  }
+
+  private isCaseOwnedByCurrentExecutor(item: CaseResponse): boolean {
+    return this.isCaseOwnedByTech(item) || this.isCaseOwnedBySttSelfExecutor(item);
+  }
+
   private isCaseOwnedByTech(item: CaseResponse): boolean {
-    return (item.techEmail ?? '').trim().toLowerCase() === this.currentUserEmail;
+    if ((item.techEmail ?? '').trim().toLowerCase() !== this.currentUserEmail || !item.techId) {
+      return false;
+    }
+
+    if (!item.executionMode && !item.executorRole && !item.executorId) {
+      return true;
+    }
+
+    return item.executionMode === 'TECH_EXECUTION'
+      && item.executorRole === 'TECH'
+      && item.executorId === item.techId;
+  }
+
+  private isCaseOwnedBySttSelfExecutor(item: CaseResponse): boolean {
+    return (item.sttEmail ?? '').trim().toLowerCase() === this.currentUserEmail
+      && item.executionMode === 'STT_SELF_EXECUTION'
+      && item.executorRole === 'STT'
+      && !!item.sttId
+      && item.executorId === item.sttId;
+  }
+
+  private caseUsedEquipmentItems(item?: CaseResponse | null): CaseUsedEquipmentItem[] {
+    return item ? (extractWork(item).usedEquipment ?? []) : [];
+  }
+
+  private setUsageLinesFromCase(item?: CaseResponse | null): void {
+    this.usageLines = usageLinesFromCaseItems(this.caseUsedEquipmentItems(item));
+  }
+
+  private syncUsageSelection(item?: CaseResponse | null): void {
+    const hasUserSelection = this.usageLines.some((line) => line.equipmentId.trim() || String(line.quantity ?? '').trim());
+    if (!hasUserSelection) {
+      this.setUsageLinesFromCase(item ?? this.selectedCase);
+    }
   }
 
   private toNullable(value?: string | null): string | null {

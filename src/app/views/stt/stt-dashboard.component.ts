@@ -3,43 +3,17 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { finalize, forkJoin } from 'rxjs';
-import Swal from 'sweetalert2';
 
 import { CasesService } from '../../core/cases/cases.service';
 import { CaseResponse, PerformanceSummaryResponse } from '../../core/cases/models/case.model';
 import { TechInvitation, TechInvitationService } from '../../core/invitations/tech-invitation.service';
+import { TUNISIA_GOVERNORATES } from '../../core/shared/tunisia-governorates';
+import { GovernorateSelectorComponent } from '../../shared/modals/governorate-selector/governorate-selector.component';
 import { SttTechnicianApiService } from '../../core/stt/stt-technician-api.service';
 import { TechnicianListItem } from '../../core/stt/models/technician-list-item.model';
 import { SwalService } from '../../core/ui/swal.service';
 import { AppUser } from '../../core/users/user.model';
 import { UserService } from '../../core/users/user.service';
-
-const TUNISIA_GOVERNORATES = [
-  'Tunis',
-  'Ariana',
-  'Ben Arous',
-  'Mannouba',
-  'Nabeul',
-  'Zaghouan',
-  'Bizerte',
-  'B\u00E9ja',
-  'Jendouba',
-  'Le Kef',
-  'Siliana',
-  'Sousse',
-  'Monastir',
-  'Mahdia',
-  'Sfax',
-  'Kairouan',
-  'Kasserine',
-  'Sidi Bouzid',
-  'Gab\u00E8s',
-  'M\u00E9denine',
-  'Tataouine',
-  'Gafsa',
-  'Tozeur',
-  'K\u00E9bili'
-] as const;
 
 type DashboardStat = {
   label: string;
@@ -51,7 +25,7 @@ type DashboardStat = {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, IconDirective],
+  imports: [CommonModule, RouterLink, DatePipe, IconDirective, GovernorateSelectorComponent],
   templateUrl: './stt-dashboard.component.html',
   styleUrl: './stt-dashboard.component.scss'
 })
@@ -67,6 +41,10 @@ export class SttDashboardComponent implements OnInit {
   loading = false;
   coverageSaving = false;
   error: string | null = null;
+
+  // Governorate selector modal state
+  govSelectorVisible = false;
+  govSelectorSelected: string[] = [];
 
   cases: CaseResponse[] = [];
   technicians: TechnicianListItem[] = [];
@@ -278,60 +256,33 @@ export class SttDashboardComponent implements OnInit {
     return `${Math.ceil(remaining / 3600)} h left`;
   }
 
-  async openSuggestZonesModal(): Promise<void> {
-    const selectedGovernorates = new Set([
-      ...this.approvedCoverageAreas,
-      ...this.requestedCoverageAreas
-    ]);
-
-    const result = await Swal.fire<string[]>({
-      titleText: 'Suggest Coverage Areas',
-      width: 760,
-      html: `
-        <div class="coverage-request-modal">
-          <div class="coverage-request-modal__hint">
-            Select every governorate you want to operate in. Already approved areas stay active, and new ones will be sent to the responsible ZM for validation.
-          </div>
-          <div class="coverage-request-modal__grid">
-            ${this.governorateOptions.map((governorate) => `
-              <label class="coverage-request-modal__option">
-                <input
-                  type="checkbox"
-                  name="sw-coverage-request"
-                  value="${this.escapeHtml(governorate)}"
-                  ${selectedGovernorates.has(governorate) ? 'checked' : ''}
-                />
-                <span>${this.escapeHtml(governorate)}</span>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Submit suggestion',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#321fdb',
-      preConfirm: () => {
-        const popup = Swal.getPopup();
-        if (!popup) {
-          return [];
-        }
-
-        return Array.from(
-          popup.querySelectorAll<HTMLInputElement>('input[name="sw-coverage-request"]:checked')
-        ).map((checkbox) => checkbox.value);
-      }
-    });
-
-    if (!result.isConfirmed) {
-      return;
+  executorSummary(item: CaseResponse): string {
+    if (item.executionMode === 'STT_SELF_EXECUTION') {
+      return `Executor: ${item.sttName || item.sttEmail || 'You'} (self)`;
     }
 
+    if (item.executionMode === 'TECH_EXECUTION') {
+      return `Executor: ${item.techName || item.techEmail || 'Technician'}`;
+    }
+
+    return 'Executor: not selected';
+  }
+
+  openSuggestZonesModal(): void {
+    this.govSelectorSelected = [
+      ...this.approvedCoverageAreas,
+      ...this.requestedCoverageAreas
+    ];
+    this.govSelectorVisible = true;
+  }
+
+  onGovSave(selected: string[]): void {
+    this.govSelectorVisible = false;
     this.coverageSaving = true;
     this.error = null;
 
     this.userService.requestMyCoverageAreas({
-      requestedGovernorates: result.value ?? []
+      requestedGovernorates: selected
     })
       .pipe(
         finalize(() => {
@@ -354,6 +305,10 @@ export class SttDashboardComponent implements OnInit {
           await this.swal.error('Suggestion failed', message);
         }
       });
+  }
+
+  onGovCancel(): void {
+    this.govSelectorVisible = false;
   }
 
   private casePriority(item: CaseResponse): number {
@@ -382,12 +337,4 @@ export class SttDashboardComponent implements OnInit {
     return Number.isNaN(epoch) ? 0 : epoch;
   }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
 }

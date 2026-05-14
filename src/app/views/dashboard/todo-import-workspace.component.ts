@@ -62,8 +62,10 @@ export class TodoImportWorkspaceComponent implements OnInit {
   readonly analyticsFiltersForm = this.fb.nonNullable.group({
     zoneManager: [''],
     gouvernorat: [''],
-    uploadedFrom: [''],
-    uploadedTo: ['']
+    openDateFrom: [''],
+    openDateTo: [''],
+    affectationDateFrom: [''],
+    affectationDateTo: ['']
   });
 
   selectedFile: File | null = null;
@@ -238,8 +240,10 @@ export class TodoImportWorkspaceComponent implements OnInit {
     this.analyticsFiltersForm.setValue({
       zoneManager: '',
       gouvernorat: '',
-      uploadedFrom: '',
-      uploadedTo: ''
+      openDateFrom: '',
+      openDateTo: '',
+      affectationDateFrom: '',
+      affectationDateTo: ''
     });
     this.loadAnalytics();
   }
@@ -342,8 +346,10 @@ export class TodoImportWorkspaceComponent implements OnInit {
     this.analyticsFiltersForm.setValue({
       zoneManager: '',
       gouvernorat: '',
-      uploadedFrom: '',
-      uploadedTo: ''
+      openDateFrom: '',
+      openDateTo: '',
+      affectationDateFrom: '',
+      affectationDateTo: ''
     }, { emitEvent: false });
   }
 

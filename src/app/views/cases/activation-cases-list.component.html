@@ -183,7 +183,7 @@
   <div *ngIf="loading" class="crm-state crm-state--loading">
     <div class="spinner-border" role="status"></div>
     <div>
-      <strong>Loading activation cases...</strong>
+      <strong>Loading {{ caseBoardLabel.toLowerCase() }} cases...</strong>
       <span>Preparing the latest CRM workflow data.</span>
     </div>
   </div>
@@ -242,7 +242,7 @@
     </div>
 
     <div class="stt-mobile-board d-lg-none" *ngIf="currentRole === 'ROLE_STT'">
-      <article class="stt-mobile-card" *ngFor="let item of sttMobileCases; trackBy: trackById">
+      <article class="stt-mobile-card" [class.stt-mobile-card--executor]="isSttExecutor(item)" *ngFor="let item of sttMobileCases; trackBy: trackById">
         <div class="stt-mobile-card__top">
           <div>
             <div class="stt-mobile-card__crm">{{ item.crmCase }}</div>
@@ -257,8 +257,10 @@
         </div>
 
         <div class="stt-mobile-card__chain">
-          <span class="stt-mobile-chip">TECH: {{ item.techName || item.techEmail || 'Not assigned' }}</span>
-          <span class="stt-mobile-chip">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
+          <span class="stt-mobile-chip stt-mobile-chip--mode">{{ executionModeLabel(item) }}</span>
+          <span class="stt-mobile-chip">Executor: {{ executorDisplayName(item) }}</span>
+          <span class="stt-mobile-chip">TECH: {{ techDisplayName(item) === '-' ? 'Not assigned' : techDisplayName(item) }}</span>
+          <span class="stt-mobile-chip">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
         </div>
 
         <div class="stt-mobile-card__sla">
@@ -272,15 +274,18 @@
 
         <div class="stt-mobile-card__summary">
           <div><strong>RDV</strong><span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'Not set' }}</span></div>
-          <div><strong>Work</strong><span>{{ item.repTravauxStt || 'Pending' }}</span></div>
+          <div><strong>{{ item.type === 'PLAINTE' ? 'Resolution' : 'Work' }}</strong><span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Pending' }}</span></div>
         </div>
 
         <div class="stt-mobile-actions">
-          <button *ngIf="canAssignTech(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openAssignTech(item)">
-            <svg cIcon name="cilUserFollow"></svg>Assign
+          <button *ngIf="canExecuteMyself(item)" type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id) || isSttExecutor(item)" (click)="openExecuteMyself(item)">
+            <svg cIcon name="cilUser"></svg>{{ isSttExecutor(item) ? 'Executing' : 'Execute myself' }}
           </button>
-          <button *ngIf="canSetRdv(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openRdvPopup(item)">
-            <svg cIcon name="cilCalendar"></svg>RDV
+          <button *ngIf="canAssignTech(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openAssignTech(item)">
+            <svg cIcon name="cilUserFollow"></svg>Assign technician
+          </button>
+          <button type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openSttPrimaryAction(item)">
+            <svg cIcon [name]="sttPrimaryActionIcon(item)"></svg>{{ sttPrimaryActionLabel(item) }}
           </button>
           <button type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id)" (click)="openDetails(item)">
             <svg cIcon name="cilMagnifyingGlass"></svg>Details
@@ -297,7 +302,7 @@
       <div class="crm-table-panel__header">
         <div>
           <div class="crm-panel-header__eyebrow">Case queue</div>
-          <div class="crm-panel-header__title">Activation cases</div>
+          <div class="crm-panel-header__title">{{ caseBoardLabelPlural }}</div>
         </div>
         <div class="crm-table-panel__meta">{{ rangeLabel() }}</div>
       </div>
@@ -345,19 +350,25 @@
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--zm">
                     <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.ownerZmName || item.zmName, item.zmEmail) }}</span>
-                    <span class="assignment-badge">Owner ZM: {{ ownerZmDisplayName(item) || '-' }}</span>
+                    <span class="assignment-badge">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--stt">
                     <span class="assignee-avatar assignee-avatar--stt">{{ initialsFor(item.sttName, item.sttEmail) }}</span>
-                    <span class="assignment-badge">STT: {{ item.sttName || item.sttEmail || '-' }}</span>
+                    <span class="assignment-badge">STT: {{ sttDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
                   <div class="assignment-person assignment-person--tech">
                     <span class="assignee-avatar assignee-avatar--tech">{{ initialsFor(item.techName, item.techEmail) }}</span>
-                    <span class="assignment-badge">TECH: {{ item.techName || item.techEmail || '-' }}</span>
+                    <span class="assignment-badge">TECH: {{ techDisplayName(item) }}</span>
+                  </div>
+                </div>
+                <div class="chain-line">
+                  <div class="assignment-person assignment-person--executor">
+                    <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorDisplayName(item), executorDisplayName(item)) }}</span>
+                    <span class="assignment-badge">Executor: {{ executorDisplayName(item) }} - {{ executionModeLabel(item) }}</span>
                   </div>
                 </div>
               </td>
@@ -383,12 +394,16 @@
 
               <td>
                 <div class="case-execution__item">
+                  <svg cIcon name="cilUser"></svg>
+                  <span>{{ executionModeLabel(item) }} - {{ executorDisplayName(item) }}</span>
+                </div>
+                <div class="case-execution__item">
                   <svg cIcon name="cilCalendar"></svg>
                   <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM/yyyy HH:mm') : 'RDV not set' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilTask"></svg>
-                  <span>{{ item.repTravauxStt || 'Work not submitted' }}</span>
+                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work not submitted' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCheckCircle"></svg>
@@ -407,6 +422,17 @@
                     (click)="openAssignStt(item)"
                   >
                     <svg cIcon name="cilPeople"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canExecuteMyself(item)"
+                    type="button"
+                    class="action-btn action-btn--primary"
+                    title="Execute myself"
+                    [disabled]="isBusy(item.id) || isSttExecutor(item)"
+                    (click)="openExecuteMyself(item)"
+                  >
+                    <svg cIcon name="cilUser"></svg>
                   </button>
 
                   <button
@@ -429,6 +455,17 @@
                     (click)="openRdvPopup(item)"
                   >
                     <svg cIcon name="cilCalendar"></svg>
+                  </button>
+
+                  <button
+                    *ngIf="canDiagnose(item)"
+                    type="button"
+                    class="action-btn action-btn--teal"
+                    title="Save diagnosis"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openDiagnosisPopup(item)"
+                  >
+                    <svg cIcon name="cilNotes"></svg>
                   </button>
 
                   <button
@@ -465,6 +502,17 @@
                   </button>
 
                   <button
+                    *ngIf="canReopenComplaint(item)"
+                    type="button"
+                    class="action-btn action-btn--amber"
+                    title="Reopen complaint"
+                    [disabled]="isBusy(item.id)"
+                    (click)="openReopenComplaint(item)"
+                  >
+                    <svg cIcon name="cilReload"></svg>
+                  </button>
+
+                  <button
                     *ngIf="canView(item)"
                     type="button"
                     class="action-btn action-btn--soft"
@@ -481,7 +529,7 @@
             <tr *ngIf="paginatedCases.length === 0">
               <td colspan="8">
                 <div class="crm-empty-state">
-                  <div class="crm-empty-state__title">No activation cases found</div>
+                  <div class="crm-empty-state__title">No {{ caseBoardLabel.toLowerCase() }} cases found</div>
                   <div class="crm-empty-state__hint">Try changing search or filters.</div>
                 </div>
               </td>
@@ -504,3 +552,24 @@
     </section>
   </ng-container>
 </div>
+
+<app-case-detail
+  [visible]="caseDetailVisible"
+  (visibleChange)="caseDetailVisible = $event"
+  [caseData]="caseDetailData"
+  (close)="onCaseDetailClose()"
+  (download)="onCaseDetailDownload($event)"
+></app-case-detail>
+
+<app-assign-user-modal
+  [visible]="assignModalVisible"
+  (visibleChange)="assignModalVisible = $event"
+  [title]="assignModalTitle"
+  [description]="assignModalDescription"
+  [users]="assignModalUsers"
+  [currentUserId]="assignModalCurrentId"
+  [confirmText]="assignModalConfirmText"
+  [loading]="assignModalLoading"
+  (save)="onAssignSave($event)"
+  (cancel)="onAssignCancel()"
+></app-assign-user-modal>

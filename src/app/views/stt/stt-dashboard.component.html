@@ -123,7 +123,7 @@
             </div>
 
             <div class="stt-case-card__footer">
-              <span>TECH: {{ item.techName || item.techEmail || 'Not assigned' }}</span>
+              <span>{{ executorSummary(item) }}</span>
               <a routerLink="/stt/cases/activation">Open queue</a>
             </div>
           </article>
@@ -182,3 +182,14 @@
     </section>
   </ng-container>
 </div>
+
+<app-governorate-selector
+  [visible]="govSelectorVisible"
+  (visibleChange)="govSelectorVisible = $event"
+  [selected]="govSelectorSelected"
+  title="Suggest Coverage Areas"
+  description="Select every governorate you want to operate in. Already approved areas stay active, and new ones will be sent to the responsible ZM for validation."
+  confirmText="Submit suggestion"
+  (save)="onGovSave($event)"
+  (cancel)="onGovCancel()"
+></app-governorate-selector>

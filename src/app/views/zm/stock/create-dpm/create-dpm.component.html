@@ -1,0 +1,113 @@
+<div class="dpm-shell">
+  <div class="dpm-card">
+
+    <!-- Header -->
+    <div class="dpm-header">
+      <div class="dpm-eyebrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+        New Request
+      </div>
+      <h1 class="dpm-title">Create DPM Request</h1>
+    </div>
+
+    <div class="dpm-form">
+      @if (error) {
+        <div class="dpm-alert">{{ error }}</div>
+      }
+
+      <!-- STT selector -->
+      <div class="dpm-field">
+        <label class="dpm-label">Target STT *</label>
+        @if (loadingStts) {
+          <c-spinner size="sm"></c-spinner>
+        } @else {
+          <app-searchable-select
+            [(ngModel)]="selectedSttId"
+            [options]="sttOptions"
+            placeholder="Search and select an STT…">
+          </app-searchable-select>
+        }
+      </div>
+
+      <!-- Delivery person -->
+      <div class="dpm-field">
+        <label class="dpm-label">Delivery Person Name *</label>
+        <input class="dpm-input" type="text" [(ngModel)]="deliveryPersonName"
+               placeholder="Person from ZM side who will deliver" />
+      </div>
+
+      <!-- Notes -->
+      <div class="dpm-field">
+        <label class="dpm-label">Notes</label>
+        <input class="dpm-input" type="text" [(ngModel)]="notes"
+               placeholder="Optional notes" />
+      </div>
+
+      <!-- Equipment lines -->
+      <div class="dpm-lines-section">
+        <div class="dpm-lines-header">
+          <span class="dpm-lines-label">Equipment Lines *</span>
+          <button class="dpm-add-btn" type="button" (click)="addLine()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Line
+          </button>
+        </div>
+
+        @if (lines.length === 0) {
+          <div class="dpm-lines-empty">No lines yet — click "Add Line" to start.</div>
+        }
+
+        @for (line of lines; track $index; let i = $index) {
+          <div class="dpm-line-card">
+            <div class="dpm-line-row">
+              @if (loadingEquipment) {
+                <c-spinner size="sm"></c-spinner>
+              } @else {
+                <app-searchable-select
+                  [(ngModel)]="line.equipmentId"
+                  (ngModelChange)="onEquipmentChange(line)"
+                  [options]="equipmentOptionsFor(line)"
+                  placeholder="Select equipment…">
+                </app-searchable-select>
+              }
+
+              <div class="dpm-qty-control">
+                <button class="dpm-qty-btn" type="button"
+                        (click)="decrement(line)" [disabled]="line.requestedQuantity <= 1">−</button>
+                <input class="dpm-qty-input" type="number" min="1"
+                       [(ngModel)]="line.requestedQuantity" />
+                <button class="dpm-qty-btn" type="button" (click)="increment(line)">+</button>
+              </div>
+
+              <button class="dpm-remove-btn" type="button" (click)="removeLine(i)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            @if (line.equipmentImageUrl) {
+              <img class="dpm-line-img" [src]="line.equipmentImageUrl" alt="" />
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="dpm-footer">
+      <a class="dpm-cancel-btn" routerLink="/zm/stock/my-tracking">Cancel</a>
+      <button class="dpm-submit-btn" type="button"
+              [disabled]="!canSubmit || submitting" (click)="submit()">
+        @if (submitting) {
+          <c-spinner size="sm"></c-spinner>
+        }
+        Submit DPM
+      </button>
+    </div>
+
+  </div>
+</div>

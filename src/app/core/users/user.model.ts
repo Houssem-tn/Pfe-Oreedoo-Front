@@ -32,11 +32,14 @@ export interface AppUser {
   assignedSttId?: string | null;
   assignedSttEmail?: string | null;
 
+  canCreateDpm?: boolean;
+
   assignedZmId?: string | null;
   assignedZmEmail?: string | null;
   assignedGovernorates?: string[] | null;
   coveredGovernorates?: string[] | null;
   requestedGovernorates?: string[] | null;
+  coverageByModule?: Record<string, string[]> | null;
 
   validatedAt?: string | null;
   validatedBy?: string | null;

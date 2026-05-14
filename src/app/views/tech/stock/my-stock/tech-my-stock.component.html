@@ -1,0 +1,154 @@
+<div>
+
+  <!-- ── Pending Stock Confirmations ─────────────────────────────────────── -->
+  @if (!loading && pendingConfirmations.length > 0) {
+    <c-card class="mb-4 border-warning">
+      <c-card-header class="bg-warning bg-opacity-10 d-flex align-items-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <strong>Pending Stock Confirmations</strong>
+        <c-badge color="warning" class="ms-1">{{ pendingConfirmations.length }}</c-badge>
+      </c-card-header>
+      <c-card-body>
+        <p class="text-muted small mb-3">
+          The following stock deliveries are waiting for your confirmation. Once confirmed, the items will be added to your inventory.
+        </p>
+        <div class="d-flex flex-column gap-3">
+          @for (dist of pendingConfirmations; track dist.id) {
+            <div class="border rounded p-3 bg-warning bg-opacity-10">
+              <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                <div>
+                  <div class="fw-semibold">From: {{ dist.sttName ?? dist.sttId }}</div>
+                  @if (dist.dpmId) {
+                    <small class="text-muted">DPM: {{ dist.dpmId }}</small>
+                  }
+                  <div class="text-muted small mt-1">
+                    Sent {{ dist.distributedAt | date:'dd MMM yyyy, HH:mm' }}
+                  </div>
+                </div>
+                <div class="text-end">
+                  <span class="badge text-bg-warning">{{ itemsLabel(dist) }}</span>
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                @for (item of dist.items; track item.equipmentId) {
+                  <span class="badge text-bg-secondary fw-normal">
+                    {{ item.equipmentName }} — {{ item.quantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
+                  </span>
+                }
+              </div>
+
+              @if (dist.notes) {
+                <div class="text-muted small mb-2">Note: {{ dist.notes }}</div>
+              }
+
+              <button cButton color="success" size="sm"
+                      [disabled]="confirming[dist.id]"
+                      (click)="confirmReception(dist)">
+                @if (confirming[dist.id]) {
+                  <c-spinner size="sm" class="me-1"></c-spinner>
+                }
+                Confirm Reception
+              </button>
+            </div>
+          }
+        </div>
+      </c-card-body>
+    </c-card>
+  }
+
+  <!-- ── My Equipment Stock ──────────────────────────────────────────────── -->
+  <c-card>
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <strong>My Equipment Stock</strong>
+      <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
+        <svg cIcon name="cilReload"></svg>
+      </button>
+    </c-card-header>
+    <c-card-body>
+      @if (error) {
+        <div class="alert alert-danger">{{ error }}</div>
+      }
+
+      @if (loading) {
+        <div class="text-center py-4">
+          <c-spinner size="sm"></c-spinner>
+          Loading your stock...
+        </div>
+      } @else if (!stock || stock.items.length === 0) {
+        <div class="text-center text-muted py-4">
+          <svg cIcon name="cilStorage" size="3xl" class="mb-2 text-secondary"></svg>
+          <p>You have not received any equipment yet.</p>
+        </div>
+      } @else {
+        <c-row class="g-3 mb-3">
+          <c-col [sm]="4">
+            <div class="border rounded p-3 h-100 bg-light">
+              <small class="text-muted d-block mb-1">Received</small>
+              <div class="fs-5 fw-bold text-dark">{{ totalReceivedLabel }}</div>
+            </div>
+          </c-col>
+          <c-col [sm]="4">
+            <div class="border rounded p-3 h-100 bg-light">
+              <small class="text-muted d-block mb-1">Used</small>
+              <div class="fs-5 fw-bold text-danger">{{ totalUsedLabel }}</div>
+            </div>
+          </c-col>
+          <c-col [sm]="4">
+            <div class="border rounded p-3 h-100 bg-light">
+              <small class="text-muted d-block mb-1">Remaining</small>
+              <div class="fs-5 fw-bold text-success">{{ totalRemainingLabel }}</div>
+            </div>
+          </c-col>
+        </c-row>
+
+        <c-row class="g-3">
+          @for (item of stock.items; track item.equipmentId) {
+            <c-col [sm]="6" [lg]="4">
+              <div class="border rounded p-3 h-100 shadow-sm">
+                <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                  <div>
+                    <div class="fw-semibold mb-1">{{ item.equipmentName }}</div>
+                    <small class="text-muted">{{ unitName(item) }}</small>
+                  </div>
+                  <c-badge [color]="item.remainingQuantity > 0 ? 'success' : 'danger'">
+                    {{ item.remainingQuantity }} left
+                  </c-badge>
+                </div>
+
+                <div class="fs-3 fw-bold text-primary mb-3">
+                  {{ item.remainingQuantity }}
+                  <small class="fs-6 text-muted">{{ unitLabel(item) }}</small>
+                </div>
+
+                <div class="d-flex justify-content-between small mb-1">
+                  <span class="text-muted">Received</span>
+                  <strong>{{ item.receivedQuantity }} {{ unitLabel(item) }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small mb-2">
+                  <span class="text-muted">Used</span>
+                  <strong class="text-danger">{{ item.usedQuantity }} {{ unitLabel(item) }}</strong>
+                </div>
+
+                @if (item.lastReceivedAt) {
+                  <div class="pt-2 mt-2 border-top">
+                    <small class="text-muted">Last received: {{ item.lastReceivedAt | date:'dd/MM/yyyy' }}</small>
+                  </div>
+                }
+              </div>
+            </c-col>
+          }
+        </c-row>
+
+        <div class="mt-3 text-muted">
+          <small>Last updated: {{ stock.lastUpdatedAt | date:'dd/MM/yyyy HH:mm' }}</small>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+
+</div>

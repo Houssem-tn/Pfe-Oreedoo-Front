@@ -23,6 +23,11 @@ export const navZm: INavData[] = [
     iconComponent: { name: 'cilFolder' }
   },
   {
+    name: 'Complaint Cases',
+    url: '/zm/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
+  {
     name: 'Inject Todos',
     url: '/zm/inject-todos',
     iconComponent: { name: 'cilCloudUpload' }
@@ -56,6 +61,33 @@ export const navZm: INavData[] = [
   {
     name: 'Reports',
     url: '/zm/reports',
+    iconComponent: { name: 'cilChart' }
+  },
+
+  {
+    title: true,
+    name: 'Stock'
+  },
+
+  {
+    name: 'My DPMs',
+    url: '/zm/stock/my-tracking',
+    iconComponent: { name: 'cilStorage' }
+  },
+
+  {
+    name: 'Create DPM',
+    url: '/zm/stock/create-dpm',
+    iconComponent: { name: 'cilPlus' }
+  },
+  {
+    name: 'Team Stock',
+    url: '/zm/stock/team-stock',
+    iconComponent: { name: 'cilPeople' }
+  },
+  {
+    name: 'Case Stock Audit',
+    url: '/zm/stock/case-audit',
     iconComponent: { name: 'cilChart' }
   }
 ];

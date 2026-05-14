@@ -1,0 +1,305 @@
+<div class="zca-shell">
+
+  <!-- Hero -->
+  <div class="zca-hero">
+    <div class="zca-hero__left">
+      <div class="zca-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        Stock Audit
+      </div>
+      <div class="zca-hero__title">Case Stock Consumption</div>
+      <div class="zca-hero__sub">Track equipment used by your technicians during field interventions</div>
+    </div>
+
+    @if (summary) {
+      <div class="zca-hero__chips">
+        <div class="zca-chip">
+          <span class="zca-chip__val">{{ summary.totalConsumptions }}</span>
+          <span class="zca-chip__lbl">Cases</span>
+        </div>
+        <div class="zca-chip zca-chip--cable">
+          <span class="zca-chip__val">{{ summary.cableTotalMeters }} m</span>
+          <span class="zca-chip__lbl">Cable</span>
+        </div>
+        <div class="zca-chip zca-chip--box">
+          <span class="zca-chip__val">{{ summary.totalBoxesUsed }}</span>
+          <span class="zca-chip__lbl">Boxes / Pcs</span>
+        </div>
+        @if (summary.topTechnicianName) {
+          <div class="zca-chip zca-chip--top">
+            <span class="zca-chip__val">{{ summary.topTechnicianName }}</span>
+            <span class="zca-chip__lbl">Top technician</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Toolbar -->
+  <div class="zca-toolbar">
+    <div class="zca-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="M21 21l-4.35-4.35"></path>
+      </svg>
+      <input class="zca-search__input" type="text" [(ngModel)]="searchFilter"
+             placeholder="Search by case, technician, or STT…" />
+    </div>
+
+    <select class="zca-select" [(ngModel)]="caseTypeFilter">
+      <option value="">All types</option>
+      <option value="ACTIVATION">Activation</option>
+      <option value="PLAINTE">Plainte</option>
+    </select>
+
+    <button class="zca-refresh-btn" (click)="load()" [disabled]="loading">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path>
+      </svg>
+      Refresh
+    </button>
+
+    <span class="zca-count">{{ filtered.length }} record{{ filtered.length !== 1 ? 's' : '' }}</span>
+  </div>
+
+  @if (error) {
+    <div class="zca-alert">{{ error }}</div>
+  }
+
+  @if (loading) {
+    <div class="zca-loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading case consumptions…</span>
+    </div>
+  }
+
+  @if (!loading && filtered.length === 0 && !error) {
+    <div class="zca-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+      </svg>
+      <span>No consumption records found for your team.</span>
+    </div>
+  }
+
+  <!-- Table -->
+  @if (!loading && filtered.length > 0) {
+    <div class="zca-card">
+
+      <div class="zca-table-head">
+        <span>CRM Case</span>
+        <span>Type</span>
+        <span>Technician</span>
+        <span>STT</span>
+        <span>Items Used</span>
+        <span class="zca-cell--right">Qty</span>
+        <span>Date</span>
+        <span></span>
+      </div>
+
+      @for (c of filtered; track c.id) {
+        <div class="zca-row" (click)="openDetail(c)">
+
+          <div class="zca-row__cell">
+            <span class="zca-case-ref">{{ c.crmCase ?? c.caseId }}</span>
+          </div>
+
+          <div class="zca-row__cell">
+            <span class="zca-type-pill"
+                  [class.zca-type-pill--activation]="c.caseType === 'ACTIVATION'"
+                  [class.zca-type-pill--plainte]="c.caseType === 'PLAINTE'">
+              {{ caseTypeLabel(c.caseType) }}
+            </span>
+          </div>
+
+          <div class="zca-row__cell">
+            @if (c.technicianName) {
+              <div class="zca-actor">
+                <div class="zca-av zca-av--tech">{{ nameInitials(c.technicianName) }}</div>
+                <span class="zca-actor__name">{{ c.technicianName }}</span>
+              </div>
+            } @else {
+              <span class="zca-muted">—</span>
+            }
+          </div>
+
+          <div class="zca-row__cell">
+            <span class="zca-muted">{{ c.sttName ?? '—' }}</span>
+          </div>
+
+          <div class="zca-row__cell">
+            <div class="zca-item-chips">
+              @for (item of c.consumedItems; track item.equipmentId) {
+                <span class="zca-item-chip">
+                  {{ item.equipmentName }}
+                  <strong>{{ item.quantityUsed }}{{ unitLabel(item.unit) !== 'unit' ? ' ' + unitLabel(item.unit) : '' }}</strong>
+                </span>
+              }
+              @if (!c.consumedItems?.length) {
+                <span class="zca-muted">—</span>
+              }
+            </div>
+          </div>
+
+          <div class="zca-row__cell zca-cell--right">
+            <span class="zca-qty-badge">{{ consumptionQtyLabel(c) }}</span>
+          </div>
+
+          <div class="zca-row__cell">
+            <span class="zca-date">{{ c.consumedAt | date:'dd MMM yyyy' }}</span>
+            <span class="zca-time">{{ c.consumedAt | date:'HH:mm' }}</span>
+          </div>
+
+          <svg class="zca-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6"></path>
+          </svg>
+
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- ── Detail modal ─────────────────────────────────────────────────── -->
+  @if (selectedConsumption && detailVisible) {
+    <div class="zca-backdrop" (click)="closeDetail()">
+      <div class="zca-panel" (click)="$event.stopPropagation()">
+
+        <!-- Panel header -->
+        <div class="zca-panel-head">
+          <div class="zca-panel-head__left">
+            <span class="zca-panel-title">{{ selectedConsumption.crmCase ?? selectedConsumption.caseId }}</span>
+            <span class="zca-type-pill"
+                  [class.zca-type-pill--activation]="selectedConsumption.caseType === 'ACTIVATION'"
+                  [class.zca-type-pill--plainte]="selectedConsumption.caseType === 'PLAINTE'">
+              {{ caseTypeLabel(selectedConsumption.caseType) }}
+            </span>
+          </div>
+          <button class="zca-panel-close" type="button" (click)="closeDetail()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="zca-panel-body">
+
+          <!-- Case info -->
+          <div class="zca-section-title">Case Information</div>
+          <div class="zca-info-grid">
+            <div class="zca-info-row">
+              <span class="zca-info-lbl">CRM Case</span>
+              <span class="zca-info-val">{{ selectedConsumption.crmCase ?? '—' }}</span>
+            </div>
+            <div class="zca-info-row">
+              <span class="zca-info-lbl">Case Type</span>
+              <span class="zca-info-val">{{ caseTypeLabel(selectedConsumption.caseType) }}</span>
+            </div>
+            <div class="zca-info-row">
+              <span class="zca-info-lbl">Consumed At</span>
+              <span class="zca-info-val">{{ selectedConsumption.consumedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+            </div>
+          </div>
+
+          <!-- Actors chain -->
+          <div class="zca-section-title" style="margin-top:1.25rem">Actors</div>
+          <div class="zca-actors-chain">
+
+            <div class="zca-actor-card">
+              <div class="zca-av zca-av--tech zca-av--lg">
+                {{ nameInitials(selectedConsumption.technicianName) }}
+              </div>
+              <div class="zca-actor-info">
+                <span class="zca-actor-name">{{ selectedConsumption.technicianName ?? '—' }}</span>
+                <span class="zca-role-badge zca-role-badge--tech">TECH</span>
+              </div>
+            </div>
+
+            <svg class="zca-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+
+            <div class="zca-actor-card">
+              <div class="zca-av zca-av--stt zca-av--lg">
+                {{ nameInitials(selectedConsumption.sttName) }}
+              </div>
+              <div class="zca-actor-info">
+                <span class="zca-actor-name">{{ selectedConsumption.sttName ?? '—' }}</span>
+                <span class="zca-role-badge zca-role-badge--stt">STT</span>
+              </div>
+            </div>
+
+            <svg class="zca-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+
+            <div class="zca-actor-card">
+              <div class="zca-av zca-av--zm zca-av--lg">
+                {{ nameInitials(selectedConsumption.zmName) }}
+              </div>
+              <div class="zca-actor-info">
+                <span class="zca-actor-name">{{ selectedConsumption.zmName ?? '—' }}</span>
+                <span class="zca-role-badge zca-role-badge--zm">ZM</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Equipment used — clean table -->
+          <div class="zca-section-title" style="margin-top:1.25rem">
+            Equipment Used
+            <span class="zca-section-count">
+              {{ selectedConsumption.consumedItems.length }} type{{ selectedConsumption.consumedItems.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+
+          @if (selectedConsumption.consumedItems.length === 0) {
+            <p class="zca-muted" style="font-size:0.875rem;padding:0.5rem 0">
+              No stock was declared for this case.
+            </p>
+          }
+
+          @if (selectedConsumption.consumedItems.length > 0) {
+            <div class="zca-usage-table">
+              <div class="zca-usage-row zca-usage-row--head">
+                <span>Equipment</span>
+                <span class="zca-usage-cell--center">Qty Used</span>
+                <span class="zca-usage-cell--center">Unit</span>
+              </div>
+              @for (item of selectedConsumption.consumedItems; track item.equipmentId) {
+                <div class="zca-usage-row">
+                  <span class="zca-usage-name">{{ item.equipmentName ?? item.equipmentId }}</span>
+                  <span class="zca-usage-qty">{{ item.quantityUsed }}</span>
+                  <span class="zca-usage-unit">{{ unitLabel(item.unit) }}</span>
+                </div>
+              }
+              <div class="zca-usage-row zca-usage-row--total">
+                <span>Total</span>
+                <span class="zca-usage-qty">{{ consumptionQtyLabel(selectedConsumption) }}</span>
+                <span></span>
+              </div>
+            </div>
+          }
+
+          @if (selectedConsumption.notes) {
+            <div class="zca-info-row" style="margin-top:1rem">
+              <span class="zca-info-lbl">Notes</span>
+              <span class="zca-info-val">{{ selectedConsumption.notes }}</span>
+            </div>
+          }
+
+        </div>
+
+        <div class="zca-panel-foot">
+          <button class="zca-panel-foot__btn" type="button" (click)="closeDetail()">Close</button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>

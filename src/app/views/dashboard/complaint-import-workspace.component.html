@@ -1,0 +1,512 @@
+<c-row [gutter]="4">
+  <c-col xl="5" lg="6" xs="12">
+    <c-card class="dashboard-panel dashboard-panel--ooredoo h-100">
+      <c-card-header class="dashboard-panel__header">
+        <div>
+          <div class="dashboard-panel__eyebrow">Complaint CSV import</div>
+          <div class="dashboard-panel__title">Import Plainte File</div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div class="row g-3 align-items-end">
+          <div class="col-12">
+            <div class="ooredoo-upload-box">
+              <label class="form-label fw-semibold" for="complaint-import-file">CSV / XLS / XLSX file</label>
+              <input
+                #complaintImportFileInput
+                id="complaint-import-file"
+                type="file"
+                class="form-control ooredoo-input"
+                accept=".csv,.xls,.xlsx"
+                (change)="onFileSelected($event)"
+              />
+              <div class="form-text">
+                Expected columns include CRM_CASE, DATE_CREATION_CRM, OPENING_DATE_SUR_TIMOS, CONTACT_CL2, DETAIL, GOUVERNORAT, NAME_STT, REP_RDV, DATE_PRISE_RDV, REP_TRAVAUX_STT, DATE_FIN_TRV, NOTIF_RESOLUTION, OPEN_DATE_ACTIVATION, and the complaint workflow fields.
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="dashboard-file-meta" *ngIf="selectedFile">
+              <svg cIcon name="cilSpreadsheet"></svg>
+              <span>Selected file: <strong>{{ selectedFile.name }}</strong></span>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <button cButton color="primary" class="w-100 dashboard-action-button dashboard-action-button--primary" type="button" (click)="previewImport()" [disabled]="previewLoading">
+              <svg cIcon name="cilFilter" class="me-2"></svg>
+              {{ previewLoading ? 'Previewing...' : 'Preview Plainte File' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="alert alert-danger mt-4 mb-0" *ngIf="errorMessage">
+          <svg cIcon name="cilWarning" class="me-2"></svg>
+          {{ errorMessage }}
+        </div>
+
+        <div class="alert alert-warning mt-4 mb-0" *ngIf="warningMessage">
+          <svg cIcon name="cilInfo" class="me-2"></svg>
+          {{ warningMessage }}
+        </div>
+
+        <div class="alert alert-success mt-4 mb-0" *ngIf="importResult as result">
+          <div class="fw-semibold mb-1">
+            {{ result.mode === 'ANALYTICS' ? 'Complaint analytics batch processed' : result.mode === 'DISTRIBUTION' ? 'Complaint import batch processed' : 'Complaint analytics and import batch processed' }}
+          </div>
+          <div *ngIf="result.batchId; else distributionOnlySummary">
+            Complaint analytics batch {{ result.batchId }} stored {{ result.insertedRows }} new row(s). {{ result.duplicateRows }} duplicate row(s) and {{ result.invalidRows }} invalid row(s) were skipped from analytics storage.
+          </div>
+          <ng-template #distributionOnlySummary>
+            {{ result.duplicateRows }} duplicate analytics row(s) and {{ result.invalidRows }} invalid row(s) were skipped from analytics storage review.
+          </ng-template>
+          <div class="mt-2" *ngIf="result.distributionSummary as distribution">
+            Import created {{ distribution.createdCases }} case(s), refreshed {{ distribution.updatedExistingCases }} existing case(s), routed {{ distribution.assignedToZmCases }} row(s) to ZM ownership, and left {{ distribution.sentToAdminQueueCases }} row(s) in the admin queue.
+          </div>
+        </div>
+
+        <div class="dashboard-empty mt-4 align-items-start" *ngIf="hasPreview && importPreview as preview">
+          <div class="w-100">
+            <div class="fw-semibold">Choose what to do with this validated batch.</div>
+            <div class="text-body-secondary mt-1">
+              The same parsed file can feed plainte analytics, complaint workflow import, or both. Analytics storage still skips duplicate CRM_CASE rows that are already in the plainte dataset.
+            </div>
+
+            <div class="row g-2 mt-2">
+              <div class="col-xl-4 col-md-6">
+                <button
+                  cButton
+                  color="success"
+                  class="w-100 dashboard-action-button dashboard-action-button--success"
+                  type="button"
+                  (click)="importDataset('ANALYTICS')"
+                  [disabled]="!canAnalyzeBatch"
+                >
+                  <svg cIcon name="cilChartPie" class="me-2"></svg>
+                  {{ isProcessingMode('ANALYTICS') ? 'Analyzing...' : 'Analyze Batch' }}
+                </button>
+              </div>
+
+              <div class="col-xl-4 col-md-6">
+                <button
+                  cButton
+                  color="warning"
+                  class="w-100 dashboard-action-button"
+                  type="button"
+                  (click)="importDataset('DISTRIBUTION')"
+                  [disabled]="!canDistributeBatch"
+                >
+                  <svg cIcon name="cilShareAll" class="me-2"></svg>
+                  {{ isProcessingMode('DISTRIBUTION') ? 'Importing...' : 'Import Plainte File' }}
+                </button>
+              </div>
+
+              <div class="col-xl-4 col-md-12">
+                <button
+                  cButton
+                  color="primary"
+                  class="w-100 dashboard-action-button dashboard-action-button--primary"
+                  type="button"
+                  (click)="importDataset('ANALYTICS_AND_DISTRIBUTION')"
+                  [disabled]="!canAnalyzeAndDistribute"
+                >
+                  <svg cIcon name="cilCloudUpload" class="me-2"></svg>
+                  {{ isProcessingMode('ANALYTICS_AND_DISTRIBUTION') ? 'Running both...' : 'Analyze + Import Plainte File' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="small text-body-secondary mt-3">
+              Analytics-ready rows: {{ preview.validNewRows }}. Import-ready rows: {{ preview.processableRows }}. Workflow-ready rows: {{ preview.actionableRows }}.
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1" *ngIf="dashboard as analytics">
+          <div class="col-6">
+            <div class="preview-kpi preview-kpi--primary">
+              <span>Stored rows</span>
+              <strong>{{ analytics.storedRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="preview-kpi preview-kpi--success">
+              <span>Valid rows</span>
+              <strong>{{ analytics.validStoredRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="preview-kpi preview-kpi--warning">
+              <span>STTs involved</span>
+              <strong>{{ analytics.kpis.sttCount }}</strong>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="preview-kpi preview-kpi--info">
+              <span>Governorates</span>
+              <strong>{{ analytics.kpis.governorateCount }}</strong>
+            </div>
+          </div>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+
+  <c-col xl="7" lg="6" xs="12">
+    <c-card class="dashboard-panel dashboard-panel--ooredoo h-100" *ngIf="hasPreview && importPreview as preview">
+      <c-card-header class="dashboard-panel__header">
+        <div>
+          <div class="dashboard-panel__eyebrow">Complaint preview</div>
+          <div class="dashboard-panel__title">Parsed plainte file indicators</div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <div class="row g-3 preview-kpis">
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--neutral">
+              <span>Total rows</span>
+              <strong>{{ preview.totalRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--success">
+              <span>Complaint analytics-ready rows</span>
+              <strong>{{ preview.validNewRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--warning">
+              <span>Duplicate rows</span>
+              <strong>{{ preview.duplicateRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--danger">
+              <span>Invalid rows</span>
+              <strong>{{ preview.invalidRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--primary">
+              <span>Import-ready rows</span>
+              <strong>{{ preview.processableRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--primary">
+              <span>Distinct STTs</span>
+              <strong>{{ preview.distinctStts }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--info">
+              <span>Distinct governorates</span>
+              <strong>{{ preview.distinctGovernorates }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--neutral">
+              <span>En cours</span>
+              <strong>{{ preview.enCoursRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--warning">
+              <span>Effectué source</span>
+              <strong>{{ preview.effectueRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--neutral">
+              <span>Terminé source</span>
+              <strong>{{ preview.termineRows }}</strong>
+            </div>
+          </div>
+          <div class="col-6 col-xl-4">
+            <div class="preview-kpi preview-kpi--success">
+              <span>Workflow-ready rows</span>
+              <strong>{{ preview.actionableRows }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="invalid-summary mt-4" *ngIf="preview.invalidRows > 0">
+          <div class="invalid-summary__header">
+            <div>
+              <div class="dashboard-panel__eyebrow">Invalid data review</div>
+              <div class="dashboard-panel__title">Clickable invalid reasons</div>
+            </div>
+            <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+              {{ preview.invalidRows }} invalid row(s)
+            </span>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <button
+              cButton
+              color="secondary"
+              variant="outline"
+              type="button"
+              class="dashboard-action-button dashboard-action-button--secondary"
+              (click)="setInvalidReason(null)"
+              [disabled]="!selectedInvalidReason"
+            >
+              All invalid rows ({{ preview.invalidRows }})
+            </button>
+            <button
+              cButton
+              color="danger"
+              variant="outline"
+              type="button"
+              class="dashboard-action-button"
+              *ngFor="let item of invalidReasonSummaries; trackBy: trackByInvalidReason"
+              (click)="setInvalidReason(item.reason)"
+              [class.active]="selectedInvalidReason === item.reason"
+            >
+              {{ item.reason }} ({{ item.count }})
+            </button>
+          </div>
+        </div>
+
+        <div class="preview-toggle-group mt-4">
+          <button
+            cButton
+            color="secondary"
+            variant="outline"
+            type="button"
+            class="preview-toggle-group__button"
+            [class.preview-toggle-group__button--active]="activePreviewView === 'valid'"
+            (click)="setActivePreviewView('valid')"
+          >
+            <span class="preview-toggle-group__eyebrow">Valid rows</span>
+            <strong>{{ preview.validNewRows }} ready for analytics</strong>
+          </button>
+
+          <button
+            cButton
+            color="secondary"
+            variant="outline"
+            type="button"
+            class="preview-toggle-group__button"
+            [class.preview-toggle-group__button--active]="activePreviewView === 'invalid'"
+            (click)="setActivePreviewView('invalid')"
+          >
+            <span class="preview-toggle-group__eyebrow">Invalid rows</span>
+            <strong>{{ preview.invalidRows }} excluded row(s)</strong>
+          </button>
+        </div>
+
+        <div class="preview-section-grid preview-section-grid--single mt-4">
+          <section class="preview-review-card preview-review-card--clean" *ngIf="activePreviewView === 'valid'">
+            <div class="preview-review-card__header">
+              <div>
+                <div class="dashboard-panel__eyebrow">Complaint analytics-ready rows</div>
+                <div class="dashboard-panel__title">Rows that can be stored and analyzed</div>
+              </div>
+              <span class="badge rounded-pill bg-success-subtle text-success-emphasis">
+                {{ preview.validNewRows }} valid new row(s)
+              </span>
+            </div>
+
+            <div class="preview-review-card__metrics">
+              <div class="preview-review-metric">
+                <span>Preview rows</span>
+                <strong>{{ validPreviewRows.length }}</strong>
+              </div>
+              <div class="preview-review-metric">
+                <span>With end-to-end SLA</span>
+                <strong>{{ validRowsWithEndToEnd }}</strong>
+              </div>
+              <div class="preview-review-metric">
+                <span>Will feed dashboard</span>
+                <strong>{{ preview.validNewRows }}</strong>
+              </div>
+            </div>
+
+            <div class="preview-table-shell">
+              <div class="table-responsive">
+                <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>CRM Case</th>
+                      <th>Governorate</th>
+                      <th>STT</th>
+                      <th>Status</th>
+                      <th>E2E SLA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of validPreviewRows; trackBy: trackByPreviewRow">
+                      <td>#{{ row.rowNumber }}</td>
+                      <td class="fw-semibold">{{ row.crmCase || 'N/A' }}</td>
+                      <td>{{ row.gouvernorat || '-' }}</td>
+                      <td>{{ row.stt || '-' }}</td>
+                      <td>{{ row.statut || '-' }}</td>
+                      <td>{{ row.endToEndBusinessDays != null ? (row.endToEndBusinessDays + ' d') : '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="preview-review-card preview-review-card--invalid" *ngIf="activePreviewView === 'invalid'">
+            <div class="preview-review-card__header">
+              <div>
+                <div class="dashboard-panel__eyebrow">Invalid rows</div>
+                <div class="dashboard-panel__title">
+                  {{ selectedInvalidReason ? ('Rows matching "' + selectedInvalidReason + '"') : 'Rows excluded from storage' }}
+                </div>
+              </div>
+              <span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">
+                {{ selectedInvalidReasonCount }} row(s)
+              </span>
+            </div>
+
+            <div class="preview-review-card__metrics">
+              <div class="preview-review-metric preview-review-metric--danger">
+                <span>Displayed reason</span>
+                <strong>{{ selectedInvalidReason || 'All invalid' }}</strong>
+              </div>
+              <div class="preview-review-metric preview-review-metric--danger">
+                <span>Page size</span>
+                <strong>{{ invalidRowPageSize }}</strong>
+              </div>
+            </div>
+
+            <div class="preview-table-shell" *ngIf="filteredInvalidPreviewRows.length > 0; else noInvalidComplaintRows">
+              <div class="table-responsive">
+                <table cTable [hover]="true" [responsive]="true" [striped]="true" class="mb-0 dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>CRM Case</th>
+                      <th>Governorate</th>
+                      <th>STT</th>
+                      <th>Reasons</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of pagedInvalidPreviewRows; trackBy: trackByPreviewRow">
+                      <td>#{{ row.rowNumber }}</td>
+                      <td class="fw-semibold">{{ row.crmCase || 'N/A' }}</td>
+                      <td>{{ row.gouvernorat || '-' }}</td>
+                      <td>{{ row.stt || '-' }}</td>
+                      <td>
+                        <div class="preview-issue-list">
+                          <span class="preview-issue-badge" *ngFor="let issue of (row.issues.length > 0 ? row.issues : ['Unknown validation issue'])">
+                            {{ issue }}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="small text-body-secondary">
+                  Page {{ invalidRowsPage }} / {{ invalidRowsPageCount }} · {{ selectedInvalidReasonCount }} row(s)
+                </div>
+                <div class="d-flex gap-2">
+                  <button cButton color="secondary" variant="outline" type="button" (click)="goToPreviousInvalidRowsPage()" [disabled]="invalidRowsPage <= 1">
+                    Previous
+                  </button>
+                  <button cButton color="secondary" variant="outline" type="button" (click)="goToNextInvalidRowsPage()" [disabled]="invalidRowsPage >= invalidRowsPageCount">
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #noInvalidComplaintRows>
+              <div class="dashboard-empty preview-empty-state">
+                <svg cIcon name="cilCheckCircle" width="26" height="26"></svg>
+                <div>
+                  <div class="fw-semibold">No invalid rows were detected.</div>
+                  <div class="text-body-secondary">Every parsed row is currently eligible for plainte analytics storage.</div>
+                </div>
+              </div>
+            </ng-template>
+          </section>
+        </div>
+      </c-card-body>
+    </c-card>
+
+    <c-card class="dashboard-panel dashboard-panel--ooredoo h-100" *ngIf="!hasPreview">
+      <c-card-body class="dashboard-empty">
+        <svg cIcon name="cilChartPie" width="30" height="30"></svg>
+        <div>
+          <div class="fw-semibold">Preview the plainte batch to inspect row quality.</div>
+          <div class="text-body-secondary">Valid rows, duplicate CRM_CASE detection, and invalid reasons will appear here before anything is stored.</div>
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<c-row [gutter]="4" class="mt-1">
+  <c-col xs="12">
+    <c-card class="dashboard-panel dashboard-panel--ooredoo">
+      <c-card-header class="dashboard-panel__header">
+        <div>
+          <div class="dashboard-panel__eyebrow">Complaint filters</div>
+          <div class="dashboard-panel__title">Live plainte analytics workspace</div>
+        </div>
+      </c-card-header>
+      <c-card-body>
+        <form [formGroup]="analyticsFiltersForm" class="row g-3 align-items-end">
+          <div class="col-lg-4 col-md-6">
+            <label class="form-label fw-semibold" for="complaint-stt-filter">STT</label>
+            <select id="complaint-stt-filter" class="form-select ooredoo-input" formControlName="stt">
+              <option value="">All STTs</option>
+              <option *ngFor="let stt of availableStts" [value]="stt">{{ stt }}</option>
+            </select>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <label class="form-label fw-semibold" for="complaint-governorate-filter">Governorate</label>
+            <select id="complaint-governorate-filter" class="form-select ooredoo-input" formControlName="gouvernorat">
+              <option value="">All governorates</option>
+              <option *ngFor="let governorate of availableGovernorates" [value]="governorate">{{ governorate }}</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <button cButton color="primary" class="dashboard-action-button dashboard-action-button--primary" type="button" (click)="applyAnalyticsFilters()" [disabled]="dashboardLoading">
+                <svg cIcon name="cilMagnifyingGlass" class="me-2"></svg>
+                Apply Filters
+              </button>
+              <button cButton color="secondary" variant="outline" class="dashboard-action-button dashboard-action-button--secondary" type="button" (click)="resetAnalyticsFilters()" [disabled]="dashboardLoading">
+                <svg cIcon name="cilReload" class="me-2"></svg>
+                Clear Filters
+              </button>
+              <button cButton color="success" class="dashboard-action-button dashboard-action-button--success" type="button" (click)="saveComplaintStudy()" [disabled]="!canSaveStudy">
+                <svg cIcon name="cilSave" class="me-2"></svg>
+                {{ saveStudyLoading ? 'Saving...' : 'Save Complaint Analysis' }}
+              </button>
+            </div>
+          </div>
+        </form>
+        <div class="small text-body-secondary mt-3">
+          Save Complaint Analysis stores the current valid-only plainte dashboard snapshot without persisting invalid rows or duplicate CRM_CASE rows.
+        </div>
+      </c-card-body>
+    </c-card>
+  </c-col>
+</c-row>
+
+<c-row [gutter]="4" class="mt-1">
+  <c-col xs="12">
+    <app-complaint-analytics-view
+      [dashboard]="dashboard"
+      [loading]="dashboardLoading"
+      [chartsLoading]="chartsLoading"
+      emptyTitle="No complaint analytics are loaded right now."
+      emptyMessage="Upload a new plainte CSV/XLS/XLSX batch to generate the complaint analysis dashboard."
+    />
+  </c-col>
+</c-row>

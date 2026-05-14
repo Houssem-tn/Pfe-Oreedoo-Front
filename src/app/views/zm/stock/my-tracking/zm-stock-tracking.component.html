@@ -1,0 +1,351 @@
+<div class="zt-shell">
+
+  <!-- Hero -->
+  <div class="zt-hero">
+    <div class="zt-hero__copy">
+      <div class="zt-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+        DPM Tracking
+      </div>
+      <h1 class="zt-title">My DPM Requests</h1>
+      <p class="zt-desc">Track the status of every delivery request you submitted — from pending confirmation to fulfillment.</p>
+    </div>
+
+    <div class="zt-stats">
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ dpms.length }}</span>
+        <span class="zt-stat__label">Total</span>
+        <span class="zt-stat__dot zt-stat__dot--total"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countByStatus('PENDING_STT_CONFIRMATION') }}</span>
+        <span class="zt-stat__label">Pending</span>
+        <span class="zt-stat__dot zt-stat__dot--pending"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countByStatus('FULLY_CONFIRMED') }}</span>
+        <span class="zt-stat__label">Confirmed</span>
+        <span class="zt-stat__dot zt-stat__dot--confirmed"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countByStatus('REJECTED') }}</span>
+        <span class="zt-stat__label">Rejected</span>
+        <span class="zt-stat__dot zt-stat__dot--rejected"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="zt-toolbar">
+    <div class="zt-search-wrap">
+      <svg class="zt-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input class="zt-search" type="text" [(ngModel)]="filterStt"
+             placeholder="Filter by STT name…" />
+    </div>
+    <select class="zt-status-select" [(ngModel)]="filterStatus">
+      <option value="">All statuses</option>
+      <option value="PENDING_STT_CONFIRMATION">Pending</option>
+      <option value="PARTIALLY_CONFIRMED">Partial</option>
+      <option value="FULLY_CONFIRMED">Confirmed</option>
+      <option value="REJECTED">Rejected</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+    <button class="zt-refresh-btn" type="button" (click)="load()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+      </svg>
+      Refresh
+    </button>
+    <span class="zt-count">{{ filtered.length }} DPM{{ filtered.length !== 1 ? 's' : '' }}</span>
+    <a class="zt-new-btn" routerLink="/zm/stock/create-dpm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      New DPM
+    </a>
+  </div>
+
+  @if (error) {
+    <div class="zt-alert">{{ error }}</div>
+  }
+
+  @if (loading) {
+    <div class="zt-loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading DPM requests…</span>
+    </div>
+  }
+
+  @if (!loading) {
+    <div class="zt-card">
+      <div class="zt-table-wrap">
+        <table class="zt-table">
+          <thead>
+            <tr>
+              <th>DPM #</th>
+              <th>STT</th>
+              <th>Status</th>
+              <th>Items</th>
+              <th>Delivery Person</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (d of filtered; track d.id) {
+              <tr class="zt-row-main">
+                <td><span class="zt-dpm-num">{{ d.dpmNumber }}</span></td>
+                <td>
+                  <div class="zt-actor">{{ d.sttName }}</div>
+                  @if (d.sttEmail) {
+                    <div class="zt-actor-sub">{{ d.sttEmail }}</div>
+                  }
+                </td>
+                <td>
+                  <span class="zt-pill"
+                        [class.zt-pill--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
+                        [class.zt-pill--partial]="d.status === 'PARTIALLY_CONFIRMED'"
+                        [class.zt-pill--confirmed]="d.status === 'FULLY_CONFIRMED'"
+                        [class.zt-pill--rejected]="d.status === 'REJECTED'"
+                        [class.zt-pill--cancelled]="d.status === 'CANCELLED'">
+                    {{ statusLabel(d.status) }}
+                  </span>
+                </td>
+                <td>{{ d.items.length }} line(s)</td>
+                <td>{{ d.deliveryPersonName }}</td>
+                <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+                <td>
+                  <button class="zt-btn-detail" type="button" (click)="openDetail(d)" title="Track DPM timeline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Track
+                  </button>
+                  <button class="zt-btn-pdf" type="button" (click)="downloadPdf(d)" title="Download PDF">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="12" y1="18" x2="12" y2="12"></line>
+                      <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                  </button>
+                  @if (d.status === 'PENDING_STT_CONFIRMATION') {
+                    <button class="zt-btn-cancel" type="button" (click)="cancelDpm(d)" title="Cancel DPM">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                      </svg>
+                    </button>
+                  }
+                </td>
+              </tr>
+              <!-- Items sub-row -->
+              <tr class="zt-row-items">
+                <td colspan="7">
+                  <div class="zt-items-strip">
+                    @for (item of d.items; track item.equipmentId) {
+                      <span class="zt-item-chip">
+                        {{ item.equipmentName }}
+                        &nbsp;req <strong>{{ item.requestedQuantity }}</strong>
+                        @if (item.confirmedQuantity != null) {
+                          &nbsp;/ conf <strong>{{ item.confirmedQuantity }}</strong>
+                          @if (item.shortageQuantity && item.shortageQuantity > 0) {
+                            <span class="zt-shortage">&minus;{{ item.shortageQuantity }}</span>
+                          }
+                        }
+                      </span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="zt-table-empty">No DPM requests yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- Detail overlay -->
+  @if (detailDpm && detailVisible) {
+    <div class="zt-overlay-backdrop" (click)="detailVisible = false">
+      <div class="zt-overlay-panel" (click)="$event.stopPropagation()">
+
+        <div class="zt-panel-header">
+          <div class="zt-panel-title">
+            {{ detailDpm.dpmNumber }}
+            <span class="zt-pill"
+                  [class.zt-pill--pending]="detailDpm.status === 'PENDING_STT_CONFIRMATION'"
+                  [class.zt-pill--partial]="detailDpm.status === 'PARTIALLY_CONFIRMED'"
+                  [class.zt-pill--confirmed]="detailDpm.status === 'FULLY_CONFIRMED'"
+                  [class.zt-pill--rejected]="detailDpm.status === 'REJECTED'"
+                  [class.zt-pill--cancelled]="detailDpm.status === 'CANCELLED'">
+              {{ statusLabel(detailDpm.status) }}
+            </span>
+          </div>
+          <button class="zt-panel-close" type="button" (click)="detailVisible = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="zt-panel-body">
+
+          <!-- Meta grid -->
+          <div class="zt-panel-meta">
+            <div class="zt-meta-item">
+              <span class="zt-meta-label">STT</span>
+              <span class="zt-meta-value">{{ detailDpm.sttName }}</span>
+            </div>
+            <div class="zt-meta-item">
+              <span class="zt-meta-label">Delivery Person</span>
+              <span class="zt-meta-value">{{ detailDpm.deliveryPersonName }}</span>
+            </div>
+            <div class="zt-meta-item">
+              <span class="zt-meta-label">Created</span>
+              <span class="zt-meta-value">{{ detailDpm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            @if (detailDpm.confirmedAt) {
+              <div class="zt-meta-item">
+                <span class="zt-meta-label">Confirmed</span>
+                <span class="zt-meta-value">{{ detailDpm.confirmedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            }
+            @if (detailDpm.notes) {
+              <div class="zt-meta-item" style="grid-column:1/-1">
+                <span class="zt-meta-label">Notes</span>
+                <span class="zt-meta-value">{{ detailDpm.notes }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Items table -->
+          <div>
+            <div class="zt-panel-section-title">Equipment Items</div>
+            <table class="zt-panel-table">
+              <thead>
+                <tr>
+                  <th>Equipment</th>
+                  <th>Requested</th>
+                  <th>Confirmed</th>
+                  <th>Shortage</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of detailDpm.items; track item.equipmentId) {
+                  <tr>
+                    <td>
+                      @if (item.equipmentImageUrl) {
+                        <img [src]="item.equipmentImageUrl" width="28" height="28"
+                             style="object-fit:cover;border-radius:5px;margin-right:6px;vertical-align:middle" />
+                      }
+                      {{ item.equipmentName }}
+                    </td>
+                    <td>{{ item.requestedQuantity }}</td>
+                    <td>
+                      @if (item.confirmedQuantity != null) {
+                        <span [class]="item.confirmedQuantity < item.requestedQuantity ? 'zt-conf-warn' : 'zt-conf-ok'">
+                          {{ item.confirmedQuantity }}
+                        </span>
+                      } @else {
+                        <span class="zt-conf-none">—</span>
+                      }
+                    </td>
+                    <td>
+                      @if (item.shortageQuantity && item.shortageQuantity > 0) {
+                        <span class="zt-shortage-val">−{{ item.shortageQuantity }}</span>
+                      } @else { — }
+                    </td>
+                    <td><small>{{ item.confirmationNote || '—' }}</small></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- TECH Distributions -->
+          <div>
+            <div class="zt-panel-section-title">
+              TECH Distributions
+              @if (loadingDetail) {
+                <span style="font-size:0.72rem;font-weight:400;color:var(--zt-muted);letter-spacing:0"> loading…</span>
+              } @else {
+                <span class="zt-dist-count">{{ detailTechDistributions.length }}</span>
+              }
+            </div>
+            @if (detailTechDistributions.length === 0 && !loadingDetail) {
+              <p class="zt-tl-empty">No TECH distributions linked to this DPM yet.</p>
+            }
+            @if (detailTechDistributions.length > 0) {
+              <div class="zt-dist-list">
+                @for (dist of detailTechDistributions; track dist.id) {
+                  <div class="zt-dist-card">
+                    <div class="zt-dist-header">
+                      <div class="zt-dist-tech">
+                        <span class="zt-dist-avatar">{{ nameInitials(dist.techName) }}</span>
+                        <div>
+                          <div class="zt-dist-name">{{ dist.techName || '—' }}</div>
+                          @if (dist.techEmail) {
+                            <div class="zt-dist-email">{{ dist.techEmail }}</div>
+                          }
+                        </div>
+                      </div>
+                      <span class="zt-dist-time">{{ dist.distributedAt | date:'dd/MM/yy HH:mm' }}</span>
+                    </div>
+                    <div class="zt-dist-chips">
+                      @for (item of dist.items; track item.equipmentId) {
+                        <span class="zt-dist-chip">
+                          {{ item.equipmentName }} <strong>×{{ item.quantity }}</strong>
+                        </span>
+                      }
+                    </div>
+                    @if (dist.notes) {
+                      <div class="zt-dist-notes">{{ dist.notes }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Timeline -->
+          <div>
+            <div class="zt-panel-section-title">Timeline</div>
+            @if (detailDpm.timeline.length === 0) {
+              <p class="zt-tl-empty">No timeline events yet.</p>
+            } @else {
+              <div class="zt-timeline">
+                @for (ev of detailDpm.timeline; track $index) {
+                  <div class="zt-tl-entry">
+                    <div class="zt-tl-dot"></div>
+                    <div class="zt-tl-meta">{{ ev.occurredAt | date:'dd/MM/yyyy HH:mm' }} · {{ ev.performedByRole }}</div>
+                    <p class="zt-tl-desc">{{ ev.description }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <div class="zt-panel-footer">
+          <button class="zt-close-btn" type="button" (click)="detailVisible = false">Close</button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>

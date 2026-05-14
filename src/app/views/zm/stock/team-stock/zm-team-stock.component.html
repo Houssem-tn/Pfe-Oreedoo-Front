@@ -1,0 +1,238 @@
+<div class="ts-shell">
+
+  <!-- Hero -->
+  <div class="ts-hero">
+    <div class="ts-hero__left">
+      <div class="ts-hero__title">Team Stock Overview</div>
+      <div class="ts-hero__sub">Live view of STT warehouses and TECH inventories under your zone</div>
+    </div>
+    <div class="ts-hero__chips">
+      <div class="ts-chip">
+        <span class="ts-chip__val">{{ sttStocks.length }}</span>
+        <span class="ts-chip__lbl">STTs</span>
+      </div>
+      <div class="ts-chip ts-chip--tech">
+        <span class="ts-chip__val">{{ techStocks.length }}</span>
+        <span class="ts-chip__lbl">TECHs</span>
+      </div>
+      <div class="ts-chip ts-chip--stt-units">
+        <span class="ts-chip__val">{{ totalSttUnitsLabel }}</span>
+        <span class="ts-chip__lbl">STT Avail.</span>
+      </div>
+      <div class="ts-chip ts-chip--tech-units">
+        <span class="ts-chip__val">{{ totalTechUnitsLabel }}</span>
+        <span class="ts-chip__lbl">TECH Rem.</span>
+      </div>
+      <div class="ts-chip ts-chip--tech">
+        <span class="ts-chip__val">{{ totalTechUsedUnitsLabel }}</span>
+        <span class="ts-chip__lbl">TECH Used</span>
+      </div>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="ts-alert">{{ error }}</div>
+  }
+
+  <!-- Toolbar -->
+  <div class="ts-toolbar">
+    <div class="ts-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path>
+      </svg>
+      <input class="ts-search__input" type="text" [(ngModel)]="searchFilter"
+             placeholder="Search by STT name…" />
+    </div>
+    <button class="ts-refresh-btn" (click)="load()" [disabled]="loading">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  @if (loading) {
+    <div class="ts-loading"><c-spinner size="sm"></c-spinner> Loading team stock…</div>
+  } @else if (filteredSttStocks.length === 0) {
+    <div class="ts-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+      </svg>
+      <p>No stock data found for your STTs.</p>
+    </div>
+  } @else {
+    <div class="ts-list">
+      @for (ss of filteredSttStocks; track ss.sttId) {
+        <div class="ts-stt-card" [class.ts-stt-card--expanded]="expandedSttIds.has(ss.sttId)">
+
+          <!-- STT header (click to expand/collapse) -->
+          <div class="ts-stt-header" (click)="toggleStt(ss.sttId)">
+            <div class="ts-stt-header__left">
+              <span class="ts-avatar ts-avatar--stt">{{ sttInitials(ss.sttId) }}</span>
+              <div>
+                <div class="ts-stt-name">{{ sttName(ss.sttId) }}</div>
+                <div class="ts-stt-sub">
+                  {{ ss.items.length }} equipment type{{ ss.items.length !== 1 ? 's' : '' }} ·
+                  {{ sttAvailableLabel(ss) }} available
+                </div>
+              </div>
+            </div>
+            <div class="ts-stt-header__right">
+              <div class="ts-stt-summary">
+                @for (item of ss.items; track item.equipmentId) {
+                  <span class="ts-mini-chip"
+                        [class.ts-mini-chip--avail]="item.availableQuantity > 0"
+                        [class.ts-mini-chip--zero]="item.availableQuantity === 0">
+                    {{ item.equipmentName }}: <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                  </span>
+                }
+                @if (ss.items.length === 0) {
+                  <span class="ts-mini-chip ts-mini-chip--zero">No stock</span>
+                }
+              </div>
+              <svg class="ts-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+
+          @if (expandedSttIds.has(ss.sttId)) {
+            <div class="ts-stt-body">
+
+              <!-- STT stock detail table -->
+              <div class="ts-section">
+                <div class="ts-section__title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+                    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+                  </svg>
+                  STT Warehouse
+                </div>
+                @if (ss.items.length === 0) {
+                  <div class="ts-sub-empty">No stock received yet.</div>
+                } @else {
+                  <div class="ts-table-wrap">
+                    <table class="ts-table">
+                      <thead>
+                        <tr>
+                          <th>Equipment</th>
+                          <th>Unit</th>
+                          <th>Received</th>
+                          <th>Distributed</th>
+                          <th>Available</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of ss.items; track item.equipmentId) {
+                          <tr>
+                            <td><strong>{{ item.equipmentName }}</strong></td>
+                            <td><small>{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
+                            <td>{{ item.totalReceived }}</td>
+                            <td>{{ item.totalDistributedToTechs }}</td>
+                            <td>
+                              <span class="ts-qty-badge"
+                                    [class.ts-qty-badge--avail]="item.availableQuantity > 0"
+                                    [class.ts-qty-badge--zero]="item.availableQuantity === 0">
+                                {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
+                              </span>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </div>
+
+              <!-- TECHs under this STT -->
+              <div class="ts-section">
+                <div class="ts-section__title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
+                  </svg>
+                  TECHs ({{ techStocksForStt(ss.sttId).length }})
+                </div>
+                @if (techStocksForStt(ss.sttId).length === 0) {
+                  <div class="ts-sub-empty">No TECHs have received stock from this STT yet.</div>
+                } @else {
+                  <div class="ts-tech-grid">
+                    @for (ts of techStocksForStt(ss.sttId); track ts.techId) {
+                      <div class="ts-tech-card">
+                        <div class="ts-tech-card__head">
+                          <span class="ts-avatar"
+                                [class.ts-avatar--tech]="!isSelfExecutor(ts)"
+                                [class.ts-avatar--self]="isSelfExecutor(ts)">
+                            {{ techInitials(ts.techId) }}
+                          </span>
+                          <span class="ts-tech-card__name">{{ techName(ts.techId) }}</span>
+                          @if (isSelfExecutor(ts)) {
+                            <span class="ts-self-badge">SELF</span>
+                          }
+                        </div>
+                        <div class="ts-tech-card__items">
+                          @for (ti of ts.items; track ti.equipmentId) {
+                            <div class="ts-tech-balance">
+                              <div class="ts-tech-balance__name">
+                                {{ ti.equipmentName }}
+                                @if (ti.unit) {
+                                  <small>{{ ti.unit }}</small>
+                                }
+                              </div>
+                              <div class="ts-tech-balance__stats">
+                                <span>Recv <strong>{{ ti.receivedQuantity }}</strong></span>
+                                <span>Used <strong>{{ ti.usedQuantity }}</strong></span>
+                                <span>Rem <strong>{{ ti.remainingQuantity }}</strong></span>
+                              </div>
+                            </div>
+                          }
+                          @if (ts.items.length === 0) {
+                            <span class="ts-tech-chip ts-tech-chip--empty">Empty</span>
+                          }
+                        </div>
+
+                        <div class="ts-tech-usage">
+                          <div class="ts-tech-usage__title">Usage by case</div>
+                          @if (techUsagesForTech(ts.techId).length === 0) {
+                            <div class="ts-sub-empty">No usage declarations yet.</div>
+                          } @else {
+                            <div class="ts-tech-usage__list">
+                              @for (usage of techUsagesForTech(ts.techId); track usage.id) {
+                                <div class="ts-tech-usage__card">
+                                  <div class="ts-tech-usage__head">
+                                    <strong>Case {{ usage.caseReference }}</strong>
+                                    <span>{{ usage.declaredAt | date:'dd/MM/yy HH:mm' }}</span>
+                                  </div>
+                                  <div class="ts-tech-usage__items">
+                                    @for (item of usage.items; track item.equipmentId) {
+                                      <span class="ts-tech-chip">
+                                        {{ item.equipmentName }} <strong>x{{ item.quantity }}</strong>
+                                      </span>
+                                    }
+                                  </div>
+                                  @if (usage.notes) {
+                                    <div class="ts-tech-usage__note">{{ usage.notes }}</div>
+                                  }
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+            </div>
+          }
+
+        </div>
+      }
+    </div>
+  }
+
+</div>

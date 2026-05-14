@@ -1,0 +1,88 @@
+<div class="ss" [class.ss--open]="isOpen" [class.ss--disabled]="disabled">
+
+  <!-- Trigger -->
+  <button type="button" class="ss__trigger" (click)="toggle()" [disabled]="disabled">
+    @if (selectedOption) {
+      <span class="ss__trigger-selected">
+        @if (selectedOption.imageUrl) {
+          <img class="ss__avatar" [src]="selectedOption.imageUrl" alt="" />
+        } @else if (selectedOption.initials) {
+          <span class="ss__avatar ss__avatar--initials"
+                [style.background]="selectedOption.avatarColor || 'var(--ss-primary)'">
+            {{ selectedOption.initials }}
+          </span>
+        }
+        <span class="ss__trigger-label">{{ selectedOption.label }}</span>
+        @if (selectedOption.badge) {
+          <span class="ss__badge ss__badge--{{ selectedOption.badgeColor || 'info' }}">
+            {{ selectedOption.badge }}
+          </span>
+        }
+      </span>
+      <button type="button" class="ss__clear" (click)="clear($event)" tabindex="-1"
+              aria-label="Clear selection">✕</button>
+    } @else {
+      <span class="ss__placeholder">{{ placeholder }}</span>
+    }
+    <svg class="ss__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </button>
+
+  <!-- Dropdown -->
+  @if (isOpen) {
+    <div class="ss__dropdown" role="listbox">
+
+      <div class="ss__search-wrap">
+        <svg class="ss__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input class="ss-search" type="text" [(ngModel)]="searchTerm"
+               (keydown)="onKeydown($event)" placeholder="Search…"
+               autocomplete="off" aria-label="Search options" />
+      </div>
+
+      <div class="ss__list">
+        @for (opt of filtered; track opt.value; let i = $index) {
+          <button type="button" class="ss__option"
+                  role="option"
+                  [class.ss__option--active]="i === activeIndex"
+                  [class.ss__option--selected]="opt.value === value"
+                  (click)="select(opt)"
+                  (mouseenter)="activeIndex = i">
+
+            @if (opt.imageUrl) {
+              <img class="ss__avatar" [src]="opt.imageUrl" alt="" />
+            } @else if (opt.initials) {
+              <span class="ss__avatar ss__avatar--initials"
+                    [style.background]="opt.avatarColor || 'var(--ss-primary)'">
+                {{ opt.initials }}
+              </span>
+            }
+
+            <span class="ss__option-text">
+              <span class="ss__option-label" [innerHTML]="highlight(opt.label)"></span>
+              @if (opt.subtitle) {
+                <span class="ss__option-sub" [innerHTML]="highlight(opt.subtitle)"></span>
+              }
+            </span>
+
+            @if (opt.badge) {
+              <span class="ss__badge ss__badge--{{ opt.badgeColor || 'info' }}">{{ opt.badge }}</span>
+            }
+
+            @if (opt.value === value) {
+              <svg class="ss__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            }
+          </button>
+        } @empty {
+          <div class="ss__empty">No results for "{{ searchTerm }}"</div>
+        }
+      </div>
+
+    </div>
+  }
+</div>

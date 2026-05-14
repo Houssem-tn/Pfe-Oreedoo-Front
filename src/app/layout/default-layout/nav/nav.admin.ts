@@ -64,11 +64,27 @@ export const navAdmin: INavData[] = [
     url: '/admin/cases/activation',
     iconComponent: { name: 'cilFolder' }
   },
+  {
+    name: 'Complaint Cases',
+    url: '/admin/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
 
   {
-    name: 'Stock',
-    url: '/admin/stock',
-    iconComponent: { name: 'cil-storage' }
+    title: true,
+    name: 'Stock Management'
+  },
+
+  {
+    name: 'Equipment',
+    url: '/admin/stock/equipment',
+    iconComponent: { name: 'cilStorage' }
+  },
+
+  {
+    name: 'Stock Tracking',
+    url: '/admin/stock/tracking',
+    iconComponent: { name: 'cilChartLine' }
   },
 
   {

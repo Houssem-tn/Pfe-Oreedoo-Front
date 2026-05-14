@@ -1,0 +1,115 @@
+<c-modal
+  class="gov-selector-modal"
+  [visible]="visible"
+  (visibleChange)="handleVisibleChange($event)"
+  size="xl"
+  [scrollable]="true"
+  alignment="center"
+>
+  <c-modal-header>
+    <div class="gov-modal-header">
+      <div class="gov-modal-header__main">
+        <h5 cModalTitle class="gov-modal-header__title">{{ title }}</h5>
+        <p *ngIf="description" class="gov-modal-header__desc">{{ description }}</p>
+      </div>
+      <span class="gov-counter">
+        <strong>{{ selectedCount }}</strong> of {{ totalCount }} selected
+      </span>
+    </div>
+    <button cButtonClose (click)="onCancel()"></button>
+  </c-modal-header>
+
+  <c-modal-body>
+    <div class="gov-toolbar">
+      <label class="gov-search">
+        <svg cIcon name="cilMagnifyingGlass" class="gov-search__icon"></svg>
+        <input
+          type="text"
+          class="gov-search__input"
+          placeholder="Filter governorates..."
+          [(ngModel)]="searchTerm"
+        />
+        <button
+          *ngIf="searchTerm"
+          type="button"
+          class="gov-search__clear"
+          (click)="searchTerm = ''"
+          aria-label="Clear search"
+        >
+          <svg cIcon name="cilX"></svg>
+        </button>
+      </label>
+
+      <div class="gov-bulk-actions">
+        <button type="button" class="gov-bulk-btn" (click)="selectAll()">
+          Select all
+        </button>
+        <button type="button" class="gov-bulk-btn gov-bulk-btn--ghost" (click)="clearAll()">
+          Clear all
+        </button>
+      </div>
+    </div>
+
+    <ng-container *ngIf="filteredOptions.length > 0; else emptyState">
+
+      <ng-container *ngIf="useRegionGroups; else flatGrid">
+        <div *ngFor="let region of regions">
+          <ng-container *ngIf="showRegion(region.govs)">
+            <div class="gov-region-header">{{ region.label }}</div>
+            <div class="gov-chip-grid gov-chip-grid--grouped">
+              <button
+                *ngFor="let gov of groupItems(region.govs)"
+                type="button"
+                class="gov-chip"
+                [class.gov-chip--selected]="isSelected(gov)"
+                (click)="toggle(gov)"
+              >
+                <span class="gov-chip__check">
+                  <svg cIcon name="cilCheck" size="sm"></svg>
+                </span>
+                <span class="gov-chip__label">{{ gov }}</span>
+              </button>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <ng-template #flatGrid>
+        <div class="gov-chip-grid">
+          <button
+            *ngFor="let gov of filteredOptions"
+            type="button"
+            class="gov-chip"
+            [class.gov-chip--selected]="isSelected(gov)"
+            (click)="toggle(gov)"
+          >
+            <span class="gov-chip__check">
+              <svg cIcon name="cilCheck" size="sm"></svg>
+            </span>
+            <span class="gov-chip__label">{{ gov }}</span>
+          </button>
+        </div>
+      </ng-template>
+
+    </ng-container>
+
+    <ng-template #emptyState>
+      <div class="gov-empty">
+        <svg cIcon name="cilMagnifyingGlass" class="gov-empty__icon"></svg>
+        <p>No governorates match <strong>"{{ searchTerm }}"</strong></p>
+      </div>
+    </ng-template>
+  </c-modal-body>
+
+  <c-modal-footer>
+    <button cButton color="secondary" variant="ghost" (click)="onCancel()">Cancel</button>
+    <button
+      cButton
+      color="primary"
+      [disabled]="selectedCount === 0 && !allowEmpty"
+      (click)="onSave()"
+    >
+      {{ confirmText }}
+    </button>
+  </c-modal-footer>
+</c-modal>
