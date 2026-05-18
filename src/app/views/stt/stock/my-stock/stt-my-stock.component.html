@@ -116,17 +116,49 @@
         <div class="dash-tech-list">
           @for (ts of techStocks; track ts.techId) {
             <div class="dash-tech-row">
+
+              <!-- TECH name row -->
               <div class="dash-tech-name">
                 <span class="dash-tech-avatar">{{ userInitials(ts.techId) }}</span>
                 {{ userName(ts.techId) }}
               </div>
-              <div class="dash-tech-chips">
-                @for (ti of ts.items; track ti.equipmentId) {
-                  <span class="dash-tech-chip">
-                    {{ ti.equipmentName }}: <strong>{{ ti.receivedQuantity }}{{ ti.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
-                  </span>
-                }
-              </div>
+
+              <!-- Item mini-cards -->
+              @if (ts.items.length === 0) {
+                <p class="dash-tech-no-items">No items yet.</p>
+              } @else {
+                <div class="dash-item-grid">
+                  @for (ti of ts.items; track ti.equipmentId) {
+                    <div class="dash-item-card"
+                         [class.dash-item-card--depleted]="ti.remainingQuantity === 0">
+                      <div class="dash-item-name">{{ ti.equipmentName }}</div>
+
+                      <div class="dash-item-remaining-row">
+                        <span class="dash-item-remaining-label">Remaining</span>
+                        <span class="dash-item-remaining-val"
+                              [class.dash-item-remaining-val--ok]="ti.remainingQuantity > 0"
+                              [class.dash-item-remaining-val--zero]="ti.remainingQuantity === 0">
+                          {{ ti.remainingQuantity }}{{ unitSuffix(ti) }}
+                        </span>
+                      </div>
+
+                      <div class="dash-item-divider"></div>
+
+                      <div class="dash-item-meta">
+                        <div class="dash-item-meta-row">
+                          <span class="dash-item-meta-label">Distributed</span>
+                          <span class="dash-item-meta-val">{{ ti.receivedQuantity }}{{ unitSuffix(ti) }}</span>
+                        </div>
+                        <div class="dash-item-meta-row">
+                          <span class="dash-item-meta-label">Used</span>
+                          <span class="dash-item-meta-val dash-item-meta-val--used">{{ ti.usedQuantity }}{{ unitSuffix(ti) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
             </div>
           }
         </div>

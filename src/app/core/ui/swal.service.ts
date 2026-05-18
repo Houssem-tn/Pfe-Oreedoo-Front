@@ -103,6 +103,18 @@ export class SwalService {
     });
   }
 
+  successToast(title: string): Promise<SweetAlertResult<unknown>> {
+    return Swal.fire({
+      toast: true,
+      position: 'top',
+      icon: 'success',
+      title,
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true
+    });
+  }
+
   error(title: string, text: string): Promise<SweetAlertResult<unknown>> {
     return Swal.fire({
       icon: 'error',

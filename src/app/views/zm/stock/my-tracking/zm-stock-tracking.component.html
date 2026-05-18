@@ -10,7 +10,7 @@
         DPM Tracking
       </div>
       <h1 class="zt-title">My DPM Requests</h1>
-      <p class="zt-desc">Track the status of every delivery request you submitted — from pending confirmation to fulfillment.</p>
+      <p class="zt-desc">Track every delivery request from creation through external Team Stock approval, RDV scheduling, and material reception.</p>
     </div>
 
     <div class="zt-stats">
@@ -20,19 +20,19 @@
         <span class="zt-stat__dot zt-stat__dot--total"></span>
       </div>
       <div class="zt-stat">
-        <span class="zt-stat__value">{{ countByStatus('PENDING_STT_CONFIRMATION') }}</span>
-        <span class="zt-stat__label">Pending</span>
-        <span class="zt-stat__dot zt-stat__dot--pending"></span>
+        <span class="zt-stat__value">{{ countWaiting() }}</span>
+        <span class="zt-stat__label">Waiting</span>
+        <span class="zt-stat__dot zt-stat__dot--waiting"></span>
       </div>
       <div class="zt-stat">
-        <span class="zt-stat__value">{{ countByStatus('FULLY_CONFIRMED') }}</span>
-        <span class="zt-stat__label">Confirmed</span>
+        <span class="zt-stat__value">{{ countRdvScheduled() }}</span>
+        <span class="zt-stat__label">RDV</span>
+        <span class="zt-stat__dot zt-stat__dot--rdv"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countMaterialReceived() }}</span>
+        <span class="zt-stat__label">Received</span>
         <span class="zt-stat__dot zt-stat__dot--confirmed"></span>
-      </div>
-      <div class="zt-stat">
-        <span class="zt-stat__value">{{ countByStatus('REJECTED') }}</span>
-        <span class="zt-stat__label">Rejected</span>
-        <span class="zt-stat__dot zt-stat__dot--rejected"></span>
       </div>
     </div>
   </div>
@@ -49,9 +49,15 @@
     </div>
     <select class="zt-status-select" [(ngModel)]="filterStatus">
       <option value="">All statuses</option>
-      <option value="PENDING_STT_CONFIRMATION">Pending</option>
-      <option value="PARTIALLY_CONFIRMED">Partial</option>
-      <option value="FULLY_CONFIRMED">Confirmed</option>
+      <option value="WAITING_TEAM_STOCK_APPROVAL">Waiting Approval</option>
+      <option value="TEAM_STOCK_REJECTED">Ext. Rejected</option>
+      <option value="RDV_SCHEDULED">RDV Scheduled</option>
+      <option value="RDV_CONFIRMED_BY_STT">RDV Confirmed</option>
+      <option value="MATERIAL_RECEIVED">Material Received</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="PENDING_STT_CONFIRMATION">Pending (legacy)</option>
+      <option value="PARTIALLY_CONFIRMED">Partial (legacy)</option>
+      <option value="FULLY_CONFIRMED">Confirmed (legacy)</option>
       <option value="REJECTED">Rejected</option>
       <option value="CANCELLED">Cancelled</option>
     </select>
@@ -111,6 +117,11 @@
                 </td>
                 <td>
                   <span class="zt-pill"
+                        [class.zt-pill--waiting]="d.status === 'WAITING_TEAM_STOCK_APPROVAL'"
+                        [class.zt-pill--ext-rejected]="d.status === 'TEAM_STOCK_REJECTED'"
+                        [class.zt-pill--rdv]="d.status === 'RDV_SCHEDULED'"
+                        [class.zt-pill--rdv-conf]="d.status === 'RDV_CONFIRMED_BY_STT'"
+                        [class.zt-pill--received]="d.status === 'MATERIAL_RECEIVED' || d.status === 'COMPLETED'"
                         [class.zt-pill--pending]="d.status === 'PENDING_STT_CONFIRMATION'"
                         [class.zt-pill--partial]="d.status === 'PARTIALLY_CONFIRMED'"
                         [class.zt-pill--confirmed]="d.status === 'FULLY_CONFIRMED'"
@@ -137,11 +148,28 @@
                       <line x1="9" y1="15" x2="15" y2="15"></line>
                     </svg>
                   </button>
-                  @if (d.status === 'PENDING_STT_CONFIRMATION') {
-                    <button class="zt-btn-cancel" type="button" (click)="cancelDpm(d)" title="Cancel DPM">
+                  @if (canZmScheduleRdv(d)) {
+                    <button class="zt-btn-rdv" type="button" (click)="openRdvModal(d)" title="Record Approval & Schedule RDV">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      RDV
+                    </button>
+                    <button class="zt-btn-ext-reject" type="button" (click)="openRejectModal(d)" title="Record External Rejection">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                      </svg>
+                    </button>
+                  }
+                  @if (canZmCancel(d)) {
+                    <button class="zt-btn-cancel" type="button" (click)="cancelDpm(d)" title="Cancel DPM">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </button>
                   }
@@ -163,6 +191,24 @@
                         }
                       </span>
                     }
+                    @if (d.status === 'WAITING_TEAM_STOCK_APPROVAL') {
+                      <span class="zt-waiting-hint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        Waiting for external Team Stock approval
+                      </span>
+                    }
+                    @if (d.status === 'RDV_SCHEDULED' && d.rdvDate) {
+                      <span class="zt-rdv-hint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        RDV: {{ d.rdvDate }} · {{ d.rdvLocation }}
+                      </span>
+                    }
                   </div>
                 </td>
               </tr>
@@ -175,7 +221,7 @@
     </div>
   }
 
-  <!-- Detail overlay -->
+  <!-- ── Detail Overlay ─────────────────────────────────────────────────────── -->
   @if (detailDpm && detailVisible) {
     <div class="zt-overlay-backdrop" (click)="detailVisible = false">
       <div class="zt-overlay-panel" (click)="$event.stopPropagation()">
@@ -184,6 +230,11 @@
           <div class="zt-panel-title">
             {{ detailDpm.dpmNumber }}
             <span class="zt-pill"
+                  [class.zt-pill--waiting]="detailDpm.status === 'WAITING_TEAM_STOCK_APPROVAL'"
+                  [class.zt-pill--ext-rejected]="detailDpm.status === 'TEAM_STOCK_REJECTED'"
+                  [class.zt-pill--rdv]="detailDpm.status === 'RDV_SCHEDULED'"
+                  [class.zt-pill--rdv-conf]="detailDpm.status === 'RDV_CONFIRMED_BY_STT'"
+                  [class.zt-pill--received]="detailDpm.status === 'MATERIAL_RECEIVED' || detailDpm.status === 'COMPLETED'"
                   [class.zt-pill--pending]="detailDpm.status === 'PENDING_STT_CONFIRMATION'"
                   [class.zt-pill--partial]="detailDpm.status === 'PARTIALLY_CONFIRMED'"
                   [class.zt-pill--confirmed]="detailDpm.status === 'FULLY_CONFIRMED'"
@@ -202,7 +253,137 @@
 
         <div class="zt-panel-body">
 
-          <!-- Meta grid -->
+          <!-- ── Workflow stepper ─────────────────────────────────────────── -->
+          <div class="zt-stepper">
+            <div class="zt-step"
+                 [class.zt-step--done]="true"
+                 title="DPM created">
+              <div class="zt-step-dot"></div>
+              <div class="zt-step-label">Created</div>
+            </div>
+            <div class="zt-step-line"></div>
+            <div class="zt-step"
+                 [class.zt-step--active]="detailDpm.status === 'WAITING_TEAM_STOCK_APPROVAL'"
+                 [class.zt-step--done]="['RDV_SCHEDULED','RDV_CONFIRMED_BY_STT','MATERIAL_RECEIVED','COMPLETED','FULLY_CONFIRMED','PARTIALLY_CONFIRMED'].includes(detailDpm.status)"
+                 [class.zt-step--rejected]="detailDpm.status === 'TEAM_STOCK_REJECTED'"
+                 title="Team Stock approval">
+              <div class="zt-step-dot"></div>
+              <div class="zt-step-label">Team Stock<br><small>(external)</small></div>
+            </div>
+            <div class="zt-step-line"></div>
+            <div class="zt-step"
+                 [class.zt-step--active]="detailDpm.status === 'RDV_SCHEDULED'"
+                 [class.zt-step--done]="['RDV_CONFIRMED_BY_STT','MATERIAL_RECEIVED','COMPLETED','FULLY_CONFIRMED','PARTIALLY_CONFIRMED'].includes(detailDpm.status)"
+                 title="RDV scheduled">
+              <div class="zt-step-dot"></div>
+              <div class="zt-step-label">RDV<br>Scheduled</div>
+            </div>
+            <div class="zt-step-line"></div>
+            <div class="zt-step"
+                 [class.zt-step--active]="detailDpm.status === 'RDV_CONFIRMED_BY_STT'"
+                 [class.zt-step--done]="['MATERIAL_RECEIVED','COMPLETED','FULLY_CONFIRMED','PARTIALLY_CONFIRMED'].includes(detailDpm.status)"
+                 title="RDV confirmed by STT">
+              <div class="zt-step-dot"></div>
+              <div class="zt-step-label">RDV<br>Confirmed</div>
+            </div>
+            <div class="zt-step-line"></div>
+            <div class="zt-step"
+                 [class.zt-step--done]="['MATERIAL_RECEIVED','COMPLETED','FULLY_CONFIRMED','PARTIALLY_CONFIRMED'].includes(detailDpm.status)"
+                 title="Material received">
+              <div class="zt-step-dot"></div>
+              <div class="zt-step-label">Material<br>Received</div>
+            </div>
+            <div class="zt-step-line"></div>
+            <div class="zt-step"
+                 [class.zt-step--done]="['MATERIAL_RECEIVED','COMPLETED','FULLY_CONFIRMED','PARTIALLY_CONFIRMED'].includes(detailDpm.status)"
+                 title="Completed">
+              <div class="zt-step-dot"></div>
+              <div class="zt-step-label">Completed</div>
+            </div>
+          </div>
+
+          <!-- ── Waiting approval call-to-action ─────────────────────────── -->
+          @if (detailDpm.status === 'WAITING_TEAM_STOCK_APPROVAL') {
+            <div class="zt-waiting-cta">
+              <div class="zt-waiting-cta__info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <strong>Waiting for external Team Stock approval</strong>
+                  <p>Once you receive approval from Team Stock (outside this platform), record it here and schedule the pickup rendez-vous for the STT.</p>
+                </div>
+              </div>
+              <div class="zt-waiting-cta__actions">
+                <button class="zt-cta-btn zt-cta-btn--primary" type="button" (click)="detailVisible = false; openRdvModal(detailDpm!)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  Record Approval &amp; Schedule RDV
+                </button>
+                <button class="zt-cta-btn zt-cta-btn--danger" type="button" (click)="detailVisible = false; openRejectModal(detailDpm!)">
+                  Record External Rejection
+                </button>
+              </div>
+            </div>
+          }
+
+          <!-- ── External Rejection info ──────────────────────────────────── -->
+          @if (detailDpm.status === 'TEAM_STOCK_REJECTED') {
+            <div class="zt-ext-rejected-info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+              </svg>
+              <div>
+                <strong>Rejected by external Team Stock</strong>
+                @if (detailDpm.externalRejectionReason) {
+                  <p>Reason: {{ detailDpm.externalRejectionReason }}</p>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- ── RDV info block ───────────────────────────────────────────── -->
+          @if (detailDpm.rdvDate) {
+            <div class="zt-rdv-info-block">
+              <div class="zt-panel-section-title">Rendez-vous Details</div>
+              <div class="zt-rdv-grid">
+                <div class="zt-rdv-field">
+                  <span class="zt-rdv-lbl">Date &amp; Time</span>
+                  <span class="zt-rdv-val">{{ detailDpm.rdvDate }}</span>
+                </div>
+                <div class="zt-rdv-field">
+                  <span class="zt-rdv-lbl">Location</span>
+                  <span class="zt-rdv-val">{{ detailDpm.rdvLocation }}</span>
+                </div>
+                @if (detailDpm.rdvNote) {
+                  <div class="zt-rdv-field" style="grid-column:1/-1">
+                    <span class="zt-rdv-lbl">Note to STT</span>
+                    <span class="zt-rdv-val">{{ detailDpm.rdvNote }}</span>
+                  </div>
+                }
+                @if (detailDpm.externalApprovalReference) {
+                  <div class="zt-rdv-field">
+                    <span class="zt-rdv-lbl">Approval Reference</span>
+                    <span class="zt-rdv-val" style="font-family:monospace">{{ detailDpm.externalApprovalReference }}</span>
+                  </div>
+                }
+                @if (detailDpm.externalApprovalNote) {
+                  <div class="zt-rdv-field" style="grid-column:1/-1">
+                    <span class="zt-rdv-lbl">Approval Note</span>
+                    <span class="zt-rdv-val">{{ detailDpm.externalApprovalNote }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- ── Meta grid ───────────────────────────────────────────────── -->
           <div class="zt-panel-meta">
             <div class="zt-meta-item">
               <span class="zt-meta-label">STT</span>
@@ -218,7 +399,7 @@
             </div>
             @if (detailDpm.confirmedAt) {
               <div class="zt-meta-item">
-                <span class="zt-meta-label">Confirmed</span>
+                <span class="zt-meta-label">Reception confirmed</span>
                 <span class="zt-meta-value">{{ detailDpm.confirmedAt | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
             }
@@ -230,7 +411,7 @@
             }
           </div>
 
-          <!-- Items table -->
+          <!-- ── Items table ─────────────────────────────────────────────── -->
           <div>
             <div class="zt-panel-section-title">Equipment Items</div>
             <table class="zt-panel-table">
@@ -275,7 +456,7 @@
             </table>
           </div>
 
-          <!-- TECH Distributions -->
+          <!-- ── TECH Distributions ──────────────────────────────────────── -->
           <div>
             <div class="zt-panel-section-title">
               TECH Distributions
@@ -320,7 +501,7 @@
             }
           </div>
 
-          <!-- Timeline -->
+          <!-- ── Timeline ────────────────────────────────────────────────── -->
           <div>
             <div class="zt-panel-section-title">Timeline</div>
             @if (detailDpm.timeline.length === 0) {
@@ -346,6 +527,101 @@
 
       </div>
     </div>
+  }
+
+  <!-- ── Record External Approval & Schedule RDV Modal ─────────────────────── -->
+  @if (rdvTargetDpm) {
+    <c-modal [visible]="rdvModalVisible" (visibleChange)="rdvModalVisible = $event" size="lg">
+      <c-modal-header>
+        <strong>Record Approval &amp; Schedule RDV — {{ rdvTargetDpm.dpmNumber }}</strong>
+      </c-modal-header>
+      <c-modal-body>
+
+        <div class="zt-modal-ext-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          External Team Stock approval is managed outside this platform. Record the reference and schedule the STT pickup below.
+        </div>
+
+        @if (rdvError) {
+          <div class="zt-modal-error">{{ rdvError }}</div>
+        }
+
+        <div class="zt-modal-section-title">External Approval (optional)</div>
+        <div class="zt-modal-field-row">
+          <div class="zt-modal-field">
+            <label cLabel>Approval Reference</label>
+            <input cFormControl type="text" [(ngModel)]="rdvForm.approvalReference"
+                   placeholder="e.g. TS-2026-014" />
+          </div>
+          <div class="zt-modal-field">
+            <label cLabel>Approval Note</label>
+            <input cFormControl type="text" [(ngModel)]="rdvForm.approvalNote"
+                   placeholder="Optional note from Team Stock" />
+          </div>
+        </div>
+
+        <div class="zt-modal-section-title">Rendez-vous Details <span class="zt-modal-required">*required</span></div>
+        <div class="zt-modal-field-row">
+          <div class="zt-modal-field">
+            <label cLabel>RDV Date &amp; Time <span class="zt-modal-required">*</span></label>
+            <input cFormControl type="text" [(ngModel)]="rdvForm.rdvDate"
+                   placeholder="e.g. 2026-05-18 10:00" />
+          </div>
+          <div class="zt-modal-field">
+            <label cLabel>RDV Location <span class="zt-modal-required">*</span></label>
+            <input cFormControl type="text" [(ngModel)]="rdvForm.rdvLocation"
+                   placeholder="e.g. Ooredoo Team Stock Depot — Tunis" />
+          </div>
+        </div>
+        <div class="zt-modal-field">
+          <label cLabel>Note to STT (optional)</label>
+          <input cFormControl type="text" [(ngModel)]="rdvForm.rdvNote"
+                 placeholder="e.g. Bring your ID and the DPM reference" />
+        </div>
+
+      </c-modal-body>
+      <c-modal-footer>
+        <button cButton color="secondary" variant="outline"
+                (click)="rdvModalVisible = false">Cancel</button>
+        <button cButton color="primary"
+                [disabled]="rdvSubmitting || !rdvForm.rdvDate?.trim() || !rdvForm.rdvLocation?.trim()"
+                (click)="submitRdv()">
+          @if (rdvSubmitting) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          Confirm &amp; Notify STT
+        </button>
+      </c-modal-footer>
+    </c-modal>
+  }
+
+  <!-- ── Record External Rejection Modal ───────────────────────────────────── -->
+  @if (rejectTargetDpm) {
+    <c-modal [visible]="rejectModalVisible" (visibleChange)="rejectModalVisible = $event">
+      <c-modal-header>
+        <strong>Record External Rejection — {{ rejectTargetDpm.dpmNumber }}</strong>
+      </c-modal-header>
+      <c-modal-body>
+        <p style="font-size:0.9rem;color:#555;margin-bottom:1rem">
+          Record that the external Team Stock team has rejected this DPM request. The STT will be notified.
+        </p>
+        <div class="zt-modal-field">
+          <label cLabel>Rejection Reason (optional)</label>
+          <input cFormControl type="text" [(ngModel)]="rejectionReason"
+                 placeholder="e.g. Items unavailable in central stock" />
+        </div>
+      </c-modal-body>
+      <c-modal-footer>
+        <button cButton color="secondary" variant="outline"
+                (click)="rejectModalVisible = false">Cancel</button>
+        <button cButton color="danger" [disabled]="rejecting" (click)="submitRejection()">
+          @if (rejecting) { <c-spinner size="sm" class="me-1"></c-spinner> }
+          Record Rejection
+        </button>
+      </c-modal-footer>
+    </c-modal>
   }
 
 </div>

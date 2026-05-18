@@ -487,6 +487,60 @@
       </dl>
     </div>
 
+    <!-- ── Section: Stock Usage Permissions ────────────────────────── -->
+    <div class="cd-section" *ngIf="casePermissions.length > 0 || permissionsLoading">
+      <div class="cd-section__header">
+        <svg cIcon name="cilStorage" class="cd-section__icon"></svg>
+        <span>Over-Limit Stock Permissions</span>
+      </div>
+
+      <div *ngIf="permissionsLoading" class="cd-empty">Loading permission requests…</div>
+
+      <div *ngIf="!permissionsLoading && casePermissions.length === 0" class="cd-empty">
+        No over-limit permission requests for this case.
+      </div>
+
+      <div *ngFor="let perm of casePermissions" style="border:1px solid #dee2e6;border-radius:.5rem;padding:.875rem;margin-bottom:.75rem">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-semibold" style="font-size:.9rem">{{ perm.techName }}</span>
+            <span class="text-body-secondary" style="font-size:.85rem">requested over-limit usage</span>
+          </div>
+          <c-badge [color]="permissionStatusColor(perm.status)">{{ permissionStatusLabel(perm.status) }}</c-badge>
+        </div>
+
+        <dl class="cd-grid" style="font-size:.85rem">
+          <dt>Requested cable</dt>
+          <dd>{{ perm.requestedCableMeters > 0 ? (perm.requestedCableMeters + ' m') : '—' }}</dd>
+
+          <dt>Approved cable</dt>
+          <dd>{{ perm.approvedCableMeters > 0 ? (perm.approvedCableMeters + ' m') : '—' }}</dd>
+
+          <dt *ngIf="perm.requestedItems?.length">Requested items</dt>
+          <dd *ngIf="perm.requestedItems?.length">
+            <span *ngFor="let item of perm.requestedItems; let last = last">
+              {{ item.requestedQuantity }}x {{ item.itemName }}<span *ngIf="!last">, </span>
+            </span>
+          </dd>
+
+          <dt>STT reviewer</dt>
+          <dd>{{ perm.sttName || '—' }}</dd>
+
+          <dt>Submitted</dt>
+          <dd>{{ dateVal(perm.createdAt) }}</dd>
+
+          <dt *ngIf="perm.reviewedAt">Reviewed</dt>
+          <dd *ngIf="perm.reviewedAt">{{ dateVal(perm.reviewedAt) }}</dd>
+
+          <dt *ngIf="perm.reason">Reason</dt>
+          <dd *ngIf="perm.reason"><em>{{ perm.reason }}</em></dd>
+
+          <dt *ngIf="perm.reviewComment">STT note</dt>
+          <dd *ngIf="perm.reviewComment">{{ perm.reviewComment }}</dd>
+        </dl>
+      </div>
+    </div>
+
     <!-- ── Section: Timeline ──────────────────────────────────────── -->
     <div class="cd-section cd-section--timeline" *ngIf="sortedTimeline.length > 0">
       <div class="cd-section__header">

@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 
 import { NotificationApiService } from './notification-api.service';
 import { NotificationWsService } from './notification-ws.service';
-import { NotificationItem } from './models/notification.model';
+import { AlertLevel, NotificationItem, effectiveLevel } from './models/notification.model';
 import { AuthStore } from '../auth/auth.store';
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +36,26 @@ export class NotificationStoreService {
     [...this._items()].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
+  );
+
+  /** Alerts grouped and sorted: CRITICAL → WARNING → INFO, then by date. */
+  readonly alertsByLevel = computed(() => {
+    const sorted = [...this._items()].sort((a, b) => {
+      const levelOrder: Record<AlertLevel, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+      const la = levelOrder[effectiveLevel(a)] ?? 2;
+      const lb = levelOrder[effectiveLevel(b)] ?? 2;
+      if (la !== lb) return la - lb;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    return sorted;
+  });
+
+  readonly criticalAlerts = computed(() =>
+    this.alertsByLevel().filter(n => effectiveLevel(n) === 'CRITICAL')
+  );
+
+  readonly unreadCriticalCount = computed(() =>
+    this.criticalAlerts().filter(n => !n.read).length
   );
 
   init(): void {
@@ -199,12 +219,16 @@ export class NotificationStoreService {
   }
 
   private isOperationalAlert(item: NotificationItem): boolean {
+    if (item.level === 'CRITICAL' || item.level === 'WARNING') return true;
     return item.eventType === 'SLA_WARNING'
       || item.eventType === 'SLA_BREACHED'
       || item.eventType === 'SLA_ESCALATED'
       || item.eventType === 'CASE_ASSIGNED_TO_TECH'
       || item.eventType === 'CASE_ASSIGNED_TO_STT'
-      || item.eventType === 'CASE_ASSIGNED_TO_ZM';
+      || item.eventType === 'CASE_ASSIGNED_TO_ZM'
+      || item.eventType === 'STOCK_CRITICAL'
+      || item.eventType === 'STOCK_LOW_WARNING'
+      || item.eventType === 'STOCK_USAGE_PERMISSION_REQUIRED';
   }
 
   private clearPopupTimer(notificationId: string): void {

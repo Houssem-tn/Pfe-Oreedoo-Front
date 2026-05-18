@@ -174,7 +174,10 @@ export class AdminStockTrackingComponent implements OnInit {
   techUsagesFor(techId: string): TechStockUsage[] { return this.techUsageMap.get(techId) ?? []; }
 
   statusLabel(status: DpmStatus): string {
-    const m: Record<DpmStatus, string> = {
+    const m: Partial<Record<DpmStatus, string>> = {
+      WAITING_TEAM_STOCK_APPROVAL: 'Waiting Approval', TEAM_STOCK_REJECTED: 'Ext. Rejected',
+      RDV_SCHEDULED: 'RDV Scheduled', RDV_CONFIRMED_BY_STT: 'RDV Confirmed',
+      MATERIAL_RECEIVED: 'Material Received', COMPLETED: 'Completed',
       PENDING_STT_CONFIRMATION: 'Pending', PARTIALLY_CONFIRMED: 'Partial',
       FULLY_CONFIRMED: 'Confirmed', REJECTED: 'Rejected', CANCELLED: 'Cancelled'
     };

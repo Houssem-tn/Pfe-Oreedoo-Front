@@ -1,13 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { SpinnerComponent } from '@coreui/angular';
 import { TechInvitation, TechInvitationService } from '../../../core/invitations/tech-invitation.service';
 import { SwalService } from '../../../core/ui/swal.service';
 
 @Component({
   selector: 'app-technician-approvals',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './technician-approvals.component.html'
+  imports: [CommonModule, SpinnerComponent],
+  templateUrl: './technician-approvals.component.html',
+  styleUrl: './technician-approvals.component.scss'
 })
 export class TechnicianApprovalsComponent implements OnInit {
   private readonly invitationService = inject(TechInvitationService);

@@ -1,0 +1,204 @@
+<div class="alert-center" [class.alert-center--compact]="compact()">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="alert-center__header">
+    <div class="ac-header-left">
+      <svg cIcon name="cilBell" class="ac-header-icon"></svg>
+      <h5 class="ac-header-title">Alert Center</h5>
+      @if (store.unreadCount() > 0) {
+        <span class="ac-unread-badge">{{ store.unreadCount() }}</span>
+      }
+    </div>
+
+    <div class="ac-header-actions">
+      <button class="ac-icon-btn" [class.ac-icon-btn--active]="compact()"
+              (click)="toggleCompact()" title="Toggle compact view">
+        <svg cIcon [name]="compact() ? 'cilMenu' : 'cilList'"></svg>
+      </button>
+      <button class="ac-text-btn" (click)="store.markAllAsRead()"
+              [disabled]="store.unreadCount() === 0">
+        Mark all read
+      </button>
+      <button class="ac-text-btn" (click)="store.refresh()">Refresh</button>
+    </div>
+  </div>
+
+  <!-- ── Level filters ──────────────────────────────────────────────── -->
+  <div class="alert-center__filters">
+    <button class="alert-filter-btn"
+            [class.active]="activeFilter() === 'ALL'"
+            (click)="setFilter('ALL')">
+      All
+      <span class="alert-filter-count">{{ store.alertsByLevel().length }}</span>
+    </button>
+
+    <button class="alert-filter-btn alert-filter-btn--critical"
+            [class.active]="activeFilter() === 'CRITICAL'"
+            (click)="setFilter('CRITICAL')">
+      <svg cIcon name="cilBan" class="af-icon"></svg>
+      Critical
+      <span class="alert-filter-count">{{ criticalCount() }}</span>
+    </button>
+
+    <button class="alert-filter-btn alert-filter-btn--warning"
+            [class.active]="activeFilter() === 'WARNING'"
+            (click)="setFilter('WARNING')">
+      <svg cIcon name="cilWarning" class="af-icon"></svg>
+      Warning
+      <span class="alert-filter-count">{{ warningCount() }}</span>
+    </button>
+
+    <button class="alert-filter-btn alert-filter-btn--info"
+            [class.active]="activeFilter() === 'INFO'"
+            (click)="setFilter('INFO')">
+      <svg cIcon name="cilBell" class="af-icon"></svg>
+      Info
+      <span class="alert-filter-count">{{ infoCount() }}</span>
+    </button>
+  </div>
+
+  <!-- ── Bulk action bar ────────────────────────────────────────────── -->
+  @if (selectionCount() > 0) {
+    <div class="alert-bulk-bar">
+      <span class="alert-bulk-bar__count">{{ selectionCount() }} selected</span>
+      <div class="alert-bulk-bar__actions">
+        <button class="ac-text-btn ac-text-btn--primary" (click)="markSelectedRead()">
+          Mark read
+        </button>
+        <button class="ac-text-btn" (click)="clearSelection()">Cancel</button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Loading ────────────────────────────────────────────────────── -->
+  @if (store.loading()) {
+    <div class="alert-center__loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading alerts…</span>
+    </div>
+  }
+
+  <!-- ── Empty state ────────────────────────────────────────────────── -->
+  @if (!store.loading() && filtered().length === 0) {
+    <div class="alert-center__empty">
+      <svg cIcon name="cilCheckCircle" class="ac-empty-icon"></svg>
+      <p class="ac-empty-title">{{ emptyMessage().title }}</p>
+      <span class="ac-empty-sub">{{ emptyMessage().sub }}</span>
+    </div>
+  }
+
+  <!-- ── Alert list ─────────────────────────────────────────────────── -->
+  @if (!store.loading() && filtered().length > 0) {
+    <div class="alert-center__list">
+
+      <!-- Select-all row -->
+      <div class="ac-select-all-row">
+        <label class="ac-checkbox-label" (click)="$event.stopPropagation()">
+          <input type="checkbox" class="ac-checkbox"
+                 [checked]="allSelected()"
+                 (change)="toggleSelectAll()" />
+          <span class="ac-checkbox-text">Select all</span>
+        </label>
+      </div>
+
+      @for (alert of filtered(); track alert.id) {
+        <article class="alert-card"
+                 [class.alert-card--critical]="isCritical(alert)"
+                 [class.alert-card--warning]="isWarning(alert)"
+                 [class.alert-card--info]="!isCritical(alert) && !isWarning(alert)"
+                 [class.alert-card--unread]="!alert.read"
+                 [class.alert-card--selected]="isSelected(alert.id)">
+
+          <div class="alert-card__body">
+
+            <!-- Top: checkbox + icon + content -->
+            <div class="alert-card__top">
+
+              <!-- Checkbox -->
+              <label class="ac-checkbox-label ac-checkbox-label--card"
+                     (click)="$event.stopPropagation()">
+                <input type="checkbox" class="ac-checkbox"
+                       [checked]="isSelected(alert.id)"
+                       (change)="toggleSelect(alert.id, $event)" />
+              </label>
+
+              <!-- Icon -->
+              <span class="alert-card__icon" [ngClass]="iconBg(alert)">
+                <svg cIcon [name]="iconName(alert)" class="ac-icon-svg"></svg>
+              </span>
+
+              <!-- Content -->
+              <div class="alert-card__content">
+
+                <!-- Title + badges -->
+                <div class="alert-card__title-row">
+                  <span class="alert-card__title">{{ alert.title }}</span>
+
+                  @if (getLifecycleStatus(alert) === 'NEW') {
+                    <span class="ac-badge ac-badge--new">NEW</span>
+                  }
+                  @if (isCritical(alert)) {
+                    <span class="ac-badge ac-badge--critical">CRITICAL</span>
+                  } @else if (isWarning(alert)) {
+                    <span class="ac-badge ac-badge--warning">WARNING</span>
+                  }
+                </div>
+
+                <!-- Message -->
+                <p class="alert-card__message">{{ alert.message }}</p>
+
+                <!-- Chips (hidden in compact mode) -->
+                @if (!compact()) {
+                  @let category = getCategoryLabel(alert);
+                  @let chips = getMetaChips(alert);
+                  @if (category || chips.length > 0) {
+                    <div class="alert-card__chips">
+                      @if (category) {
+                        <span class="alert-chip alert-chip--category">{{ category }}</span>
+                      }
+                      @for (chip of chips; track chip) {
+                        <span class="alert-chip alert-chip--meta">{{ chip }}</span>
+                      }
+                    </div>
+                  }
+                }
+
+              </div>
+            </div>
+
+            <!-- Footer: time + actions -->
+            <div class="alert-card__footer">
+              <span class="alert-card__time">
+                {{ getRelativeTime(alert.createdAt) }}
+                @if (!compact()) {
+                  <span class="ac-time-sep">·</span>
+                  <span class="ac-time-abs">{{ getAbsoluteTime(alert.createdAt) }}</span>
+                }
+              </span>
+
+              <div class="alert-card__actions">
+                @if (!alert.read) {
+                  <button class="ac-mark-read" (click)="markRead(alert, $event)">
+                    Mark read
+                  </button>
+                }
+                @if (getAlertActionLabel(alert); as label) {
+                  <button class="ac-action-btn"
+                          [class.ac-action-btn--critical]="isCritical(alert)"
+                          [class.ac-action-btn--warning]="isWarning(alert)"
+                          [class.ac-action-btn--info]="!isCritical(alert) && !isWarning(alert)"
+                          (click)="handleAction(alert)">
+                    {{ label }}
+                  </button>
+                }
+              </div>
+            </div>
+
+          </div>
+        </article>
+      }
+
+    </div>
+  }
+
+</div>

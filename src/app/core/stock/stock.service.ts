@@ -6,6 +6,7 @@ import {
   CaseConsumption,
   CaseConsumptionFilters,
   CaseConsumptionSummary,
+  CreatePermissionRequest,
   DeclareTechUsageRequest,
   DeclareTechUsageResponse,
   ConfirmDpmRequest,
@@ -16,8 +17,15 @@ import {
   DpmRequest,
   DpmTracking,
   Equipment,
+  ExternalRejectionRequest,
   PendingDistribution,
+  RecordExternalApprovalRequest,
+  RejectPermissionRequest,
+  ReviewPermissionRequest,
   StockMovement,
+  StockThreshold,
+  StockThresholdRequest,
+  StockUsagePermission,
   SttDistribution,
   SttStock,
   TechStock,
@@ -75,6 +83,18 @@ export class StockService {
 
   confirmDpm(id: string, payload: ConfirmDpmRequest): Observable<DpmRequest> {
     return this.http.post<DpmRequest>(`${this.url}/dpms/${id}/confirm`, payload);
+  }
+
+  recordExternalApprovalAndRdv(id: string, payload: RecordExternalApprovalRequest): Observable<DpmRequest> {
+    return this.http.patch<DpmRequest>(`${this.url}/dpms/${id}/external-approval-and-rdv`, payload);
+  }
+
+  recordExternalRejection(id: string, payload: ExternalRejectionRequest): Observable<DpmRequest> {
+    return this.http.patch<DpmRequest>(`${this.url}/dpms/${id}/external-rejection`, payload);
+  }
+
+  confirmRdv(id: string): Observable<DpmRequest> {
+    return this.http.post<DpmRequest>(`${this.url}/dpms/${id}/confirm-rdv`, {});
   }
 
   // ── ZM scoped ─────────────────────────────────────────────────────────────
@@ -214,5 +234,49 @@ export class StockService {
 
   getCaseConsumptionSummary(): Observable<CaseConsumptionSummary> {
     return this.http.get<CaseConsumptionSummary>(`${this.baseUrl}/api/v1/stock-audit/summary`);
+  }
+
+  // ── Stock Thresholds (ZM) ──────────────────────────────────────────────────
+
+  getMyThresholds(): Observable<StockThreshold[]> {
+    return this.http.get<StockThreshold[]>(`${this.baseUrl}/api/v1/stock-thresholds/my`);
+  }
+
+  upsertThreshold(payload: StockThresholdRequest): Observable<StockThreshold> {
+    return this.http.post<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds`, payload);
+  }
+
+  updateThreshold(id: string, payload: StockThresholdRequest): Observable<StockThreshold> {
+    return this.http.put<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds/${id}`, payload);
+  }
+
+  toggleThreshold(id: string): Observable<StockThreshold> {
+    return this.http.patch<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds/${id}/toggle`, {});
+  }
+
+  // ── Stock Usage Permissions ────────────────────────────────────────────────
+
+  createUsagePermission(payload: CreatePermissionRequest): Observable<StockUsagePermission> {
+    return this.http.post<StockUsagePermission>(`${this.baseUrl}/api/v1/stock-usage-permissions`, payload);
+  }
+
+  getMyPendingPermissions(): Observable<StockUsagePermission[]> {
+    return this.http.get<StockUsagePermission[]>(`${this.baseUrl}/api/v1/stock-usage-permissions/my-pending`);
+  }
+
+  getPermissionsByCase(caseId: string): Observable<StockUsagePermission[]> {
+    return this.http.get<StockUsagePermission[]>(`${this.baseUrl}/api/v1/stock-usage-permissions/case/${caseId}`);
+  }
+
+  getMyPermissionRequests(): Observable<StockUsagePermission[]> {
+    return this.http.get<StockUsagePermission[]>(`${this.baseUrl}/api/v1/stock-usage-permissions/tech/my-requests`);
+  }
+
+  approvePermission(id: string, payload: ReviewPermissionRequest): Observable<StockUsagePermission> {
+    return this.http.post<StockUsagePermission>(`${this.baseUrl}/api/v1/stock-usage-permissions/${id}/approve`, payload);
+  }
+
+  rejectPermission(id: string, payload: RejectPermissionRequest): Observable<StockUsagePermission> {
+    return this.http.post<StockUsagePermission>(`${this.baseUrl}/api/v1/stock-usage-permissions/${id}/reject`, payload);
   }
 }

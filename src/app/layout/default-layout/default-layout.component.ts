@@ -76,6 +76,6 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   }
 
   private refreshNavItems(): void {
-    this.navItems = getNavByRole(this.store.role());
+    this.navItems = getNavByRole(this.store.role(), this.store.canCreateDpm());
   }
 }

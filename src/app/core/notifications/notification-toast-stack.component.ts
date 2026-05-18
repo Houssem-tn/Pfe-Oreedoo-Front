@@ -2,7 +2,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { IconDirective } from '@coreui/icons-angular';
 
-import { NotificationItem } from './models/notification.model';
+import { NotificationItem, effectiveLevel } from './models/notification.model';
 import { NotificationStoreService } from './notification-store.service';
 
 @Component({
@@ -61,6 +61,19 @@ import { NotificationStoreService } from './notification-store.service';
 
       .notification-toast--assignment {
         border-left: 4px solid #0d6efd;
+      }
+
+      .notification-toast--info {
+        border-left: 4px solid #6c757d;
+      }
+
+      @keyframes pulse-border {
+        0%, 100% { border-left-color: #e55353; }
+        50% { border-left-color: #ff8080; }
+      }
+
+      .notification-toast--pulse {
+        animation: pulse-border 1.8s ease-in-out infinite;
       }
 
       .notification-toast__header {
@@ -132,11 +145,17 @@ export class NotificationToastStackComponent {
 
   iconName(item: NotificationItem): string {
     switch (item.eventType) {
-      case 'SLA_WARNING':
-        return 'cilWarning';
+      case 'STOCK_CRITICAL':
       case 'SLA_BREACHED':
       case 'SLA_ESCALATED':
         return 'cilBan';
+      case 'STOCK_LOW_WARNING':
+      case 'SLA_WARNING':
+        return 'cilWarning';
+      case 'STOCK_USAGE_PERMISSION_REQUIRED':
+      case 'STOCK_USAGE_PERMISSION_APPROVED':
+      case 'STOCK_USAGE_PERMISSION_REJECTED':
+        return 'cilStorage';
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
@@ -147,18 +166,16 @@ export class NotificationToastStackComponent {
   }
 
   toastClass(item: NotificationItem): string {
+    const level = effectiveLevel(item);
+    if (level === 'CRITICAL') return 'notification-toast--danger notification-toast--pulse';
+    if (level === 'WARNING') return 'notification-toast--warning';
     switch (item.eventType) {
-      case 'SLA_WARNING':
-        return 'notification-toast--warning';
-      case 'SLA_BREACHED':
-      case 'SLA_ESCALATED':
-        return 'notification-toast--danger';
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
         return 'notification-toast--assignment';
       default:
-        return '';
+        return 'notification-toast--info';
     }
   }
 }

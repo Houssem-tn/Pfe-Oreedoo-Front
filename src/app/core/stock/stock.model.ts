@@ -1,4 +1,12 @@
 export type DpmStatus =
+  // ── New workflow statuses ────────────────────────────────────────────────────
+  | 'WAITING_TEAM_STOCK_APPROVAL'
+  | 'TEAM_STOCK_REJECTED'
+  | 'RDV_SCHEDULED'
+  | 'RDV_CONFIRMED_BY_STT'
+  | 'MATERIAL_RECEIVED'
+  | 'COMPLETED'
+  // ── Legacy statuses ──────────────────────────────────────────────────────────
   | 'PENDING_STT_CONFIRMATION'
   | 'PARTIALLY_CONFIRMED'
   | 'FULLY_CONFIRMED'
@@ -70,6 +78,23 @@ export interface DpmRequest {
   createdAt: string;
   confirmedAt?: string;
   timeline: DpmTimelineEvent[];
+
+  // External Team Stock approval fields
+  externalApprovalReference?: string;
+  externalApprovalNote?: string;
+  externalApprovalMarkedAt?: string;
+  externalApprovalMarkedByZmId?: string;
+
+  // RDV fields
+  rdvDate?: string;
+  rdvLocation?: string;
+  rdvNote?: string;
+  rdvScheduledAt?: string;
+  rdvScheduledByZmId?: string;
+
+  // Rejection fields
+  externalRejectionReason?: string;
+  externalRejectedAt?: string;
 }
 
 export interface SttStockItem {
@@ -282,6 +307,90 @@ export interface CaseConsumptionFilters {
   to?: string;
 }
 
+// ── Stock Thresholds ─────────────────────────────────────────────────────────
+
+export interface StockThreshold {
+  id: string;
+  zmId: string;
+  zmName: string;
+  itemId: string;
+  itemName: string;
+  itemType?: 'EQUIPMENT' | 'CABLE';
+  warningThreshold: number;
+  criticalThreshold: number;
+  unit?: 'PIECE' | 'METER';
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface StockThresholdRequest {
+  itemId: string;
+  itemName: string;
+  itemType?: string;
+  warningThreshold: number;
+  criticalThreshold: number;
+  unit?: string;
+  enabled: boolean;
+}
+
+// ── Stock Usage Permissions ──────────────────────────────────────────────────
+
+export interface PermissionItemDetail {
+  itemId: string;
+  itemName: string;
+  requestedQuantity: number;
+  approvedQuantity: number;
+  unit?: string;
+}
+
+export type PermissionStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'PARTIALLY_APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export interface StockUsagePermission {
+  id: string;
+  caseId: string;
+  caseReference?: string;
+  techId: string;
+  techName: string;
+  sttId: string;
+  sttName: string;
+  zmId?: string;
+  zmName?: string;
+  status: PermissionStatus;
+  reason?: string;
+  requestedCableMeters: number;
+  approvedCableMeters: number;
+  requestedItems?: PermissionItemDetail[];
+  approvedItems?: PermissionItemDetail[];
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBySttId?: string;
+  reviewComment?: string;
+}
+
+export interface CreatePermissionRequest {
+  caseId: string;
+  reason?: string;
+  requestedCableMeters: number;
+  requestedItems?: { itemId: string; itemName: string; requestedQuantity: number; unit?: string }[];
+}
+
+export interface ReviewPermissionRequest {
+  approvedCableMeters: number;
+  approvedItems?: { itemId: string; approvedQuantity: number }[];
+  reviewComment?: string;
+}
+
+export interface RejectPermissionRequest {
+  reviewComment: string;
+}
+
 // ── Request payloads ──────────────────────────────────────────────────────────
 
 export interface CreateEquipmentRequest {
@@ -312,6 +421,18 @@ export interface DpmItemConfirmation {
 export interface ConfirmDpmRequest {
   items: DpmItemConfirmation[];
   rejectReason?: string;
+}
+
+export interface RecordExternalApprovalRequest {
+  approvalReference?: string;
+  approvalNote?: string;
+  rdvDate: string;
+  rdvLocation: string;
+  rdvNote?: string;
+}
+
+export interface ExternalRejectionRequest {
+  rejectionReason?: string;
 }
 
 export interface DistributionItemRequest {

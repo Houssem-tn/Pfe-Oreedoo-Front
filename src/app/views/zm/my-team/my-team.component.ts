@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { IconDirective } from '@coreui/icons-angular';
+import { SpinnerComponent } from '@coreui/angular';
 
 import { CasesService } from '../../../core/cases/cases.service';
 import { PerformanceSummaryResponse } from '../../../core/cases/models/case.model';
@@ -14,7 +15,7 @@ import { GovernorateSelectorComponent } from '../../../shared/modals/governorate
 @Component({
   selector: 'app-my-team',
   standalone: true,
-  imports: [CommonModule, RouterLink, IconDirective, GovernorateSelectorComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SpinnerComponent, GovernorateSelectorComponent],
   templateUrl: './my-team.component.html',
   styleUrl: './my-team.component.scss'
 })
@@ -34,6 +35,17 @@ export class MyTeamComponent implements OnInit {
   techsByStt = signal<Record<string, AppUser[]>>({});
   techLoadingByStt = signal<Record<string, boolean>>({});
   performanceByEmail = signal<Record<string, PerformanceSummaryResponse>>({});
+
+  sttSearch = '';
+
+  get filteredStts(): AppUser[] {
+    if (!this.sttSearch.trim()) return this.stts();
+    const q = this.sttSearch.toLowerCase();
+    return this.stts().filter(s =>
+      (s.fullName ?? '').toLowerCase().includes(q) ||
+      (s.email ?? '').toLowerCase().includes(q)
+    );
+  }
 
   // Governorate selector modal state
   govSelectorVisible = signal(false);

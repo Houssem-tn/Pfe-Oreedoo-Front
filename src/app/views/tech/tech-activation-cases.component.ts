@@ -23,7 +23,7 @@ import {
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
 import { StockService } from '../../core/stock/stock.service';
-import { TechStock, TechStockItem } from '../../core/stock/stock.model';
+import { TechStock, TechStockItem, StockUsagePermission, CreatePermissionRequest } from '../../core/stock/stock.model';
 import {
   buildUsedEquipmentPayload,
   EquipmentUsageLine,
@@ -42,6 +42,14 @@ import {
 } from './tech-case.helpers';
 
 type TechQuickFilter = 'urgent' | 'rdv' | 'work' | 'all';
+
+interface OverLimitLine {
+  equipmentId: string;
+  equipmentName: string;
+  quantity: number;
+  limit: number;
+  unit: string;
+}
 type TechPanel = 'details' | 'rdv' | 'work';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
 type TechProofSource = 'camera' | 'gallery';
@@ -151,6 +159,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   usageLines: EquipmentUsageLine[] = [];
   techStock: TechStock | null = null;
   proofDrafts: Record<string, TechProofDraft> = {};
+  casePermissions: StockUsagePermission[] = [];
+  permissionsLoading = false;
+  permissionModalOpen = false;
+  permissionReason = '';
+  permissionSaving = false;
+  permissionNeeded = false;
   private pendingProofLocation: TechGeoSnapshot | null = null;
   private pendingProofSource: TechProofSource | null = null;
   private backgroundProofSyncCaseId: string | null = null;
@@ -432,6 +446,62 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return this.techStockItems.reduce((sum, item) => sum + item.usedQuantity, 0);
   }
 
+  get overLimitLines(): OverLimitLine[] {
+    if (!this.isTechRole) return [];
+    const CABLE_LIMIT = 20;
+    const ITEM_LIMIT = 1;
+    const merged = new Map<string, { qty: number; item: TechStockItem }>();
+    for (const line of this.usageLines) {
+      const id = (line.equipmentId ?? '').trim();
+      const qty = Number(String(line.quantity ?? '').trim());
+      if (!id || !Number.isFinite(qty) || qty <= 0) continue;
+      const stockItem = this.techStockItems.find(i => i.equipmentId === id);
+      if (!stockItem) continue;
+      const existing = merged.get(id);
+      if (existing) existing.qty += qty;
+      else merged.set(id, { qty, item: stockItem });
+    }
+    const result: OverLimitLine[] = [];
+    for (const { qty, item } of merged.values()) {
+      const limit = item.unit === 'METERS' ? CABLE_LIMIT : ITEM_LIMIT;
+      if (qty > limit) {
+        result.push({ equipmentId: item.equipmentId, equipmentName: item.equipmentName, quantity: qty, limit, unit: item.unit ?? 'pcs' });
+      }
+    }
+    return result;
+  }
+
+  get hasOverLimit(): boolean {
+    return this.overLimitLines.length > 0;
+  }
+
+  get permissionUsageLines(): OverLimitLine[] {
+    const overLimit = this.overLimitLines;
+    if (overLimit.length) return overLimit;
+
+    const CABLE_LIMIT = 20;
+    const ITEM_LIMIT = 1;
+    const result: OverLimitLine[] = [];
+    for (const line of this.usageLines) {
+      const id = (line.equipmentId ?? '').trim();
+      const qty = Number(String(line.quantity ?? '').trim());
+      if (!id || !Number.isFinite(qty) || qty <= 0) continue;
+      const stockItem = this.techStockItems.find(i => i.equipmentId === id);
+      const unit = stockItem?.unit ?? 'pcs';
+      const equipmentName = stockItem?.equipmentName ?? id;
+      const limit = unit === 'METERS' ? CABLE_LIMIT : ITEM_LIMIT;
+      result.push({ equipmentId: id, equipmentName, quantity: qty, limit, unit });
+    }
+    return result;
+  }
+
+  get activeCasePermission(): StockUsagePermission | null {
+    const active = this.casePermissions
+      .filter(p => p.status !== 'CANCELLED')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return active[0] ?? null;
+  }
+
   loadCases(): void {
     if (this.loading) {
       return;
@@ -708,6 +778,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
     if (this.isTechRole) {
       this.loadTechStock(true);
+      this.loadCasePermissions();
     }
 
     this.loadCaseDetails(item.id);
@@ -719,6 +790,9 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.activePanel = 'details';
     this.panelLoading = false;
     this.panelError = null;
+    this.casePermissions = [];
+    this.permissionModalOpen = false;
+    this.permissionNeeded = false;
   }
 
   switchPanel(panel: TechPanel): void {
@@ -727,6 +801,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.banner = null;
+    this.permissionNeeded = false;
     this.activePanel = panel;
 
     if (panel === 'rdv') {
@@ -843,7 +919,17 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       void this.syncProofAfterWork(target.id);
     } catch (err: any) {
       console.error('Failed to submit TECH work', err);
-      this.banner = { tone: 'danger', text: err?.error?.message ?? 'Unable to submit the work update.' };
+      const msg: string = err?.error?.message ?? err?.message ?? '';
+      if (err?.status === 403) {
+        this.permissionNeeded = true;
+        this.banner = { tone: 'warning', text: 'Stock usage exceeds the allowed limit. Request STT permission below before submitting.' };
+        if (this.selectedCaseId) {
+          this.loadCasePermissions();
+        }
+      } else {
+        this.permissionNeeded = false;
+        this.banner = { tone: 'danger', text: msg || 'Unable to submit the work update.' };
+      }
     } finally {
       this.actionBusy = false;
     }
@@ -1202,6 +1288,85 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
           this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
         }
       });
+  }
+
+  loadCasePermissions(): void {
+    const caseId = this.selectedCaseId;
+    if (!caseId) return;
+    this.permissionsLoading = true;
+    this.stockService.getPermissionsByCase(caseId).subscribe({
+      next: (permissions) => {
+        this.casePermissions = permissions;
+        this.permissionsLoading = false;
+      },
+      error: () => { this.permissionsLoading = false; }
+    });
+  }
+
+  openPermissionModal(): void {
+    this.permissionReason = '';
+    this.permissionModalOpen = true;
+  }
+
+  submitPermissionRequest(): void {
+    const caseId = this.selectedCaseId;
+    if (!caseId) return;
+    const lines = this.permissionUsageLines;
+    if (!lines.length) {
+      this.permissionModalOpen = false;
+      return;
+    }
+
+    const cableItems = lines.filter(l => l.unit === 'METERS');
+    const equipmentItems = lines.filter(l => l.unit !== 'METERS');
+
+    const payload: CreatePermissionRequest = {
+      caseId,
+      reason: this.permissionReason.trim() || undefined,
+      requestedCableMeters: cableItems.reduce((sum, l) => sum + l.quantity, 0),
+      requestedItems: equipmentItems.map(l => ({
+        itemId: l.equipmentId,
+        itemName: l.equipmentName,
+        requestedQuantity: l.quantity,
+        unit: l.unit
+      }))
+    };
+
+    this.permissionSaving = true;
+    this.stockService.createUsagePermission(payload).subscribe({
+      next: (permission) => {
+        this.permissionSaving = false;
+        this.permissionModalOpen = false;
+        this.permissionNeeded = false;
+        this.casePermissions = [permission, ...this.casePermissions.filter(p => p.id !== permission.id)];
+        this.banner = { tone: 'info', text: 'Permission request sent to your STT supervisor. You can submit work once it is approved.' };
+      },
+      error: (err) => {
+        this.permissionSaving = false;
+        this.permissionModalOpen = false;
+        this.banner = { tone: 'danger', text: err?.error?.message ?? 'Failed to send permission request.' };
+      }
+    });
+  }
+
+  permissionStatusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING': return 'Pending STT Review';
+      case 'APPROVED': return 'Approved';
+      case 'PARTIALLY_APPROVED': return 'Partially Approved';
+      case 'REJECTED': return 'Rejected';
+      default: return status;
+    }
+  }
+
+  permissionStatusTone(status: string): string {
+    switch (status) {
+      case 'PENDING': return 'warning';
+      case 'APPROVED': return 'success';
+      case 'PARTIALLY_APPROVED': return 'info';
+      case 'REJECTED': return 'danger';
+      default: return 'info';
+    }
   }
 
   private matchesQuickFilter(item: CaseResponse): boolean {

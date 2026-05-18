@@ -1023,6 +1023,102 @@
   margin: 0;
 }
 
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+.ua-pagination {
+  align-items: center;
+  border-top: 1px solid rgba(33, 38, 48, 0.07);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.ua-pagination__meta {
+  color: var(--audit-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.ua-pagination__right {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ua-pagination__size {
+  align-items: center;
+  color: var(--audit-muted);
+  display: flex;
+  font-size: 0.82rem;
+  font-weight: 600;
+  gap: 0.4rem;
+}
+
+.ua-page-size-select {
+  border: 1px solid rgba(33, 38, 48, 0.12);
+  border-radius: 0.6rem;
+  color: var(--audit-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  height: 2rem;
+  padding: 0 0.5rem;
+}
+
+.ua-page-size-select:focus {
+  border-color: rgba(229, 36, 59, 0.3);
+  box-shadow: 0 0 0 0.15rem rgba(229, 36, 59, 0.1);
+  outline: none;
+}
+
+.ua-pagination__controls {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.ua-page-btn {
+  align-items: center;
+  background: #fff;
+  border: 1px solid rgba(33, 38, 48, 0.12);
+  border-radius: 0.6rem;
+  color: var(--audit-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 700;
+  height: 2.1rem;
+  justify-content: center;
+  min-width: 2.1rem;
+  padding: 0 0.5rem;
+  transition: all 0.15s;
+}
+
+.ua-page-btn:hover:not(:disabled) {
+  background: rgba(229, 36, 59, 0.06);
+  border-color: rgba(229, 36, 59, 0.2);
+  color: var(--audit-red);
+}
+
+.ua-page-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.ua-page-btn--active {
+  background: var(--audit-red);
+  border-color: var(--audit-red);
+  color: #fff;
+}
+
+.ua-page-btn--active:hover {
+  background: var(--audit-red-dark);
+  border-color: var(--audit-red-dark);
+  color: #fff;
+}
+
 @media (max-width: 991.98px) {
   .users-audit-hero,
   .users-audit-board {

@@ -13,7 +13,7 @@ import {
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
-import { DpmRequest, DpmStatus, SttStock, TechStock } from '../../../../core/stock/stock.model';
+import { DpmRequest, DpmStatus, SttStock, TechStock, TechStockItem } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -98,8 +98,15 @@ export class SttMyStockComponent implements OnInit {
     return this.stockLabel(m, p);
   }
 
+  unitSuffix(item: TechStockItem): string {
+    return item.unit === 'METERS' ? ' m' : ' pcs';
+  }
+
   statusColor(s: DpmStatus): string {
-    const m: Record<DpmStatus, string> = {
+    const m: Partial<Record<DpmStatus, string>> = {
+      WAITING_TEAM_STOCK_APPROVAL: 'warning', TEAM_STOCK_REJECTED: 'danger',
+      RDV_SCHEDULED: 'info', RDV_CONFIRMED_BY_STT: 'primary',
+      MATERIAL_RECEIVED: 'success', COMPLETED: 'success',
       PENDING_STT_CONFIRMATION: 'warning', PARTIALLY_CONFIRMED: 'info',
       FULLY_CONFIRMED: 'success', REJECTED: 'danger', CANCELLED: 'secondary'
     };

@@ -62,6 +62,12 @@ export const routes: Routes = [
       import('./stock/distribute/distribute.component').then(m => m.DistributeComponent),
     data: { title: 'Distribute to TECH' }
   },
+  {
+    path: 'stock/usage-approvals',
+    loadComponent: () =>
+      import('./stock/usage-approvals/stt-usage-approvals.component').then(m => m.SttUsageApprovalsComponent),
+    data: { title: 'Stock Usage Approvals' }
+  },
 
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
 ];

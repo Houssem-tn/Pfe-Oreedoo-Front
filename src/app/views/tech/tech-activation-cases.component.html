@@ -165,6 +165,12 @@
 
   <div *ngIf="banner" class="tech-banner" [ngClass]="'tech-banner--' + banner.tone">
     {{ banner.text }}
+    <div *ngIf="permissionNeeded" style="margin-top:.75rem">
+      <button type="button" class="btn-tech btn-tech--primary"
+              (click)="openPermissionModal()" [disabled]="permissionSaving">
+        Request STT Permission
+      </button>
+    </div>
   </div>
 
   <div *ngIf="loading" class="tech-loading-card">
@@ -750,6 +756,31 @@
               </div>
             </div>
 
+            <!-- Permission required alert (shown after a 403 from backend) -->
+            @if (permissionNeeded && isTechRole) {
+              <div class="tech-banner tech-banner--warning" style="margin-bottom:1rem">
+                <div><strong>STT permission required</strong></div>
+                <div style="font-size:.875rem;margin:.25rem 0 .75rem">
+                  Your stock usage exceeds the allowed limit (cable &gt; 20m or item &gt; 1 piece).
+                  You must request approval from your STT supervisor before submitting.
+                </div>
+                @if (activeCasePermission && activeCasePermission.status === 'PENDING') {
+                  <div style="font-size:.875rem">
+                    A permission request is already pending review by <strong>{{ activeCasePermission.sttName }}</strong>. Wait for their response.
+                  </div>
+                } @else if (activeCasePermission && activeCasePermission.status === 'APPROVED') {
+                  <div style="font-size:.875rem;color:#198754">
+                    Your permission has been <strong>approved</strong> by {{ activeCasePermission.sttName }}. You can now submit work.
+                  </div>
+                } @else {
+                  <button type="button" class="btn-tech btn-tech--primary"
+                          (click)="openPermissionModal()" [disabled]="permissionSaving">
+                    Request STT Permission
+                  </button>
+                }
+              </div>
+            }
+
             <div class="tech-form__section">
               <div class="tech-form__section-title">Photo proof</div>
               <p class="tech-form__hint">
@@ -924,6 +955,69 @@
                   <div class="tech-empty__hint">No stock assigned to your account yet.</div>
                 </div>
               }
+
+              <!-- Over-limit warning -->
+              @if (isTechRole && hasOverLimit) {
+                <div class="tech-banner tech-banner--warning" style="margin-top:1rem">
+                  <strong>Over-limit usage detected.</strong>
+                  Usage above the allowed limit requires STT supervisor approval before work can be submitted.
+                  <ul style="margin:.5rem 0 0;padding-left:1.25rem">
+                    @for (ol of overLimitLines; track ol.equipmentId) {
+                      <li>
+                        <strong>{{ ol.equipmentName }}</strong>:
+                        {{ ol.quantity }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }} requested
+                        (limit: {{ ol.limit }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }})
+                      </li>
+                    }
+                  </ul>
+                </div>
+
+                <!-- Permission status -->
+                @if (activeCasePermission) {
+                  <div class="tech-banner tech-banner--{{ permissionStatusTone(activeCasePermission.status) }}" style="margin-top:.75rem">
+                    <div><strong>Permission request: {{ permissionStatusLabel(activeCasePermission.status) }}</strong></div>
+                    @if (activeCasePermission.status === 'PENDING') {
+                      <div style="font-size:.85rem;margin-top:.25rem">Waiting for your STT supervisor to review. You cannot submit work until it is approved.</div>
+                    }
+                    @if (activeCasePermission.status === 'APPROVED') {
+                      <div style="font-size:.85rem;margin-top:.25rem">
+                        Approved by {{ activeCasePermission.sttName }}.
+                        @if (activeCasePermission.approvedCableMeters > 0) {
+                          Cable: {{ activeCasePermission.approvedCableMeters }}m approved.
+                        }
+                        @if (activeCasePermission.reviewComment) {
+                          Note: {{ activeCasePermission.reviewComment }}
+                        }
+                      </div>
+                    }
+                    @if (activeCasePermission.status === 'PARTIALLY_APPROVED') {
+                      <div style="font-size:.85rem;margin-top:.25rem">
+                        Partially approved — check the approved amounts and adjust your usage accordingly.
+                        @if (activeCasePermission.reviewComment) {
+                          Note: {{ activeCasePermission.reviewComment }}
+                        }
+                      </div>
+                    }
+                    @if (activeCasePermission.status === 'REJECTED') {
+                      <div style="font-size:.85rem;margin-top:.25rem">
+                        Rejected by {{ activeCasePermission.sttName }}.
+                        @if (activeCasePermission.reviewComment) {
+                          Reason: {{ activeCasePermission.reviewComment }}
+                        }
+                        Adjust your usage below the limit or submit a new request.
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Request permission button (only if no active non-rejected permission) -->
+                @if (!activeCasePermission || activeCasePermission.status === 'REJECTED' || activeCasePermission.status === 'CANCELLED') {
+                  <button type="button" class="btn-tech btn-tech--warning" style="margin-top:.75rem"
+                          (click)="openPermissionModal()" [disabled]="permissionsLoading">
+                    Request STT Permission
+                  </button>
+                }
+              }
             </div>
 
             <div class="tech-form__section">
@@ -958,6 +1052,11 @@
 
             <div class="tech-form__actions">
               <button type="button" class="btn-tech btn-tech--ghost" (click)="switchPanel('details')">Cancel</button>
+              @if (permissionNeeded && isTechRole && (!activeCasePermission || activeCasePermission.status === 'REJECTED' || activeCasePermission.status === 'CANCELLED')) {
+                <button type="button" class="btn-tech btn-tech--warning" (click)="openPermissionModal()" [disabled]="permissionSaving">
+                  Request STT Permission
+                </button>
+              }
               <button type="submit" class="btn-tech btn-tech--primary" [disabled]="actionBusy">
                 <svg cIcon name="cilTask"></svg>
                 {{ actionBusy ? 'Submitting...' : 'Submit work + proof' }}
@@ -984,3 +1083,40 @@
     </button>
   </nav>
 </div>
+
+<!-- ── STT Permission Request Modal ─────────────────────────────────────────── -->
+@if (permissionModalOpen) {
+  <div class="tech-modal-backdrop" (click)="permissionModalOpen = false" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1050;display:flex;align-items:center;justify-content:center;padding:1rem">
+    <div class="tech-modal" (click)="$event.stopPropagation()" style="background:#fff;border-radius:.75rem;padding:1.5rem;max-width:480px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:.25rem">Request STT Permission</div>
+      <div style="font-size:.85rem;color:#6c757d;margin-bottom:1rem">
+        You are requesting approval from your STT supervisor for the following over-limit usage:
+      </div>
+
+      <ul style="font-size:.88rem;margin:.5rem 0 1rem;padding-left:1.25rem">
+        @for (ol of permissionUsageLines; track ol.equipmentId) {
+          <li>
+            <strong>{{ ol.equipmentName }}</strong>:
+            {{ ol.quantity }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+            (limit: {{ ol.limit }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }})
+          </li>
+        }
+      </ul>
+
+      <label class="tech-field" style="margin-bottom:1rem">
+        <span>Reason / justification (optional)</span>
+        <textarea [(ngModel)]="permissionReason" rows="3" placeholder="Explain why extra stock is needed for this case…"
+                  style="width:100%;padding:.5rem;border:1px solid #dee2e6;border-radius:.375rem;font-size:.9rem;resize:vertical"></textarea>
+      </label>
+
+      <div style="display:flex;gap:.75rem;justify-content:flex-end">
+        <button type="button" class="btn-tech btn-tech--ghost" (click)="permissionModalOpen = false" [disabled]="permissionSaving">
+          Cancel
+        </button>
+        <button type="button" class="btn-tech btn-tech--primary" (click)="submitPermissionRequest()" [disabled]="permissionSaving">
+          {{ permissionSaving ? 'Sending...' : 'Send Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

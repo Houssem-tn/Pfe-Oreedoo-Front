@@ -307,7 +307,7 @@
         <div class="crm-table-panel__meta">{{ rangeLabel() }}</div>
       </div>
 
-      <div class="table-responsive">
+      <div class="crm-table-wrap">
         <table class="table cases-table align-middle mb-0">
           <thead>
             <tr>
@@ -324,13 +324,8 @@
           <tbody>
             <tr *ngFor="let item of paginatedCases; trackBy: trackById">
               <td>
-                <div class="case-ref">
-                  <div class="case-ref__icon"><svg cIcon name="cilDescription"></svg></div>
-                  <div>
-                    <div class="case-ref__title">{{ item.crmCase }}</div>
-                    <div class="case-ref__meta">{{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</div>
-                  </div>
-                </div>
+                <div class="case-ref__title">{{ item.crmCase }}</div>
+                <div class="case-ref__meta">{{ item.createdAt ? (item.createdAt | date:'dd/MM HH:mm') : '-' }}</div>
               </td>
 
               <td>
@@ -348,27 +343,27 @@
 
               <td>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--zm">
+                  <div class="assignment-person assignment-person--zm" [title]="'ZM: ' + (ownerZmCompactLabel(item) || '-')">
                     <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.ownerZmName || item.zmName, item.zmEmail) }}</span>
-                    <span class="assignment-badge">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
+                    <span class="assignment-badge">ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--stt">
+                  <div class="assignment-person assignment-person--stt" [title]="'STT: ' + sttDisplayName(item)">
                     <span class="assignee-avatar assignee-avatar--stt">{{ initialsFor(item.sttName, item.sttEmail) }}</span>
                     <span class="assignment-badge">STT: {{ sttDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--tech">
+                  <div class="assignment-person assignment-person--tech" [title]="'TECH: ' + techDisplayName(item)">
                     <span class="assignee-avatar assignee-avatar--tech">{{ initialsFor(item.techName, item.techEmail) }}</span>
                     <span class="assignment-badge">TECH: {{ techDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--executor">
+                  <div class="assignment-person assignment-person--executor" [title]="'Executor: ' + executorDisplayName(item) + ' · ' + executionModeLabel(item)">
                     <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorDisplayName(item), executorDisplayName(item)) }}</span>
-                    <span class="assignment-badge">Executor: {{ executorDisplayName(item) }} - {{ executionModeLabel(item) }}</span>
+                    <span class="assignment-badge">{{ executionModeLabel(item) }}</span>
                   </div>
                 </div>
               </td>
@@ -394,16 +389,12 @@
 
               <td>
                 <div class="case-execution__item">
-                  <svg cIcon name="cilUser"></svg>
-                  <span>{{ executionModeLabel(item) }} - {{ executorDisplayName(item) }}</span>
-                </div>
-                <div class="case-execution__item">
                   <svg cIcon name="cilCalendar"></svg>
-                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM/yyyy HH:mm') : 'RDV not set' }}</span>
+                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'RDV not set' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilTask"></svg>
-                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work not submitted' }}</span>
+                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work pending' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCheckCircle"></svg>

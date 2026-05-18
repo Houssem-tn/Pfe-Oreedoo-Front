@@ -35,7 +35,14 @@ import {
 } from './field-case-utils';
 import { OcrService } from '../../core/ocr/ocr.service';
 import { StockService } from '../../core/stock/stock.service';
-import { TechStock, TechStockItem } from '../../core/stock/stock.model';
+import {
+  CreatePermissionRequest,
+  StockUsagePermission,
+  TechStock,
+  TechStockItem
+} from '../../core/stock/stock.model';
+import { StockUsagePermissionService } from '../../core/stock/stock-usage-permission.service';
+import { SwalService } from '../../core/ui/swal.service';
 
 type FieldExecutionStep = 'rdv' | 'diagnosis' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
@@ -87,6 +94,14 @@ interface FieldGeoSnapshot {
 interface FieldProofAttachment {
   file: File;
   captureSource: string;
+}
+
+interface OverLimitLine {
+  equipmentId: string;
+  equipmentName: string;
+  quantity: number;
+  limit: number;
+  unit: string;
 }
 
 @Component({
@@ -419,6 +434,78 @@ interface FieldProofAttachment {
             <span>{{ item.workProofs?.length ?? 0 }} proof uploaded</span>
           </div>
 
+          <section
+            *ngIf="showStockPermissionCard"
+            class="field-permission-card"
+            [ngClass]="'field-permission-card--' + permissionStatusTone(activeCasePermission?.status)"
+          >
+            <div class="field-permission-card__header">
+              <div>
+                <h3>{{ stockPermissionCardTitle }}</h3>
+                <p>{{ stockPermissionHeadline }}</p>
+              </div>
+              <span class="field-permission-status" *ngIf="activeCasePermission">
+                {{ permissionStatusLabel(activeCasePermission.status) }}
+              </span>
+            </div>
+
+            <div class="field-permission-card__body" *ngIf="stockPermissionErrorMessage">
+              <p>{{ stockPermissionErrorMessage }}</p>
+            </div>
+
+            <div class="field-permission-card__meta">
+              <div class="field-permission-card__meta-item">
+                <span>Requested usage</span>
+                <p *ngIf="permissionRequestCableMeters > 0">Cable: {{ permissionRequestCableMeters }}m</p>
+                <ul class="field-permission-list field-permission-list--compact" *ngIf="permissionRequestEquipmentItems.length > 0">
+                  <li *ngFor="let line of permissionRequestEquipmentItems">
+                    <span>{{ line.equipmentName }}</span>
+                    <strong>{{ line.quantity }} {{ stockUnitLabel(line.unit) }}</strong>
+                  </li>
+                </ul>
+                <p *ngIf="permissionRequestCableMeters <= 0 && permissionRequestEquipmentItems.length === 0">
+                  No over-limit stock selected right now.
+                </p>
+              </div>
+
+              <div class="field-permission-card__meta-item" *ngIf="activeCasePermission && showApprovedPermissionSummary">
+                <span>Approved usage</span>
+                <p *ngIf="activeCasePermission.approvedCableMeters > 0">Cable: {{ activeCasePermission.approvedCableMeters }}m</p>
+                <ul class="field-permission-list field-permission-list--compact" *ngIf="activeCasePermission.approvedItems?.length">
+                  <li *ngFor="let item of activeCasePermission.approvedItems">
+                    <span>{{ item.itemName }}</span>
+                    <strong>{{ item.approvedQuantity }} {{ stockUnitLabel(item.unit) }}</strong>
+                  </li>
+                </ul>
+                <p *ngIf="!activeCasePermission.approvedCableMeters && !activeCasePermission.approvedItems?.length">
+                  No approved extra quantity was recorded.
+                </p>
+              </div>
+            </div>
+
+            <div class="field-permission-card__body" *ngIf="activeCasePermission?.reviewComment">
+              <p>
+                <strong>STT note:</strong>
+                {{ activeCasePermission?.reviewComment }}
+              </p>
+            </div>
+
+            <div class="field-permission-card__body" *ngIf="completionBlockedByPermission">
+              <p class="field-permission-card__notice">{{ completionPermissionNotice }}</p>
+            </div>
+
+            <div class="field-permission-card__actions" *ngIf="canRequestNewPermission">
+              <button
+                class="field-button field-button--warning"
+                type="button"
+                (click)="openPermissionModal()"
+                [disabled]="permissionsLoading || permissionSaving"
+              >
+                Ask STT Permission
+              </button>
+            </div>
+          </section>
+
           <input #completionProof type="file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment" hidden (change)="selectProof($event)" />
 
           <button class="field-button field-button--ghost" type="button" (click)="completionProof.click()" [disabled]="actionBusy">
@@ -451,15 +538,241 @@ interface FieldProofAttachment {
 
           <div class="field-button-row">
             <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'metrics'">Back</button>
-            <button class="field-button field-button--success" type="button" (click)="finishWork()" [disabled]="actionBusy">
+            <button class="field-button field-button--success" type="button" (click)="finishWork()" [disabled]="actionBusy || completionBlockedByPermission">
               <svg cIcon name="cilCheckCircle"></svg>
-              Finish
+              {{ completionBlockedByPermission ? 'Waiting for STT approval' : 'Finish' }}
             </button>
           </div>
         </section>
       </ng-container>
+
+      <div *ngIf="permissionModalOpen" class="field-modal-backdrop" (click)="closePermissionModal()">
+        <section class="field-modal field-card" (click)="$event.stopPropagation()">
+          <div class="field-section-title">
+            <h2>Ask STT Permission</h2>
+            <span>Over-limit stock request</span>
+          </div>
+
+          <div class="field-modal__meta">
+            <div class="field-fact">
+              <span>Case reference</span>
+              <strong>{{ caseReferenceLabel }}</strong>
+            </div>
+            <div class="field-fact">
+              <span>Case id</span>
+              <strong>{{ caseItem?.id ?? '-' }}</strong>
+            </div>
+          </div>
+
+          <div class="field-modal__summary" *ngIf="permissionRequestCableMeters > 0">
+            <strong>Cable requested:</strong>
+            <span>{{ permissionRequestCableMeters }}m</span>
+          </div>
+
+          <div class="field-modal__summary" *ngIf="permissionRequestEquipmentItems.length > 0">
+            <strong>Requested equipment</strong>
+            <ul class="field-permission-list">
+              <li *ngFor="let line of permissionRequestEquipmentItems">
+                <span>{{ line.equipmentName }}</span>
+                <strong>{{ line.quantity }} {{ stockUnitLabel(line.unit) }}</strong>
+              </li>
+            </ul>
+          </div>
+
+          <label class="field-label">
+            Reason
+            <textarea
+              class="field-textarea"
+              name="permissionReason"
+              rows="4"
+              [(ngModel)]="permissionReason"
+              placeholder="Explain why this intervention needs extra cable or equipment."
+            ></textarea>
+          </label>
+
+          <div class="field-modal__hint">A reason is required before the request can be sent to your STT.</div>
+
+          <div class="field-button-row">
+            <button class="field-button field-button--ghost" type="button" (click)="closePermissionModal()" [disabled]="permissionSaving">
+              Cancel
+            </button>
+            <button
+              class="field-button field-button--primary"
+              type="button"
+              (click)="submitPermissionRequest()"
+              [disabled]="permissionSaving || !permissionReason.trim()"
+            >
+              {{ permissionSaving ? 'Sending...' : 'Send Request' }}
+            </button>
+          </div>
+        </section>
+      </div>
     </section>
-  `
+  `,
+  styles: [`
+    .field-permission-card {
+      border: 1px solid rgba(229, 165, 10, 0.28);
+      border-radius: 1rem;
+      padding: 1rem;
+      background: linear-gradient(180deg, rgba(255, 248, 229, 0.96), rgba(255, 255, 255, 0.98));
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .field-permission-card--success {
+      border-color: rgba(25, 135, 84, 0.28);
+      background: linear-gradient(180deg, rgba(233, 248, 239, 0.96), rgba(255, 255, 255, 0.98));
+    }
+
+    .field-permission-card--info {
+      border-color: rgba(13, 110, 253, 0.22);
+      background: linear-gradient(180deg, rgba(235, 244, 255, 0.96), rgba(255, 255, 255, 0.98));
+    }
+
+    .field-permission-card--danger {
+      border-color: rgba(220, 53, 69, 0.28);
+      background: linear-gradient(180deg, rgba(255, 239, 241, 0.97), rgba(255, 255, 255, 0.98));
+    }
+
+    .field-permission-card__header {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .field-permission-card__header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .field-permission-card__header p,
+    .field-permission-card__body p,
+    .field-permission-card__meta p {
+      margin: 0.35rem 0 0;
+      color: rgba(26, 26, 26, 0.72);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .field-permission-status {
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      background: rgba(0, 0, 0, 0.08);
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .field-permission-card__body,
+    .field-permission-card__meta {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .field-permission-card__meta-item {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .field-permission-card__meta-item span {
+      font-size: 0.78rem;
+      color: rgba(26, 26, 26, 0.58);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .field-permission-list {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      gap: 0.45rem;
+      font-size: 0.92rem;
+    }
+
+    .field-permission-list li {
+      line-height: 1.4;
+    }
+
+    .field-permission-list--compact {
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .field-permission-list--compact li {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .field-permission-card__actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .field-permission-card__notice {
+      color: #8a1538;
+      font-weight: 600;
+    }
+
+    .field-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(8, 15, 28, 0.58);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .field-modal {
+      display: grid;
+      width: min(32rem, 100%);
+      max-height: min(88vh, 42rem);
+      overflow: auto;
+      gap: 1rem;
+    }
+
+    .field-modal__meta {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    }
+
+    .field-modal__summary {
+      display: grid;
+      gap: 0.5rem;
+      font-size: 0.92rem;
+    }
+
+    .field-modal__hint {
+      font-size: 0.82rem;
+      color: rgba(26, 26, 26, 0.62);
+      line-height: 1.45;
+    }
+
+    @media (max-width: 640px) {
+      .field-permission-card__header {
+        flex-direction: column;
+      }
+
+      .field-permission-status {
+        white-space: normal;
+      }
+
+      .field-modal-backdrop {
+        align-items: stretch;
+        padding: 0.75rem;
+      }
+
+      .field-modal {
+        width: 100%;
+        margin-top: auto;
+      }
+    }
+  `]
 })
 export class FieldExecutionComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
@@ -470,6 +783,8 @@ export class FieldExecutionComponent implements OnInit {
   private readonly zone = inject(NgZone);
   private readonly ocrService = inject(OcrService);
   private readonly stockService = inject(StockService);
+  private readonly stockUsagePermissionService = inject(StockUsagePermissionService);
+  private readonly swal = inject(SwalService);
 
   loading = false;
   actionBusy = false;
@@ -481,6 +796,13 @@ export class FieldExecutionComponent implements OnInit {
   techStockLoading = false;
   techStockError: string | null = null;
   techStock: TechStock | null = null;
+  permissionsLoading = false;
+  permissionSaving = false;
+  permissionModalOpen = false;
+  permissionReason = '';
+  requiresStockPermission = false;
+  stockPermissionErrorMessage: string | null = null;
+  casePermissions: StockUsagePermission[] = [];
   proofFile: File | null = null;
   proofPreviewUrl: string | null = null;
   speedtestProofFile: File | null = null;
@@ -557,6 +879,206 @@ export class FieldExecutionComponent implements OnInit {
 
   get currentCaseUsedEquipment(): CaseUsedEquipmentItem[] {
     return this.caseUsedEquipmentItems(this.caseItem);
+  }
+
+  get overLimitLines(): OverLimitLine[] {
+    if (!this.isTechRole) {
+      return [];
+    }
+
+    const cableLimit = 20;
+    const itemLimit = 1;
+    const merged = new Map<string, { quantity: number; item: TechStockItem }>();
+
+    for (const line of this.usageLines) {
+      const equipmentId = (line.equipmentId ?? '').trim();
+      const quantity = Number(String(line.quantity ?? '').trim());
+      if (!equipmentId || !Number.isFinite(quantity) || quantity <= 0) {
+        continue;
+      }
+
+      const stockItem = this.techStockItems.find((item) => item.equipmentId === equipmentId);
+      if (!stockItem) {
+        continue;
+      }
+
+      const existing = merged.get(equipmentId);
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        merged.set(equipmentId, { quantity, item: stockItem });
+      }
+    }
+
+    const result: OverLimitLine[] = [];
+    for (const { quantity, item } of merged.values()) {
+      const limit = item.unit === 'METERS' ? cableLimit : itemLimit;
+      if (quantity > limit) {
+        result.push({
+          equipmentId: item.equipmentId,
+          equipmentName: item.equipmentName,
+          quantity,
+          limit,
+          unit: item.unit ?? 'PIECES'
+        });
+      }
+    }
+
+    return result;
+  }
+
+  get hasOverLimit(): boolean {
+    return this.overLimitLines.length > 0;
+  }
+
+  get permissionUsageLines(): OverLimitLine[] {
+    const overLimit = this.overLimitLines;
+    if (overLimit.length) {
+      return overLimit;
+    }
+
+    const cableLimit = 20;
+    const itemLimit = 1;
+    const result: OverLimitLine[] = [];
+
+    for (const line of this.usageLines) {
+      const equipmentId = (line.equipmentId ?? '').trim();
+      const quantity = Number(String(line.quantity ?? '').trim());
+      if (!equipmentId || !Number.isFinite(quantity) || quantity <= 0) {
+        continue;
+      }
+
+      const stockItem = this.techStockItems.find((item) => item.equipmentId === equipmentId);
+      const unit = stockItem?.unit ?? 'PIECES';
+      result.push({
+        equipmentId,
+        equipmentName: stockItem?.equipmentName ?? equipmentId,
+        quantity,
+        limit: unit === 'METERS' ? cableLimit : itemLimit,
+        unit
+      });
+    }
+
+    return result;
+  }
+
+  get activeCasePermission(): StockUsagePermission | null {
+    return [...this.casePermissions]
+      .filter((permission) => permission.status !== 'CANCELLED')
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] ?? null;
+  }
+
+  get permissionRequestCableMeters(): number {
+    return this.permissionUsageLines
+      .filter((line) => line.unit === 'METERS')
+      .reduce((sum, line) => sum + line.quantity, 0);
+  }
+
+  get permissionRequestEquipmentItems(): OverLimitLine[] {
+    return this.permissionUsageLines.filter((line) => line.unit !== 'METERS');
+  }
+
+  get caseReferenceLabel(): string {
+    return this.caseItem?.crmCase?.trim() || this.caseItem?.id || '-';
+  }
+
+  get showStockPermissionCard(): boolean {
+    if (!this.isTechRole) {
+      return false;
+    }
+
+    return this.hasOverLimit || this.requiresStockPermission || !!this.activeCasePermission;
+  }
+
+  get showApprovedPermissionSummary(): boolean {
+    return this.activeCasePermission?.status === 'APPROVED'
+      || this.activeCasePermission?.status === 'PARTIALLY_APPROVED';
+  }
+
+  get completionBlockedByPermission(): boolean {
+    if (!this.isTechRole || !this.hasOverLimit) {
+      return false;
+    }
+
+    return !this.currentUsageAllowedByPermission;
+  }
+
+  get canRequestNewPermission(): boolean {
+    if (!this.isTechRole || !this.showStockPermissionCard) {
+      return false;
+    }
+
+    const status = this.activeCasePermission?.status;
+    return this.permissionUsageLines.length > 0
+      && (this.hasOverLimit || this.requiresStockPermission)
+      && (!status || status === 'REJECTED' || status === 'CANCELLED');
+  }
+
+  get stockPermissionCardTitle(): string {
+    const status = this.activeCasePermission?.status;
+    if (status === 'PENDING') {
+      return 'Waiting for STT Approval';
+    }
+
+    if (status === 'APPROVED') {
+      return this.currentUsageAllowedByPermission
+        ? 'STT Permission Approved'
+        : 'Approved Limit Reached';
+    }
+
+    if (status === 'PARTIALLY_APPROVED') {
+      return this.currentUsageAllowedByPermission
+        ? 'STT Permission Partially Approved'
+        : 'Adjust to Approved Quantity';
+    }
+
+    if (status === 'REJECTED') {
+      return 'STT Permission Rejected';
+    }
+
+    return 'STT Permission Required';
+  }
+
+  get stockPermissionHeadline(): string {
+    const status = this.activeCasePermission?.status;
+    if (status === 'PENDING') {
+      return 'This case is waiting for your STT to approve the extra stock request before you can finish.';
+    }
+
+    if (status === 'APPROVED') {
+      return this.currentUsageAllowedByPermission
+        ? 'Your STT approved the extra stock usage for this case. You can finish with the approved amount.'
+        : 'Your current stock usage is higher than the approved amount. Reduce it to the approved quantity before finishing.';
+    }
+
+    if (status === 'PARTIALLY_APPROVED') {
+      return this.currentUsageAllowedByPermission
+        ? 'Your STT approved part of the requested stock. You can finish if you stay within the approved quantities below.'
+        : 'Only part of the request was approved. Reduce the usage to the approved quantities before finishing.';
+    }
+
+    if (status === 'REJECTED') {
+      return 'Your STT rejected the previous request. Adjust the usage or submit a new request for another review.';
+    }
+
+    return 'This operation exceeds the automatic stock usage limit. Ask your STT for permission before finishing this case.';
+  }
+
+  get completionPermissionNotice(): string {
+    const status = this.activeCasePermission?.status;
+    if (status === 'PENDING') {
+      return 'Pending STT approval. Finish stays disabled until the request is approved.';
+    }
+
+    if (status === 'REJECTED') {
+      return 'This request was rejected. Update the requested usage or send a new permission request.';
+    }
+
+    if (status === 'APPROVED' || status === 'PARTIALLY_APPROVED') {
+      return 'The current usage is still above the approved amount. Adjust the quantities and try again.';
+    }
+
+    return 'Ask your STT for permission before finishing this case.';
   }
 
   addUsageLine(): void {
@@ -704,6 +1226,14 @@ export class FieldExecutionComponent implements OnInit {
       return;
     }
 
+    if (this.completionBlockedByPermission) {
+      this.banner = null;
+      this.requiresStockPermission = true;
+      this.stockPermissionErrorMessage = this.completionPermissionNotice;
+      this.render();
+      return;
+    }
+
     const payload = await this.buildWorkPayload();
     if (!payload) {
       return;
@@ -718,6 +1248,8 @@ export class FieldExecutionComponent implements OnInit {
     this.showBanner('Finishing work...', 'info');
 
     try {
+      this.requiresStockPermission = false;
+      this.stockPermissionErrorMessage = null;
       let updated = await firstValueFrom(this.casesService.completeWork(target.id, payload));
       const proofLocation = this.proofUploadLocation(payload);
 
@@ -758,7 +1290,15 @@ export class FieldExecutionComponent implements OnInit {
       await this.router.navigateByUrl(`${this.basePath}/tasks/${updated.id}`);
     } catch (err: any) {
       console.error('Failed to finish field work', err);
-      this.showBanner(err?.error?.message ?? 'Unable to finish work.', 'danger');
+      const errorMessage = err?.error?.message ?? err?.message ?? 'Unable to finish work.';
+      if (this.isStockPermissionError(err)) {
+        this.banner = null;
+        this.requiresStockPermission = true;
+        this.stockPermissionErrorMessage = errorMessage;
+        this.loadCasePermissions();
+      } else {
+        this.showBanner(errorMessage, 'danger');
+      }
     } finally {
       this.actionBusy = false;
       this.render();
@@ -850,6 +1390,10 @@ export class FieldExecutionComponent implements OnInit {
   private loadCase(caseId: string): void {
     this.loading = true;
     this.error = null;
+    this.casePermissions = [];
+    this.requiresStockPermission = false;
+    this.stockPermissionErrorMessage = null;
+    this.permissionModalOpen = false;
 
     this.casesService.getCaseById(caseId)
       .pipe(finalize(() => {
@@ -865,10 +1409,12 @@ export class FieldExecutionComponent implements OnInit {
           if (this.isTechRole) {
             this.setUsageLinesFromCase(item);
             this.loadTechStock(true);
+            this.loadCasePermissions();
           } else {
             this.techStock = null;
             this.techStockError = null;
             this.usageLines = [];
+            this.casePermissions = [];
           }
           if (item.type !== 'PLAINTE' && this.activeStep === 'diagnosis') {
             this.activeStep = 'work';
@@ -1145,6 +1691,102 @@ export class FieldExecutionComponent implements OnInit {
       });
   }
 
+  loadCasePermissions(): void {
+    const caseId = this.caseItem?.id;
+    if (!caseId || !this.isTechRole) {
+      return;
+    }
+
+    this.permissionsLoading = true;
+    this.stockUsagePermissionService.getPermissionsByCase(caseId)
+      .pipe(finalize(() => {
+        this.permissionsLoading = false;
+        this.render();
+      }))
+      .subscribe({
+        next: (permissions) => {
+          this.casePermissions = permissions ?? [];
+
+          if (this.activeCasePermission?.status === 'APPROVED' || this.activeCasePermission?.status === 'PARTIALLY_APPROVED') {
+            this.requiresStockPermission = false;
+            this.stockPermissionErrorMessage = null;
+          }
+        },
+        error: (err) => {
+          console.error('Failed to load stock permission requests for field execution', err);
+          this.casePermissions = [];
+        }
+      });
+  }
+
+  openPermissionModal(): void {
+    this.permissionReason = '';
+    this.permissionModalOpen = true;
+    this.render();
+  }
+
+  closePermissionModal(): void {
+    if (this.permissionSaving) {
+      return;
+    }
+
+    this.permissionModalOpen = false;
+    this.render();
+  }
+
+  async submitPermissionRequest(): Promise<void> {
+    const caseId = this.caseItem?.id;
+    const reason = this.permissionReason.trim();
+
+    if (!caseId || !this.canRequestNewPermission) {
+      return;
+    }
+
+    if (!reason) {
+      this.showBanner('Add a reason before sending the permission request.', 'danger');
+      return;
+    }
+
+    const payload: CreatePermissionRequest = {
+      caseId,
+      reason,
+      requestedCableMeters: this.permissionRequestCableMeters,
+      requestedItems: this.permissionRequestEquipmentItems.map((line) => ({
+        itemId: line.equipmentId,
+        itemName: line.equipmentName,
+        requestedQuantity: line.quantity,
+        unit: line.unit
+      }))
+    };
+
+    this.permissionSaving = true;
+
+    this.stockUsagePermissionService.createPermissionRequest(payload)
+      .pipe(finalize(() => {
+        this.permissionSaving = false;
+        this.render();
+      }))
+      .subscribe({
+        next: (permission) => {
+          this.permissionModalOpen = false;
+          this.permissionReason = '';
+          this.requiresStockPermission = false;
+          this.stockPermissionErrorMessage = null;
+          this.casePermissions = [
+            permission,
+            ...this.casePermissions.filter((existing) => existing.id !== permission.id)
+          ];
+          this.showBanner('Pending STT approval.', 'info');
+          void this.swal.successToast('Permission request sent to your STT.');
+        },
+        error: (err) => {
+          console.error('Failed to submit stock permission request', err);
+          this.permissionModalOpen = false;
+          this.showBanner(err?.error?.message ?? 'Unable to send the permission request.', 'danger');
+        }
+      });
+  }
+
   private async captureLocation(): Promise<FieldGeoSnapshot | null> {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       return null;
@@ -1198,7 +1840,7 @@ export class FieldExecutionComponent implements OnInit {
     return trimmed ? trimmed : null;
   }
 
-  private stockUnitLabel(unit?: string | null): string {
+  stockUnitLabel(unit?: string | null): string {
     if (unit === 'METERS') {
       return 'm';
     }
@@ -1223,6 +1865,79 @@ export class FieldExecutionComponent implements OnInit {
     if (!hasUserSelection) {
       this.setUsageLinesFromCase(item ?? this.caseItem);
     }
+  }
+
+  permissionStatusLabel(status?: string | null): string {
+    switch (status) {
+      case 'PENDING':
+        return 'Pending STT Approval';
+      case 'APPROVED':
+        return 'Approved';
+      case 'PARTIALLY_APPROVED':
+        return 'Partially Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      default:
+        return 'Review Needed';
+    }
+  }
+
+  permissionStatusTone(status?: string | null): BannerTone {
+    switch (status) {
+      case 'APPROVED':
+        return 'success';
+      case 'PARTIALLY_APPROVED':
+        return 'info';
+      case 'REJECTED':
+        return 'danger';
+      case 'PENDING':
+      default:
+        return 'warning';
+    }
+  }
+
+  private get currentUsageAllowedByPermission(): boolean {
+    if (!this.hasOverLimit) {
+      return true;
+    }
+
+    const permission = this.activeCasePermission;
+    if (!permission || (permission.status !== 'APPROVED' && permission.status !== 'PARTIALLY_APPROVED')) {
+      return false;
+    }
+
+    if (this.permissionRequestCableMeters > permission.approvedCableMeters) {
+      return false;
+    }
+
+    const approvedItems = new Map(
+      (permission.approvedItems ?? []).map((item) => [item.itemId, Number(item.approvedQuantity ?? 0)])
+    );
+
+    for (const line of this.permissionRequestEquipmentItems) {
+      if (line.quantity > 1 && line.quantity > (approvedItems.get(line.equipmentId) ?? 0)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isStockPermissionError(error: unknown): boolean {
+    const status = (error as { status?: number } | null)?.status;
+    const message = ((error as { error?: { message?: string }, message?: string } | null)?.error?.message
+      ?? (error as { message?: string } | null)?.message
+      ?? '')
+      .toLowerCase();
+
+    if (status !== 403) {
+      return false;
+    }
+
+    return message.includes('requires stt permission')
+      || message.includes('stock usage limit')
+      || message.includes('submit a permission request first')
+      || message.includes('exceeds the approved amount');
   }
 
   private showBanner(message: string, tone: BannerTone): void {

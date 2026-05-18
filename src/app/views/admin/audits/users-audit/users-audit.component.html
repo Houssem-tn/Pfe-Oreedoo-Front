@@ -81,6 +81,7 @@
             class="form-control users-audit-field"
             placeholder="Search by full name, email, or phone"
             [(ngModel)]="searchTerm"
+            (ngModelChange)="onFilterChange()"
           />
         </div>
 
@@ -89,7 +90,7 @@
             <svg cIcon name="cilUser" width="14"></svg>
             <span>Role filter</span>
           </label>
-          <select class="form-select users-audit-field" [(ngModel)]="selectedRole">
+          <select class="form-select users-audit-field" [(ngModel)]="selectedRole" (ngModelChange)="onFilterChange()">
             <option *ngFor="let role of roleOptions" [value]="role.value">
               {{ role.label }}
             </option>
@@ -101,7 +102,7 @@
             <svg cIcon name="cilOptions" width="14"></svg>
             <span>Status filter</span>
           </label>
-          <select class="form-select users-audit-field" [(ngModel)]="selectedStatus">
+          <select class="form-select users-audit-field" [(ngModel)]="selectedStatus" (ngModelChange)="onFilterChange()">
             <option *ngFor="let status of statusOptions" [value]="status.value">
               {{ status.label }}
             </option>
@@ -142,7 +143,7 @@
         </div>
 
         <button
-          *ngFor="let user of filteredAuditUsers; trackBy: trackById"
+          *ngFor="let user of paginatedUsers; trackBy: trackById"
           class="audit-directory-card"
           [class.audit-directory-card--selected]="isSelectedUser(user)"
           (click)="selectUser(user)"
@@ -184,6 +185,31 @@
             </div>
           </div>
         </button>
+
+        <div class="ua-pagination" *ngIf="filteredAuditUsers.length > 0">
+          <span class="ua-pagination__meta">
+            Showing {{ showingFrom }}–{{ showingTo }} of {{ filteredAuditUsers.length }} profiles
+          </span>
+          <div class="ua-pagination__right">
+            <div class="ua-pagination__size">
+              <label>Rows:</label>
+              <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()" class="ua-page-size-select">
+                <option *ngFor="let opt of pageSizeOptions" [value]="opt">{{ opt }}</option>
+              </select>
+            </div>
+            <div class="ua-pagination__controls" *ngIf="totalPages > 1">
+              <button class="ua-page-btn" (click)="previousPage()" [disabled]="currentPage === 1" type="button">&#8249;</button>
+              <button
+                *ngFor="let page of pageNumbers"
+                class="ua-page-btn"
+                [class.ua-page-btn--active]="page === currentPage"
+                (click)="goToPage(page)"
+                type="button"
+              >{{ page }}</button>
+              <button class="ua-page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages" type="button">&#8250;</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="users-audit-panel users-audit-panel--profile">

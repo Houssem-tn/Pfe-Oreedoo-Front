@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { canCreateDpmGuard } from '../../core/auth/guards/can-create-dpm.guard';
 
 export const routes: Routes = [
   {
@@ -54,17 +55,19 @@ export const routes: Routes = [
   // Stock Management
   {
     path: 'stock',
-    redirectTo: 'stock/my-tracking',
+    redirectTo: 'stock/team-stock',
     pathMatch: 'full'
   },
   {
     path: 'stock/create-dpm',
+    canActivate: [canCreateDpmGuard],
     loadComponent: () =>
       import('./stock/create-dpm/create-dpm.component').then(m => m.CreateDpmComponent),
     data: { title: 'Create DPM' }
   },
   {
     path: 'stock/my-tracking',
+    canActivate: [canCreateDpmGuard],
     loadComponent: () =>
       import('./stock/my-tracking/zm-stock-tracking.component').then(m => m.ZmStockTrackingComponent),
     data: { title: 'My DPM Tracking' }
@@ -80,6 +83,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./stock/case-audit/zm-case-audit.component').then(m => m.ZmCaseAuditComponent),
     data: { title: 'Case Stock Audit' }
+  },
+  {
+    path: 'stock/thresholds',
+    canActivate: [canCreateDpmGuard],
+    loadComponent: () =>
+      import('./stock/thresholds/zm-stock-thresholds.component').then(m => m.ZmStockThresholdsComponent),
+    data: { title: 'Stock Alert Thresholds' }
   },
 
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },

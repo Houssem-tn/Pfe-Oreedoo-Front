@@ -2,8 +2,7 @@ import { INavData } from '@coreui/angular';
 import { navAdmin } from './nav/nav.admin';
 import { navStt } from './nav/nav.stt';
 import { navTech } from './nav/nav.tech';
-import { navZm } from './nav/nav.zm';
-// (optional) add later: import { navCrmBoutique } from './nav/nav.crm-boutique';
+import { getNavZm } from './nav/nav.zm';
 
 import { Role } from '../../core/auth/models/roles.type';
 
@@ -20,7 +19,7 @@ function cloneNavItems(items: INavData[]): INavData[] {
   }));
 }
 
-export function getNavByRole(role: Role | null): INavData[] {
+export function getNavByRole(role: Role | null, canCreateDpm = false): INavData[] {
   if (!role) return [];
 
   switch (role) {
@@ -34,10 +33,7 @@ export function getNavByRole(role: Role | null): INavData[] {
       return cloneNavItems(navTech);
 
     case 'ROLE_ZM':
-      return cloneNavItems(navZm);
-
-    // case 'ROLE_CRM_BOUTIQUE':
-    //   return navCrmBoutique;
+      return cloneNavItems(getNavZm(canCreateDpm));
 
     default:
       return [];
