@@ -35,8 +35,9 @@
           <thead>
             <tr>
               <th>Image</th>
-              <th>Name</th>
-              <th>Description</th>
+              <th>Item name / Etat</th>
+              <th>Article code</th>
+              <th>Description / Spécification</th>
               <th>Unit</th>
               <th>Status</th>
               <th>Actions</th>
@@ -59,7 +60,18 @@
                   }
                 </td>
                 <td><span class="equip-name">{{ eq.name }}</span></td>
-                <td>{{ eq.description || '—' }}</td>
+                <td>
+                  @if (eq.articleCode) {
+                    <span class="equip-code">{{ eq.articleCode }}</span>
+                  } @else {
+                    <span class="equip-muted">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="equip-desc" [title]="eq.description || ''">
+                    {{ eq.description || '—' }}
+                  </span>
+                </td>
                 <td>{{ unitLabel(eq.unit) }}</td>
                 <td>
                   <span class="equip-status-badge"
@@ -89,7 +101,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="equip-table-empty">No equipment found.</td>
+                <td colspan="7" class="equip-table-empty">No equipment found.</td>
               </tr>
             }
           </tbody>
@@ -134,29 +146,41 @@
       <!-- Body -->
       <div class="eq-modal-body">
 
-        <!-- Name -->
+        <!-- Item name / Etat -->
         <div class="eq-field">
           <label class="eq-label">
-            Name
+            Item name / Etat
             <span class="eq-label__required">*</span>
           </label>
           <input
             class="eq-input"
             type="text"
             [(ngModel)]="form.name"
-            placeholder="e.g. Optical Fiber Cable"
+            placeholder="e.g. ODU P90"
             autocomplete="off"
           />
         </div>
 
-        <!-- Description -->
+        <!-- Article code -->
         <div class="eq-field">
-          <label class="eq-label">Description</label>
+          <label class="eq-label">Article code</label>
+          <input
+            class="eq-input eq-input--mono"
+            type="text"
+            [(ngModel)]="form.articleCode"
+            placeholder="e.g. 15.10.01.01.0074"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Description / Spécification -->
+        <div class="eq-field">
+          <label class="eq-label">Description / Spécification</label>
           <input
             class="eq-input"
             type="text"
             [(ngModel)]="form.description"
-            placeholder="Optional short description"
+            placeholder="e.g. Fixe Jdid Box Outdoor CPE P90"
             autocomplete="off"
           />
         </div>

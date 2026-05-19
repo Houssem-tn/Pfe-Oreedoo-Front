@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { finalize, firstValueFrom } from 'rxjs';
 
+import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
 import { CaseResponse } from '../../core/cases/models/case.model';
 import { extractRdv, extractWork } from '../tech/tech-case.helpers';
@@ -58,10 +59,10 @@ interface FieldGeoSnapshot {
           <a
             class="field-button field-button--primary"
             [routerLink]="basePath + '/tasks/' + item.id + '/execution'"
-            [queryParams]="{ step: 'work' }"
+            [queryParams]="{ step: startExecutionStep }"
           >
             <svg cIcon name="cilMediaPlay"></svg>
-            Start Work
+            {{ startExecutionLabel }}
           </a>
 
           <a
@@ -84,7 +85,7 @@ interface FieldGeoSnapshot {
             class="field-button field-button--success"
             [class.field-button--ghost]="!canFinish(item)"
             [routerLink]="basePath + '/tasks/' + item.id + '/execution'"
-            [queryParams]="{ step: 'completion' }"
+            [queryParams]="{ step: finishExecutionStep }"
           >
             <svg cIcon name="cilCheckCircle"></svg>
             Finish
@@ -212,6 +213,7 @@ interface FieldGeoSnapshot {
   `
 })
 export class FieldCaseDetailComponent implements OnInit {
+  private readonly authStore = inject(AuthStore);
   private readonly casesService = inject(CasesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -237,6 +239,22 @@ export class FieldCaseDetailComponent implements OnInit {
 
   get basePath(): string {
     return fieldBasePathFromUrl(this.router.url);
+  }
+
+  get isTechRole(): boolean {
+    return this.authStore.role() === 'ROLE_TECH';
+  }
+
+  get startExecutionStep(): 'stock' | 'work' {
+    return this.isTechRole ? 'stock' : 'work';
+  }
+
+  get startExecutionLabel(): string {
+    return this.isTechRole ? 'Declare stock usage' : 'Start Work';
+  }
+
+  get finishExecutionStep(): 'stock' | 'completion' {
+    return this.isTechRole ? 'stock' : 'completion';
   }
 
   canFinish(item: CaseResponse): boolean {

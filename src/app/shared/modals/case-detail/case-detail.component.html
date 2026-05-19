@@ -111,18 +111,13 @@
         </ng-container>
 
         <dt>GPS coordinates</dt>
-        <dd *ngIf="hasLocation; else noGps">
-          <a
-            [href]="'https://maps.google.com/?q=' + caseData.latitude + ',' + caseData.longitude"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="cd-gps-link"
-          >
-            {{ caseData.latitude }}, {{ caseData.longitude }}
-            <svg cIcon name="cilExternalLink" size="sm"></svg>
-          </a>
+        <dd>
+          <app-location-actions
+            [lat]="caseData.latitude"
+            [lng]="caseData.longitude"
+            label="Case site">
+          </app-location-actions>
         </dd>
-        <ng-template #noGps><dd>—</dd></ng-template>
       </dl>
     </div>
 
@@ -285,18 +280,13 @@
         <dd class="cd-multiline">{{ val(caseData.work?.cmtTrvStt ?? caseData.cmtTrvStt) }}</dd>
 
         <dt>Work submission GPS</dt>
-        <dd *ngIf="hasWorkLocation; else noWorkGps">
-          <a
-            [href]="mapLink(caseData.work?.locationLatitude, caseData.work?.locationLongitude) || '#'"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="cd-gps-link"
-          >
-            {{ coordinateLabel(caseData.work?.locationLatitude, caseData.work?.locationLongitude) }}
-            <svg cIcon name="cilExternalLink" size="sm"></svg>
-          </a>
+        <dd>
+          <app-location-actions
+            [lat]="caseData.work?.locationLatitude"
+            [lng]="caseData.work?.locationLongitude"
+            label="Work submission location">
+          </app-location-actions>
         </dd>
-        <ng-template #noWorkGps><dd>—</dd></ng-template>
 
         <dt>GPS captured at</dt>
         <dd>{{ dateVal(caseData.work?.locationCapturedAt) }}</dd>
@@ -361,32 +351,17 @@
                 <svg cIcon name="cilExternalLink" size="sm"></svg>
                 Open photo
               </a>
-              <a
-                *ngIf="mapLink(proof.locationLatitude, proof.locationLongitude) as proofMapHref"
-                [href]="proofMapHref"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="cd-proof-action"
-              >
-                <svg cIcon name="cilLocationPin" size="sm"></svg>
-                Open map
-              </a>
             </div>
 
             <dl class="cd-grid cd-grid--compact">
               <dt>GPS coordinates</dt>
-              <dd *ngIf="hasProofLocation(proof); else noProofGps">
-                <a
-                  [href]="mapLink(proof.locationLatitude, proof.locationLongitude) || '#'"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="cd-gps-link"
-                >
-                  {{ coordinateLabel(proof.locationLatitude, proof.locationLongitude) }}
-                  <svg cIcon name="cilExternalLink" size="sm"></svg>
-                </a>
+              <dd>
+                <app-location-actions
+                  [lat]="proof.locationLatitude"
+                  [lng]="proof.locationLongitude"
+                  label="Proof photo location">
+                </app-location-actions>
               </dd>
-              <ng-template #noProofGps><dd>&mdash;</dd></ng-template>
 
               <dt>Captured at</dt>
               <dd>{{ dateVal(proof.locationCapturedAt) }}</dd>

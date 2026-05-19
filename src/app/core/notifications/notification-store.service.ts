@@ -228,7 +228,9 @@ export class NotificationStoreService {
       || item.eventType === 'CASE_ASSIGNED_TO_ZM'
       || item.eventType === 'STOCK_CRITICAL'
       || item.eventType === 'STOCK_LOW_WARNING'
-      || item.eventType === 'STOCK_USAGE_PERMISSION_REQUIRED';
+      || item.eventType === 'STOCK_USAGE_PERMISSION_REQUIRED'
+      || item.eventType === 'STOCK_USAGE_PERMISSION_APPROVED'
+      || item.eventType === 'STOCK_USAGE_PERMISSION_REJECTED';
   }
 
   private clearPopupTimer(notificationId: string): void {

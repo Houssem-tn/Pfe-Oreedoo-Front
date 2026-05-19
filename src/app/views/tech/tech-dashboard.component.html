@@ -10,7 +10,7 @@
 
     <h1>Field operations designed for the technician on the move.</h1>
     <p>
-      Urgent interventions stay first, RDV and work closure stay within thumb reach, and the board stays clean enough
+      Urgent interventions stay first, RDV, stock declaration, and work closure stay within thumb reach, and the board stays clean enough
       to use comfortably from a phone in the field.
     </p>
 
@@ -161,8 +161,8 @@
               [queryParams]="{ focus: 'urgent', caseId: item.id, panel: primaryPanel(item) }"
               class="btn-tech btn-tech--primary"
             >
-              <svg cIcon [name]="primaryPanel(item) === 'work' ? 'cilTask' : primaryPanel(item) === 'rdv' ? 'cilCalendar' : 'cilMagnifyingGlass'"></svg>
-              {{ primaryPanel(item) === 'work' ? 'Submit work' : primaryPanel(item) === 'rdv' ? 'Set RDV' : 'Open details' }}
+              <svg cIcon [name]="primaryActionIcon(item)"></svg>
+              {{ primaryActionLabel(item) }}
             </a>
           </div>
         </article>
@@ -209,8 +209,8 @@
         <div class="tech-lane">
           <div class="tech-section-header">
             <div>
-              <div class="tech-section-header__title">Ready for work closure</div>
-              <div class="tech-section-header__hint">Open the work form directly with proof capture close at hand.</div>
+              <div class="tech-section-header__title">Ready for stock declaration</div>
+              <div class="tech-section-header__hint">Open the stock step first, then continue to work and proof without losing the case context.</div>
             </div>
           </div>
 
@@ -220,18 +220,18 @@
               <div class="tech-mini-card__meta">{{ remainingLabel(item) }}</div>
               <a
                 routerLink="/tech/cases/activation"
-                [queryParams]="{ focus: 'work', caseId: item.id, panel: 'work' }"
+                [queryParams]="{ focus: 'work', caseId: item.id, panel: 'stock' }"
                 class="btn-tech btn-tech--primary"
               >
-                <svg cIcon name="cilTask"></svg>
-                Submit work
+                <svg cIcon name="cilStorage"></svg>
+                Declare stock usage
               </a>
             </article>
           </ng-container>
 
           <ng-template #emptyWorkQueue>
             <div class="tech-empty tech-empty--inline">
-              <div class="tech-empty__hint">No work submission is pending at the moment.</div>
+              <div class="tech-empty__hint">No stock declaration is pending at the moment.</div>
             </div>
           </ng-template>
         </div>

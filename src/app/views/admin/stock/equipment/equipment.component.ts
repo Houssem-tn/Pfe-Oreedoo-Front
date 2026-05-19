@@ -34,7 +34,7 @@ export class EquipmentComponent implements OnInit {
     { value: 'PIECES', label: 'Pieces' }
   ];
 
-  form: CreateEquipmentRequest = { name: '', description: '', unit: undefined };
+  form: CreateEquipmentRequest = { name: '', articleCode: '', description: '', unit: undefined };
   selectedImage: File | null = null;
   imagePreview: string | null = null;
 
@@ -57,7 +57,7 @@ export class EquipmentComponent implements OnInit {
 
   openCreate(): void {
     this.editingId = null;
-    this.form = { name: '', description: '', unit: undefined };
+    this.form = { name: '', articleCode: '', description: '', unit: undefined };
     this.selectedImage = null;
     this.imagePreview = null;
     this.modalVisible = true;
@@ -65,7 +65,7 @@ export class EquipmentComponent implements OnInit {
 
   openEdit(eq: Equipment): void {
     this.editingId = eq.id;
-    this.form = { name: eq.name, description: eq.description ?? '', unit: eq.unit };
+    this.form = { name: eq.name, articleCode: eq.articleCode ?? '', description: eq.description ?? '', unit: eq.unit };
     this.selectedImage = null;
     this.imagePreview = eq.imageUrl ?? null;
     this.modalVisible = true;
@@ -110,7 +110,12 @@ export class EquipmentComponent implements OnInit {
 
   get filtered(): Equipment[] {
     const t = this.searchTerm.toLowerCase();
-    return t ? this.equipment.filter(e => e.name.toLowerCase().includes(t)) : this.equipment;
+    if (!t) return this.equipment;
+    return this.equipment.filter(e =>
+      e.name.toLowerCase().includes(t) ||
+      (e.articleCode ?? '').toLowerCase().includes(t) ||
+      (e.description ?? '').toLowerCase().includes(t)
+    );
   }
 
   unitLabel(unit?: StockUnit): string {

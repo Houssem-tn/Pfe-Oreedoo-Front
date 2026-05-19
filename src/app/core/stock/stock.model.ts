@@ -32,6 +32,7 @@ export type EquipmentCategory = 'CABLE' | 'BOX' | 'ROUTER' | 'ONT' | 'OTHER';
 export interface Equipment {
   id: string;
   name: string;
+  articleCode?: string;
   description?: string;
   unit?: StockUnit;
   category?: EquipmentCategory;
@@ -307,6 +308,16 @@ export interface CaseConsumptionFilters {
   to?: string;
 }
 
+// ── Case Usage Limits (TECH proactive detection) ──────────────────────────────
+
+export interface CaseLimitItem {
+  itemId: string;
+  itemName: string;
+  unit?: string;
+  caseUsageLimit: number;
+  caseUsageLimitEnabled: boolean;
+}
+
 // ── Stock Thresholds ─────────────────────────────────────────────────────────
 
 export interface StockThreshold {
@@ -320,6 +331,8 @@ export interface StockThreshold {
   criticalThreshold: number;
   unit?: 'PIECE' | 'METER';
   enabled: boolean;
+  caseUsageLimit?: number;
+  caseUsageLimitEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
   updatedBy?: string;
@@ -333,6 +346,8 @@ export interface StockThresholdRequest {
   criticalThreshold: number;
   unit?: string;
   enabled: boolean;
+  caseUsageLimit?: number;
+  caseUsageLimitEnabled?: boolean;
 }
 
 // ── Stock Usage Permissions ──────────────────────────────────────────────────
@@ -395,6 +410,7 @@ export interface RejectPermissionRequest {
 
 export interface CreateEquipmentRequest {
   name: string;
+  articleCode?: string;
   description?: string;
   unit?: StockUnit;
   category?: EquipmentCategory;

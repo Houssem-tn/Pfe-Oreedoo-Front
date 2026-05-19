@@ -1,0 +1,95 @@
+:host { display: block; }
+
+.mv-root {
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+/* ── Map canvas ──────────────────────────────────────────────────────── */
+
+.mv-canvas {
+  width: 100%;
+  /* height is set via [style.height.px] binding in the template */
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+
+.mv-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  min-height: 48px;
+}
+
+.mv-toolbar__coords {
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Mono', monospace;
+  font-size: 0.77rem;
+  color: #4a5568;
+  letter-spacing: 0.02em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mv-toolbar__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+.mv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 0.4rem;
+  border: 1.5px solid;
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s;
+  white-space: nowrap;
+
+  &--ghost {
+    border-color: #cbd5e0;
+    color: #4a5568;
+    &:hover { background: #f7fafc; }
+  }
+
+  &--primary {
+    border-color: #e5243b;
+    color: #e5243b;
+    &:hover { background: rgba(229, 36, 59, 0.06); }
+  }
+}
+
+.mv-btn__icon {
+  width: 0.88rem;
+  height: 0.88rem;
+  flex-shrink: 0;
+}
+
+/* ── Error state ─────────────────────────────────────────────────────── */
+
+.mv-error {
+  padding: 1rem;
+  background: #fff5f5;
+  color: #c53030;
+  font-size: 0.82rem;
+  border-bottom: 1px solid #fed7d7;
+}

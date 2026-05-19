@@ -1,0 +1,290 @@
+<div class="ua-shell">
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <div class="ua-hero">
+    <div>
+      <div class="ua-hero__eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        </svg>
+        Stock · Approval Queue
+      </div>
+      <h1 class="ua-hero__title">Usage Approvals</h1>
+      <p class="ua-hero__sub">Over-limit stock requests from your technicians — approve or reject in one tap.</p>
+    </div>
+    <div class="ua-hero__actions">
+      <button class="ua-btn ua-btn--ghost" type="button" (click)="load()" [disabled]="loading()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Card ───────────────────────────────────────────────────────────── -->
+  <div class="ua-card">
+
+    <div class="ua-card-header">
+      <span class="ua-card-title">
+        Pending requests
+        @if (!loading() && pending().length > 0) {
+          <span class="ua-badge ua-badge--pending" style="margin-left:.5rem">{{ pending().length }}</span>
+        }
+      </span>
+      <button class="ua-refresh-btn" type="button" (click)="load()" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="ua-loading">
+        <c-spinner size="sm"></c-spinner>
+        &nbsp; Loading approval queue...
+      </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+      <div class="ua-alert ua-alert--error" style="margin:1rem">{{ error() }}</div>
+    }
+
+    <!-- Empty -->
+    @if (!loading() && pending().length === 0) {
+      <div class="ua-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+        </svg>
+        <p>No pending requests — all clear.</p>
+      </div>
+    }
+
+    <!-- Request list -->
+    @for (req of pending(); track req.id) {
+      <div class="ua-req-block">
+
+        <!-- Header: tech → case + time -->
+        <div class="ua-req-header">
+          <div>
+            <div class="ua-req-identity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   style="width:14px;height:14px;color:#e5243b;flex-shrink:0">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+              </svg>
+              <span class="ua-req-tech">{{ req.techName }}</span>
+              <span class="ua-req-arrow">→</span>
+              <span class="ua-req-case">Case {{ req.caseReference }}</span>
+            </div>
+            <div class="ua-req-time">Requested {{ req.createdAt | date:'dd MMM yyyy, HH:mm' }}</div>
+          </div>
+          <span class="ua-badge ua-badge--pending">Pending</span>
+        </div>
+
+        <!-- Requested usage -->
+        <div>
+          <div class="ua-usage-label">Requested usage</div>
+          <div class="ua-usage-row">
+            @if (req.requestedCableMeters > 0) {
+              <span class="ua-chip ua-chip--cable">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     style="width:11px;height:11px">
+                  <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"></path>
+                  <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                {{ req.requestedCableMeters }}m cable
+              </span>
+            }
+            @for (item of req.requestedItems; track item.itemId) {
+              <span class="ua-chip">{{ item.requestedQuantity }}× {{ item.itemName }}</span>
+            }
+            @if (!req.requestedCableMeters && !req.requestedItems?.length) {
+              <span style="color:var(--ua-muted);font-size:.84rem">No items specified</span>
+            }
+          </div>
+        </div>
+
+        <!-- Reason -->
+        @if (req.reason) {
+          <div class="ua-reason">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span><strong>Reason:</strong> {{ req.reason }}</span>
+          </div>
+        }
+
+        <!-- Actions -->
+        <div class="ua-action-row">
+          <button class="ua-btn ua-btn--reject" type="button" (click)="openRejectModal(req)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            Reject
+          </button>
+          <button class="ua-btn ua-btn--approve" type="button" (click)="openApproveModal(req)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Approve
+          </button>
+        </div>
+
+      </div>
+    }
+
+  </div>
+
+</div>
+
+<!-- ── Approve Modal ─────────────────────────────────────────────────── -->
+@if (approveModalOpen()) {
+  <div class="ua-modal-backdrop" (click)="approveModalOpen.set(false)">
+    <div class="ua-modal" (click)="$event.stopPropagation()">
+
+      <div class="ua-modal-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <h5 class="ua-modal-title">Approve Usage Request</h5>
+        <button class="ua-modal-close" type="button" (click)="approveModalOpen.set(false)">×</button>
+      </div>
+
+      @if (selectedReq(); as req) {
+        <div class="ua-modal-body">
+
+          <div class="ua-modal-meta">
+            <div class="ua-modal-meta-label">Technician → Case</div>
+            <div class="ua-modal-meta-row">
+              <span class="ua-modal-meta-value">{{ req.techName }}</span>
+              <span style="color:var(--ua-muted)">→</span>
+              <span class="ua-modal-meta-value">{{ req.caseReference }}</span>
+            </div>
+          </div>
+
+          <!-- Cable approval -->
+          @if (req.requestedCableMeters > 0) {
+            <div class="ua-field">
+              <label>Cable approved <span style="color:var(--ua-muted);font-weight:400">(metres)</span></label>
+              <input type="number" min="0" [max]="req.requestedCableMeters"
+                     [(ngModel)]="approveDraft.approvedCableMeters" />
+              <span class="ua-field-hint">Requested: {{ req.requestedCableMeters }}m</span>
+            </div>
+          }
+
+          <!-- Item approvals -->
+          @for (item of req.requestedItems; track item.itemId; let i = $index) {
+            <div class="ua-field">
+              <label>{{ item.itemName }} — approved qty</label>
+              <input type="number" min="0" [max]="item.requestedQuantity"
+                     [(ngModel)]="approveDraft.approvedItems![i].approvedQuantity" />
+              <span class="ua-field-hint">Requested: {{ item.requestedQuantity }}</span>
+            </div>
+          }
+
+          <!-- Comment -->
+          <div class="ua-field">
+            <label>Comment <span style="color:var(--ua-muted);font-weight:400">(optional)</span></label>
+            <textarea rows="2" [(ngModel)]="approveDraft.reviewComment"
+                      placeholder="Add a note for the technician…"></textarea>
+          </div>
+
+        </div>
+
+        <div class="ua-modal-footer">
+          <button class="ua-btn ua-btn--ghost" type="button"
+                  (click)="approveModalOpen.set(false)" [disabled]="saving()">
+            Cancel
+          </button>
+          <button class="ua-btn ua-btn--primary" type="button"
+                  (click)="submitApprove()" [disabled]="saving()">
+            @if (saving()) {
+              <c-spinner size="sm"></c-spinner>
+              Saving…
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Confirm Approval
+            }
+          </button>
+        </div>
+      }
+
+    </div>
+  </div>
+}
+
+<!-- ── Reject Modal ──────────────────────────────────────────────────── -->
+@if (rejectModalOpen()) {
+  <div class="ua-modal-backdrop" (click)="rejectModalOpen.set(false)">
+    <div class="ua-modal" (click)="$event.stopPropagation()">
+
+      <div class="ua-modal-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+        <h5 class="ua-modal-title">Reject Usage Request</h5>
+        <button class="ua-modal-close" type="button" (click)="rejectModalOpen.set(false)">×</button>
+      </div>
+
+      @if (selectedReq(); as req) {
+        <div class="ua-modal-body">
+
+          <div class="ua-modal-meta">
+            <div class="ua-modal-meta-label">Rejecting request from</div>
+            <div class="ua-modal-meta-row">
+              <span class="ua-modal-meta-value">{{ req.techName }}</span>
+              <span style="color:var(--ua-muted)">→</span>
+              <span class="ua-modal-meta-value">{{ req.caseReference }}</span>
+            </div>
+          </div>
+
+          <div class="ua-field">
+            <label>
+              Rejection reason
+              <span style="color:var(--ua-primary)">*</span>
+            </label>
+            <textarea rows="3" [(ngModel)]="rejectComment"
+                      placeholder="Explain why — the technician will see this message…"></textarea>
+          </div>
+
+        </div>
+
+        <div class="ua-modal-footer">
+          <button class="ua-btn ua-btn--ghost" type="button"
+                  (click)="rejectModalOpen.set(false)" [disabled]="saving()">
+            Cancel
+          </button>
+          <button class="ua-btn ua-btn--danger" type="button"
+                  (click)="submitReject()" [disabled]="saving() || !rejectComment.trim()">
+            @if (saving()) {
+              <c-spinner size="sm"></c-spinner>
+              Saving…
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Confirm Rejection
+            }
+          </button>
+        </div>
+      }
+
+    </div>
+  </div>
+}

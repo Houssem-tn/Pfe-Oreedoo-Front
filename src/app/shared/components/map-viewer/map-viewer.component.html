@@ -1,0 +1,42 @@
+<div class="mv-root">
+
+  <!-- Error state -->
+  @if (mapError()) {
+    <div class="mv-error">{{ mapError() }}</div>
+  }
+
+  <!-- Map canvas — height driven by [mapHeight] input, not CSS flex chain -->
+  <div #mapContainer class="mv-canvas" [style.height.px]="mapHeight"></div>
+
+  <!-- Toolbar -->
+  <div class="mv-toolbar">
+    <span class="mv-toolbar__coords">{{ coordsLabel }}</span>
+
+    <div class="mv-toolbar__actions">
+      <button class="mv-btn mv-btn--ghost" type="button" (click)="copyCoords()"
+              [title]="copied() ? 'Copied!' : 'Copy coordinates'">
+        @if (copied()) {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="mv-btn__icon">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Copied!
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mv-btn__icon">
+            <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+          </svg>
+          Copy
+        }
+      </button>
+
+      <button class="mv-btn mv-btn--primary" type="button" (click)="openGoogleMaps()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mv-btn__icon">
+          <circle cx="12" cy="10" r="3"></circle>
+          <path d="M12 2a8 8 0 00-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 00-8-8z"></path>
+        </svg>
+        Google Maps
+      </button>
+    </div>
+  </div>
+
+</div>

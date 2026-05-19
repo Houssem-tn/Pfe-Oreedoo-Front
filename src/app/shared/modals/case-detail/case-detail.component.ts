@@ -21,6 +21,7 @@ import {
 } from '../../../core/cases/models/case.model';
 import { StockService } from '../../../core/stock/stock.service';
 import { StockUsagePermission, PermissionStatus } from '../../../core/stock/stock.model';
+import { LocationActionsComponent } from '../../components/location-actions/location-actions.component';
 
 @Component({
   selector: 'app-case-detail',
@@ -35,7 +36,8 @@ import { StockUsagePermission, PermissionStatus } from '../../../core/stock/stoc
     ModalFooterComponent,
     ButtonDirective,
     BadgeComponent,
-    IconDirective
+    IconDirective,
+    LocationActionsComponent
   ],
   templateUrl: './case-detail.component.html',
   styleUrl: './case-detail.component.scss'

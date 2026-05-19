@@ -6,6 +6,7 @@ import {
   CaseConsumption,
   CaseConsumptionFilters,
   CaseConsumptionSummary,
+  CaseLimitItem,
   CreatePermissionRequest,
   DeclareTechUsageRequest,
   DeclareTechUsageResponse,
@@ -252,6 +253,10 @@ export class StockService {
 
   toggleThreshold(id: string): Observable<StockThreshold> {
     return this.http.patch<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds/${id}/toggle`, {});
+  }
+
+  getCaseLimits(caseId: string): Observable<CaseLimitItem[]> {
+    return this.http.get<CaseLimitItem[]>(`${this.baseUrl}/api/v1/stock-thresholds/effective-case-limits/${caseId}`);
   }
 
   // ── Stock Usage Permissions ────────────────────────────────────────────────
