@@ -1,29 +1,30 @@
 <div class="merged-analytics-workspace">
 
-  <!-- ═══════════ HEADER CARD ═══════════ -->
   <c-row [gutter]="4" class="mt-3">
     <c-col xs="12">
-      <c-card class="workspace-header-card">
+      <c-card class="workspace-header-card analytics-card analytics-card--hero">
         <c-card-body>
-          <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-            <div>
-              <div class="workspace-eyebrow">Ooredoo — Analytics Only</div>
+          <div class="workspace-hero">
+            <div class="workspace-hero__copy">
+              <div class="workspace-eyebrow">Ooredoo analytics workspace</div>
               <h3 class="workspace-title">Merged Operations Analytics</h3>
               <p class="workspace-subtitle">
-                Analyze consolidated operation files across Activation, Déménagement, Plainte, and Résiliation
-                without mixing operational workflows.
+                Analyze consolidated operations across Activation, Demenagement, Plainte, and Resiliation.
               </p>
               <span class="analytics-only-badge">
                 <svg cIcon name="cilShieldAlt" class="me-1"></svg>
-                Analytics only — no case distribution will be triggered
+                Analytics only - no case distribution triggered
               </span>
             </div>
-            <div class="d-flex gap-2 flex-wrap">
+
+            <div class="workspace-hero__actions">
               <button cButton color="secondary" variant="outline" size="sm" (click)="goToStudies()">
-                <svg cIcon name="cilList" class="me-1"></svg> Saved Studies
+                <svg cIcon name="cilList" class="me-1"></svg>
+                Saved Studies
               </button>
               <button *ngIf="view === 'dashboard' || view === 'studies'" cButton color="primary" variant="outline" size="sm" (click)="goToUpload()">
-                <svg cIcon name="cilCloudUpload" class="me-1"></svg> New Import
+                <svg cIcon name="cilCloudUpload" class="me-1"></svg>
+                New Import
               </button>
             </div>
           </div>
@@ -32,24 +33,22 @@
     </c-col>
   </c-row>
 
-  <!-- ═══════════ UPLOAD VIEW ═══════════ -->
   <ng-container *ngIf="view === 'upload'">
     <c-row [gutter]="4" class="mt-3">
       <c-col xs="12" lg="8">
-        <c-card>
-          <c-card-header>
-            <strong>Upload Merged Operations File</strong>
-            <small class="text-body-secondary ms-2">CSV, XLS, or XLSX — up to 110K+ rows</small>
+        <c-card class="analytics-card">
+          <c-card-header class="analytics-card__header">
+            <div>
+              <div class="analytics-card__title">Upload merged operations file</div>
+              <div class="analytics-card__subtitle">CSV, XLS, or XLSX up to large study volumes</div>
+            </div>
           </c-card-header>
           <c-card-body>
-
-            <!-- Error banner -->
-            <div *ngIf="errorMessage" class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+            <div *ngIf="errorMessage" class="analytics-alert analytics-alert--danger mb-3" role="alert">
               <svg cIcon name="cilWarning" class="me-2 flex-shrink-0"></svg>
               <div>{{ errorMessage }}</div>
             </div>
 
-            <!-- Drop zone -->
             <div
               class="merged-dropzone"
               [class.merged-dropzone--over]="isDragOver"
@@ -69,7 +68,7 @@
 
               <ng-container *ngIf="!selectedFile">
                 <svg cIcon name="cilCloudUpload" class="merged-dropzone__icon"></svg>
-                <div class="merged-dropzone__title">Drag &amp; drop your file here</div>
+                <div class="merged-dropzone__title">Drag and drop your file here</div>
                 <div class="merged-dropzone__subtitle">or click to browse</div>
                 <div class="merged-dropzone__formats mt-2">
                   <span class="format-badge">CSV</span>
@@ -81,18 +80,14 @@
               <ng-container *ngIf="selectedFile">
                 <svg cIcon name="cilFile" class="merged-dropzone__icon merged-dropzone__icon--file"></svg>
                 <div class="merged-dropzone__title">{{ selectedFile.name }}</div>
-                <div class="merged-dropzone__subtitle">{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB — click to replace</div>
+                <div class="merged-dropzone__subtitle">{{ (selectedFile.size / 1024 / 1024).toFixed(2) }} MB - click to replace</div>
               </ng-container>
             </div>
 
-            <div class="d-flex gap-2 mt-3">
-              <button
-                cButton color="primary"
-                [disabled]="!selectedFile || uploadLoading"
-                (click)="startUpload()"
-              >
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <button cButton color="primary" [disabled]="!selectedFile || uploadLoading" (click)="startUpload()">
                 <svg cIcon name="cilCloudUpload" class="me-2"></svg>
-                {{ uploadLoading ? 'Uploading…' : 'Start Import' }}
+                {{ uploadLoading ? 'Uploading...' : 'Start Import' }}
               </button>
               <button *ngIf="selectedFile" cButton color="secondary" variant="outline" (click)="clearFile()">
                 Clear
@@ -102,16 +97,21 @@
         </c-card>
       </c-col>
 
-      <!-- Info panel -->
       <c-col xs="12" lg="4">
-        <c-card class="h-100">
-          <c-card-header><strong>Required Columns</strong></c-card-header>
+        <c-card class="analytics-card analytics-card--aside h-100">
+          <c-card-header class="analytics-card__header">
+            <div>
+              <div class="analytics-card__title">Import guidance</div>
+              <div class="analytics-card__subtitle">Required fields for analytics-only merged studies</div>
+            </div>
+          </c-card-header>
           <c-card-body>
             <div class="mb-3">
-              <div class="small text-danger fw-semibold mb-1">Required (file rejected if missing)</div>
+              <div class="small text-danger fw-semibold mb-1">Required</div>
               <span class="column-badge column-badge--required">Source</span>
               <span class="column-badge column-badge--required">ZONE_MANAGER</span>
             </div>
+
             <div class="mb-3">
               <div class="small text-warning fw-semibold mb-1">Recommended</div>
               <span class="column-badge">CRM_CASE</span>
@@ -119,13 +119,14 @@
               <span class="column-badge">GOUVERNORAT</span>
               <span class="column-badge">NAME_STT</span>
             </div>
+
             <div>
-              <div class="small text-body-secondary fw-semibold mb-1">Source values</div>
+              <div class="small text-body-secondary fw-semibold mb-2">Source values</div>
               <div class="source-legend">
-                <span class="source-dot source-dot--mes"></span> MES / MSE → Activation<br>
-                <span class="source-dot source-dot--dmg"></span> DMG → Déménagement<br>
-                <span class="source-dot source-dot--plt"></span> PLT → Plainte<br>
-                <span class="source-dot source-dot--res"></span> RES → Résiliation
+                <span class="source-dot source-dot--mes"></span> MES / MSE -> Activation<br>
+                <span class="source-dot source-dot--dmg"></span> DMG -> Demenagement<br>
+                <span class="source-dot source-dot--plt"></span> PLT -> Plainte<br>
+                <span class="source-dot source-dot--res"></span> RES -> Resiliation
               </div>
             </div>
           </c-card-body>
@@ -134,23 +135,22 @@
     </c-row>
   </ng-container>
 
-  <!-- ═══════════ PROCESSING VIEW ═══════════ -->
   <ng-container *ngIf="view === 'processing'">
     <c-row [gutter]="4" class="mt-3">
-      <c-col xs="12" md="8" class="mx-auto">
-        <c-card>
+      <c-col xs="12" lg="8" class="mx-auto">
+        <c-card class="analytics-card analytics-card--status">
           <c-card-body class="text-center py-5">
             <div class="processing-spinner mb-4"></div>
-            <h4 class="mb-2">Processing your file…</h4>
+            <h4 class="mb-2">Processing your file...</h4>
             <p class="text-body-secondary mb-4">{{ processingStatusLabel }}</p>
             <c-progress
-              class="mb-2"
-              color="primary"
-              [value]="progressPercent"
-              [animated]="statusResponse?.processingStatus !== 'COMPLETED'"
+              class="mb-2 analytics-progress"
+              style="--cui-progress-bar-bg: #E30613;"
+              [value]="currentProgressPercent"
+              [animated]="currentProcessingStatus !== 'COMPLETED'"
               height="8"
             ></c-progress>
-            <div class="small text-body-secondary mt-2">
+            <div class="small text-body-secondary mt-3">
               <ng-container *ngIf="statusResponse">
                 Valid: {{ statusResponse.validRows | number }} ·
                 Invalid: {{ statusResponse.invalidRows | number }} ·
@@ -163,71 +163,66 @@
     </c-row>
   </ng-container>
 
-  <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
   <ng-container *ngIf="view === 'dashboard'">
-
-    <!-- Summary cards -->
-    <c-row [gutter]="4" class="mt-3" *ngIf="summary">
-      <c-col xs="6" md="4" lg="2">
-        <div class="stat-card stat-card--total">
-          <div class="stat-card__value">{{ summary.totalRows | number }}</div>
-          <div class="stat-card__label">Total Rows</div>
-        </div>
-      </c-col>
-      <c-col xs="6" md="4" lg="2">
-        <div class="stat-card stat-card--valid">
-          <div class="stat-card__value">{{ summary.validRows | number }}</div>
-          <div class="stat-card__label">Valid</div>
-        </div>
-      </c-col>
-      <c-col xs="6" md="4" lg="2">
-        <div class="stat-card stat-card--invalid">
-          <div class="stat-card__value">{{ summary.invalidRows | number }}</div>
-          <div class="stat-card__label">Invalid</div>
-        </div>
-      </c-col>
-      <c-col xs="6" md="4" lg="2">
-        <div class="stat-card stat-card--warning">
-          <div class="stat-card__value">{{ summary.warningRows | number }}</div>
-          <div class="stat-card__label">Warnings</div>
-        </div>
-      </c-col>
-      <c-col xs="6" md="4" lg="2">
-        <div class="stat-card stat-card--duplicate">
-          <div class="stat-card__value">{{ summary.duplicateRows | number }}</div>
-          <div class="stat-card__label">Duplicates</div>
-        </div>
-      </c-col>
-      <c-col xs="6" md="4" lg="2" *ngIf="statusResponse">
-        <div class="stat-card stat-card--duration">
-          <div class="stat-card__value">{{ formatDuration(statusResponse.processingDurationMs) }}</div>
-          <div class="stat-card__label">Process Time</div>
+    <c-row [gutter]="4" class="mt-3">
+      <c-col xs="12">
+        <div class="section-heading">
+          <div>
+            <div class="section-heading__eyebrow">Import status</div>
+            <h4 class="section-heading__title">Selected study context</h4>
+            <p class="section-heading__subtitle">Review the imported file, processing outcome, and current study scope before reading the charts.</p>
+          </div>
+          <button cButton color="secondary" variant="outline" size="sm" (click)="refreshCurrentStudy()">
+            <svg cIcon name="cilReload" class="me-1"></svg>
+            Refresh
+          </button>
         </div>
       </c-col>
     </c-row>
 
-    <!-- Source classification cards -->
-    <c-row [gutter]="4" class="mt-3" *ngIf="summary?.countBySourceLabel">
+    <c-row [gutter]="4">
       <c-col xs="12">
-        <c-card>
-          <c-card-header><strong>Source Classification</strong></c-card-header>
+        <c-card class="analytics-card analytics-card--status">
           <c-card-body>
-            <div class="d-flex flex-wrap gap-3">
-              <div class="source-card source-card--activation">
-                <div class="source-card__count">{{ summary!.countBySourceLabel['Activation'] ?? 0 | number }}</div>
-                <div class="source-card__label">MES / MSE — Activation</div>
+            <div class="status-overview">
+              <div class="status-overview__meta">
+                <div class="status-overview__item">
+                  <span class="status-overview__label">File name</span>
+                  <strong class="status-overview__value">{{ currentStudyFileName }}</strong>
+                </div>
+                <div class="status-overview__item">
+                  <span class="status-overview__label">File type</span>
+                  <strong class="status-overview__value">{{ currentStudyFileType }}</strong>
+                </div>
+                <div class="status-overview__item">
+                  <span class="status-overview__label">Status</span>
+                  <span [class]="statusBadgeClass">{{ currentProcessingStatus }}</span>
+                </div>
+                <div class="status-overview__item">
+                  <span class="status-overview__label">Processing duration</span>
+                  <strong class="status-overview__value">{{ formatDuration(currentStudyDurationMs) }}</strong>
+                </div>
               </div>
-              <div class="source-card source-card--demenagement">
-                <div class="source-card__count">{{ summary!.countBySourceLabel['Déménagement'] ?? 0 | number }}</div>
-                <div class="source-card__label">DMG — Déménagement</div>
+
+              <div class="status-overview__progress">
+                <div class="d-flex justify-content-between gap-2 align-items-center mb-2">
+                  <span class="status-overview__label">Progress</span>
+                  <span class="status-overview__value status-overview__value--compact">{{ currentProgressPercent }}%</span>
+                </div>
+                <c-progress class="analytics-progress" style="--cui-progress-bar-bg: #E30613;" [value]="currentProgressPercent" height="8"></c-progress>
+                <div class="status-overview__progress-copy">
+                  {{ processingStatusLabel }}
+                </div>
               </div>
-              <div class="source-card source-card--plainte">
-                <div class="source-card__count">{{ summary!.countBySourceLabel['Plainte'] ?? 0 | number }}</div>
-                <div class="source-card__label">PLT — Plainte</div>
-              </div>
-              <div class="source-card source-card--resiliation">
-                <div class="source-card__count">{{ summary!.countBySourceLabel['Résiliation'] ?? 0 | number }}</div>
-                <div class="source-card__label">RES — Résiliation</div>
+
+              <div class="status-overview__support">
+                <div *ngIf="currentStudyUploadedAt" class="status-support-pill">
+                  <svg cIcon name="cilCalendar" class="me-1"></svg>
+                  Uploaded {{ currentStudyUploadedAt | date:'dd/MM/yyyy HH:mm' }}
+                </div>
+                <div class="status-support-pill" *ngFor="let source of currentStudySourcesFound">
+                  {{ sourceOptionLabelFor(source) }}
+                </div>
               </div>
             </div>
           </c-card-body>
@@ -235,319 +230,441 @@
       </c-col>
     </c-row>
 
-    <!-- Missing columns warning -->
-    <c-row [gutter]="4" class="mt-3" *ngIf="summary?.missingOptionalColumns?.length">
+    <c-row [gutter]="4" class="mt-4">
       <c-col xs="12">
-        <div class="alert alert-warning d-flex align-items-start gap-2 mb-0">
-          <svg cIcon name="cilWarning" class="flex-shrink-0 mt-1"></svg>
+        <div class="section-heading">
           <div>
-            <strong>Missing recommended columns:</strong>
-            {{ summary!.missingOptionalColumns.join(', ') }}.
-            Analytics may be incomplete.
+            <div class="section-heading__eyebrow">Overview</div>
+            <h4 class="section-heading__title">Main KPIs</h4>
+            <p class="section-heading__subtitle">Keep the first read focused on row health, warnings, duplicates, and runtime.</p>
           </div>
         </div>
       </c-col>
     </c-row>
 
-    <!-- Filters -->
-    <c-row [gutter]="4" class="mt-3">
+    <c-row [gutter]="4">
+      <ng-container *ngIf="summaryLoading">
+        <c-col xs="12" sm="6" xl="4" *ngFor="let skeleton of kpiSkeletonCards">
+          <div class="kpi-card kpi-card--skeleton" aria-hidden="true">
+            <div class="merged-skeleton merged-skeleton--label"></div>
+            <div class="merged-skeleton merged-skeleton--value"></div>
+            <div class="merged-skeleton merged-skeleton--hint"></div>
+          </div>
+        </c-col>
+      </ng-container>
+
+      <ng-container *ngIf="!summaryLoading && kpiCards.length">
+        <c-col xs="12" sm="6" xl="4" *ngFor="let card of kpiCards">
+          <div class="kpi-card" [ngClass]="'kpi-card--' + card.tone">
+            <div class="kpi-card__label">{{ card.label }}</div>
+            <div class="kpi-card__value">{{ card.value }}</div>
+            <div class="kpi-card__hint">{{ card.hint }}</div>
+          </div>
+        </c-col>
+      </ng-container>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-3" *ngIf="summary?.missingOptionalColumns?.length">
       <c-col xs="12">
-        <c-card>
-          <c-card-header>
-            <strong>Filters</strong>
-            <button cButton color="secondary" variant="ghost" size="sm" class="ms-auto" (click)="resetFilters()">
-              Reset
-            </button>
-          </c-card-header>
+        <div class="analytics-alert analytics-alert--warning mb-0">
+          <svg cIcon name="cilWarning" class="me-2 flex-shrink-0"></svg>
+          <div>
+            <strong>Missing recommended columns:</strong>
+            {{ summary?.missingOptionalColumns?.join(', ') }}.
+            Some analytics may be partially available.
+          </div>
+        </div>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-4">
+      <c-col xs="12">
+        <div class="section-heading">
+          <div>
+            <div class="section-heading__eyebrow">Filtering</div>
+            <h4 class="section-heading__title">Filters</h4>
+            <p class="section-heading__subtitle">Narrow the study with compact dropdowns and a date range without leaving the analytics context.</p>
+          </div>
+        </div>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4">
+      <c-col xs="12">
+        <c-card class="analytics-card">
           <c-card-body>
-            <form [formGroup]="filtersForm" (ngSubmit)="applyFilters()">
-              <c-row [gutter]="3">
-                <c-col xs="12" sm="6" md="4" lg="2">
-                  <label class="form-label small">Source</label>
-                  <select class="form-select form-select-sm" formControlName="source">
+            <div *ngIf="filterOptionsLoading && !filterOptions" class="filter-skeleton-grid" aria-hidden="true">
+              <div class="merged-skeleton merged-skeleton--field" *ngFor="let skeleton of chartSkeletonCards"></div>
+            </div>
+
+            <form *ngIf="!filterOptionsLoading || filterOptions" [formGroup]="filtersForm" (ngSubmit)="applyFilters()">
+              <div class="filter-grid">
+                <div class="filter-field">
+                  <label class="filter-field__label">Source</label>
+                  <select class="form-select filter-field__control" formControlName="source">
                     <option value="">All sources</option>
-                    <option value="MES">MES — Activation</option>
-                    <option value="DMG">DMG — Déménagement</option>
-                    <option value="PLT">PLT — Plainte</option>
-                    <option value="RES">RES — Résiliation</option>
+                    <option *ngFor="let source of availableSources" [value]="source">{{ sourceOptionLabelFor(source) }}</option>
                   </select>
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="2">
-                  <label class="form-label small">Zone Manager</label>
-                  <select class="form-select form-select-sm" formControlName="zoneManager">
-                    <option value="">All ZM</option>
-                    <option *ngFor="let zm of filterOptions?.zoneManagers ?? []" [value]="zm">{{ zm }}</option>
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">ZONE_MANAGER</label>
+                  <select class="form-select filter-field__control" formControlName="zoneManager">
+                    <option value="">All zone managers</option>
+                    <option *ngFor="let zone of filterOptions?.zoneManagers ?? []" [value]="zone">{{ zone }}</option>
                   </select>
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="2">
-                  <label class="form-label small">STT</label>
-                  <select class="form-select form-select-sm" formControlName="stt">
-                    <option value="">All STT</option>
-                    <option *ngFor="let s of filterOptions?.stts ?? []" [value]="s">{{ s }}</option>
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">NAME_STT</label>
+                  <select class="form-select filter-field__control" formControlName="stt">
+                    <option value="">All STTs</option>
+                    <option *ngFor="let stt of filterOptions?.stts ?? []" [value]="stt">{{ stt }}</option>
                   </select>
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="2">
-                  <label class="form-label small">Statut</label>
-                  <select class="form-select form-select-sm" formControlName="status">
-                    <option value="">All statuts</option>
-                    <option *ngFor="let st of filterOptions?.statuses ?? []" [value]="st">{{ st }}</option>
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">STATUT</label>
+                  <select class="form-select filter-field__control" formControlName="status">
+                    <option value="">All statuses</option>
+                    <option *ngFor="let status of filterOptions?.statuses ?? []" [value]="status">{{ status }}</option>
                   </select>
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="2">
-                  <label class="form-label small">Gouvernorat</label>
-                  <select class="form-select form-select-sm" formControlName="gouvernorat">
-                    <option value="">All gouvernorats</option>
-                    <option *ngFor="let g of filterOptions?.governorates ?? []" [value]="g">{{ g }}</option>
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">GOUVERNORAT</label>
+                  <select class="form-select filter-field__control" formControlName="gouvernorat">
+                    <option value="">All governorates</option>
+                    <option *ngFor="let governorate of filterOptions?.governorates ?? []" [value]="governorate">{{ governorate }}</option>
                   </select>
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="2">
-                  <label class="form-label small">Date Basis</label>
-                  <select class="form-select form-select-sm" formControlName="dateBasis">
-                    <option *ngFor="let opt of dateBasisOptions" [value]="opt.value">{{ opt.label }}</option>
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">Date basis</label>
+                  <select class="form-select filter-field__control" formControlName="dateBasis">
+                    <option *ngFor="let option of dateBasisOptions" [value]="option.value">{{ option.label }}</option>
                   </select>
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="3">
-                  <label class="form-label small">Date From</label>
-                  <input type="date" class="form-control form-control-sm" formControlName="dateFrom">
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="3">
-                  <label class="form-label small">Date To</label>
-                  <input type="date" class="form-control form-control-sm" formControlName="dateTo">
-                </c-col>
-                <c-col xs="12" sm="6" md="4" lg="2" class="d-flex align-items-end">
-                  <button cButton color="primary" size="sm" type="submit" class="w-100">
-                    <svg cIcon name="cilSearch" class="me-1"></svg> Apply
-                  </button>
-                </c-col>
-              </c-row>
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">Date from</label>
+                  <input type="date" class="form-control filter-field__control" formControlName="dateFrom">
+                </div>
+
+                <div class="filter-field">
+                  <label class="filter-field__label">Date to</label>
+                  <input type="date" class="form-control filter-field__control" formControlName="dateTo">
+                </div>
+              </div>
+
+              <div class="filter-actions">
+                <button cButton color="primary" type="submit">
+                  <svg cIcon name="cilSearch" class="me-1"></svg>
+                  Apply filters
+                </button>
+                <button cButton color="secondary" variant="outline" type="button" (click)="resetFilters()">
+                  Clear filters
+                </button>
+              </div>
             </form>
           </c-card-body>
         </c-card>
       </c-col>
     </c-row>
 
-    <!-- Charts -->
-    <ng-container *ngIf="charts && !chartsLoading">
-      <c-row [gutter]="4" class="mt-3">
-
-        <!-- Source Label Distribution -->
-        <c-col xs="12" md="6" lg="3">
-          <c-card>
-            <c-card-header><strong>By Source Type</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list">
-                <div *ngFor="let entry of chartEntries(charts.sourceLabelDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar"
-                         [style.width.%]="(entry.value / summary!.validRows) * 100">
-                    </div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-
-        <!-- Statut Distribution -->
-        <c-col xs="12" md="6" lg="3">
-          <c-card>
-            <c-card-header><strong>By Statut</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list">
-                <div *ngFor="let entry of chartEntries(charts.statusDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar" [style.width.%]="(entry.value / summary!.validRows) * 100"></div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-
-        <!-- SLA CRM Label -->
-        <c-col xs="12" md="6" lg="3">
-          <c-card>
-            <c-card-header><strong>SLA CRM</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list">
-                <div *ngFor="let entry of chartEntries(charts.slaCrmLabelDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar"
-                         [class.chart-bar-item__bar--green]="entry.key?.toLowerCase()?.includes('in')"
-                         [class.chart-bar-item__bar--red]="entry.key?.toLowerCase()?.includes('out')"
-                         [style.width.%]="(entry.value / summary!.validRows) * 100">
-                    </div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-
-        <!-- SLA Tech Label -->
-        <c-col xs="12" md="6" lg="3">
-          <c-card>
-            <c-card-header><strong>SLA Tech</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list">
-                <div *ngFor="let entry of chartEntries(charts.slaTechLabelDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar"
-                         [class.chart-bar-item__bar--green]="entry.key?.toLowerCase()?.includes('in')"
-                         [class.chart-bar-item__bar--red]="entry.key?.toLowerCase()?.includes('out')"
-                         [style.width.%]="(entry.value / summary!.validRows) * 100">
-                    </div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-      </c-row>
-
-      <c-row [gutter]="4" class="mt-3">
-        <!-- Zone Manager -->
-        <c-col xs="12" md="6">
-          <c-card>
-            <c-card-header><strong>By Zone Manager</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list chart-bar-list--horizontal">
-                <div *ngFor="let entry of chartEntries(charts.zoneManagerDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar" [style.width.%]="(entry.value / summary!.validRows) * 100"></div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-
-        <!-- STT -->
-        <c-col xs="12" md="6">
-          <c-card>
-            <c-card-header><strong>By STT (NAME_STT)</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list chart-bar-list--horizontal">
-                <div *ngFor="let entry of chartEntries(charts.sttDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar" [style.width.%]="(entry.value / summary!.validRows) * 100"></div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-      </c-row>
-
-      <c-row [gutter]="4" class="mt-3">
-        <!-- Gouvernorat -->
-        <c-col xs="12" md="6">
-          <c-card>
-            <c-card-header><strong>By Gouvernorat</strong></c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list">
-                <div *ngFor="let entry of chartEntries(charts.gouvernoratDistribution); trackBy: trackByKey" class="chart-bar-item">
-                  <div class="chart-bar-item__label">{{ entry.key }}</div>
-                  <div class="chart-bar-item__bar-wrap">
-                    <div class="chart-bar-item__bar" [style.width.%]="(entry.value / summary!.validRows) * 100"></div>
-                  </div>
-                  <div class="chart-bar-item__count">{{ entry.value | number }}</div>
-                </div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-
-        <!-- Monthly trend -->
-        <c-col xs="12" md="6">
-          <c-card>
-            <c-card-header>
-              <strong>Monthly Trend</strong>
-              <small class="text-body-secondary ms-2">based on {{ filtersForm.value.dateBasis ?? 'DATE_CREATION_CRM' }}</small>
-            </c-card-header>
-            <c-card-body>
-              <div class="chart-bar-list">
-                <ng-container *ngFor="let point of charts.monthlyTrend">
-                  <div class="chart-bar-item">
-                    <div class="chart-bar-item__label">{{ point.month }}</div>
-                    <div class="chart-bar-item__bar-wrap">
-                      <div class="chart-bar-item__bar"
-                           [style.width.%]="charts.monthlyTrend.length > 0 ? (point.count / getMaxTrend(charts.monthlyTrend)) * 100 : 0">
-                      </div>
-                    </div>
-                    <div class="chart-bar-item__count">{{ point.count | number }}</div>
-                  </div>
-                </ng-container>
-                <div *ngIf="!charts.monthlyTrend?.length" class="text-body-secondary small">No trend data available for selected filters.</div>
-              </div>
-            </c-card-body>
-          </c-card>
-        </c-col>
-      </c-row>
-    </ng-container>
-
-    <!-- Charts loading -->
-    <c-row *ngIf="chartsLoading" [gutter]="4" class="mt-3">
-      <c-col xs="12" class="text-center py-4">
-        <div class="processing-spinner mx-auto mb-2"></div>
-        <div class="text-body-secondary small">Loading charts…</div>
+    <c-row [gutter]="4" class="mt-4">
+      <c-col xs="12">
+        <div class="section-heading">
+          <div>
+            <div class="section-heading__eyebrow">Primary analytics</div>
+            <h4 class="section-heading__title">Main charts</h4>
+            <p class="section-heading__subtitle">Show only the key reads first: source mix, trend, top zone managers, and top STTs.</p>
+          </div>
+        </div>
       </c-col>
     </c-row>
 
-    <!-- Invalid rows table -->
-    <c-row [gutter]="4" class="mt-3" *ngIf="summary && summary.invalidRows > 0">
+    <c-row [gutter]="4">
+      <ng-container *ngIf="chartsLoading">
+        <c-col xs="12" lg="6" *ngFor="let skeleton of chartSkeletonCards">
+          <c-card class="analytics-card chart-card">
+            <c-card-body>
+              <div class="merged-skeleton merged-skeleton--chart-title"></div>
+              <div class="merged-skeleton merged-skeleton--chart-subtitle"></div>
+              <div class="merged-skeleton merged-skeleton--chart"></div>
+            </c-card-body>
+          </c-card>
+        </c-col>
+      </ng-container>
+
+      <ng-container *ngIf="!chartsLoading">
+        <c-col xs="12" lg="6">
+          <c-card class="analytics-card chart-card">
+            <c-card-body>
+              <div class="chart-card__header">
+                <div>
+                  <div class="chart-card__title">Source distribution</div>
+                  <div class="chart-card__subtitle">Consolidated split by activation, plainte, demenagement, and resiliation.</div>
+                </div>
+              </div>
+              <div class="chart-wrap chart-wrap--donut" *ngIf="chartHasRenderableData(sourceDistributionChart); else sourceDistributionEmpty">
+                <c-chart [data]="sourceDistributionChart.data" [options]="sourceDistributionChart.options" [type]="sourceDistributionChart.type"></c-chart>
+              </div>
+              <ng-template #sourceDistributionEmpty>
+                <div class="chart-empty-state">
+                  <div class="chart-empty-state__title">No data for selected filters.</div>
+                  <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+                </div>
+              </ng-template>
+            </c-card-body>
+          </c-card>
+        </c-col>
+
+        <c-col xs="12" lg="6">
+          <c-card class="analytics-card chart-card">
+            <c-card-body>
+              <div class="chart-card__header">
+                <div>
+                  <div class="chart-card__title">Monthly trend</div>
+                  <div class="chart-card__subtitle">Smooth trend based on {{ dateBasisLabel }}.</div>
+                </div>
+              </div>
+              <div class="chart-wrap" *ngIf="chartHasRenderableData(monthlyTrendChart); else monthlyTrendEmpty">
+                <c-chart [data]="monthlyTrendChart.data" [options]="monthlyTrendChart.options" [type]="monthlyTrendChart.type"></c-chart>
+              </div>
+              <ng-template #monthlyTrendEmpty>
+                <div class="chart-empty-state">
+                  <div class="chart-empty-state__title">No trend data for selected filters.</div>
+                  <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+                </div>
+              </ng-template>
+            </c-card-body>
+          </c-card>
+        </c-col>
+
+        <c-col xs="12" lg="6">
+          <c-card class="analytics-card chart-card">
+            <c-card-body>
+              <div class="chart-card__header">
+                <div>
+                  <div class="chart-card__title">Top zone managers</div>
+                  <div class="chart-card__subtitle">Top 10 ZONE_MANAGER values by row volume.</div>
+                </div>
+              </div>
+              <div class="chart-wrap chart-wrap--bar" [style.height.px]="getBarChartHeight(getHorizontalItemCount(charts?.zoneManagerDistribution))" *ngIf="chartHasRenderableData(zoneManagerChart); else zoneManagerEmpty">
+                <c-chart [data]="zoneManagerChart.data" [options]="zoneManagerChart.options" [type]="zoneManagerChart.type"></c-chart>
+              </div>
+              <ng-template #zoneManagerEmpty>
+                <div class="chart-empty-state">
+                  <div class="chart-empty-state__title">No zone manager data available.</div>
+                  <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+                </div>
+              </ng-template>
+            </c-card-body>
+          </c-card>
+        </c-col>
+
+        <c-col xs="12" lg="6">
+          <c-card class="analytics-card chart-card">
+            <c-card-body>
+              <div class="chart-card__header">
+                <div>
+                  <div class="chart-card__title">Top STTs</div>
+                  <div class="chart-card__subtitle">Top 10 NAME_STT values by row volume.</div>
+                </div>
+              </div>
+              <div class="chart-wrap chart-wrap--bar" [style.height.px]="getBarChartHeight(getHorizontalItemCount(charts?.sttDistribution))" *ngIf="chartHasRenderableData(sttChart); else sttEmpty">
+                <c-chart [data]="sttChart.data" [options]="sttChart.options" [type]="sttChart.type"></c-chart>
+              </div>
+              <ng-template #sttEmpty>
+                <div class="chart-empty-state">
+                  <div class="chart-empty-state__title">No STT data available.</div>
+                  <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+                </div>
+              </ng-template>
+            </c-card-body>
+          </c-card>
+        </c-col>
+      </ng-container>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-4">
       <c-col xs="12">
-        <c-card>
-          <c-card-header>
-            <strong>Invalid Rows</strong>
-            <span class="badge bg-danger ms-2">{{ summary.invalidRows | number }}</span>
-          </c-card-header>
-          <c-card-body class="p-0">
-            <div *ngIf="invalidRowsLoading" class="text-center py-4">
+        <div class="section-heading">
+          <div>
+            <div class="section-heading__eyebrow">Secondary analytics</div>
+            <h4 class="section-heading__title">Additional breakdowns</h4>
+            <p class="section-heading__subtitle">Lower-priority distributions stay below the main view to keep the dashboard readable.</p>
+          </div>
+        </div>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" *ngIf="!chartsLoading">
+      <c-col xs="12" lg="6">
+        <c-card class="analytics-card chart-card">
+          <c-card-body>
+            <div class="chart-card__header">
+              <div>
+                <div class="chart-card__title">STATUT distribution</div>
+                <div class="chart-card__subtitle">Operational status mix after filters are applied.</div>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--donut" *ngIf="chartHasRenderableData(statusDistributionChart); else statusEmpty">
+              <c-chart [data]="statusDistributionChart.data" [options]="statusDistributionChart.options" [type]="statusDistributionChart.type"></c-chart>
+            </div>
+            <ng-template #statusEmpty>
+              <div class="chart-empty-state">
+                <div class="chart-empty-state__title">No status data for selected filters.</div>
+                <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="6">
+        <c-card class="analytics-card chart-card">
+          <c-card-body>
+            <div class="chart-card__header">
+              <div>
+                <div class="chart-card__title">GOUVERNORAT distribution</div>
+                <div class="chart-card__subtitle">Top governorates by imported row volume.</div>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--bar" [style.height.px]="getBarChartHeight(getHorizontalItemCount(charts?.gouvernoratDistribution))" *ngIf="chartHasRenderableData(gouvernoratChart); else governorateEmpty">
+              <c-chart [data]="gouvernoratChart.data" [options]="gouvernoratChart.options" [type]="gouvernoratChart.type"></c-chart>
+            </div>
+            <ng-template #governorateEmpty>
+              <div class="chart-empty-state">
+                <div class="chart-empty-state__title">No governorate data available.</div>
+                <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="6">
+        <c-card class="analytics-card chart-card">
+          <c-card-body>
+            <div class="chart-card__header">
+              <div>
+                <div class="chart-card__title">SLA_CRM_Label</div>
+                <div class="chart-card__subtitle">CRM SLA split between in-SLA, out-of-SLA, and unknown labels.</div>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--donut" *ngIf="chartHasRenderableData(slaCrmChart); else slaCrmEmpty">
+              <c-chart [data]="slaCrmChart.data" [options]="slaCrmChart.options" [type]="slaCrmChart.type"></c-chart>
+            </div>
+            <ng-template #slaCrmEmpty>
+              <div class="chart-empty-state">
+                <div class="chart-empty-state__title">No CRM SLA labels available.</div>
+                <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" lg="6">
+        <c-card class="analytics-card chart-card">
+          <c-card-body>
+            <div class="chart-card__header">
+              <div>
+                <div class="chart-card__title">SLA_TECH_Label</div>
+                <div class="chart-card__subtitle">Technical SLA split between in-SLA, out-of-SLA, and unknown labels.</div>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--donut" *ngIf="chartHasRenderableData(slaTechChart); else slaTechEmpty">
+              <c-chart [data]="slaTechChart.data" [options]="slaTechChart.options" [type]="slaTechChart.type"></c-chart>
+            </div>
+            <ng-template #slaTechEmpty>
+              <div class="chart-empty-state">
+                <div class="chart-empty-state__title">No technical SLA labels available.</div>
+                <div class="chart-empty-state__copy">Try clearing filters or selecting another date range.</div>
+              </div>
+            </ng-template>
+          </c-card-body>
+        </c-card>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-4">
+      <c-col xs="12">
+        <div class="section-heading">
+          <div>
+            <div class="section-heading__eyebrow">Validation details</div>
+            <h4 class="section-heading__title">Invalid rows</h4>
+            <p class="section-heading__subtitle">Keep row-level validation details below the charts and open them only when needed.</p>
+          </div>
+        </div>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4">
+      <c-col xs="12" *ngIf="summary && summary.invalidRows === 0">
+        <c-card class="analytics-card">
+          <c-card-body>
+            <div class="chart-empty-state chart-empty-state--success">
+              <div class="chart-empty-state__title">No invalid rows</div>
+              <div class="chart-empty-state__copy">This study has no invalid rows to review.</div>
+            </div>
+          </c-card-body>
+        </c-card>
+      </c-col>
+
+      <c-col xs="12" *ngIf="summary && summary.invalidRows > 0">
+        <details class="invalid-details">
+          <summary class="invalid-details__summary">
+            <div>
+              <div class="invalid-details__title">Invalid rows requiring review</div>
+              <div class="invalid-details__subtitle">{{ summary.invalidRows | number }} row(s) are available in the paginated error table.</div>
+            </div>
+            <span class="status-pill status-pill--danger">{{ summary.invalidRows | number }}</span>
+          </summary>
+
+          <div class="invalid-details__body">
+            <div *ngIf="invalidRowsLoading" class="table-loading-state">
               <div class="processing-spinner mx-auto mb-2"></div>
+              <div class="small text-body-secondary">Loading invalid rows...</div>
             </div>
 
-            <table *ngIf="!invalidRowsLoading && invalidRows.length" cTable responsive hover class="mb-0">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>CRM Case</th>
-                  <th>Source</th>
-                  <th>Zone Manager</th>
-                  <th>Reasons</th>
-                  <th>Preview</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of invalidRows; trackBy: trackById">
-                  <td class="text-body-secondary small">{{ row.rowNumber }}</td>
-                  <td>{{ row.crmCase ?? '—' }}</td>
-                  <td>{{ row.source ?? '—' }}</td>
-                  <td>{{ row.zoneManager ?? '—' }}</td>
-                  <td>
-                    <span *ngFor="let r of row.reasons" class="badge bg-danger me-1 mb-1">{{ r }}</span>
-                  </td>
-                  <td class="text-body-secondary small" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                    {{ row.rawPreview }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div *ngIf="!invalidRowsLoading && invalidRows.length === 0" class="chart-empty-state">
+              <div class="chart-empty-state__title">No invalid rows on this page.</div>
+              <div class="chart-empty-state__copy">Try refreshing the study or moving to another page.</div>
+            </div>
 
-            <!-- Pagination -->
-            <div *ngIf="!invalidRowsLoading && invalidTotalPages > 1" class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
+            <div class="invalid-table-shell" *ngIf="!invalidRowsLoading && invalidRows.length">
+              <table cTable responsive hover class="dashboard-table mb-0">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>CRM Case</th>
+                    <th>Source</th>
+                    <th>Zone Manager</th>
+                    <th>Reasons</th>
+                    <th>Preview</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of invalidRows; trackBy: trackById">
+                    <td class="text-body-secondary small">{{ row.rowNumber }}</td>
+                    <td>{{ row.crmCase ?? '-' }}</td>
+                    <td>{{ row.source ?? '-' }}</td>
+                    <td>{{ row.zoneManager ?? '-' }}</td>
+                    <td>
+                      <div class="issue-pill-list">
+                        <span *ngFor="let reason of row.reasons" class="issue-pill">{{ reason }}</span>
+                      </div>
+                    </td>
+                    <td class="invalid-preview-cell">{{ row.rawPreview }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div *ngIf="!invalidRowsLoading && invalidTotalPages > 1" class="invalid-pagination">
               <small class="text-body-secondary">
                 Page {{ invalidPage + 1 }} of {{ invalidTotalPages }} ({{ invalidTotalElements | number }} total)
               </small>
@@ -560,84 +677,106 @@
                 </button>
               </div>
             </div>
+          </div>
+        </details>
+      </c-col>
+    </c-row>
+
+    <c-row [gutter]="4" class="mt-3" *ngIf="!summaryLoading && !chartsLoading && !hasDashboardData">
+      <c-col xs="12">
+        <c-card class="analytics-card">
+          <c-card-body>
+            <div class="chart-empty-state">
+              <div class="chart-empty-state__title">No data available for the selected study.</div>
+              <div class="chart-empty-state__copy">Try clearing filters or choosing another saved study.</div>
+            </div>
           </c-card-body>
         </c-card>
       </c-col>
     </c-row>
   </ng-container>
 
-  <!-- ═══════════ STUDIES VIEW ═══════════ -->
   <ng-container *ngIf="view === 'studies'">
     <c-row [gutter]="4" class="mt-3">
       <c-col xs="12">
-        <c-card>
-          <c-card-header>
-            <strong>Saved Studies</strong>
-            <button cButton color="primary" size="sm" class="ms-auto" (click)="goToUpload()">
-              <svg cIcon name="cilPlus" class="me-1"></svg> New Import
+        <c-card class="analytics-card">
+          <c-card-header class="analytics-card__header">
+            <div>
+              <div class="analytics-card__title">Saved studies</div>
+              <div class="analytics-card__subtitle">Open or clean up completed merged imports without affecting operational workflows.</div>
+            </div>
+            <button cButton color="primary" size="sm" (click)="goToUpload()">
+              <svg cIcon name="cilPlus" class="me-1"></svg>
+              New Import
             </button>
           </c-card-header>
           <c-card-body class="p-0">
-            <div *ngIf="studiesLoading" class="text-center py-4">
+            <div *ngIf="studiesLoading" class="table-loading-state py-4">
               <div class="processing-spinner mx-auto"></div>
             </div>
 
-            <div *ngIf="!studiesLoading && studies.length === 0" class="text-center py-5 text-body-secondary">
-              No saved studies yet. Upload a merged file to get started.
+            <div *ngIf="!studiesLoading && studies.length === 0" class="chart-empty-state chart-empty-state--compact">
+              <div class="chart-empty-state__title">No saved studies yet.</div>
+              <div class="chart-empty-state__copy">Upload a merged file to start the analytics workflow.</div>
             </div>
 
-            <table *ngIf="!studiesLoading && studies.length" cTable responsive hover class="mb-0">
-              <thead>
-                <tr>
-                  <th>File</th>
-                  <th>Type</th>
-                  <th>Uploaded</th>
-                  <th>Total</th>
-                  <th>Valid</th>
-                  <th>Invalid</th>
-                  <th>Sources</th>
-                  <th>Status</th>
-                  <th>Duration</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let study of studies; trackBy: trackByStudyId">
-                  <td>
-                    <div class="fw-semibold small">{{ study.fileName }}</div>
-                  </td>
-                  <td><span class="badge bg-secondary">{{ study.fileType }}</span></td>
-                  <td class="small text-body-secondary">{{ study.uploadedAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                  <td>{{ study.totalRows | number }}</td>
-                  <td class="text-success">{{ study.validRows | number }}</td>
-                  <td class="text-danger">{{ study.invalidRows | number }}</td>
-                  <td>
-                    <span *ngFor="let s of study.sourcesFound" class="badge bg-info me-1">{{ s }}</span>
-                  </td>
-                  <td>
-                    <span
-                      class="badge"
-                      [class.bg-success]="study.processingStatus === 'COMPLETED'"
-                      [class.bg-danger]="study.processingStatus === 'FAILED'"
-                      [class.bg-warning]="study.processingStatus === 'PROCESSING' || study.processingStatus === 'PENDING'"
-                    >{{ study.processingStatus }}</span>
-                  </td>
-                  <td class="small">{{ formatDuration(study.processingDurationMs) }}</td>
-                  <td>
-                    <div class="d-flex gap-1">
-                      <button cButton color="primary" variant="outline" size="sm"
-                              [disabled]="study.processingStatus !== 'COMPLETED'"
-                              (click)="openStudy(study)">
-                        <svg cIcon name="cilChartLine"></svg>
-                      </button>
-                      <button cButton color="danger" variant="outline" size="sm" (click)="deleteStudy(study)">
-                        <svg cIcon name="cilTrash"></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="invalid-table-shell" *ngIf="!studiesLoading && studies.length">
+              <table cTable responsive hover class="dashboard-table mb-0">
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Type</th>
+                    <th>Uploaded</th>
+                    <th>Total</th>
+                    <th>Valid</th>
+                    <th>Invalid</th>
+                    <th>Sources</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let study of studies; trackBy: trackByStudyId">
+                    <td>
+                      <div class="fw-semibold small">{{ study.fileName }}</div>
+                    </td>
+                    <td><span class="status-pill status-pill--muted">{{ study.fileType }}</span></td>
+                    <td class="small text-body-secondary">{{ study.uploadedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ study.totalRows | number }}</td>
+                    <td class="text-success">{{ study.validRows | number }}</td>
+                    <td class="text-danger">{{ study.invalidRows | number }}</td>
+                    <td>
+                      <div class="issue-pill-list">
+                        <span *ngFor="let source of study.sourcesFound" class="issue-pill issue-pill--neutral">{{ source }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        class="status-pill"
+                        [class.status-pill--success]="study.processingStatus === 'COMPLETED'"
+                        [class.status-pill--danger]="study.processingStatus === 'FAILED'"
+                        [class.status-pill--warning]="study.processingStatus === 'PROCESSING' || study.processingStatus === 'PENDING'"
+                        [class.status-pill--muted]="study.processingStatus !== 'COMPLETED' && study.processingStatus !== 'FAILED' && study.processingStatus !== 'PROCESSING' && study.processingStatus !== 'PENDING'"
+                      >
+                        {{ study.processingStatus }}
+                      </span>
+                    </td>
+                    <td class="small">{{ formatDuration(study.processingDurationMs) }}</td>
+                    <td>
+                      <div class="d-flex gap-1">
+                        <button cButton color="primary" variant="outline" size="sm" [disabled]="study.processingStatus !== 'COMPLETED'" (click)="openStudy(study)">
+                          <svg cIcon name="cilChartLine"></svg>
+                        </button>
+                        <button cButton color="danger" variant="outline" size="sm" (click)="deleteStudy(study)">
+                          <svg cIcon name="cilTrash"></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </c-card-body>
         </c-card>
       </c-col>
