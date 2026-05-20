@@ -4,11 +4,19 @@ import { Router } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { SpinnerComponent } from '@coreui/angular';
 
-import { NotificationItem, AlertLevel, effectiveLevel } from './models/notification.model';
+import {
+  NotificationItem,
+  AlertLevel,
+  AlertCategory,
+  AlertActionType,
+  effectiveLevel,
+  effectiveCategory,
+} from './models/notification.model';
 import { NotificationStoreService } from './notification-store.service';
 import { AuthStore } from '../auth/auth.store';
 
-type LevelFilter = 'ALL' | AlertLevel;
+type LevelFilter    = 'ALL' | AlertLevel;
+type CategoryFilter = 'ALL' | AlertCategory;
 
 @Component({
   selector: 'app-alert-center',
@@ -18,13 +26,16 @@ type LevelFilter = 'ALL' | AlertLevel;
   styleUrls: ['./alert-center.component.scss']
 })
 export class AlertCenterComponent {
-  readonly store = inject(NotificationStoreService);
-  private readonly router = inject(Router);
+  readonly store    = inject(NotificationStoreService);
+  private readonly router    = inject(Router);
   private readonly authStore = inject(AuthStore);
 
-  readonly activeFilter = signal<LevelFilter>('ALL');
-  readonly compact = signal(false);
-  readonly selectedIds = signal<Set<string>>(new Set());
+  readonly activeLevelFilter    = signal<LevelFilter>('ALL');
+  readonly activeCategoryFilter = signal<CategoryFilter>('ALL');
+  readonly compact              = signal(false);
+  readonly selectedIds          = signal<Set<string>>(new Set());
+
+  // ── Severity counters ────────────────────────────────────────────────
 
   readonly criticalCount = computed(() =>
     this.store.alertsByLevel().filter(n => effectiveLevel(n) === 'CRITICAL').length
@@ -36,14 +47,36 @@ export class AlertCenterComponent {
     this.store.alertsByLevel().filter(n => effectiveLevel(n) === 'INFO').length
   );
 
+  // ── Category counters ────────────────────────────────────────────────
+
+  readonly categoryCounters = computed(() => {
+    const counts: Record<AlertCategory, number> = {
+      DPM: 0, STOCK: 0, CASE: 0, PERMISSION: 0, USER: 0, SLA: 0, SYSTEM: 0
+    };
+    for (const n of this.store.alertsByLevel()) {
+      counts[effectiveCategory(n)]++;
+    }
+    return counts;
+  });
+
+  categoryCount(cat: AlertCategory): number {
+    return this.categoryCounters()[cat];
+  }
+
+  // ── Filtered list (level ∩ category) ────────────────────────────────
+
   readonly filtered = computed(() => {
-    const f = this.activeFilter();
-    if (f === 'ALL') return this.store.alertsByLevel();
-    return this.store.alertsByLevel().filter(n => effectiveLevel(n) === f);
+    const lf = this.activeLevelFilter();
+    const cf = this.activeCategoryFilter();
+    return this.store.alertsByLevel().filter(n => {
+      const levelOk    = lf === 'ALL' || effectiveLevel(n) === lf;
+      const categoryOk = cf === 'ALL' || effectiveCategory(n) === cf;
+      return levelOk && categoryOk;
+    });
   });
 
   readonly allSelected = computed(() => {
-    const ids = this.selectedIds();
+    const ids   = this.selectedIds();
     const items = this.filtered();
     return items.length > 0 && items.every(i => ids.has(i.id));
   });
@@ -52,8 +85,13 @@ export class AlertCenterComponent {
 
   // ── Filter / selection ──────────────────────────────────────────────
 
-  setFilter(f: LevelFilter): void {
-    this.activeFilter.set(f);
+  setLevelFilter(f: LevelFilter): void {
+    this.activeLevelFilter.set(f);
+    this.clearSelection();
+  }
+
+  setCategoryFilter(f: CategoryFilter): void {
+    this.activeCategoryFilter.set(f);
     this.clearSelection();
   }
 
@@ -102,7 +140,7 @@ export class AlertCenterComponent {
     this.clearSelection();
   }
 
-  // ── Severity ────────────────────────────────────────────────────────
+  // ── Severity helpers ─────────────────────────────────────────────────
 
   isCritical(item: NotificationItem): boolean {
     return effectiveLevel(item) === 'CRITICAL';
@@ -112,11 +150,7 @@ export class AlertCenterComponent {
     return effectiveLevel(item) === 'WARNING';
   }
 
-  getAlertSeverityClass(item: NotificationItem): string {
-    return `alert-card--${effectiveLevel(item).toLowerCase()}`;
-  }
-
-  // ── Icon ────────────────────────────────────────────────────────────
+  // ── Icon ─────────────────────────────────────────────────────────────
 
   iconBg(item: NotificationItem): string {
     return `alert-icon--${effectiveLevel(item).toLowerCase()}`;
@@ -126,54 +160,44 @@ export class AlertCenterComponent {
     switch (item.eventType) {
       case 'STOCK_CRITICAL':
       case 'SLA_BREACHED':
-      case 'SLA_ESCALATED':          return 'cilBan';
+      case 'SLA_ESCALATED':                              return 'cilBan';
       case 'STOCK_LOW_WARNING':
-      case 'SLA_WARNING':            return 'cilWarning';
+      case 'SLA_WARNING':                                return 'cilWarning';
       case 'STOCK_USAGE_PERMISSION_REQUIRED':
       case 'STOCK_USAGE_PERMISSION_APPROVED':
-      case 'STOCK_USAGE_PERMISSION_REJECTED': return 'cilLockLocked';
+      case 'STOCK_USAGE_PERMISSION_REJECTED':            return 'cilLockLocked';
       case 'DPM_CREATED':
       case 'DPM_CONFIRMED':
-      case 'DPM_REJECTED':           return 'cilStorage';
+      case 'DPM_REJECTED':
+      case 'DPM_RDV_SCHEDULED':
+      case 'DPM_RDV_CONFIRMED_BY_STT':
+      case 'DPM_EXTERNAL_REJECTED':                     return 'cilStorage';
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
-      case 'CASE_ASSIGNED_TO_TECH':  return 'cilTask';
-      default:                       return 'cilBell';
+      case 'CASE_ASSIGNED_TO_TECH':                     return 'cilTask';
+      case 'USER_REGISTERED':                           return 'cilUser';
+      case 'STOCK_DISTRIBUTED':                         return 'cilTruck';
+      default:                                          return 'cilBell';
     }
   }
 
-  // ── Lifecycle status ────────────────────────────────────────────────
+  // ── Lifecycle status ─────────────────────────────────────────────────
 
   getLifecycleStatus(item: NotificationItem): 'NEW' | null {
     return item.read ? null : 'NEW';
   }
 
-  // ── Category chip ───────────────────────────────────────────────────
+  // ── Category chip ─────────────────────────────────────────────────────
 
   getCategoryLabel(item: NotificationItem): string {
-    switch (item.eventType) {
-      case 'STOCK_CRITICAL':
-      case 'STOCK_LOW_WARNING':                  return 'STOCK_RISK';
-      case 'STOCK_USAGE_PERMISSION_REQUIRED':
-      case 'STOCK_USAGE_PERMISSION_APPROVED':
-      case 'STOCK_USAGE_PERMISSION_REJECTED':    return 'PERMISSION';
-      case 'DPM_CREATED':
-      case 'DPM_CONFIRMED':
-      case 'DPM_REJECTED':                       return 'DPM_STATUS';
-      case 'CASE_ASSIGNED_TO_ZM':
-      case 'CASE_ASSIGNED_TO_STT':
-      case 'CASE_ASSIGNED_TO_TECH':              return 'CASE_ASSIGN';
-      case 'SLA_BREACHED':
-      case 'SLA_ESCALATED':
-      case 'SLA_WARNING':                        return 'SLA_RISK';
-      case 'THRESHOLD_UPDATED':                  return 'THRESHOLD';
-      case 'WORK_REJECTED':                      return 'WORK_REJECTED';
-      case 'PROOF_UPLOADED':                     return 'PROOF';
-      default:                                   return '';
-    }
+    return effectiveCategory(item);
   }
 
-  // ── Metadata chips ──────────────────────────────────────────────────
+  getCategoryChipClass(item: NotificationItem): string {
+    return `alert-chip--cat-${effectiveCategory(item).toLowerCase()}`;
+  }
+
+  // ── Metadata chips ───────────────────────────────────────────────────
 
   getMetaChips(item: NotificationItem): string[] {
     const chips: string[] = [];
@@ -196,7 +220,7 @@ export class AlertCenterComponent {
     return chips;
   }
 
-  // ── Time ────────────────────────────────────────────────────────────
+  // ── Time ─────────────────────────────────────────────────────────────
 
   getRelativeTime(dateStr: string): string {
     if (!dateStr) return '';
@@ -217,16 +241,21 @@ export class AlertCenterComponent {
     return new DatePipe('en-US').transform(dateStr, 'dd MMM, HH:mm') ?? '';
   }
 
-  // ── Action ──────────────────────────────────────────────────────────
+  // ── Action ───────────────────────────────────────────────────────────
 
   getAlertActionLabel(item: NotificationItem): string | null {
-    switch (item.actionType) {
-      case 'OPEN_CASE':                    return 'Open Case';
-      case 'OPEN_DPM_REQUEST':             return 'Open DPM';
+    switch (item.actionType as AlertActionType) {
+      case 'OPEN_CASE':                     return 'Open Case';
+      case 'OPEN_DPM':
+      case 'OPEN_DPM_REQUEST':              return 'Open DPM';
+      case 'OPEN_STOCK':
+      case 'OPEN_STOCK_PAGE':               return 'View Stock';
+      case 'OPEN_PERMISSION_REQUEST':
       case 'OPEN_STOCK_PERMISSION_REQUEST': return 'Review Request';
-      case 'OPEN_STOCK_THRESHOLDS':        return 'View Thresholds';
-      case 'OPEN_STOCK_PAGE':              return 'View Stock';
-      default:                             return null;
+      case 'OPEN_USER':                     return 'Review User';
+      case 'OPEN_THRESHOLDS':
+      case 'OPEN_STOCK_THRESHOLDS':         return 'Configure Thresholds';
+      default:                              return null;
     }
   }
 
@@ -235,29 +264,45 @@ export class AlertCenterComponent {
     const role = this.authStore.role();
     const data = item.data ?? {};
 
-    switch (item.actionType) {
+    switch (item.actionType as AlertActionType) {
       case 'OPEN_CASE':
         this.router.navigate([data['routeHint'] ?? this.defaultCaseRoute(role)]);
         break;
+      case 'OPEN_DPM':
       case 'OPEN_DPM_REQUEST':
         this.router.navigate([data['routeHint'] ?? this.defaultDpmRoute(role)]);
         break;
+      case 'OPEN_STOCK':
+      case 'OPEN_STOCK_PAGE':
+        this.router.navigate([data['routeHint'] ?? this.defaultStockRoute(role)]);
+        break;
+      case 'OPEN_PERMISSION_REQUEST':
       case 'OPEN_STOCK_PERMISSION_REQUEST':
         this.router.navigate([this.permissionRoute(role)]);
         break;
+      case 'OPEN_USER':
+        this.router.navigate(['/admin/users']);
+        break;
+      case 'OPEN_THRESHOLDS':
       case 'OPEN_STOCK_THRESHOLDS':
         this.router.navigate(['/zm/stock/thresholds']);
-        break;
-      case 'OPEN_STOCK_PAGE':
-        this.router.navigate([data['routeHint'] ?? this.defaultStockRoute(role)]);
         break;
     }
   }
 
-  // ── Empty state ─────────────────────────────────────────────────────
+  // ── Empty state ──────────────────────────────────────────────────────
 
   emptyMessage(): { title: string; sub: string } {
-    switch (this.activeFilter()) {
+    const lf = this.activeLevelFilter();
+    const cf = this.activeCategoryFilter();
+
+    if (lf !== 'ALL' && cf !== 'ALL') {
+      return { title: `No ${lf.toLowerCase()} ${cf} alerts.`, sub: 'Try adjusting the filters.' };
+    }
+    if (cf !== 'ALL') {
+      return { title: `No ${cf} alerts.`, sub: 'This category is clear.' };
+    }
+    switch (lf) {
       case 'CRITICAL': return { title: 'No critical alerts.', sub: 'Operations are stable.' };
       case 'WARNING':  return { title: 'No warnings detected.', sub: 'Everything looks good.' };
       case 'INFO':     return { title: 'No information alerts.', sub: "You're all caught up." };
@@ -265,7 +310,7 @@ export class AlertCenterComponent {
     }
   }
 
-  // ── Private routes ──────────────────────────────────────────────────
+  // ── Private routes ───────────────────────────────────────────────────
 
   private defaultCaseRoute(role: string | null): string {
     switch (role) {

@@ -15,9 +15,9 @@
                 <span class="hero-card__brand">ooredoo</span>
                 <span class="hero-card__brandcopy">Multi-context import</span>
               </div>
-              <h2 class="hero-card__title">Import TODO, Activation, and Plainte files without mixing their workflows</h2>
+              <h2 class="hero-card__title">Import TODO, Activation, Plainte, and Merged files without mixing their workflows</h2>
               <p class="hero-card__description">
-                The admin now chooses the import context first. TODO files continue through the existing TODO study pipeline, activation CSV files stay in the activation analytics and activation cases flow, and plainte CSV files go straight into the complaint workflow.
+                The admin chooses the import context first. TODO files continue through the TODO study pipeline, Activation CSV stays in the activation analytics flow, Plainte CSV goes into the complaint workflow, and Merged files go into the analytics-only pipeline without triggering any case distribution.
               </p>
             </div>
 
@@ -37,6 +37,10 @@
               <span class="dashboard-chip">
                 <svg cIcon name="cilWarning"></svg>
                 Complaint workflow isolated
+              </span>
+              <span class="dashboard-chip">
+                <svg cIcon name="cilChartPie"></svg>
+                Merged — analytics only
               </span>
               <span class="dashboard-chip dashboard-chip--accent">
                 <svg cIcon name="cilChartLine"></svg>
@@ -95,11 +99,23 @@
                 <svg cIcon name="cilWarning" class="me-2"></svg>
                 Import Plainte CSV
               </button>
+
+              <button
+                cButton
+                type="button"
+                [color]="isSelected('merged') ? 'primary' : 'secondary'"
+                [variant]="isSelected('merged') ? undefined : 'outline'"
+                class="dashboard-action-button"
+                (click)="selectImportType('merged')"
+              >
+                <svg cIcon name="cilChartPie" class="me-2"></svg>
+                Import Merged Operations File
+              </button>
             </div>
           </div>
 
           <div class="small text-body-secondary mt-3">
-            `Todos` uses the legacy TODO study pipeline. `Activation` uses only the activation analytics import endpoint and activation case flow. `Plaintes` uses only the complaint import endpoint and complaint case flow.
+            `Todos` uses the TODO study pipeline. `Activation` uses the activation analytics endpoint. `Plaintes` uses the complaint import endpoint. `Merged` uses a dedicated analytics-only pipeline — no case distribution, no notifications.
           </div>
         </c-card-body>
       </c-card>
@@ -109,4 +125,5 @@
   <app-todo-import-workspace *ngIf="selectedImportType === 'todos'" />
   <app-activation-import-workspace *ngIf="selectedImportType === 'activation'" />
   <app-complaint-import-workspace *ngIf="selectedImportType === 'complaint'" />
+  <app-merged-import-workspace *ngIf="selectedImportType === 'merged'" />
 </div>

@@ -38,16 +38,22 @@ export class NotificationStoreService {
     )
   );
 
-  /** Alerts grouped and sorted: CRITICAL → WARNING → INFO, then by date. */
+  /**
+   * Alerts sorted: unread before read → CRITICAL → WARNING → INFO → newest first.
+   * Within the read group the same level → date ordering applies.
+   */
   readonly alertsByLevel = computed(() => {
-    const sorted = [...this._items()].sort((a, b) => {
-      const levelOrder: Record<AlertLevel, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+    const levelOrder: Record<AlertLevel, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+    return [...this._items()].sort((a, b) => {
+      // unread first
+      if (a.read !== b.read) return a.read ? 1 : -1;
+      // level order within same read group
       const la = levelOrder[effectiveLevel(a)] ?? 2;
       const lb = levelOrder[effectiveLevel(b)] ?? 2;
       if (la !== lb) return la - lb;
+      // newest first within same level
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-    return sorted;
   });
 
   readonly criticalAlerts = computed(() =>

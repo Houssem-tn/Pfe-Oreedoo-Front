@@ -23,39 +23,133 @@
     </div>
   </div>
 
-  <!-- ── Level filters ──────────────────────────────────────────────── -->
+  <!-- ── Severity filters ──────────────────────────────────────────── -->
   <div class="alert-center__filters">
     <button class="alert-filter-btn"
-            [class.active]="activeFilter() === 'ALL'"
-            (click)="setFilter('ALL')">
+            [class.active]="activeLevelFilter() === 'ALL'"
+            (click)="setLevelFilter('ALL')">
       All
       <span class="alert-filter-count">{{ store.alertsByLevel().length }}</span>
     </button>
 
     <button class="alert-filter-btn alert-filter-btn--critical"
-            [class.active]="activeFilter() === 'CRITICAL'"
-            (click)="setFilter('CRITICAL')">
+            [class.active]="activeLevelFilter() === 'CRITICAL'"
+            (click)="setLevelFilter('CRITICAL')">
       <svg cIcon name="cilBan" class="af-icon"></svg>
       Critical
       <span class="alert-filter-count">{{ criticalCount() }}</span>
     </button>
 
     <button class="alert-filter-btn alert-filter-btn--warning"
-            [class.active]="activeFilter() === 'WARNING'"
-            (click)="setFilter('WARNING')">
+            [class.active]="activeLevelFilter() === 'WARNING'"
+            (click)="setLevelFilter('WARNING')">
       <svg cIcon name="cilWarning" class="af-icon"></svg>
       Warning
       <span class="alert-filter-count">{{ warningCount() }}</span>
     </button>
 
     <button class="alert-filter-btn alert-filter-btn--info"
-            [class.active]="activeFilter() === 'INFO'"
-            (click)="setFilter('INFO')">
+            [class.active]="activeLevelFilter() === 'INFO'"
+            (click)="setLevelFilter('INFO')">
       <svg cIcon name="cilBell" class="af-icon"></svg>
       Info
       <span class="alert-filter-count">{{ infoCount() }}</span>
     </button>
   </div>
+
+  <!-- ── Category filters ──────────────────────────────────────────── -->
+  <div class="alert-center__cat-filters">
+    <button class="cat-filter-btn"
+            [class.active]="activeCategoryFilter() === 'ALL'"
+            (click)="setCategoryFilter('ALL')">
+      All Concepts
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--dpm"
+            [class.active]="activeCategoryFilter() === 'DPM'"
+            (click)="setCategoryFilter('DPM')">
+      DPM
+      @if (categoryCount('DPM') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('DPM') }}</span>
+      }
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--stock"
+            [class.active]="activeCategoryFilter() === 'STOCK'"
+            (click)="setCategoryFilter('STOCK')">
+      Stock
+      @if (categoryCount('STOCK') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('STOCK') }}</span>
+      }
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--case"
+            [class.active]="activeCategoryFilter() === 'CASE'"
+            (click)="setCategoryFilter('CASE')">
+      Cases
+      @if (categoryCount('CASE') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('CASE') }}</span>
+      }
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--permission"
+            [class.active]="activeCategoryFilter() === 'PERMISSION'"
+            (click)="setCategoryFilter('PERMISSION')">
+      Permissions
+      @if (categoryCount('PERMISSION') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('PERMISSION') }}</span>
+      }
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--user"
+            [class.active]="activeCategoryFilter() === 'USER'"
+            (click)="setCategoryFilter('USER')">
+      Users
+      @if (categoryCount('USER') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('USER') }}</span>
+      }
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--sla"
+            [class.active]="activeCategoryFilter() === 'SLA'"
+            (click)="setCategoryFilter('SLA')">
+      SLA
+      @if (categoryCount('SLA') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('SLA') }}</span>
+      }
+    </button>
+
+    <button class="cat-filter-btn cat-filter-btn--system"
+            [class.active]="activeCategoryFilter() === 'SYSTEM'"
+            (click)="setCategoryFilter('SYSTEM')">
+      System
+      @if (categoryCount('SYSTEM') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('SYSTEM') }}</span>
+      }
+    </button>
+  </div>
+
+  <!-- ── Active filter indicator ────────────────────────────────────── -->
+  @if (activeLevelFilter() !== 'ALL' || activeCategoryFilter() !== 'ALL') {
+    <div class="ac-active-filters">
+      <span class="ac-active-filters__label">Showing:</span>
+      @if (activeLevelFilter() !== 'ALL') {
+        <span class="ac-active-filters__chip ac-active-filters__chip--level"
+              [ngClass]="'ac-active-filters__chip--' + activeLevelFilter().toLowerCase()">
+          {{ activeLevelFilter() }}
+          <button class="ac-active-filters__remove" (click)="setLevelFilter('ALL')" title="Remove filter">×</button>
+        </span>
+      }
+      @if (activeCategoryFilter() !== 'ALL') {
+        <span class="ac-active-filters__chip ac-active-filters__chip--category"
+              [ngClass]="'ac-active-filters__chip--cat-' + activeCategoryFilter().toLowerCase()">
+          {{ activeCategoryFilter() }}
+          <button class="ac-active-filters__remove" (click)="setCategoryFilter('ALL')" title="Remove filter">×</button>
+        </span>
+      }
+      <span class="ac-active-filters__result">{{ filtered().length }} result{{ filtered().length !== 1 ? 's' : '' }}</span>
+    </div>
+  }
 
   <!-- ── Bulk action bar ────────────────────────────────────────────── -->
   @if (selectionCount() > 0) {
@@ -149,18 +243,18 @@
 
                 <!-- Chips (hidden in compact mode) -->
                 @if (!compact()) {
-                  @let category = getCategoryLabel(alert);
                   @let chips = getMetaChips(alert);
-                  @if (category || chips.length > 0) {
-                    <div class="alert-card__chips">
-                      @if (category) {
-                        <span class="alert-chip alert-chip--category">{{ category }}</span>
-                      }
-                      @for (chip of chips; track chip) {
-                        <span class="alert-chip alert-chip--meta">{{ chip }}</span>
-                      }
-                    </div>
-                  }
+                  <div class="alert-card__chips">
+                    <!-- Category chip -->
+                    <span class="alert-chip alert-chip--category"
+                          [ngClass]="getCategoryChipClass(alert)">
+                      {{ getCategoryLabel(alert) }}
+                    </span>
+                    <!-- Meta chips -->
+                    @for (chip of chips; track chip) {
+                      <span class="alert-chip alert-chip--meta">{{ chip }}</span>
+                    }
+                  </div>
                 }
 
               </div>
