@@ -92,6 +92,13 @@ export const routes: Routes = [
     data: { title: 'Stock Alert Thresholds' }
   },
 
+  {
+    path: 'network-coverage',
+    loadComponent: () =>
+      import('./network-coverage/network-coverage.component').then(m => m.NetworkCoverageComponent),
+    data: { title: 'Network Coverage Intelligence' }
+  },
+
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 
   {

@@ -327,10 +327,20 @@ export interface StockThreshold {
   itemId: string;
   itemName: string;
   itemType?: 'EQUIPMENT' | 'CABLE';
+  /** @deprecated Use sttWarningThreshold / techWarningThreshold */
   warningThreshold: number;
+  /** @deprecated Use sttCriticalThreshold / techCriticalThreshold */
   criticalThreshold: number;
   unit?: 'PIECE' | 'METER';
   enabled: boolean;
+  // STT-specific thresholds
+  sttWarningThreshold?: number;
+  sttCriticalThreshold?: number;
+  sttAlertsEnabled?: boolean;
+  // TECH-specific thresholds
+  techWarningThreshold?: number;
+  techCriticalThreshold?: number;
+  techAlertsEnabled?: boolean;
   caseUsageLimit?: number;
   caseUsageLimitEnabled?: boolean;
   createdAt?: string;
@@ -342,10 +352,20 @@ export interface StockThresholdRequest {
   itemId: string;
   itemName: string;
   itemType?: string;
-  warningThreshold: number;
-  criticalThreshold: number;
   unit?: string;
   enabled: boolean;
+  /** @deprecated Use sttWarningThreshold / techWarningThreshold */
+  warningThreshold?: number;
+  /** @deprecated Use sttCriticalThreshold / techCriticalThreshold */
+  criticalThreshold?: number;
+  // STT-specific thresholds
+  sttWarningThreshold?: number;
+  sttCriticalThreshold?: number;
+  sttAlertsEnabled?: boolean;
+  // TECH-specific thresholds
+  techWarningThreshold?: number;
+  techCriticalThreshold?: number;
+  techAlertsEnabled?: boolean;
   caseUsageLimit?: number;
   caseUsageLimitEnabled?: boolean;
 }

@@ -1,0 +1,338 @@
+<div class="coverage-page">
+
+  <!-- ═══════════════════════ TOP TOOLBAR ══════════════════════════════════ -->
+  <div class="coverage-toolbar">
+    <div class="toolbar-left">
+      <h5 class="page-title">
+        <span class="title-icon">📡</span>
+        Network Coverage Intelligence
+      </h5>
+    </div>
+
+    <div class="toolbar-right">
+      <!-- Toggle buttons -->
+      <div class="toggle-group">
+        <button class="toggle-btn"
+                [class.active]="visibility().coverage4G"
+                (click)="toggleVisibility('coverage4G')">
+          <span class="layer-dot" style="background:#FF5722"></span>4G Coverage
+        </button>
+        <button class="toggle-btn"
+                [class.active]="visibility().coverage5G"
+                (click)="toggleVisibility('coverage5G')">
+          <span class="layer-dot" style="background:#FFC107"></span>5G Coverage
+        </button>
+        <button class="toggle-btn"
+                [class.active]="visibility().ws4G"
+                (click)="toggleVisibility('ws4G')">
+          <span class="layer-dot" style="background:#4CAF50"></span>WS 4G
+        </button>
+        <button class="toggle-btn"
+                [class.active]="visibility().ws5G"
+                (click)="toggleVisibility('ws5G')">
+          <span class="layer-dot" style="background:#9C27B0"></span>WS 5G
+        </button>
+        <button class="toggle-btn"
+                [class.active]="visibility().cases"
+                (click)="toggleVisibility('cases')">
+          <span class="layer-dot" style="background:#2196F3"></span>Cases
+        </button>
+      </div>
+
+      <!-- Run analysis -->
+      <button class="btn-run"
+              [disabled]="loadingAnalysis()"
+              (click)="runAnalysis()">
+        @if (loadingAnalysis()) {
+          <span class="spinner"></span> Analyzing…
+        } @else {
+          ▶ Run Coverage Analysis
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ COORDINATE SEARCH BAR ════════════════════════ -->
+  <div class="coord-bar">
+    <div class="coord-bar__fields">
+      <span class="coord-bar__label">📍 Go to coordinates</span>
+      <input
+        class="coord-input"
+        type="text"
+        [(ngModel)]="coordInput"
+        placeholder="36.8065, 10.1815"
+        (keydown.enter)="locateCoordinate()"
+      />
+      <button class="btn-locate" (click)="locateCoordinate()">Locate</button>
+      <button
+        class="btn-check-coverage"
+        [disabled]="loadingPointCheck()"
+        (click)="checkPointCoverage()"
+      >
+        @if (loadingPointCheck()) {
+          <span class="spinner-sm spinner-sm--light"></span> Checking…
+        } @else {
+          Check Coverage
+        }
+      </button>
+      @if (coordError) {
+        <span class="coord-error">⚠ {{ coordError }}</span>
+      }
+    </div>
+
+    <!-- Point check result inline card -->
+    @if (pointCheckResult()) {
+      <div class="point-check-result" [ngClass]="decisionBadgeClass(pointCheckResult()!.decision)">
+        <div class="pcr-row">
+          <span class="pcr-marker-dot"></span>
+          <span class="pcr-coords">
+            {{ pointCheckResult()!.latitude | number:'1.4-4' }},
+            {{ pointCheckResult()!.longitude | number:'1.4-4' }}
+          </span>
+          <span class="pcr-decision">{{ pointCheckResult()!.decision }}</span>
+          <div class="pcr-flags">
+            <span class="flag" [class.flag-yes]="pointCheckResult()!.inside4G" [class.flag-no]="!pointCheckResult()!.inside4G">4G</span>
+            <span class="flag" [class.flag-yes]="pointCheckResult()!.inside5G" [class.flag-no]="!pointCheckResult()!.inside5G">5G</span>
+            <span class="flag" [class.flag-yes]="pointCheckResult()!.insideWs4G" [class.flag-no]="!pointCheckResult()!.insideWs4G">WS4G</span>
+            <span class="flag" [class.flag-yes]="pointCheckResult()!.insideWs5G" [class.flag-no]="!pointCheckResult()!.insideWs5G">WS5G</span>
+          </div>
+          @if (pointCheckResult()!.matchedLayerNames.length > 0) {
+            <span class="pcr-layers">Layers: {{ pointCheckResult()!.matchedLayerNames.join(', ') }}</span>
+          }
+          <button class="btn-close pcr-close" (click)="clearLocateMarker()" title="Clear">✕</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ═══════════════════════ MAIN CONTENT ═════════════════════════════════ -->
+  <div class="coverage-body">
+
+    <!-- LEFT PANEL: layer list + upload -->
+    <aside class="side-panel left-panel">
+
+      <!-- Layer list -->
+      <div class="panel-section">
+        <div class="section-header">
+          <span>Coverage Layers</span>
+          @if (loadingLayers()) { <span class="spinner-sm"></span> }
+        </div>
+
+        @if (layers().length === 0 && !loadingLayers()) {
+          <p class="empty-hint">No layers imported yet.</p>
+        }
+
+        @for (layer of layers(); track layer.id) {
+          <div class="layer-item" [class.archived]="layer.status === 'ARCHIVED'">
+            <span class="layer-color-dot"
+                  [style.background]="layerColor(layer.technology, layer.layerType)"></span>
+            <div class="layer-info">
+              <span class="layer-name">{{ layer.name }}</span>
+              <span class="layer-meta">
+                {{ techLabel(layer.technology) }} · {{ typeLabel(layer.layerType) }}
+                @if (layer.governorate) { · {{ layer.governorate }} }
+              </span>
+            </div>
+            @if (layer.status === 'ACTIVE' && showUploadPanel()) {
+              <button class="btn-archive" title="Archive layer"
+                      (click)="archiveLayer(layer.id)">✕</button>
+            }
+            @if (layer.status === 'ARCHIVED') {
+              <span class="badge-archived">Archived</span>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Upload form (permission-gated) -->
+      @if (showUploadPanel()) {
+        <div class="panel-section upload-section">
+          <div class="section-header">Import KMZ / KML Layer</div>
+
+          @if (uploadError()) {
+            <div class="alert-error">{{ uploadError() }}</div>
+          }
+          @if (uploadSuccess()) {
+            <div class="alert-success">{{ uploadSuccess() }}</div>
+          }
+
+          <div class="form-field">
+            <label>File (.kmz or .kml)</label>
+            <input type="file" accept=".kmz,.kml" (change)="onFileSelected($event)" />
+          </div>
+
+          <div class="form-field">
+            <label>Layer Name *</label>
+            <input type="text" [(ngModel)]="uploadName" placeholder="e.g. 4G Coverage Tunis" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Technology</label>
+              <select [(ngModel)]="uploadTechnology">
+                <option value="FOUR_G">4G</option>
+                <option value="FIVE_G">5G</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Layer Type</label>
+              <select [(ngModel)]="uploadLayerType">
+                <option value="COVERAGE">Coverage</option>
+                <option value="WS">WS</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label>Governorate (optional)</label>
+            <input type="text" [(ngModel)]="uploadGovernorate" placeholder="e.g. Tunis" />
+          </div>
+
+          <div class="form-field">
+            <label>Color override (optional)</label>
+            <input type="color" [(ngModel)]="uploadColor" />
+          </div>
+
+          <button class="btn-upload"
+                  [disabled]="loadingUpload() || !uploadFile || !uploadName.trim()"
+                  (click)="submitUpload()">
+            @if (loadingUpload()) {
+              <span class="spinner"></span> Uploading…
+            } @else {
+              ↑ Upload & Convert
+            }
+          </button>
+        </div>
+      }
+
+    </aside>
+
+    <!-- MAP -->
+    <div class="map-area">
+      @if (mapError()) {
+        <div class="map-error">{{ mapError() }}</div>
+      }
+      <div #mapContainer class="map-container"></div>
+
+      <!-- Map legend: marker types -->
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#4CAF50"></span>Inside coverage</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#F44336"></span>Outside coverage</div>
+        <div class="legend-item"><span class="legend-dot legend-selected"></span>Selected case</div>
+        <div class="legend-item"><span class="legend-dot legend-locate"></span>Custom location</div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: selected case details -->
+    @if (selectedResult()) {
+      <aside class="side-panel right-panel">
+        <div class="panel-section">
+          <div class="section-header">
+            Case Details
+            <button class="btn-close" (click)="clearSelection()">✕</button>
+          </div>
+
+          <div class="detail-row"><span class="detail-label">CRM Case</span><strong>{{ selectedResult()!.crmCase }}</strong></div>
+          <div class="detail-row"><span class="detail-label">Type</span>{{ selectedResult()!.caseType }}</div>
+          <div class="detail-row"><span class="detail-label">Governorate</span>{{ selectedResult()!.governorate || '—' }}</div>
+          <div class="detail-row">
+            <span class="detail-label">Coordinates</span>
+            {{ selectedResult()!.latitude | number:'1.4-4' }},
+            {{ selectedResult()!.longitude | number:'1.4-4' }}
+          </div>
+
+          <div class="coverage-flags">
+            <span class="flag" [class.flag-yes]="selectedResult()!.inside4G" [class.flag-no]="!selectedResult()!.inside4G">4G</span>
+            <span class="flag" [class.flag-yes]="selectedResult()!.inside5G" [class.flag-no]="!selectedResult()!.inside5G">5G</span>
+            <span class="flag" [class.flag-yes]="selectedResult()!.insideWs4G" [class.flag-no]="!selectedResult()!.insideWs4G">WS4G</span>
+            <span class="flag" [class.flag-yes]="selectedResult()!.insideWs5G" [class.flag-no]="!selectedResult()!.insideWs5G">WS5G</span>
+          </div>
+
+          <div class="decision-box" [ngClass]="decisionBadgeClass(selectedResult()!.decision)">
+            {{ selectedResult()!.decision }}
+          </div>
+        </div>
+      </aside>
+    }
+  </div>
+
+  <!-- ═══════════════════════ SUMMARY CARDS ════════════════════════════════ -->
+  @if (summary()) {
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="card-value">{{ summary()!.totalCases }}</div>
+        <div class="card-label">Total Cases</div>
+      </div>
+      <div class="summary-card card-4g">
+        <div class="card-value">{{ summary()!.inside4G }}</div>
+        <div class="card-label">Inside 4G</div>
+      </div>
+      <div class="summary-card card-5g">
+        <div class="card-value">{{ summary()!.inside5G }}</div>
+        <div class="card-label">Inside 5G</div>
+      </div>
+      <div class="summary-card card-ws4g">
+        <div class="card-value">{{ summary()!.insideWs4G }}</div>
+        <div class="card-label">WS 4G</div>
+      </div>
+      <div class="summary-card card-ws5g">
+        <div class="card-value">{{ summary()!.insideWs5G }}</div>
+        <div class="card-label">WS 5G</div>
+      </div>
+      <div class="summary-card card-outside">
+        <div class="card-value">{{ summary()!.outsideAllCoverage }}</div>
+        <div class="card-label">Outside All</div>
+      </div>
+      <div class="summary-card card-invalid">
+        <div class="card-value">{{ summary()!.invalidCoordinateCases }}</div>
+        <div class="card-label">Invalid Coords</div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════ RESULTS TABLE ════════════════════════════════ -->
+  @if (analysisError()) {
+    <div class="alert-error" style="margin:0 16px 8px">{{ analysisError() }}</div>
+  }
+
+  @if (analysisResults().length > 0) {
+    <div class="results-table-wrapper">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>CRM Case</th>
+            <th>Type</th>
+            <th>Governorate</th>
+            <th>4G</th>
+            <th>5G</th>
+            <th>WS 4G</th>
+            <th>WS 5G</th>
+            <th>Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of analysisResults(); track r.id) {
+            <tr class="result-row"
+                [class.selected]="selectedResult()?.id === r.id"
+                (click)="selectResult(r)"
+                [title]="'Click to focus on map: ' + r.crmCase">
+              <td>{{ r.crmCase }}</td>
+              <td>{{ r.caseType }}</td>
+              <td>{{ r.governorate || '—' }}</td>
+              <td><span class="status-dot" [class.dot-yes]="r.inside4G" [class.dot-no]="!r.inside4G"></span></td>
+              <td><span class="status-dot" [class.dot-yes]="r.inside5G" [class.dot-no]="!r.inside5G"></span></td>
+              <td><span class="status-dot" [class.dot-yes]="r.insideWs4G" [class.dot-no]="!r.insideWs4G"></span></td>
+              <td><span class="status-dot" [class.dot-yes]="r.insideWs5G" [class.dot-no]="!r.insideWs5G"></span></td>
+              <td>
+                <span class="badge" [ngClass]="decisionBadgeClass(r.decision)">
+                  {{ r.decision }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+</div>

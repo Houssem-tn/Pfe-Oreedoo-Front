@@ -134,7 +134,8 @@ export class AuthService {
       email: responseUser?.email ?? tokenUser.email,
       role: responseUser?.role ?? response.role ?? tokenUser.role,
       status: responseUser?.status ?? tokenUser.status,
-      canCreateDpm: responseUser?.canCreateDpm ?? false
+      canCreateDpm: responseUser?.canCreateDpm ?? false,
+      canImportCoverage: responseUser?.canImportCoverage ?? false
     };
   }
 
@@ -153,7 +154,8 @@ export class AuthService {
       id: cached.id ?? user.id,
       username: cached.fullName ?? cached.username ?? user.username,
       fullName: cached.fullName ?? user.fullName,
-      canCreateDpm: cached.canCreateDpm ?? user.canCreateDpm ?? false
+      canCreateDpm: cached.canCreateDpm ?? user.canCreateDpm ?? false,
+      canImportCoverage: cached.canImportCoverage ?? user.canImportCoverage ?? false
     };
   }
 

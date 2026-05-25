@@ -11,9 +11,12 @@ interface ThresholdRow {
 }
 
 interface ThresholdDraft {
-  warningThreshold: number;
-  criticalThreshold: number;
-  stockAlertEnabled: boolean;
+  sttAlertsEnabled: boolean;
+  sttWarningThreshold: number;
+  sttCriticalThreshold: number;
+  techAlertsEnabled: boolean;
+  techWarningThreshold: number;
+  techCriticalThreshold: number;
   caseUsageLimit: number;
   caseUsageLimitEnabled: boolean;
 }
@@ -620,8 +623,12 @@ interface ThresholdDraft {
       <div class="sr-kpi__label">Total Items</div>
     </div>
     <div class="sr-kpi sr-kpi--green">
-      <div class="sr-kpi__value">{{ alertsOn() }}</div>
-      <div class="sr-kpi__label">Alerts Active</div>
+      <div class="sr-kpi__value">{{ sttAlertsOn() }}</div>
+      <div class="sr-kpi__label">STT Alerts On</div>
+    </div>
+    <div class="sr-kpi sr-kpi--green">
+      <div class="sr-kpi__value">{{ techAlertsOn() }}</div>
+      <div class="sr-kpi__label">TECH Alerts On</div>
     </div>
     <div class="sr-kpi sr-kpi--orange">
       <div class="sr-kpi__value">{{ notConfigured() }}</div>
@@ -679,10 +686,8 @@ interface ThresholdDraft {
                 <th>Item</th>
                 <th>Article Code</th>
                 <th>Unit</th>
-                <th>Warning At</th>
-                <th>Critical At</th>
-                <th>Alert Status</th>
-                <th>Preview</th>
+                <th>STT Alerts</th>
+                <th>TECH Alerts</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -716,35 +721,35 @@ interface ThresholdDraft {
                   </td>
                   <td><span class="sr-badge sr-badge--unit">{{ unitLabel(row.equipment) }}</span></td>
                   <td>
-                    @if (row.threshold) {
-                      ≤ {{ row.threshold.warningThreshold }} {{ unitLabel(row.equipment) }}
+                    @if (!row.threshold) {
+                      <span class="sr-badge sr-badge--none">Not set</span>
+                    } @else if (row.threshold.sttAlertsEnabled) {
+                      <div>
+                        <span class="sr-badge sr-badge--on">On</span>
+                        <div style="font-size:.76rem;color:#374151;margin-top:.25rem;white-space:nowrap">
+                          W ≤ {{ row.threshold.sttWarningThreshold ?? row.threshold.warningThreshold }}
+                          · C ≤ {{ row.threshold.sttCriticalThreshold ?? row.threshold.criticalThreshold }}
+                          {{ unitLabel(row.equipment) }}
+                        </div>
+                      </div>
                     } @else {
-                      <span style="color:#9ca3af;font-style:italic">Not set</span>
-                    }
-                  </td>
-                  <td>
-                    @if (row.threshold) {
-                      ≤ {{ row.threshold.criticalThreshold }} {{ unitLabel(row.equipment) }}
-                    } @else {
-                      <span style="color:#9ca3af;font-style:italic">Not set</span>
+                      <span class="sr-badge sr-badge--off">Off</span>
                     }
                   </td>
                   <td>
                     @if (!row.threshold) {
-                      <span class="sr-badge sr-badge--none">Not configured</span>
-                    } @else if (row.threshold.enabled) {
-                      <span class="sr-badge sr-badge--on">Enabled</span>
+                      <span class="sr-badge sr-badge--none">Not set</span>
+                    } @else if (row.threshold.techAlertsEnabled) {
+                      <div>
+                        <span class="sr-badge sr-badge--on">On</span>
+                        <div style="font-size:.76rem;color:#374151;margin-top:.25rem;white-space:nowrap">
+                          W ≤ {{ row.threshold.techWarningThreshold ?? row.threshold.warningThreshold }}
+                          · C ≤ {{ row.threshold.techCriticalThreshold ?? row.threshold.criticalThreshold }}
+                          {{ unitLabel(row.equipment) }}
+                        </div>
+                      </div>
                     } @else {
-                      <span class="sr-badge sr-badge--off">Disabled</span>
-                    }
-                  </td>
-                  <td>
-                    @if (row.threshold?.enabled) {
-                      <span class="sr-preview">
-                        Alert when ≤ {{ row.threshold!.warningThreshold }} {{ unitLabel(row.equipment) }}
-                      </span>
-                    } @else {
-                      <span style="color:#9ca3af">—</span>
+                      <span class="sr-badge sr-badge--off">Off</span>
                     }
                   </td>
                   <td>
@@ -890,40 +895,36 @@ interface ThresholdDraft {
       <!-- Body -->
       <div class="sr-modal-body">
 
-        <!-- Section 1: Low Stock Alerts -->
+        <!-- Section 1: STT Stock Alerts -->
         <div class="sr-section">
           <div class="sr-section-hd">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 01-3.46 0"></path>
             </svg>
-            <span class="sr-section-title">Low Stock Alerts</span>
-            <span class="sr-section-sub">Notify when stock drops below threshold</span>
+            <span class="sr-section-title">STT Stock Alerts</span>
+            <span class="sr-section-sub">Alert ZM when STT stock is low</span>
           </div>
           <div class="sr-section-body">
-
-            <!-- Alert enabled toggle -->
             <div class="sr-toggle-row">
               <div>
-                <div class="sr-toggle-label">Enable low-stock alerts</div>
-                <div class="sr-toggle-desc">Send alerts when stock falls to or below the warning level.</div>
+                <div class="sr-toggle-label">Enable STT alerts</div>
+                <div class="sr-toggle-desc">Notify ZM when STT stock falls to or below the warning level.</div>
               </div>
               <label class="sr-toggle">
-                <input type="checkbox" [(ngModel)]="draft().stockAlertEnabled"
-                       (ngModelChange)="patchDraft({ stockAlertEnabled: $event })" />
+                <input type="checkbox" [ngModel]="draft().sttAlertsEnabled"
+                       (ngModelChange)="patchDraft({ sttAlertsEnabled: $event })" />
                 <span class="sr-toggle-track"></span>
                 <span class="sr-toggle-thumb"></span>
               </label>
             </div>
-
-            <!-- Warning + Critical inputs -->
-            <div class="sr-row-fields" [class.sr-section--disabled]="!draft().stockAlertEnabled">
+            <div class="sr-row-fields" [class.sr-section--disabled]="!draft().sttAlertsEnabled">
               <div class="sr-field">
                 <label class="sr-label">Warning threshold</label>
                 <div class="sr-input-wrap">
                   <input class="sr-input" type="number" min="0"
-                         [ngModel]="draft().warningThreshold"
-                         (ngModelChange)="patchDraft({ warningThreshold: +$event })" />
+                         [ngModel]="draft().sttWarningThreshold"
+                         (ngModelChange)="patchDraft({ sttWarningThreshold: +$event })" />
                   <span class="sr-input-unit">{{ unitLabel(modalRow()!.equipment) }}</span>
                 </div>
               </div>
@@ -931,17 +932,68 @@ interface ThresholdDraft {
                 <label class="sr-label">Critical threshold</label>
                 <div class="sr-input-wrap">
                   <input class="sr-input" type="number" min="0"
-                         [ngModel]="draft().criticalThreshold"
-                         (ngModelChange)="patchDraft({ criticalThreshold: +$event })" />
+                         [ngModel]="draft().sttCriticalThreshold"
+                         (ngModelChange)="patchDraft({ sttCriticalThreshold: +$event })" />
                   <span class="sr-input-unit">{{ unitLabel(modalRow()!.equipment) }}</span>
                 </div>
               </div>
             </div>
-
-            @if (draft().stockAlertEnabled) {
+            @if (draft().sttAlertsEnabled) {
               <div class="sr-modal-preview">
-                Alert when stock ≤ {{ draft().warningThreshold }} {{ unitLabel(modalRow()!.equipment) }}
-                · Critical when ≤ {{ draft().criticalThreshold }} {{ unitLabel(modalRow()!.equipment) }}
+                Alert ZM when STT stock ≤ {{ draft().sttWarningThreshold }} {{ unitLabel(modalRow()!.equipment) }}
+                · Critical when ≤ {{ draft().sttCriticalThreshold }} {{ unitLabel(modalRow()!.equipment) }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Section 2: TECH Stock Alerts -->
+        <div class="sr-section">
+          <div class="sr-section-hd">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 01-3.46 0"></path>
+            </svg>
+            <span class="sr-section-title">TECH Stock Alerts</span>
+            <span class="sr-section-sub">Alert STT (+ ZM on critical) when TECH stock is low</span>
+          </div>
+          <div class="sr-section-body">
+            <div class="sr-toggle-row">
+              <div>
+                <div class="sr-toggle-label">Enable TECH alerts</div>
+                <div class="sr-toggle-desc">Notify STT when TECH stock is low; ZM also notified on critical.</div>
+              </div>
+              <label class="sr-toggle">
+                <input type="checkbox" [ngModel]="draft().techAlertsEnabled"
+                       (ngModelChange)="patchDraft({ techAlertsEnabled: $event })" />
+                <span class="sr-toggle-track"></span>
+                <span class="sr-toggle-thumb"></span>
+              </label>
+            </div>
+            <div class="sr-row-fields" [class.sr-section--disabled]="!draft().techAlertsEnabled">
+              <div class="sr-field">
+                <label class="sr-label">Warning threshold</label>
+                <div class="sr-input-wrap">
+                  <input class="sr-input" type="number" min="0"
+                         [ngModel]="draft().techWarningThreshold"
+                         (ngModelChange)="patchDraft({ techWarningThreshold: +$event })" />
+                  <span class="sr-input-unit">{{ unitLabel(modalRow()!.equipment) }}</span>
+                </div>
+              </div>
+              <div class="sr-field">
+                <label class="sr-label">Critical threshold</label>
+                <div class="sr-input-wrap">
+                  <input class="sr-input" type="number" min="0"
+                         [ngModel]="draft().techCriticalThreshold"
+                         (ngModelChange)="patchDraft({ techCriticalThreshold: +$event })" />
+                  <span class="sr-input-unit">{{ unitLabel(modalRow()!.equipment) }}</span>
+                </div>
+              </div>
+            </div>
+            @if (draft().techAlertsEnabled) {
+              <div class="sr-modal-preview">
+                Alert STT when TECH stock ≤ {{ draft().techWarningThreshold }} {{ unitLabel(modalRow()!.equipment) }}
+                · Critical when ≤ {{ draft().techCriticalThreshold }} {{ unitLabel(modalRow()!.equipment) }}
               </div>
             }
             @if (validationErr()) {
@@ -1039,7 +1091,8 @@ export class ZmStockThresholdsComponent implements OnInit {
 
   // ── Computed KPIs ──────────────────────────────────────────────────────────
   readonly total         = computed(() => this.rows().length);
-  readonly alertsOn      = computed(() => this.rows().filter(r => r.threshold?.enabled).length);
+  readonly sttAlertsOn   = computed(() => this.rows().filter(r => r.threshold?.sttAlertsEnabled).length);
+  readonly techAlertsOn  = computed(() => this.rows().filter(r => r.threshold?.techAlertsEnabled).length);
   readonly notConfigured = computed(() => this.rows().filter(r => !r.threshold).length);
   readonly caseLimitsOn  = computed(() => this.rows().filter(r => r.threshold?.caseUsageLimitEnabled).length);
 
@@ -1072,11 +1125,15 @@ export class ZmStockThresholdsComponent implements OnInit {
   openModal(row: ThresholdRow): void {
     this.validationErr.set(null);
     const t = row.threshold;
+    // Use new STT/TECH fields if configured; fall back to legacy warningThreshold/criticalThreshold
     this.draft.set({
-      warningThreshold:     t?.warningThreshold    ?? 5,
-      criticalThreshold:    t?.criticalThreshold   ?? 0,
-      stockAlertEnabled:    t?.enabled             ?? true,
-      caseUsageLimit:       t?.caseUsageLimit       ?? 1,
+      sttAlertsEnabled:     t?.sttAlertsEnabled     ?? t?.enabled             ?? true,
+      sttWarningThreshold:  t?.sttWarningThreshold  ?? t?.warningThreshold    ?? 5,
+      sttCriticalThreshold: t?.sttCriticalThreshold ?? t?.criticalThreshold   ?? 0,
+      techAlertsEnabled:    t?.techAlertsEnabled    ?? t?.enabled             ?? true,
+      techWarningThreshold: t?.techWarningThreshold ?? t?.warningThreshold    ?? 5,
+      techCriticalThreshold:t?.techCriticalThreshold?? t?.criticalThreshold   ?? 0,
+      caseUsageLimit:       t?.caseUsageLimit        ?? 1,
       caseUsageLimitEnabled: t?.caseUsageLimitEnabled ?? false
     });
     this.modalRow.set(row);
@@ -1099,8 +1156,12 @@ export class ZmStockThresholdsComponent implements OnInit {
     const d = this.draft();
     this.validationErr.set(null);
 
-    if (d.stockAlertEnabled && d.warningThreshold < d.criticalThreshold) {
-      this.validationErr.set('Warning threshold must be ≥ critical threshold.');
+    if (d.sttAlertsEnabled && d.sttWarningThreshold < d.sttCriticalThreshold) {
+      this.validationErr.set('STT warning threshold must be ≥ STT critical threshold.');
+      return;
+    }
+    if (d.techAlertsEnabled && d.techWarningThreshold < d.techCriticalThreshold) {
+      this.validationErr.set('TECH warning threshold must be ≥ TECH critical threshold.');
       return;
     }
     if (d.caseUsageLimitEnabled && d.caseUsageLimit < 0) {
@@ -1109,14 +1170,18 @@ export class ZmStockThresholdsComponent implements OnInit {
     }
 
     const payload: StockThresholdRequest = {
-      itemId:               row.equipment.id,
-      itemName:             row.equipment.name,
-      itemType:             row.equipment.category === 'CABLE' ? 'CABLE' : 'EQUIPMENT',
-      warningThreshold:     d.warningThreshold,
-      criticalThreshold:    d.criticalThreshold,
-      unit:                 row.equipment.unit === 'METERS' ? 'METER' : 'PIECE',
-      enabled:              d.stockAlertEnabled,
-      caseUsageLimit:       d.caseUsageLimitEnabled ? d.caseUsageLimit : undefined,
+      itemId:                row.equipment.id,
+      itemName:              row.equipment.name,
+      itemType:              row.equipment.category === 'CABLE' ? 'CABLE' : 'EQUIPMENT',
+      unit:                  row.equipment.unit === 'METERS' ? 'METER' : 'PIECE',
+      enabled:               d.sttAlertsEnabled || d.techAlertsEnabled,
+      sttAlertsEnabled:      d.sttAlertsEnabled,
+      sttWarningThreshold:   d.sttWarningThreshold,
+      sttCriticalThreshold:  d.sttCriticalThreshold,
+      techAlertsEnabled:     d.techAlertsEnabled,
+      techWarningThreshold:  d.techWarningThreshold,
+      techCriticalThreshold: d.techCriticalThreshold,
+      caseUsageLimit:        d.caseUsageLimitEnabled ? d.caseUsageLimit : undefined,
       caseUsageLimitEnabled: d.caseUsageLimitEnabled
     };
 
@@ -1147,6 +1212,10 @@ export class ZmStockThresholdsComponent implements OnInit {
   }
 
   private emptyDraft(): ThresholdDraft {
-    return { warningThreshold: 5, criticalThreshold: 0, stockAlertEnabled: true, caseUsageLimit: 1, caseUsageLimitEnabled: false };
+    return {
+      sttAlertsEnabled: true, sttWarningThreshold: 5, sttCriticalThreshold: 0,
+      techAlertsEnabled: true, techWarningThreshold: 5, techCriticalThreshold: 0,
+      caseUsageLimit: 1, caseUsageLimitEnabled: false
+    };
   }
 }

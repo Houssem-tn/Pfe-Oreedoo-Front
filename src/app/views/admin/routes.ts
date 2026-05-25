@@ -104,5 +104,12 @@ export const routes: Routes = [
     data: { title: 'Stock Tracking' }
   },
 
+  {
+    path: 'network-coverage',
+    loadComponent: () =>
+      import('../zm/network-coverage/network-coverage.component').then(m => m.NetworkCoverageComponent),
+    data: { title: 'Network Coverage Intelligence' }
+  },
+
   { path: '', redirectTo: 'users', pathMatch: 'full' }
 ];

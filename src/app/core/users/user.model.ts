@@ -33,6 +33,7 @@ export interface AppUser {
   assignedSttEmail?: string | null;
 
   canCreateDpm?: boolean;
+  canImportCoverage?: boolean;
 
   assignedZmId?: string | null;
   assignedZmEmail?: string | null;

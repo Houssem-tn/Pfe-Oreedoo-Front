@@ -63,6 +63,13 @@ export class UserService {
     return this.http.delete<void>(`${this.usersUrl}/${id}`);
   }
 
+  updateCoverageImportPermission(userId: string, canImportCoverage: boolean): Observable<AppUser> {
+    return this.http.patch<AppUser>(
+      `${this.usersUrl}/${userId}/coverage-import-permission`,
+      { canImportCoverage }
+    );
+  }
+
   getAuditByRole(role: Role): Observable<UserAuditItem[]> {
     return this.http.get<UserAuditItem[]>(`${this.usersUrl}/audit/by-role/${role}`);
   }

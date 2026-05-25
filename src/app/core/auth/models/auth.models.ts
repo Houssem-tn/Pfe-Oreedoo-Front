@@ -35,6 +35,7 @@ export interface AuthResponse {
     status?: AccountStatus;
     role?: Role;
     canCreateDpm?: boolean;
+    canImportCoverage?: boolean;
   };
 }
 
@@ -46,6 +47,7 @@ export interface AuthUser {
   role: Role;
   status?: AccountStatus;
   canCreateDpm?: boolean;
+  canImportCoverage?: boolean;
 }
 
 export interface JwtClaims {

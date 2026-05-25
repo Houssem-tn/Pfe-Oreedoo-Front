@@ -1,6 +1,6 @@
 import { INavData } from '@coreui/angular';
 
-export function getNavZm(canCreateDpm: boolean): INavData[] {
+export function getNavZm(canCreateDpm: boolean, canImportCoverage = false): INavData[] {
   return [
     {
       name: 'Dashboard',
@@ -68,6 +68,16 @@ export function getNavZm(canCreateDpm: boolean): INavData[] {
       name: 'Reports',
       url: '/zm/reports',
       iconComponent: { name: 'cilChart' }
+    },
+
+    {
+      title: true,
+      name: 'Coverage'
+    },
+    {
+      name: 'Network Coverage',
+      url: '/zm/network-coverage',
+      iconComponent: { name: 'cilMap' }
     },
 
     {

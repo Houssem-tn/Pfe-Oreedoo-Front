@@ -38,6 +38,7 @@ export class UsersListComponent implements OnInit {
   assigningCoverageSttId: string | null = null;
   togglingUserId: string | null = null;
   togglingDpmId: string | null = null;
+  togglingCoverageImportId: string | null = null;
   error: string | null = null;
 
   searchTerm = '';
@@ -327,6 +328,51 @@ export class UsersListComponent implements OnInit {
 
   isTogglingDpm(id: string): boolean {
     return this.togglingDpmId === id;
+  }
+
+  isTogglingCoverageImport(id: string): boolean {
+    return this.togglingCoverageImportId === id;
+  }
+
+  async toggleCoverageImportPermission(user: AppUser): Promise<void> {
+    const willGrant = !user.canImportCoverage;
+    const actionLabel = willGrant ? 'Grant coverage import' : 'Revoke coverage import';
+    const confirm = await this.swal.confirmAction(
+      `${actionLabel} for ${user.fullName}?`,
+      willGrant
+        ? 'This ZM will be able to import KMZ/KML coverage files.'
+        : 'This ZM will no longer be able to import coverage files.',
+      actionLabel
+    );
+
+    if (!confirm.isConfirmed) return;
+
+    this.togglingCoverageImportId = user.id;
+    this.error = null;
+
+    this.usersSvc.updateCoverageImportPermission(user.id, willGrant)
+      .pipe(
+        finalize(() => {
+          this.togglingCoverageImportId = null;
+          this.zone.run(() => this.cdr.detectChanges());
+        })
+      )
+      .subscribe({
+        next: (updated) => {
+          this.mergeUser(updated);
+          void this.swal.success(
+            willGrant ? 'Coverage import granted' : 'Coverage import revoked',
+            willGrant
+              ? `${updated.fullName} can now import KMZ/KML coverage files.`
+              : `${updated.fullName} can no longer import coverage files.`
+          );
+        },
+        error: (err) => {
+          const message = err?.error?.message ?? 'Failed to update coverage import permission';
+          this.error = message;
+          void this.swal.error('Update failed', message);
+        }
+      });
   }
 
   async toggleDpmPermission(user: AppUser): Promise<void> {

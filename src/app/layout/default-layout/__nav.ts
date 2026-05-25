@@ -19,7 +19,11 @@ function cloneNavItems(items: INavData[]): INavData[] {
   }));
 }
 
-export function getNavByRole(role: Role | null, canCreateDpm = false): INavData[] {
+export function getNavByRole(
+  role: Role | null,
+  canCreateDpm = false,
+  canImportCoverage = false
+): INavData[] {
   if (!role) return [];
 
   switch (role) {
@@ -33,7 +37,7 @@ export function getNavByRole(role: Role | null, canCreateDpm = false): INavData[
       return cloneNavItems(navTech);
 
     case 'ROLE_ZM':
-      return cloneNavItems(getNavZm(canCreateDpm));
+      return cloneNavItems(getNavZm(canCreateDpm, canImportCoverage));
 
     default:
       return [];
