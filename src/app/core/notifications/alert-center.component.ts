@@ -83,15 +83,61 @@ export class AlertCenterComponent {
 
   readonly selectionCount = computed(() => this.selectedIds().size);
 
+  // ── Pagination ───────────────────────────────────────────────────────
+
+  readonly currentPage  = signal(1);
+  readonly pageSize     = 10 as const;
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filtered().length / this.pageSize))
+  );
+
+  readonly paginatedItems = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+
+  readonly pageRangeLabel = computed(() => {
+    const total = this.filtered().length;
+    if (total === 0) return '0 results';
+    const start = (this.currentPage() - 1) * this.pageSize + 1;
+    const end   = Math.min(this.currentPage() * this.pageSize, total);
+    return `${start}–${end} of ${total}`;
+  });
+
+  readonly visiblePages = computed<(number | '...')[]>(() => {
+    const total   = this.totalPages();
+    const current = this.currentPage();
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages: (number | '...')[] = [1];
+    if (current > 3) pages.push('...');
+    for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
+      pages.push(p);
+    }
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+    return pages;
+  });
+
+  goToPage(n: number | '...'): void {
+    if (typeof n === 'number') {
+      this.currentPage.set(Math.max(1, Math.min(n, this.totalPages())));
+    }
+  }
+
   // ── Filter / selection ──────────────────────────────────────────────
 
   setLevelFilter(f: LevelFilter): void {
     this.activeLevelFilter.set(f);
+    this.currentPage.set(1);
     this.clearSelection();
   }
 
   setCategoryFilter(f: CategoryFilter): void {
     this.activeCategoryFilter.set(f);
+    this.currentPage.set(1);
     this.clearSelection();
   }
 

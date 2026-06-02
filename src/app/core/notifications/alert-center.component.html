@@ -195,7 +195,7 @@
         </label>
       </div>
 
-      @for (alert of filtered(); track alert.id) {
+      @for (alert of paginatedItems(); track alert.id) {
         <article class="alert-card"
                  [class.alert-card--critical]="isCritical(alert)"
                  [class.alert-card--warning]="isWarning(alert)"
@@ -293,6 +293,29 @@
       }
 
     </div>
+
+    @if (totalPages() > 1) {
+      <div class="ac-pagination">
+        <span class="ac-pagination__info">{{ pageRangeLabel() }}</span>
+        <div class="ac-pagination__controls">
+          <button class="ac-page-btn" [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)" title="Previous page">
+            ‹
+          </button>
+          @for (p of visiblePages(); track p) {
+            @if (p === '...') {
+              <span class="ac-page-btn ac-page-btn--ellipsis">…</span>
+            } @else {
+              <button class="ac-page-btn" [class.ac-page-btn--active]="p === currentPage()" (click)="goToPage(p)">
+                {{ p }}
+              </button>
+            }
+          }
+          <button class="ac-page-btn" [disabled]="currentPage() === totalPages()" (click)="goToPage(currentPage() + 1)" title="Next page">
+            ›
+          </button>
+        </div>
+      </div>
+    }
   }
 
 </div>

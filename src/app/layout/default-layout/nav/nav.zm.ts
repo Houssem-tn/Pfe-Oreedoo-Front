@@ -118,6 +118,13 @@ export function getNavZm(canCreateDpm: boolean, canImportCoverage = false): INav
         url: '/zm/stock/thresholds',
         iconComponent: { name: 'cilSettings' }
       }
-    ] : [])
+    ] : []),
+
+    // ── Available to all ZMs ───────────────────────────────────────────────────
+    {
+      name: 'Material Returns',
+      url: '/zm/stock/returns',
+      iconComponent: { name: 'cilArrowThickFromRight' }
+    }
   ];
 }

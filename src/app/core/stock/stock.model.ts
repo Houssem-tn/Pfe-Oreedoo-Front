@@ -20,7 +20,16 @@ export type StockMovementType =
   | 'DPM_CONFIRMED'
   | 'STT_TO_TECH_DISTRIBUTION'
   | 'TECH_RECEIVED_FROM_STT'
-  | 'CASE_USAGE';
+  | 'CASE_USAGE'
+  | 'MATERIAL_RETURN_SUBMITTED'
+  | 'MATERIAL_RETURN_APPROVED'
+  | 'MATERIAL_RETURN_REJECTED'
+  | 'RETURN_TO_USABLE_STOCK'
+  | 'RETURN_TO_DAMAGED_STOCK'
+  | 'RETURN_TO_REPAIR'
+  | 'RETURN_TO_RECONDITIONING'
+  | 'RETURN_TO_CENTRAL_WAREHOUSE'
+  | 'RETURN_TO_SCRAP';
 
 export type DistributionStatus =
   | 'PENDING_TECH_CONFIRMATION'
@@ -104,9 +113,11 @@ export interface SttStockItem {
   unit?: string;
   totalReceived: number;
   totalDistributedToTechs: number;
+  totalReturned?: number;
   availableQuantity: number;
   lastReceivedAt?: string;
   lastDistributedAt?: string;
+  lastReturnedAt?: string;
 }
 
 export interface SttStock {

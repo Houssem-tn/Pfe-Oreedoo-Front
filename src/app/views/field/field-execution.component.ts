@@ -14,6 +14,7 @@ import {
   ComplaintCategory,
   ComplaintDiagnosisRequest,
   CompleteWorkRequest,
+  EquipmentItemProofPayload,
   SetRdvRequest
 } from '../../core/cases/models/case.model';
 import {
@@ -97,6 +98,23 @@ interface FieldGeoSnapshot {
 interface FieldProofAttachment {
   file: File;
   captureSource: string;
+}
+
+interface EquipmentItemProof {
+  file: File;
+  previewUrl: string;
+  ocrBusy: boolean;
+  validated: boolean;
+  ocrWarnings: string[];
+  needsReview: boolean;
+  modemModel: string;
+  macAddress: string;
+  serialNumber: string;
+  imei: string;
+  latitude: number | null;
+  longitude: number | null;
+  gpsAccuracy: number | null;
+  capturedAt: string | null;
 }
 
 interface OverLimitLine {
@@ -574,16 +592,114 @@ interface OverLimitLine {
             </label>
           </div>
 
+          <div class="field-section-title" style="margin-top: 1.5rem">
+            <span>Equipment Proof Photos</span>
+            <span class="field-badge" [class.field-badge--success]="itemProofs.length > 0" [class.field-badge--warning]="itemProofs.length === 0">
+              {{ itemProofs.length }} added
+            </span>
+          </div>
+
+          <p class="field-hint">
+            Take a photo of each router, modem, or device label. At least one photo is required.
+            MAC address and serial number are required per item.
+          </p>
+
+          <div class="field-form-grid">
+            <button class="field-button field-button--ghost" type="button" (click)="itemProofInput.click()" [disabled]="actionBusy">
+              <svg cIcon name="cilCamera"></svg>
+              Add Item Photo
+            </button>
+            <input #itemProofInput
+                   type="file"
+                   accept="image/*"
+                   capture="environment"
+                   hidden
+                   (change)="addItemProof(itemProofInput)" />
+          </div>
+
+          <div class="field-alert field-alert--warning" *ngIf="itemProofs.length === 0">
+            <svg cIcon name="cilWarning"></svg>
+            At least one equipment photo is required before finishing.
+          </div>
+
+          <div class="field-item-proof" *ngFor="let proof of itemProofs; let i = index">
+
+            <!-- Contained image preview -->
+            <div class="field-item-proof__preview" *ngIf="proof.previewUrl">
+              <img [src]="proof.previewUrl" [alt]="'Item ' + (i + 1)" class="field-item-proof__img" />
+            </div>
+            <div class="field-item-proof__placeholder" *ngIf="!proof.previewUrl && proof.ocrBusy">
+              <span class="field-spinner"></span>
+            </div>
+
+            <!-- Padded body: header row, alerts, form -->
+            <div class="field-item-proof__body">
+
+              <div class="field-item-proof__header">
+                <div class="field-item-proof__meta">
+                  <strong>Item {{ i + 1 }}</strong>
+                  <div class="field-item-proof__badges">
+                    <span class="field-badge field-badge--info" *ngIf="proof.ocrBusy">Processing...</span>
+                    <span class="field-badge field-badge--success" *ngIf="!proof.ocrBusy && proof.latitude != null">GPS OK</span>
+                    <span class="field-badge field-badge--danger" *ngIf="!proof.ocrBusy && proof.latitude == null">No GPS</span>
+                  </div>
+                </div>
+                <button class="field-button field-button--ghost field-item-proof__remove" type="button" (click)="removeItemProof(i)" [disabled]="actionBusy">
+                  Remove
+                </button>
+              </div>
+
+              <div class="field-alert field-alert--warning" *ngIf="proof.needsReview || proof.ocrWarnings.length > 0">
+                <svg cIcon name="cilWarning"></svg>
+                Please verify the extracted information for this item.
+              </div>
+
+              <div class="field-alert field-alert--info" *ngIf="!proof.ocrBusy && !proof.imei">
+                <svg cIcon name="cilInfo"></svg>
+                IMEI not found — you can continue without it.
+              </div>
+
+              <div class="field-toggle-row">
+                <button type="button" class="field-toggle" [class.field-toggle--active]="proof.validated" (click)="proof.validated = true">
+                  <svg cIcon name="cilCheck"></svg> Validated
+                </button>
+                <button type="button" class="field-toggle" [class.field-toggle--active]="!proof.validated" (click)="proof.validated = false">
+                  <svg cIcon name="cilX"></svg> Modify
+                </button>
+              </div>
+
+              <div class="field-form-grid field-form-grid--two">
+                <label class="field-label">
+                  Model
+                  <input class="field-input" type="text" [name]="'iModel_' + i" [(ngModel)]="proof.modemModel" [disabled]="proof.validated || proof.ocrBusy" placeholder="e.g. ZLT W51" />
+                </label>
+                <label class="field-label">
+                  MAC Address *
+                  <input class="field-input" type="text" [name]="'iMac_' + i" [(ngModel)]="proof.macAddress" [disabled]="proof.validated || proof.ocrBusy" placeholder="e.g. 98:A9:42:FF:24:DA" />
+                </label>
+                <label class="field-label">
+                  Serial Number *
+                  <input class="field-input" type="text" [name]="'iSn_' + i" [(ngModel)]="proof.serialNumber" [disabled]="proof.validated || proof.ocrBusy" placeholder="e.g. W51P740912346" />
+                </label>
+                <label class="field-label">
+                  IMEI
+                  <input class="field-input" type="text" [name]="'iImei_' + i" [(ngModel)]="proof.imei" [disabled]="proof.validated || proof.ocrBusy" placeholder="Optional" />
+                </label>
+              </div>
+
+            </div>
+          </div>
+
           <div class="field-button-row" style="margin-top: 1.5rem">
             <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'work'">Back</button>
-            <button class="field-button field-button--primary" type="button" (click)="activeStep = 'completion'">Next</button>
+            <button class="field-button field-button--primary" type="button" (click)="proceedToCompletion()">Next</button>
           </div>
         </section>
 
         <section class="field-card field-form-grid" *ngIf="activeStep === 'completion'">
           <div class="field-section-title">
-            <h2>Completion step</h2>
-            <span>{{ item.workProofs?.length ?? 0 }} proof uploaded</span>
+            <h2>Finish work</h2>
+            <span>Confirmation</span>
           </div>
 
           <section
@@ -658,19 +774,9 @@ interface OverLimitLine {
             </div>
           </section>
 
-          <input #completionProof type="file" accept="image/*,.jpg,.jpeg,.png,.webp" capture="environment" hidden (change)="selectProof($event)" />
-
-          <button class="field-button field-button--ghost" type="button" (click)="completionProof.click()" [disabled]="actionBusy">
-            <svg cIcon name="cilMediaRecord"></svg>
-            Take Proof Photo
-          </button>
-
-          <div class="field-proof-preview" *ngIf="proofPreviewUrl">
-            <img [src]="proofPreviewUrl" alt="Selected proof" />
-            <div>
-              <strong>{{ proofFile?.name }}</strong>
-              <span>Ready for upload</span>
-            </div>
+          <div class="field-alert field-alert--info">
+            <svg cIcon name="cilInfo"></svg>
+            Review the summary below and confirm to submit the work report.
           </div>
 
           <div class="field-detail-grid">
@@ -685,6 +791,10 @@ interface OverLimitLine {
             <div class="field-fact">
               <span>Comment</span>
               <p>{{ workForm.cmtTrvStt || '-' }}</p>
+            </div>
+            <div class="field-fact">
+              <span>Equipment photos</span>
+              <strong>{{ itemProofs.length }} photo{{ itemProofs.length !== 1 ? 's' : '' }} ready</strong>
             </div>
           </div>
 
@@ -1017,10 +1127,9 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   stockPermissionErrorMessage: string | null = null;
   casePermissions: StockUsagePermission[] = [];
   private wsPermissionSub: Subscription | null = null;
-  proofFile: File | null = null;
-  proofPreviewUrl: string | null = null;
   speedtestProofFile: File | null = null;
   signalProofFile: File | null = null;
+  itemProofs: EquipmentItemProof[] = [];
   ocrSignalBusy = false;
   ocrSpeedtestBusy = false;
   speedtestValidated = true;
@@ -1429,28 +1538,98 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       });
   }
 
-  async selectProof(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement | null;
-    const file = input?.files?.[0] ?? null;
+  proceedToCompletion(): void {
+    if (this.itemProofs.length === 0) {
+      this.showBanner('Add at least one equipment photo before continuing.', 'danger');
+      return;
+    }
 
+    for (let i = 0; i < this.itemProofs.length; i++) {
+      const proof = this.itemProofs[i];
+      if (proof.ocrBusy) {
+        this.showBanner(`Item ${i + 1} is still being processed. Please wait.`, 'warning');
+        return;
+      }
+      if (!proof.macAddress.trim()) {
+        this.showBanner(`MAC address is required for item ${i + 1}.`, 'danger');
+        return;
+      }
+      if (!proof.serialNumber.trim()) {
+        this.showBanner(`Serial number is required for item ${i + 1}.`, 'danger');
+        return;
+      }
+      if (proof.latitude == null || proof.longitude == null) {
+        this.showBanner(`GPS location is required for item ${i + 1}. Retake the photo with location enabled.`, 'danger');
+        return;
+      }
+    }
+
+    this.activeStep = 'completion';
+  }
+
+  async addItemProof(input: HTMLInputElement): Promise<void> {
+    const file = input.files?.[0] ?? null;
+    input.value = '';
     if (!file) {
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      this.showBanner('Use an image file for proof.', 'danger');
-      if (input) {
-        input.value = '';
-      }
+      this.showBanner('Use an image file for equipment proof.', 'danger');
       return;
     }
 
-    this.proofFile = file;
-    this.proofPreviewUrl = await this.readFileAsDataUrl(file);
-    this.showBanner('Proof selected.', 'success');
-    if (input) {
-      input.value = '';
+    const proof: EquipmentItemProof = {
+      file,
+      previewUrl: '',
+      ocrBusy: true,
+      validated: false,
+      ocrWarnings: [],
+      needsReview: false,
+      modemModel: '',
+      macAddress: '',
+      serialNumber: '',
+      imei: '',
+      latitude: null,
+      longitude: null,
+      gpsAccuracy: null,
+      capturedAt: null
+    };
+
+    this.itemProofs.push(proof);
+    this.render();
+
+    proof.previewUrl = await this.readFileAsDataUrl(file);
+    this.render();
+
+    const [location, responses] = await Promise.all([
+      this.captureLocation(),
+      firstValueFrom(this.ocrService.extract([file])).catch(() => [])
+    ]);
+
+    if (location) {
+      proof.latitude = location.latitude;
+      proof.longitude = location.longitude;
+      proof.gpsAccuracy = location.accuracyMeters ?? null;
+      proof.capturedAt = location.capturedAt;
     }
+
+    const metrics = this.ocrService.parseLabelMetrics(responses);
+    proof.modemModel = metrics.modemModel;
+    proof.macAddress = metrics.macAddress;
+    proof.serialNumber = metrics.serialNumber;
+    proof.imei = metrics.imei;
+    proof.ocrWarnings = metrics.warnings ?? [];
+    proof.needsReview = metrics.needsReview ?? false;
+    proof.validated = !!metrics.macAddress && !!metrics.serialNumber && !proof.needsReview;
+    proof.ocrBusy = false;
+
+    this.render();
+  }
+
+  removeItemProof(index: number): void {
+    this.itemProofs.splice(index, 1);
+    this.render();
   }
 
   async finishWork(): Promise<void> {
@@ -1467,13 +1646,13 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const payload = await this.buildWorkPayload();
-    if (!payload) {
+    if (this.itemProofs.length === 0) {
+      this.showBanner('Add at least one equipment photo in the Metrics step before finishing.', 'danger');
       return;
     }
 
-    if (!this.proofFile && !target.workProofs?.length) {
-          this.showBanner('Take a proof photo before finishing.', 'danger');
+    const payload = await this.buildWorkPayload();
+    if (!payload) {
       return;
     }
 
@@ -1486,13 +1665,6 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       let updated = await firstValueFrom(this.casesService.completeWork(target.id, payload));
       const proofLocation = this.proofUploadLocation(payload);
 
-      if (this.proofFile) {
-        updated = await firstValueFrom(this.casesService.uploadWorkProof(target.id, this.proofFile, {
-          ...proofLocation,
-          captureSource: 'camera'
-        }));
-      }
-
       const extraAttachments: FieldProofAttachment[] = [];
 
       if (this.speedtestProofFile) {
@@ -1503,7 +1675,11 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         extraAttachments.push({ file: this.signalProofFile, captureSource: 'signal_screenshot' });
       }
 
-      const hasNewAttachments = !!this.proofFile || extraAttachments.length > 0;
+      for (const proof of this.itemProofs) {
+        extraAttachments.push({ file: proof.file, captureSource: 'equipment_item_proof' });
+      }
+
+      const hasNewAttachments = extraAttachments.length > 0;
       const { latestCase, failedAttachments } = await this.uploadExtraProofAttachments(target.id, extraAttachments, proofLocation);
       if (latestCase) {
         updated = latestCase;
@@ -1739,6 +1915,17 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
     const location = await this.captureLocation();
 
+    const equipmentProofs: EquipmentItemProofPayload[] = this.itemProofs.map((p) => ({
+      modemModel: p.modemModel.trim() || undefined,
+      macAddress: p.macAddress.trim(),
+      serialNumber: p.serialNumber.trim(),
+      imei: p.imei.trim() || undefined,
+      latitude: p.latitude!,
+      longitude: p.longitude!,
+      gpsAccuracy: p.gpsAccuracy ?? undefined,
+      capturedAt: p.capturedAt ?? undefined
+    }));
+
     return {
       repTravauxStt,
       dateFinTrv,
@@ -1749,6 +1936,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       rsrp: toMaybeNumber(this.workForm.rsrp),
       rsrq: toMaybeNumber(this.workForm.rsrq),
       sinr: toMaybeNumber(this.workForm.sinr),
+      equipmentProofs: equipmentProofs.length > 0 ? equipmentProofs : undefined,
       locationLatitude: location?.latitude,
       locationLongitude: location?.longitude,
       locationCapturedAt: location?.capturedAt,
@@ -1836,16 +2024,17 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         return 'speedtest screenshot';
       case 'signal_screenshot':
         return 'signal screenshot';
+      case 'equipment_item_proof':
+        return 'equipment item photo';
       default:
         return 'attachment';
     }
   }
 
   private clearPendingProofAttachments(): void {
-    this.proofFile = null;
-    this.proofPreviewUrl = null;
     this.speedtestProofFile = null;
     this.signalProofFile = null;
+    this.itemProofs = [];
   }
 
   private createDiagnosisForm(item: CaseResponse): FieldDiagnosisForm {

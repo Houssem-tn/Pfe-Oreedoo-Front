@@ -68,6 +68,12 @@ export const routes: Routes = [
       import('./stock/usage-approvals/stt-usage-approvals.component').then(m => m.SttUsageApprovalsComponent),
     data: { title: 'Stock Usage Approvals' }
   },
+  {
+    path: 'stock/returns',
+    loadComponent: () =>
+      import('./stock/returns/stt-material-returns.component').then(m => m.SttMaterialReturnsComponent),
+    data: { title: 'Material Returns' }
+  },
 
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
 ];

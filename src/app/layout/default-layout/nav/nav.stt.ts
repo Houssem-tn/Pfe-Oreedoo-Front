@@ -84,5 +84,11 @@ export const navStt: INavData[] = [
     name: 'Usage Approvals',
     url: '/stt/stock/usage-approvals',
     iconComponent: { name: 'cilTask' }
+  },
+
+  {
+    name: 'Material Returns',
+    url: '/stt/stock/returns',
+    iconComponent: { name: 'cilArrowThickFromRight' }
   }
 ];

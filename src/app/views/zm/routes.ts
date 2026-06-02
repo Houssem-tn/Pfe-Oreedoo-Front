@@ -91,6 +91,12 @@ export const routes: Routes = [
       import('./stock/thresholds/zm-stock-thresholds.component').then(m => m.ZmStockThresholdsComponent),
     data: { title: 'Stock Alert Thresholds' }
   },
+  {
+    path: 'stock/returns',
+    loadComponent: () =>
+      import('./stock/returns/zm-material-returns.component').then(m => m.ZmMaterialReturnsComponent),
+    data: { title: 'Material Returns Review' }
+  },
 
   {
     path: 'network-coverage',
