@@ -9,6 +9,7 @@ export type AlertActionType =
   | 'OPEN_PERMISSION_REQUEST'
   | 'OPEN_USER'
   | 'OPEN_THRESHOLDS'
+  | 'OPEN_MATERIAL_RETURN'
   | 'NONE'
   // Legacy action types — kept for backward compatibility with existing DB records
   | 'OPEN_DPM_REQUEST'

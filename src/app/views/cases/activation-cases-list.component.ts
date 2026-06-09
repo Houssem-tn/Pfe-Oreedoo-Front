@@ -794,6 +794,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
 
     if (item.type === 'PLAINTE') {
+      if (item.source === 'PLT_TODO_IMPORT') {
+        // PLT imported complaints follow the ACT-like direct TECH assignment (no diagnosis required).
+        return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+      }
+      // Standard complaint: diagnosis with a field-work decision is required first.
       return this.hasComplaintFieldDecision(item)
         && ['DIAGNOSIS_STEP', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
     }
@@ -805,6 +810,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
 
     if (item.type === 'PLAINTE') {
+      if (item.source === 'PLT_TODO_IMPORT') {
+        return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+      }
       return this.hasComplaintFieldDecision(item)
         && ['DIAGNOSIS_STEP', 'ASSIGNED_TO_STT', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
     }
@@ -839,7 +847,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   canUpdateWork(item: CaseResponse): boolean {
     if (item.type === 'PLAINTE') {
-      if (!this.hasComplaintFieldDecision(item)) {
+      const isPlt = item.source === 'PLT_TODO_IMPORT';
+      // Standard complaints require a field-work diagnosis decision; PLT imports skip that gate.
+      if (!isPlt && !this.hasComplaintFieldDecision(item)) {
         return false;
       }
 

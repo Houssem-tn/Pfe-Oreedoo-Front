@@ -64,6 +64,11 @@ export interface ImportedTodoListItem {
   statut?: string | null;
   zoneManager?: string | null;
   uploadedAt?: string | null;
+  businessType?: string | null;
+  workflowStatus?: string | null;
+  workCreated?: boolean | null;
+  hasValidCoordinates?: boolean | null;
+  msisdn?: string | null;
 }
 
 export interface ImportedTodoPageResponse {
@@ -142,6 +147,7 @@ export interface ZmTodoAnalyticsResponse {
   invalidReasonSummaries: ZmTodoAnalyticsInvalidReason[];
 }
 
+/** Legacy response — kept for backward compat with /analyze and saved analyses */
 export interface ZmTodoImportProcessResponse {
   analysisId: string;
   sourceFileName: string;
@@ -153,6 +159,27 @@ export interface ZmTodoImportProcessResponse {
   validMatchedRows: number;
   invalidMatchedRows: number;
   savedRows: number;
+}
+
+/** New field-work / complaint-case import response from POST /process */
+export interface ZmFieldWorkImportResponse {
+  importBatchId: string;
+  sourceFileName: string;
+  uploadedAt: string;
+  businessType: string;
+  /** "COMPLAINT_CASES" for PLT, "FIELD_TODOS" for RES and future types */
+  target?: string | null;
+  totalRows: number;
+  matchedConnectedZmRows: number;
+  enCoursRows: number;
+  createdWorkTodoCount: number;
+  createdComplaintCasesCount?: number;
+  duplicateCount: number;
+  ignoredOtherZmCount: number;
+  ignoredStatusCount: number;
+  invalidRowsCount: number;
+  message: string;
+  analysisId?: string | null;
 }
 
 export interface ZmTodoAnalysisListItem {
@@ -182,6 +209,8 @@ export interface ImportedTodoListQuery {
   statut?: string;
   rowQuality?: string;
   gouvernorat?: string;
+  businessType?: string;
+  workflowStatus?: string;
   uploadedFrom?: string;
   uploadedTo?: string;
 }
@@ -203,10 +232,13 @@ export class TodoImportService {
     return this.http.post<ZmTodoAnalyticsResponse>(`${this.importUrl}/analyze`, formData);
   }
 
-  process(file: File): Observable<ZmTodoImportProcessResponse> {
+  process(file: File, businessType: string): Observable<ZmFieldWorkImportResponse> {
     const formData = new FormData();
     formData.append('file', file, file.name);
-    return this.http.post<ZmTodoImportProcessResponse>(`${this.importUrl}/process`, formData);
+    return this.http.post<ZmFieldWorkImportResponse>(
+      `${this.importUrl}/process?businessType=${encodeURIComponent(businessType)}`,
+      formData
+    );
   }
 
   inject(file: File, managerFilter: string): Observable<TodoImportInjectResponse> {
@@ -225,37 +257,16 @@ export class TodoImportService {
   list(query: ImportedTodoListQuery): Observable<ImportedTodoPageResponse> {
     const params = new URLSearchParams();
 
-    if (query.page != null) {
-      params.set('page', String(query.page));
-    }
-
-    if (query.size != null) {
-      params.set('size', String(query.size));
-    }
-
-    if (query.search?.trim()) {
-      params.set('search', query.search.trim());
-    }
-
-    if (query.statut?.trim()) {
-      params.set('statut', query.statut.trim());
-    }
-
-    if (query.rowQuality?.trim()) {
-      params.set('rowQuality', query.rowQuality.trim());
-    }
-
-    if (query.gouvernorat?.trim()) {
-      params.set('gouvernorat', query.gouvernorat.trim());
-    }
-
-    if (query.uploadedFrom?.trim()) {
-      params.set('uploadedFrom', query.uploadedFrom.trim());
-    }
-
-    if (query.uploadedTo?.trim()) {
-      params.set('uploadedTo', query.uploadedTo.trim());
-    }
+    if (query.page != null) params.set('page', String(query.page));
+    if (query.size != null) params.set('size', String(query.size));
+    if (query.search?.trim()) params.set('search', query.search.trim());
+    if (query.statut?.trim()) params.set('statut', query.statut.trim());
+    if (query.rowQuality?.trim()) params.set('rowQuality', query.rowQuality.trim());
+    if (query.gouvernorat?.trim()) params.set('gouvernorat', query.gouvernorat.trim());
+    if (query.businessType?.trim()) params.set('businessType', query.businessType.trim());
+    if (query.workflowStatus?.trim()) params.set('workflowStatus', query.workflowStatus.trim());
+    if (query.uploadedFrom?.trim()) params.set('uploadedFrom', query.uploadedFrom.trim());
+    if (query.uploadedTo?.trim()) params.set('uploadedTo', query.uploadedTo.trim());
 
     const queryString = params.toString();
     const url = queryString ? `${this.importUrl}?${queryString}` : this.importUrl;

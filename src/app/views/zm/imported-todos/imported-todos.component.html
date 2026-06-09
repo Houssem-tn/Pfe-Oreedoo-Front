@@ -1,10 +1,10 @@
 <section class="todo-board">
   <header class="todo-board__hero">
     <div>
-      <div class="todo-board__eyebrow">ZM import rendering</div>
-      <h3 class="mb-1">Imported Todos</h3>
+      <div class="todo-board__eyebrow">ZM field work todos</div>
+      <h3 class="mb-1">Field Todos</h3>
       <p class="text-body-secondary mb-0">
-        Browse every matched row imported for your zone, including valid and invalid rows, with search and filters for day-to-day follow-up.
+        Browse every field work todo imported for your zone — filter by type, workflow status, governorate, STT, and more.
       </p>
     </div>
 
@@ -16,7 +16,7 @@
 
       <a routerLink="/zm/inject-todos" class="btn btn-primary btn-sm">
         <svg cIcon name="cilCloudUpload" class="me-1"></svg>
-        Inject More Todos
+        Import Todos
       </a>
     </div>
   </header>
@@ -24,26 +24,38 @@
   <section class="card border-0 shadow-sm todo-board__filters">
     <div class="card-body">
       <div class="row g-3 align-items-end">
+
         <div class="col-12 col-xl-4">
           <label class="form-label fw-semibold" for="import-search">Search</label>
           <input
             id="import-search"
             type="text"
             class="form-control"
-            placeholder="CRM, description, STT, issue, batch, file"
+            placeholder="CRM, MSISDN, description, STT, issue, batch"
             [(ngModel)]="searchTerm"
           />
         </div>
 
         <div class="col-12 col-md-6 col-xl-2">
-          <label class="form-label fw-semibold" for="import-status">Status</label>
-          <input
-            id="import-status"
-            type="text"
-            class="form-control"
-            placeholder="Imported status"
-            [(ngModel)]="selectedStatus"
-          />
+          <label class="form-label fw-semibold" for="import-business-type">Type</label>
+          <select
+            id="import-business-type"
+            class="form-select"
+            [(ngModel)]="selectedBusinessType"
+          >
+            <option *ngFor="let option of businessTypeOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="import-workflow-status">Workflow Status</label>
+          <select
+            id="import-workflow-status"
+            class="form-select"
+            [(ngModel)]="selectedWorkflowStatus"
+          >
+            <option *ngFor="let option of workflowStatusOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
         </div>
 
         <div class="col-12 col-md-6 col-xl-2">
@@ -67,6 +79,17 @@
             <option value="">All governorates</option>
             <option *ngFor="let governorate of governorateOptions" [value]="governorate">{{ governorate }}</option>
           </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-2">
+          <label class="form-label fw-semibold" for="import-status">Excel STATUT</label>
+          <input
+            id="import-status"
+            type="text"
+            class="form-control"
+            placeholder="e.g. En cours"
+            [(ngModel)]="selectedStatus"
+          />
         </div>
 
         <div class="col-12 col-md-6 col-xl-2">
@@ -101,10 +124,10 @@
           </select>
         </div>
 
-        <div class="col-12 col-xl-10">
+        <div class="col-12 col-xl-8">
           <div class="todo-board__filter-meta">
             <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis">
-              {{ totalElements }} imported todo(s)
+              {{ totalElements }} todo(s)
             </span>
 
             <span class="badge rounded-pill bg-light text-dark border" *ngIf="activeFiltersCount > 0">
@@ -113,7 +136,7 @@
           </div>
         </div>
 
-        <div class="col-12 col-xl-2">
+        <div class="col-12 col-xl-4">
           <div class="d-grid gap-2">
             <button type="button" class="btn btn-primary" (click)="applyFilters()" [disabled]="loading">
               <svg cIcon name="cilFilter" class="me-1"></svg>
@@ -125,6 +148,7 @@
             </button>
           </div>
         </div>
+
       </div>
     </div>
   </section>
@@ -138,9 +162,9 @@
     <div class="card-body">
       <div class="todo-board__table-header">
         <div>
-          <h5 class="fw-semibold mb-1">Imported todo history</h5>
+          <h5 class="fw-semibold mb-1">Field todo history</h5>
           <p class="text-body-secondary mb-0">
-            Showing {{ rangeStart }} to {{ rangeEnd }} of {{ totalElements }} saved row(s).
+            Showing {{ rangeStart }} to {{ rangeEnd }} of {{ totalElements }} todo(s).
           </p>
         </div>
 
@@ -151,7 +175,7 @@
 
       <div *ngIf="loading" class="todo-board__state">
         <div class="spinner-border" role="status"></div>
-        <span>Loading imported todos...</span>
+        <span>Loading field todos...</span>
       </div>
 
       <div class="table-responsive" *ngIf="!loading && hasRows">
@@ -159,23 +183,44 @@
           <thead>
             <tr>
               <th>CRM Case</th>
+              <th>Type</th>
+              <th>Workflow</th>
               <th>Quality</th>
               <th>Governorate</th>
-              <th>Status</th>
+              <th>STATUT</th>
               <th>STT</th>
+              <th>Coords</th>
               <th>Zone Manager</th>
-              <th>Source</th>
-              <th>Batch</th>
               <th>Uploaded</th>
               <th>Issues</th>
-              <th>Description</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of items; trackBy: trackById">
               <td>
                 <div class="fw-semibold">{{ item.crmCase || '-' }}</div>
+                <div class="todo-table__sub" *ngIf="item.msisdn">{{ item.msisdn }}</div>
                 <div class="todo-table__sub" *ngIf="item.rowNumber != null">Row {{ item.rowNumber }}</div>
+              </td>
+              <td>
+                <span
+                  *ngIf="item.businessType"
+                  class="badge rounded-pill"
+                  [ngClass]="item.businessType === 'PLT' ? 'bg-primary-subtle text-primary-emphasis' : 'bg-warning-subtle text-warning-emphasis'"
+                >
+                  {{ item.businessType }}
+                </span>
+                <span *ngIf="!item.businessType" class="text-body-secondary">-</span>
+              </td>
+              <td>
+                <span
+                  *ngIf="item.workflowStatus"
+                  class="badge rounded-pill bg-info-subtle text-info-emphasis"
+                  [title]="item.workflowStatus"
+                >
+                  {{ workflowStatusLabel(item.workflowStatus) }}
+                </span>
+                <span *ngIf="!item.workflowStatus" class="text-body-secondary">-</span>
               </td>
               <td>
                 <span
@@ -187,17 +232,22 @@
               </td>
               <td>{{ item.gouvernorat || '-' }}</td>
               <td>
-                <span class="badge rounded-pill bg-info-subtle text-info-emphasis">
+                <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis">
                   {{ item.statut || '-' }}
                 </span>
               </td>
               <td>{{ item.stt || '-' }}</td>
-              <td>{{ item.zoneManager || item.managerFilterUsed || '-' }}</td>
               <td>
-                <div class="todo-table__source">{{ item.sourceFileName || '-' }}</div>
-                <div class="todo-table__sub">{{ item.managerFilterUsed || '-' }}</div>
+                <span
+                  *ngIf="item.workCreated"
+                  class="badge rounded-pill"
+                  [ngClass]="item.hasValidCoordinates ? 'bg-success-subtle text-success-emphasis' : 'bg-warning-subtle text-warning-emphasis'"
+                >
+                  {{ item.hasValidCoordinates ? 'OK' : 'Failed' }}
+                </span>
+                <span *ngIf="!item.workCreated" class="text-body-secondary">-</span>
               </td>
-              <td class="todo-table__batch">{{ item.importBatchId || '-' }}</td>
+              <td>{{ item.zoneManager || item.managerFilterUsed || '-' }}</td>
               <td>{{ item.uploadedAt ? (item.uploadedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
               <td>
                 <div class="todo-table__issues" *ngIf="item.validationIssues?.length; else noIssueBlock">
@@ -212,7 +262,6 @@
                   <span class="todo-table__issue-clear">No issue</span>
                 </ng-template>
               </td>
-              <td class="todo-table__description">{{ item.description || '-' }}</td>
             </tr>
           </tbody>
         </table>
@@ -221,8 +270,8 @@
       <div class="todo-board__empty" *ngIf="!loading && !hasRows">
         <svg cIcon name="cilSpreadsheet" width="28" height="28"></svg>
         <div>
-          <div class="fw-semibold">No imported todos match the current filters.</div>
-          <div class="text-body-secondary">Try resetting filters or inject a new batch.</div>
+          <div class="fw-semibold">No field todos match the current filters.</div>
+          <div class="text-body-secondary">Try resetting filters or import a new PLT/RES file.</div>
         </div>
       </div>
     </div>

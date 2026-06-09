@@ -36,6 +36,25 @@ export class ImportedTodosComponent implements OnInit {
     { value: 'valid', label: 'Valid rows only' },
     { value: 'invalid', label: 'Invalid rows only' }
   ];
+  readonly businessTypeOptions = [
+    { value: '', label: 'All types' },
+    { value: 'PLT', label: 'PLT' },
+    { value: 'RES', label: 'RES' }
+  ];
+  readonly workflowStatusOptions = [
+    { value: '', label: 'All statuses' },
+    { value: 'READY_FOR_STT_ASSIGNMENT', label: 'Ready for STT' },
+    { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
+    { value: 'ASSIGNED_TO_TECH', label: 'Assigned to Tech' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'TECH_COMPLETED', label: 'Tech Completed' },
+    { value: 'STT_VALIDATED', label: 'STT Validated' },
+    { value: 'ZM_VALIDATED', label: 'ZM Validated' },
+    { value: 'CLOSED', label: 'Closed' },
+    { value: 'BLOCKED', label: 'Blocked' },
+    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'PENDING_ZM_REVIEW', label: 'Pending ZM Review' }
+  ];
 
   loading = false;
   errorMessage: string | null = null;
@@ -44,6 +63,8 @@ export class ImportedTodosComponent implements OnInit {
   selectedStatus = '';
   selectedRowQuality = '';
   selectedGouvernorat = '';
+  selectedBusinessType = '';
+  selectedWorkflowStatus = '';
   uploadedFrom = '';
   uploadedTo = '';
   currentPage = 1;
@@ -95,18 +116,12 @@ export class ImportedTodosComponent implements OnInit {
   }
 
   get rangeStart(): number {
-    if (this.totalElements === 0) {
-      return 0;
-    }
-
+    if (this.totalElements === 0) return 0;
     return (this.currentPage - 1) * this.pageSize + 1;
   }
 
   get rangeEnd(): number {
-    if (this.totalElements === 0) {
-      return 0;
-    }
-
+    if (this.totalElements === 0) return 0;
     return Math.min(this.currentPage * this.pageSize, this.totalElements);
   }
 
@@ -116,9 +131,16 @@ export class ImportedTodosComponent implements OnInit {
       this.selectedStatus.trim(),
       this.selectedRowQuality.trim(),
       this.selectedGouvernorat.trim(),
+      this.selectedBusinessType.trim(),
+      this.selectedWorkflowStatus.trim(),
       this.uploadedFrom.trim(),
       this.uploadedTo.trim()
     ].filter(Boolean).length;
+  }
+
+  workflowStatusLabel(status?: string | null): string {
+    if (!status) return '';
+    return this.workflowStatusOptions.find(o => o.value === status)?.label ?? status;
   }
 
   loadImportedTodos(): void {
@@ -132,6 +154,8 @@ export class ImportedTodosComponent implements OnInit {
       statut: this.selectedStatus,
       rowQuality: this.selectedRowQuality,
       gouvernorat: this.selectedGouvernorat,
+      businessType: this.selectedBusinessType,
+      workflowStatus: this.selectedWorkflowStatus,
       uploadedFrom: this.uploadedFrom,
       uploadedTo: this.uploadedTo
     })
@@ -175,6 +199,8 @@ export class ImportedTodosComponent implements OnInit {
     this.selectedStatus = '';
     this.selectedRowQuality = '';
     this.selectedGouvernorat = '';
+    this.selectedBusinessType = '';
+    this.selectedWorkflowStatus = '';
     this.uploadedFrom = '';
     this.uploadedTo = '';
     this.pageSize = 50;

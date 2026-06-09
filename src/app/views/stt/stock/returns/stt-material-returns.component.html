@@ -1,0 +1,533 @@
+<div class="toast-stack">
+  <div *ngFor="let toastItem of toasts" class="toast" [class.toast--error]="toastItem.type === 'error'">
+    {{ toastItem.message }}
+  </div>
+</div>
+
+<section class="page-shell">
+  <header class="page-header card">
+    <div>
+      <p class="eyebrow">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+        </svg>
+        Stock Workflow
+      </p>
+      <h1>Material Returns</h1>
+      <p class="page-copy">
+        Track recovered material, review ZM handover proposals, and keep the return history available after refresh.
+      </p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="openCreateModal()">New Return Request</button>
+  </header>
+
+  <section class="kpi-grid" *ngIf="!loading">
+    <article class="kpi-card">
+      <span class="kpi-label">Waiting for ZM Review</span>
+      <strong>{{ waitingForZmReviewCount }}</strong>
+    </article>
+    <article class="kpi-card kpi-card--accent">
+      <span class="kpi-label">Action Required</span>
+      <strong>{{ actionRequiredCount }}</strong>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Confirmed</span>
+      <strong>{{ confirmedCount }}</strong>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Completed</span>
+      <strong>{{ completedCount }}</strong>
+    </article>
+  </section>
+
+  <section class="action-banner card" *ngIf="!loading && actionRequiredReturns.length > 0">
+    <div>
+      <h2>Action required</h2>
+      <p>
+        {{ actionRequiredReturns.length }} return{{ actionRequiredReturns.length > 1 ? 's' : '' }}
+        need your response to a proposed handover schedule.
+      </p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="openReviewSchedule(actionRequiredReturns[0])">
+      Review Schedule
+    </button>
+  </section>
+
+  <section class="card history-card">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">History</p>
+        <h2>Material Return History</h2>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="loading">Loading your material returns...</div>
+
+    <div class="empty-state" *ngIf="!loading && returns.length === 0">
+      No material return requests yet. Use <strong>New Return Request</strong> to create one.
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading && returns.length > 0">
+      <table class="returns-table">
+        <thead>
+          <tr>
+            <th>Return</th>
+            <th>Status</th>
+            <th>Responsible ZM</th>
+            <th>Source</th>
+            <th>Proposed Schedule</th>
+            <th>Submitted</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let returnItem of returns; trackBy: trackByReturn">
+            <td>
+              <div class="primary-cell">
+                <strong>{{ returnItem.returnCode }}</strong>
+                <span>{{ reasonLabel(returnItem.reason) }}</span>
+              </div>
+            </td>
+            <td>
+              <span [class]="statusBadgeClass(returnItem)">
+                {{ statusLabel(returnItem) }}
+              </span>
+            </td>
+            <td>{{ returnItem.zmName || returnItem.zmEmail || 'Not assigned' }}</td>
+            <td>{{ sourceLabel(returnItem.returnSource) }}</td>
+            <td>
+              <div *ngIf="returnItem.proposedHandoverDate; else noSchedule" class="schedule-cell">
+                <strong>{{ returnItem.proposedHandoverDate }}</strong>
+                <span>at {{ returnItem.proposedHandoverTime || 'TBD' }}</span>
+                <small *ngIf="returnItem.proposedHandoverNote">{{ returnItem.proposedHandoverNote }}</small>
+              </div>
+              <ng-template #noSchedule>
+                <span class="muted">Not proposed yet</span>
+              </ng-template>
+            </td>
+            <td>{{ (returnItem.submittedAt || returnItem.createdAt) | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="actions-col">
+              <button class="btn btn-ghost" type="button" (click)="openDetail(returnItem)">View Details</button>
+              <button
+                *ngIf="canSttReviewSchedule(returnItem)"
+                class="btn btn-primary btn-inline"
+                type="button"
+                (click)="openReviewSchedule(returnItem)"
+              >
+                Review Schedule
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+<!-- ── Create Material Return Modal ────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeAllModals()">
+  <section class="modal-panel modal-panel--wide" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="eyebrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          New Return
+        </p>
+        <h2>Create Material Return</h2>
+        <p>Declare items and assign the responsible Zone Manager.</p>
+      </div>
+      <button class="icon-btn" type="button" (click)="closeAllModals()" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+
+      <!-- Section: Responsible Manager -->
+      <div class="form-section">
+        <p class="form-section__label">Responsible Manager</p>
+        <label class="field">
+          <span>Zone Manager <span class="req">*</span></span>
+          <select [(ngModel)]="form.responsibleZmId">
+            <option value="">{{ eligibleZmsLoading ? 'Loading Zone Managers...' : 'Select a Zone Manager' }}</option>
+            <option *ngFor="let zm of eligibleZms" [value]="zm.id">{{ zm.name }} ({{ zm.email }})</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Section: Return Context -->
+      <div class="form-section">
+        <p class="form-section__label">Return Context</p>
+        <div class="form-grid">
+          <label class="field">
+            <span>Return Source <span class="req">*</span></span>
+            <select [(ngModel)]="form.returnSource">
+              <option value="">Select the return source</option>
+              <option *ngFor="let option of sourceOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Reason <span class="req">*</span></span>
+            <select [(ngModel)]="form.reason">
+              <option value="">Select a reason</option>
+              <option *ngFor="let option of reasonOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Overall Condition <span class="req">*</span></span>
+            <select [(ngModel)]="form.condition">
+              <option value="">Select a condition</option>
+              <option *ngFor="let option of conditionOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Destination <span class="req">*</span></span>
+            <select [(ngModel)]="form.destination">
+              <option value="">Select a destination</option>
+              <option *ngFor="let option of destinationOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Linked Case</span>
+            <input type="text" [(ngModel)]="form.crmCase" placeholder="Optional CRM case reference" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Section: Returned Items -->
+      <section class="subsection">
+        <div class="subsection-head">
+          <h3>Returned Items <span class="req">*</span></h3>
+          <p>Search the equipment catalog and add every item included in this return request.</p>
+        </div>
+
+        <label class="field">
+          <span>Search equipment</span>
+          <input
+            type="text"
+            [(ngModel)]="itemSearch"
+            (input)="filterEquipment()"
+            (focus)="filterEquipment()"
+            placeholder="Search by equipment name or article code"
+          />
+        </label>
+
+        <div class="search-results" *ngIf="filteredEquipment.length > 0">
+          <button
+            *ngFor="let item of filteredEquipment"
+            class="search-result"
+            type="button"
+            (mousedown)="selectEquipment($event, item)"
+            [disabled]="isAlreadyAdded(item.equipmentId)"
+          >
+            <div>
+              <strong>{{ item.equipmentName }}</strong>
+              <span>{{ item.articleCode || item.equipmentId }}</span>
+            </div>
+            <small *ngIf="item.inSttStock">Available: {{ item.availableQty }} {{ item.unit }}</small>
+            <small *ngIf="!item.inSttStock">Catalog item</small>
+          </button>
+        </div>
+
+        <div class="items-list" *ngIf="itemRows.length > 0; else noItems">
+          <article class="item-card" *ngFor="let item of itemRows; let index = index">
+            <div class="item-card__head">
+              <div>
+                <strong>{{ item.equipmentName }}</strong>
+                <span>{{ item.articleCode || item.equipmentId }}</span>
+              </div>
+              <button class="btn btn-link" type="button" (click)="removeItem(index)">Remove</button>
+            </div>
+
+            <div class="item-card__meta" *ngIf="item.inSttStock">
+              Available in STT stock: {{ item.availableQty }} {{ item.unit }}
+            </div>
+
+            <div class="form-grid form-grid--compact">
+              <label class="field">
+                <span>Quantity <span class="req">*</span></span>
+                <input type="number" min="1" [(ngModel)]="item.quantity" />
+              </label>
+              <label class="field">
+                <span>Condition</span>
+                <select [(ngModel)]="item.condition">
+                  <option value="">Use overall condition</option>
+                  <option *ngFor="let option of conditionOptions" [value]="option.value">{{ option.label }}</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Serial Number</span>
+                <input type="text" [(ngModel)]="item.serialNumber" placeholder="Optional" />
+              </label>
+            </div>
+          </article>
+        </div>
+
+        <ng-template #noItems>
+          <div class="empty-inline">No returned items selected yet.</div>
+        </ng-template>
+      </section>
+
+      <!-- Section: Notes -->
+      <label class="field">
+        <span>Comment</span>
+        <textarea
+          rows="3"
+          [(ngModel)]="form.comment"
+          placeholder="Use this for extra details or required explanation when the reason is Other"
+        ></textarea>
+      </label>
+
+      <div class="form-error" *ngIf="formError">{{ formError }}</div>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeAllModals()">Cancel</button>
+      <button class="btn btn-primary" type="button" (click)="submitReturn()" [disabled]="createSubmitting">
+        {{ createSubmitting ? 'Submitting...' : 'Submit Return Request' }}
+      </button>
+    </footer>
+  </section>
+</div>
+
+<!-- ── View Details Modal ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="selectedReturn" (click)="closeAllModals()">
+  <section class="modal-panel modal-panel--wide" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="eyebrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          Return Details
+        </p>
+        <h2>{{ selectedReturn.returnCode }}</h2>
+        <div class="modal-header__badges">
+          <span [class]="statusBadgeClass(selectedReturn)">{{ statusLabel(selectedReturn) }}</span>
+        </div>
+      </div>
+      <button class="icon-btn" type="button" (click)="closeAllModals()" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body details-body">
+      <div class="details-grid">
+        <div>
+          <span class="detail-label">Responsible ZM</span>
+          <strong>{{ selectedReturn.zmName || selectedReturn.zmEmail || 'Not assigned' }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Return Source</span>
+          <strong>{{ sourceLabel(selectedReturn.returnSource) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Reason</span>
+          <strong>{{ reasonLabel(selectedReturn.reason) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Condition</span>
+          <strong>{{ conditionLabel(selectedReturn.condition) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Destination</span>
+          <strong>{{ destinationLabel(selectedReturn.destination) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Linked Case</span>
+          <strong>{{ selectedReturn.crmCase || 'Not linked' }}</strong>
+        </div>
+      </div>
+
+      <section class="schedule-panel" *ngIf="selectedReturn.proposedHandoverDate">
+        <div class="schedule-panel__head">
+          <h3>Proposed Handover Schedule</h3>
+          <span [class]="statusBadgeClass(selectedReturn)">{{ statusLabel(selectedReturn) }}</span>
+        </div>
+        <p>{{ selectedReturn.proposedHandoverDate }} at {{ selectedReturn.proposedHandoverTime || 'TBD' }}</p>
+        <p *ngIf="selectedReturn.proposedHandoverNote" class="muted">{{ selectedReturn.proposedHandoverNote }}</p>
+      </section>
+
+      <section class="details-section">
+        <h3>Returned Items</h3>
+        <div class="items-table">
+          <div class="items-row items-row--head">
+            <span>Item</span>
+            <span>Quantity</span>
+            <span>Condition</span>
+          </div>
+          <div class="items-row" *ngFor="let item of selectedReturn.items">
+            <span>{{ item.equipmentName || item.equipmentId }}</span>
+            <span>{{ item.quantity }} {{ item.unit || '' }}</span>
+            <span>{{ conditionLabel(item.condition || selectedReturn.condition) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="details-section" *ngIf="selectedReturn.comment">
+        <h3>Comment</h3>
+        <p>{{ selectedReturn.comment }}</p>
+      </section>
+
+      <section class="details-section">
+        <h3>Timeline</h3>
+        <div class="timeline" *ngIf="selectedReturn.timeline?.length; else noTimeline">
+          <article class="timeline-item" *ngFor="let event of selectedReturn.timeline; trackBy: trackByTimeline">
+            <div class="timeline-dot"></div>
+            <div>
+              <div class="timeline-head">
+                <strong>{{ timelineLabel(event.eventType) }}</strong>
+                <span>{{ event.timestamp | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p>{{ event.description }}</p>
+              <small *ngIf="event.note">{{ event.note }}</small>
+            </div>
+          </article>
+        </div>
+        <ng-template #noTimeline>
+          <div class="empty-inline">No timeline events available.</div>
+        </ng-template>
+      </section>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeAllModals()">Close</button>
+      <button
+        *ngIf="canSttReviewSchedule(selectedReturn)"
+        class="btn btn-primary"
+        type="button"
+        (click)="openReviewSchedule(selectedReturn)"
+      >
+        Review Schedule
+      </button>
+    </footer>
+  </section>
+</div>
+
+<!-- ── Review Schedule Modal ──────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="reviewReturn" (click)="closeAllModals()">
+  <section class="modal-panel modal-panel--wide" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="eyebrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Action Required
+        </p>
+        <h2>Review Handover Schedule</h2>
+        <p>{{ reviewReturn.returnCode }} &middot; {{ reviewReturn.zmName || reviewReturn.zmEmail }}</p>
+        <div class="modal-header__badges">
+          <span [class]="statusBadgeClass(reviewReturn)">{{ statusLabel(reviewReturn) }}</span>
+        </div>
+      </div>
+      <button class="icon-btn" type="button" (click)="closeAllModals()" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="details-grid">
+        <div>
+          <span class="detail-label">Return Code</span>
+          <strong>{{ reviewReturn.returnCode }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Responsible ZM</span>
+          <strong>{{ reviewReturn.zmName || reviewReturn.zmEmail || 'Not assigned' }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Proposed Date</span>
+          <strong>{{ reviewReturn.proposedHandoverDate || 'Not provided' }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Proposed Time</span>
+          <strong>{{ reviewReturn.proposedHandoverTime || 'Not provided' }}</strong>
+        </div>
+      </div>
+
+      <section class="schedule-panel">
+        <div class="schedule-panel__head">
+          <h3>ZM Note</h3>
+        </div>
+        <p>{{ reviewReturn.proposedHandoverNote || 'No additional note provided.' }}</p>
+      </section>
+
+      <section class="details-section">
+        <h3>Returned Items</h3>
+        <div class="items-table">
+          <div class="items-row items-row--head">
+            <span>Item</span>
+            <span>Quantity</span>
+            <span>Condition</span>
+          </div>
+          <div class="items-row" *ngFor="let item of reviewReturn.items">
+            <span>{{ item.equipmentName || item.equipmentId }}</span>
+            <span>{{ item.quantity }} {{ item.unit || '' }}</span>
+            <span>{{ conditionLabel(item.condition || reviewReturn.condition) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="details-section">
+        <h3>Return Details</h3>
+        <p><strong>Reason:</strong> {{ reasonLabel(reviewReturn.reason) }}</p>
+        <p><strong>Condition:</strong> {{ conditionLabel(reviewReturn.condition) }}</p>
+        <p><strong>Destination:</strong> {{ destinationLabel(reviewReturn.destination) }}</p>
+      </section>
+
+      <section class="details-section">
+        <h3>Timeline</h3>
+        <div class="timeline" *ngIf="reviewReturn.timeline?.length; else noReviewTimeline">
+          <article class="timeline-item" *ngFor="let event of reviewReturn.timeline; trackBy: trackByTimeline">
+            <div class="timeline-dot"></div>
+            <div>
+              <div class="timeline-head">
+                <strong>{{ timelineLabel(event.eventType) }}</strong>
+                <span>{{ event.timestamp | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p>{{ event.description }}</p>
+              <small *ngIf="event.note">{{ event.note }}</small>
+            </div>
+          </article>
+        </div>
+        <ng-template #noReviewTimeline>
+          <div class="empty-inline">No timeline events available.</div>
+        </ng-template>
+      </section>
+
+      <label class="field">
+        <span>Comment</span>
+        <textarea
+          rows="3"
+          [(ngModel)]="reviewComment"
+          placeholder="Optional for confirmation. Required when requesting a new time."
+        ></textarea>
+      </label>
+
+      <div class="form-error" *ngIf="reviewError">{{ reviewError }}</div>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeAllModals()">Close</button>
+      <button class="btn btn-warning" type="button" (click)="requestNewTime()" [disabled]="reviewSubmitting">
+        {{ reviewSubmitting ? 'Processing...' : 'Request New Time' }}
+      </button>
+      <button class="btn btn-primary" type="button" (click)="confirmSchedule()" [disabled]="reviewSubmitting">
+        {{ reviewSubmitting ? 'Processing...' : 'Confirm Schedule' }}
+      </button>
+    </footer>
+  </section>
+</div>

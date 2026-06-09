@@ -5,7 +5,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { finalize } from 'rxjs/operators';
 
 import { SwalService } from '../../../core/ui/swal.service';
-import { TodoImportService, ZmTodoImportProcessResponse } from '../../../core/todo-import/todo-import.service';
+import { TodoImportService, ZmFieldWorkImportResponse } from '../../../core/todo-import/todo-import.service';
 import { AppUser } from '../../../core/users/user.model';
 import { UserService } from '../../../core/users/user.service';
 
@@ -30,12 +30,13 @@ export class InjectTodosComponent implements OnInit {
   private readonly zone = inject(NgZone);
 
   selectedFile: File | null = null;
+  selectedBusinessType: 'PLT' | 'RES' | '' = '';
   profile: AppUser | null = null;
   profileLoading = false;
   processing = false;
   errorMessage: string | null = null;
   infoMessage: string | null = null;
-  result: ZmTodoImportProcessResponse | null = null;
+  result: ZmFieldWorkImportResponse | null = null;
 
   ngOnInit(): void {
     this.profileLoading = true;
@@ -67,34 +68,73 @@ export class InjectTodosComponent implements OnInit {
     return this.buildExcelManagerKey(this.profile?.fullName) || '-';
   }
 
+  get isComplaintCasesTarget(): boolean {
+    return this.result?.target === 'COMPLAINT_CASES';
+  }
+
+  get primaryResultLabel(): string {
+    return this.isComplaintCasesTarget ? 'Complaint cases created' : 'Field todos created';
+  }
+
+  get primaryResultValue(): number {
+    if (!this.result) return 0;
+    return this.isComplaintCasesTarget
+      ? (this.result.createdComplaintCasesCount ?? 0)
+      : (this.result.createdWorkTodoCount ?? 0);
+  }
+
+  get primaryResultRoute(): string {
+    return this.isComplaintCasesTarget ? '/zm/cases/complaint' : '/zm/imported-todos';
+  }
+
   get importSummaryCards(): ImportSummaryCard[] {
     return [
       {
-        label: 'Rows in file',
+        label: 'Total rows in file',
         value: this.formatMetric(this.result?.totalRows ?? 0),
         tone: 'neutral'
       },
       {
-        label: 'Matched rows',
-        value: this.formatMetric(this.result?.matchedRows ?? 0),
+        label: 'Matched your ZM',
+        value: this.formatMetric(this.result?.matchedConnectedZmRows ?? 0),
         tone: 'primary'
       },
       {
-        label: 'Ignored rows',
-        value: this.formatMetric(this.result?.ignoredRows ?? 0),
-        tone: 'warning'
+        label: 'En cours rows',
+        value: this.formatMetric(this.result?.enCoursRows ?? 0),
+        tone: 'primary'
       },
       {
-        label: 'Saved rows',
-        value: this.formatMetric(this.result?.savedRows ?? 0),
+        label: this.primaryResultLabel,
+        value: this.formatMetric(this.primaryResultValue),
         tone: 'success'
       },
       {
-        label: 'Invalid matched rows',
-        value: this.formatMetric(this.result?.invalidMatchedRows ?? 0),
+        label: 'Ignored (other ZM)',
+        value: this.formatMetric(this.result?.ignoredOtherZmCount ?? 0),
+        tone: 'warning'
+      },
+      {
+        label: 'Ignored (not En cours)',
+        value: this.formatMetric(this.result?.ignoredStatusCount ?? 0),
+        tone: 'warning'
+      },
+      {
+        label: 'Duplicates skipped',
+        value: this.formatMetric(this.result?.duplicateCount ?? 0),
+        tone: 'warning'
+      },
+      {
+        label: 'Invalid rows',
+        value: this.formatMetric(this.result?.invalidRowsCount ?? 0),
         tone: 'danger'
       }
     ];
+  }
+
+  selectBusinessType(type: 'PLT' | 'RES'): void {
+    this.selectedBusinessType = type;
+    this.detectViewChanges();
   }
 
   onFileSelected(event: Event): void {
@@ -107,8 +147,15 @@ export class InjectTodosComponent implements OnInit {
   }
 
   processUpload(): void {
+    if (!this.selectedBusinessType) {
+      this.errorMessage = 'Select the file type (PLT or RES) before starting the import.';
+      this.detectViewChanges();
+      return;
+    }
+
     if (!this.selectedFile) {
       this.errorMessage = 'Select a CSV/XLS/XLSX file before starting the import.';
+      this.detectViewChanges();
       return;
     }
 
@@ -116,7 +163,7 @@ export class InjectTodosComponent implements OnInit {
     this.errorMessage = null;
     this.infoMessage = null;
 
-    this.todoImportService.process(this.selectedFile)
+    this.todoImportService.process(this.selectedFile, this.selectedBusinessType)
       .pipe(
         finalize(() => {
           this.processing = false;
@@ -127,18 +174,29 @@ export class InjectTodosComponent implements OnInit {
         next: async (response) => {
           this.result = response;
 
-          if (response.savedRows === 0) {
-            this.infoMessage = 'The file was processed and the analysis was saved, but no matched rows were stored in Imported Todos.';
-          } else if (response.invalidMatchedRows > 0) {
-            this.infoMessage = `${response.invalidMatchedRows} matched row(s) were saved as invalid rows in Imported Todos and are also reflected in Todos Analysis.`;
+          const isComplaints = response.target === 'COMPLAINT_CASES';
+          const createdCount = isComplaints
+            ? (response.createdComplaintCasesCount ?? 0)
+            : (response.createdWorkTodoCount ?? 0);
+
+          if (createdCount === 0) {
+            this.infoMessage = isComplaints
+              ? 'No new complaint cases were created. Verify that the file contains rows assigned to you with STATUT = En cours.'
+              : 'No new field work todos were created. Verify the file type and that the file contains rows assigned to you with STATUT = En cours.';
+          } else if (response.invalidRowsCount > 0) {
+            this.infoMessage = isComplaints
+              ? `${response.invalidRowsCount} row(s) had missing fields (e.g. CRM_CASE) and could not become complaint cases.`
+              : `${response.invalidRowsCount} saved todo(s) have validation issues. They are accessible in Field Todos.`;
           }
 
           this.detectViewChanges();
 
-          await this.swal.success(
-            'Import completed',
-            `${response.savedRows} matched row(s) were saved and the analysis snapshot was stored for ${this.connectedZmName}.`
-          );
+          const successTitle = isComplaints ? 'PLT import completed' : 'Import completed';
+          const successMsg = isComplaints
+            ? `${createdCount} complaint case(s) created in your ZM workspace. ${response.message}`
+            : `${createdCount} field work todo(s) created. ${response.message}`;
+
+          await this.swal.success(successTitle, successMsg);
         },
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to import the file for the connected Zone Manager.';

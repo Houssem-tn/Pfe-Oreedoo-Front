@@ -1,0 +1,383 @@
+<div class="toast-stack">
+  <div *ngFor="let toastItem of toasts" class="toast" [class.toast--error]="toastItem.type === 'error'">
+    {{ toastItem.message }}
+  </div>
+</div>
+
+<section class="page-shell">
+  <header class="page-header card">
+    <div>
+      <p class="eyebrow">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+        </svg>
+        Stock Workflow
+      </p>
+      <h1>Material Returns</h1>
+      <p class="page-copy">
+        Review submitted returns, propose handover schedules, and keep your full return history visible after refresh.
+      </p>
+    </div>
+  </header>
+
+  <section class="kpi-grid" *ngIf="!loading">
+    <article class="kpi-card">
+      <span class="kpi-label">Awaiting Action</span>
+      <strong>{{ awaitingActionCount }}</strong>
+    </article>
+    <article class="kpi-card kpi-card--accent">
+      <span class="kpi-label">Schedule Proposed</span>
+      <strong>{{ scheduleProposedCount }}</strong>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Reschedule Requests</span>
+      <strong>{{ rescheduleRequestCount }}</strong>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Confirmed</span>
+      <strong>{{ confirmedCount }}</strong>
+    </article>
+  </section>
+
+  <section class="card">
+    <div class="tab-bar">
+      <button class="tab-btn" type="button" [class.tab-btn--active]="activeTab === 'pending'" (click)="activeTab = 'pending'">
+        Pending Action
+      </button>
+      <button class="tab-btn" type="button" [class.tab-btn--active]="activeTab === 'all'" (click)="activeTab = 'all'">
+        All Returns
+      </button>
+    </div>
+
+    <div class="empty-state" *ngIf="loading">Loading material returns...</div>
+
+    <ng-container *ngIf="!loading && activeTab === 'pending'">
+      <div class="empty-state" *ngIf="pendingReturns.length === 0">No returns are currently awaiting ZM action.</div>
+
+      <div class="pending-list" *ngIf="pendingReturns.length > 0">
+        <article class="return-card" *ngFor="let returnItem of pendingReturns; trackBy: trackByReturn">
+          <div class="return-card__head">
+            <div>
+              <strong>{{ returnItem.returnCode }}</strong>
+              <p>{{ returnItem.sttName || returnItem.sttEmail || 'Unknown STT' }}</p>
+            </div>
+            <span [class]="statusBadgeClass(returnItem)">{{ statusLabel(returnItem) }}</span>
+          </div>
+
+          <div class="return-card__meta">
+            <span><strong>Reason:</strong> {{ reasonLabel(returnItem.reason) }}</span>
+            <span><strong>Source:</strong> {{ sourceLabel(returnItem.returnSource) }}</span>
+            <span><strong>Items:</strong> {{ returnItem.items.length }}</span>
+          </div>
+
+          <div class="alert-box" *ngIf="isRescheduleRequested(returnItem)">
+            <strong>STT requested a new schedule.</strong>
+            <p>{{ returnItem.sttScheduleResponseComment || 'No comment provided.' }}</p>
+          </div>
+
+          <div class="return-card__actions">
+            <button class="btn btn-ghost" type="button" (click)="openDetail(returnItem)">View Details</button>
+            <button class="btn btn-primary" type="button" (click)="openProposeSchedule(returnItem)">
+              {{ isRescheduleRequested(returnItem) ? 'Re-Propose Schedule' : 'Propose Schedule' }}
+            </button>
+            <button class="btn btn-secondary" type="button" (click)="openRejectModal(returnItem)">Reject</button>
+          </div>
+        </article>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loading && activeTab === 'all'">
+      <div class="history-filters" *ngIf="allReturns.length > 0">
+        <input type="text" [(ngModel)]="historySearch" placeholder="Search by return code, STT, or case" />
+        <select [(ngModel)]="historyFilter">
+          <option value="">All statuses</option>
+          <option *ngFor="let status of historyStatuses" [value]="status">{{ statusLabel(status) }}</option>
+        </select>
+      </div>
+
+      <div class="empty-state" *ngIf="allReturns.length === 0">No return history yet.</div>
+
+      <div class="table-wrap" *ngIf="allReturns.length > 0">
+        <table class="returns-table">
+          <thead>
+            <tr>
+              <th>Return</th>
+              <th>Status</th>
+              <th>STT</th>
+              <th>Schedule</th>
+              <th>Submitted</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let returnItem of filteredHistory; trackBy: trackByReturn">
+              <td>
+                <div class="primary-cell">
+                  <strong>{{ returnItem.returnCode }}</strong>
+                  <span>{{ reasonLabel(returnItem.reason) }}</span>
+                </div>
+              </td>
+              <td>
+                <span [class]="statusBadgeClass(returnItem)">{{ statusLabel(returnItem) }}</span>
+              </td>
+              <td>{{ returnItem.sttName || returnItem.sttEmail || 'Unknown STT' }}</td>
+              <td>
+                <div class="schedule-cell" *ngIf="returnItem.proposedHandoverDate; else noSchedule">
+                  <strong>{{ returnItem.proposedHandoverDate }}</strong>
+                  <span>at {{ returnItem.proposedHandoverTime || 'TBD' }}</span>
+                </div>
+                <ng-template #noSchedule>
+                  <span class="muted">Not proposed yet</span>
+                </ng-template>
+              </td>
+              <td>{{ (returnItem.submittedAt || returnItem.createdAt) | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td class="actions-col">
+                <button class="btn btn-ghost" type="button" (click)="openDetail(returnItem)">View Details</button>
+                <button
+                  *ngIf="canZmProposeSchedule(returnItem)"
+                  class="btn btn-primary btn-inline"
+                  type="button"
+                  (click)="openProposeSchedule(returnItem)"
+                >
+                  Propose Schedule
+                </button>
+                <button
+                  *ngIf="canZmRejectReturn(returnItem)"
+                  class="btn btn-secondary btn-inline"
+                  type="button"
+                  (click)="openRejectModal(returnItem)"
+                >
+                  Reject
+                </button>
+                <button
+                  *ngIf="isScheduleConfirmed(returnItem)"
+                  class="btn btn-success btn-inline"
+                  type="button"
+                  (click)="markHandedOver(returnItem)"
+                  [disabled]="handoverLoadingId === returnItem.id"
+                >
+                  {{ handoverLoadingId === returnItem.id ? 'Processing...' : 'Mark Handed Over' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+  </section>
+</section>
+
+<!-- ── View Details Modal ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="selectedReturn" (click)="closeAllModals()">
+  <section class="modal-panel modal-panel--wide" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="eyebrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          Return Details
+        </p>
+        <h2>{{ selectedReturn.returnCode }}</h2>
+        <div class="modal-header__badges">
+          <span [class]="statusBadgeClass(selectedReturn)">{{ statusLabel(selectedReturn) }}</span>
+        </div>
+      </div>
+      <button class="icon-btn" type="button" (click)="closeAllModals()" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="details-grid">
+        <div>
+          <span class="detail-label">STT</span>
+          <strong>{{ selectedReturn.sttName || selectedReturn.sttEmail || 'Unknown STT' }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Source</span>
+          <strong>{{ sourceLabel(selectedReturn.returnSource) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Reason</span>
+          <strong>{{ reasonLabel(selectedReturn.reason) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Condition</span>
+          <strong>{{ conditionLabel(selectedReturn.condition) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Destination</span>
+          <strong>{{ destinationLabel(selectedReturn.destination) }}</strong>
+        </div>
+        <div>
+          <span class="detail-label">Linked Case</span>
+          <strong>{{ selectedReturn.crmCase || 'Not linked' }}</strong>
+        </div>
+      </div>
+
+      <section class="schedule-panel" *ngIf="selectedReturn.proposedHandoverDate">
+        <div class="schedule-panel__head">
+          <h3>Proposed Handover Schedule</h3>
+          <span [class]="statusBadgeClass(selectedReturn)">{{ statusLabel(selectedReturn) }}</span>
+        </div>
+        <p>{{ selectedReturn.proposedHandoverDate }} at {{ selectedReturn.proposedHandoverTime || 'TBD' }}</p>
+        <p *ngIf="selectedReturn.proposedHandoverNote" class="muted">{{ selectedReturn.proposedHandoverNote }}</p>
+      </section>
+
+      <section class="details-section">
+        <h3>Returned Items</h3>
+        <div class="items-table">
+          <div class="items-row items-row--head">
+            <span>Item</span>
+            <span>Quantity</span>
+            <span>Condition</span>
+          </div>
+          <div class="items-row" *ngFor="let item of selectedReturn.items">
+            <span>{{ item.equipmentName || item.equipmentId }}</span>
+            <span>{{ item.quantity }} {{ item.unit || '' }}</span>
+            <span>{{ conditionLabel(item.condition || selectedReturn.condition) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="details-section" *ngIf="selectedReturn.comment">
+        <h3>STT Comment</h3>
+        <p>{{ selectedReturn.comment }}</p>
+      </section>
+
+      <section class="details-section">
+        <h3>Timeline</h3>
+        <div class="timeline" *ngIf="selectedReturn.timeline?.length; else noTimeline">
+          <article class="timeline-item" *ngFor="let event of selectedReturn.timeline; trackBy: trackByTimeline">
+            <div class="timeline-dot"></div>
+            <div>
+              <div class="timeline-head">
+                <strong>{{ timelineLabel(event.eventType) }}</strong>
+                <span>{{ event.timestamp | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p>{{ event.description }}</p>
+              <small *ngIf="event.note">{{ event.note }}</small>
+            </div>
+          </article>
+        </div>
+        <ng-template #noTimeline>
+          <div class="empty-inline">No timeline events available.</div>
+        </ng-template>
+      </section>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeAllModals()">Close</button>
+      <button *ngIf="canZmProposeSchedule(selectedReturn)" class="btn btn-primary" type="button" (click)="openProposeSchedule(selectedReturn)">
+        Propose Schedule
+      </button>
+    </footer>
+  </section>
+</div>
+
+<!-- ── Propose Schedule Modal ─────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="proposeTarget" (click)="closeAllModals()">
+  <section class="modal-panel" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="eyebrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Handover Schedule
+        </p>
+        <h2>{{ isRescheduleRequested(proposeTarget) ? 'Re-Propose Schedule' : 'Propose Schedule' }}</h2>
+        <p>{{ proposeTarget.returnCode }} &middot; {{ proposeTarget.sttName || proposeTarget.sttEmail }}</p>
+      </div>
+      <button class="icon-btn" type="button" (click)="closeAllModals()" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="alert-box" *ngIf="isRescheduleRequested(proposeTarget)">
+        <strong>STT asked for a new slot.</strong>
+        <p>{{ proposeTarget.sttScheduleResponseComment || 'No comment provided.' }}</p>
+      </div>
+
+      <label class="field">
+        <span>Handover Date <span class="req">*</span></span>
+        <input type="date" [(ngModel)]="proposeForm.handoverDate" [min]="todayStr" />
+      </label>
+
+      <div class="field">
+        <span>Handover Time <span class="req">*</span></span>
+        <div class="time-presets">
+          <button
+            *ngFor="let slot of timePresets"
+            class="preset-btn"
+            type="button"
+            [class.preset-btn--active]="proposeForm.handoverTime === slot"
+            (click)="proposeForm.handoverTime = slot"
+          >
+            {{ slot }}
+          </button>
+        </div>
+        <input type="time" [(ngModel)]="proposeForm.handoverTime" />
+      </div>
+
+      <label class="field">
+        <span>Note for STT</span>
+        <textarea rows="3" [(ngModel)]="proposeForm.handoverNote" placeholder="Optional instructions or meeting point details"></textarea>
+      </label>
+
+      <div class="form-error" *ngIf="proposeError">{{ proposeError }}</div>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeAllModals()">Cancel</button>
+      <button class="btn btn-primary" type="button" (click)="submitProposeSchedule()" [disabled]="actionLoading">
+        {{ actionLoading ? 'Processing...' : 'Send Schedule' }}
+      </button>
+    </footer>
+  </section>
+</div>
+
+<!-- ── Reject Return Modal ────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="rejectTarget" (click)="closeAllModals()">
+  <section class="modal-panel" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <div>
+        <p class="eyebrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          Rejection
+        </p>
+        <h2>Reject Return Request</h2>
+        <p>{{ rejectTarget.returnCode }} &middot; {{ rejectTarget.sttName || rejectTarget.sttEmail }}</p>
+      </div>
+      <button class="icon-btn" type="button" (click)="closeAllModals()" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <label class="field">
+        <span>Rejection Reason <span class="req">*</span></span>
+        <textarea rows="5" [(ngModel)]="rejectComment" placeholder="Explain why this return request is being rejected"></textarea>
+      </label>
+
+      <div class="form-error" *ngIf="rejectError">{{ rejectError }}</div>
+    </div>
+
+    <footer class="modal-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeAllModals()">Cancel</button>
+      <button class="btn btn-danger" type="button" (click)="confirmReject()" [disabled]="actionLoading">
+        {{ actionLoading ? 'Processing...' : 'Confirm Rejection' }}
+      </button>
+    </footer>
+  </section>
+</div>

@@ -223,6 +223,12 @@ export class AlertCenterComponent {
       case 'CASE_ASSIGNED_TO_TECH':                     return 'cilTask';
       case 'USER_REGISTERED':                           return 'cilUser';
       case 'STOCK_DISTRIBUTED':                         return 'cilTruck';
+      case 'MATERIAL_RETURN_SUBMITTED':
+      case 'MATERIAL_RETURN_REJECTED':
+      case 'MATERIAL_RETURN_SCHEDULE_PROPOSED':
+      case 'MATERIAL_RETURN_SCHEDULE_CONFIRMED':
+      case 'MATERIAL_RETURN_RESCHEDULE_REQUESTED':
+      case 'MATERIAL_RETURN_HANDED_OVER':               return 'cilArrowThickFromRight';
       default:                                          return 'cilBell';
     }
   }
@@ -301,6 +307,7 @@ export class AlertCenterComponent {
       case 'OPEN_USER':                     return 'Review User';
       case 'OPEN_THRESHOLDS':
       case 'OPEN_STOCK_THRESHOLDS':         return 'Configure Thresholds';
+      case 'OPEN_MATERIAL_RETURN':          return 'View Return';
       default:                              return null;
     }
   }
@@ -333,6 +340,16 @@ export class AlertCenterComponent {
       case 'OPEN_STOCK_THRESHOLDS':
         this.router.navigate(['/zm/stock/thresholds']);
         break;
+      case 'OPEN_MATERIAL_RETURN': {
+        const returnId = data['returnId'] as string | undefined;
+        const returnRoute = this.defaultReturnRoute(role);
+        if (returnId) {
+          this.router.navigate([returnRoute], { queryParams: { returnId } });
+        } else {
+          this.router.navigate([returnRoute]);
+        }
+        break;
+      }
     }
   }
 
@@ -379,5 +396,9 @@ export class AlertCenterComponent {
     if (role === 'ROLE_STT')  return '/stt/stock/usage-approvals';
     if (role === 'ROLE_TECH') return '/tech/stock/my-permissions';
     return '/stt/stock/usage-approvals';
+  }
+
+  private defaultReturnRoute(role: string | null): string {
+    return role === 'ROLE_ZM' ? '/zm/stock/returns' : '/stt/stock/returns';
   }
 }

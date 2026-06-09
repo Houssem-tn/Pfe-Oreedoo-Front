@@ -160,6 +160,13 @@ export class NotificationToastStackComponent {
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
         return 'cilTask';
+      case 'MATERIAL_RETURN_SUBMITTED':
+      case 'MATERIAL_RETURN_REJECTED':
+      case 'MATERIAL_RETURN_SCHEDULE_PROPOSED':
+      case 'MATERIAL_RETURN_SCHEDULE_CONFIRMED':
+      case 'MATERIAL_RETURN_RESCHEDULE_REQUESTED':
+      case 'MATERIAL_RETURN_HANDED_OVER':
+        return 'cilArrowThickFromRight';
       default:
         return 'cilBell';
     }

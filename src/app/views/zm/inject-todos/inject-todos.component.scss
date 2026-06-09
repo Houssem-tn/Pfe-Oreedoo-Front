@@ -231,7 +231,7 @@
 }
 
 .zm-import-empty__grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .zm-import-empty__card {
@@ -257,8 +257,52 @@
   color: #64748b;
 }
 
+.zm-import-type-selector {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.zm-import-type-btn {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.04);
+  border: 2px solid rgba(15, 23, 42, 0.1);
+  border-radius: 1rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.2rem;
+  min-width: 120px;
+  padding: 0.85rem 1.1rem;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+
+  span {
+    color: #0f172a;
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+
+  small {
+    color: #64748b;
+    font-size: 0.78rem;
+  }
+}
+
+.zm-import-type-btn:hover {
+  border-color: var(--import-red);
+}
+
+.zm-import-type-btn--active {
+  background: rgba(227, 6, 19, 0.07);
+  border-color: var(--import-red);
+
+  span {
+    color: var(--import-red);
+  }
+}
+
 .zm-import-summary {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .zm-import-summary__card {
@@ -334,12 +378,20 @@
   }
 
   .zm-import-empty__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zm-import-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 767px) {
   .zm-import-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zm-import-empty__grid {
     grid-template-columns: 1fr;
   }
 

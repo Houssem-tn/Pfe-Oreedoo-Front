@@ -3,13 +3,14 @@
     <div class="zm-import-hero__content">
       <div class="zm-import-hero__eyebrow">
         <svg cIcon name="cilCloudUpload"></svg>
-        Ooredoo todo import workspace
+        Ooredoo field work import
       </div>
 
-      <h1>Inject Todos</h1>
+      <h1>Import Field Work Todos</h1>
       <p>
-        Upload the external operational file, save every matched row that belongs to your perimeter, and automatically save
-        a new analysis snapshot in <strong>Todos Analysis</strong>.
+        Upload a PLT or RES Excel file. Only rows assigned to you with
+        <strong>STATUT = En cours</strong> will be imported as active field work todos.
+        Rows for other ZMs and non-En cours rows are ignored automatically.
       </p>
 
       <div class="zm-import-hero__chips">
@@ -25,14 +26,14 @@
     </div>
 
     <div class="zm-import-hero__actions">
-      <a routerLink="/zm/todos-analysis" class="btn-import btn-import--primary">
-        <svg cIcon name="cilSpeedometer"></svg>
-        Open Todos Analysis
+      <a routerLink="/zm/cases/complaint" class="btn-import btn-import--primary">
+        <svg cIcon name="cilDescription"></svg>
+        Open Complaint Cases
       </a>
 
-      <a routerLink="/zm/imported-todos" class="btn-import btn-import--ghost">
-        <svg cIcon name="cilDescription"></svg>
-        Open Imported Todos
+      <a routerLink="/zm/todos-analysis" class="btn-import btn-import--ghost">
+        <svg cIcon name="cilSpeedometer"></svg>
+        Open Todos Analysis
       </a>
     </div>
   </header>
@@ -41,14 +42,50 @@
     <div class="card-body">
       <div class="zm-import-section-heading">
         <div>
-          <div class="zm-import-section-heading__title">Upload and process file</div>
+          <div class="zm-import-section-heading__title">Step 1 — Select file type</div>
           <div class="zm-import-section-heading__hint">
-            The backend filters rows by your connected ZM identity, stores both valid and invalid matched rows into
-            <strong>Imported Todos</strong>, and stores the analytics snapshot separately in
-            <strong>Todos Analysis</strong>.
+            Choose whether this file contains PLT or RES work orders. The backend uses this to classify todos and prevent cross-type duplicates.
           </div>
         </div>
         <span class="zm-import-section-heading__badge" *ngIf="profileLoading">Loading identity...</span>
+      </div>
+
+      <div class="zm-import-type-selector">
+        <button
+          type="button"
+          class="zm-import-type-btn"
+          [class.zm-import-type-btn--active]="selectedBusinessType === 'PLT'"
+          (click)="selectBusinessType('PLT')"
+        >
+          <svg cIcon name="cilTask"></svg>
+          <span>PLT</span>
+          <small>PLT work orders</small>
+        </button>
+
+        <button
+          type="button"
+          class="zm-import-type-btn"
+          [class.zm-import-type-btn--active]="selectedBusinessType === 'RES'"
+          (click)="selectBusinessType('RES')"
+        >
+          <svg cIcon name="cilTask"></svg>
+          <span>RES</span>
+          <small>RES work orders</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="zm-import-card card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="zm-import-section-heading">
+        <div>
+          <div class="zm-import-section-heading__title">Step 2 — Upload file</div>
+          <div class="zm-import-section-heading__hint">
+            The backend will filter by your ZM identity and keep only rows where STATUT = En cours.
+            Duplicate CRM cases (same type, same ZM) are skipped automatically.
+          </div>
+        </div>
       </div>
 
       <div class="zm-import-upload">
@@ -58,7 +95,10 @@
           </div>
           <div class="zm-import-picker__body">
             <strong>{{ selectedFile?.name || 'Choose a CSV, XLS or XLSX file' }}</strong>
-            <span>The upload will generate both imported todo rows and a saved analysis snapshot.</span>
+            <span *ngIf="selectedBusinessType">
+              Will be imported as <strong>{{ selectedBusinessType }}</strong> field work todos.
+            </span>
+            <span *ngIf="!selectedBusinessType">Select the file type above first.</span>
           </div>
           <div class="zm-import-picker__cta">Browse</div>
         </label>
@@ -75,10 +115,10 @@
           type="button"
           class="btn-import btn-import--primary"
           (click)="processUpload()"
-          [disabled]="processing || !selectedFile"
+          [disabled]="processing || !selectedFile || !selectedBusinessType"
         >
           <svg cIcon [name]="processing ? 'cilClock' : 'cilCloudUpload'"></svg>
-          {{ processing ? 'Importing...' : 'Import file and save analysis' }}
+          {{ processing ? 'Importing...' : 'Import ' + (selectedBusinessType || 'file') + ' todos' }}
         </button>
       </div>
     </div>
@@ -98,21 +138,27 @@
     <div class="card-body">
       <div class="zm-import-empty__grid">
         <article class="zm-import-empty__card">
-          <svg cIcon name="cilDescription"></svg>
-          <strong>Imported rows</strong>
-          <span>All matched rows are saved into Imported Todos, with row-quality information preserved.</span>
+          <svg cIcon name="cilTask"></svg>
+          <strong>Real field work todos</strong>
+          <span>Each matched En cours row becomes an active field work todo for your zone, ready for STT assignment.</span>
+        </article>
+
+        <article class="zm-import-empty__card">
+          <svg cIcon name="cilPeople"></svg>
+          <strong>ZM-scoped filtering</strong>
+          <span>Only rows where ZONE_MNANAGER matches your name are imported. Other ZMs' rows are ignored automatically.</span>
         </article>
 
         <article class="zm-import-empty__card">
           <svg cIcon name="cilSpeedometer"></svg>
-          <strong>Saved analysis</strong>
-          <span>Alerts, charts, and insights are stored in a separate Todos Analysis collection.</span>
+          <strong>Duplicate protection</strong>
+          <span>Same CRM case with the same file type won't be imported twice. Duplicates are counted and reported.</span>
         </article>
 
         <article class="zm-import-empty__card">
-          <svg cIcon name="cilWarning"></svg>
-          <strong>Invalid rows tracked</strong>
-          <span>Matched rows with issues are saved as invalid rows and still appear in the saved analysis snapshot.</span>
+          <svg cIcon name="cilChart"></svg>
+          <strong>Analytics still saved</strong>
+          <span>A full analysis snapshot is saved in Todos Analysis for performance review after each import.</span>
         </article>
       </div>
     </div>
@@ -136,9 +182,12 @@
           <div>
             <div class="zm-import-section-heading__title">Import completed</div>
             <div class="zm-import-section-heading__hint">
-              Your file has been processed and a separate analytics study is now available in Todos Analysis.
+              {{ vm.message }}
             </div>
           </div>
+          <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis">
+            {{ vm.businessType }}
+          </span>
         </div>
 
         <div class="zm-import-result__grid">
@@ -154,21 +203,26 @@
             <span>Batch</span>
             <strong>{{ vm.importBatchId }}</strong>
           </article>
-          <article class="zm-import-result__item">
-            <span>Saved analysis ID</span>
+          <article class="zm-import-result__item" *ngIf="vm.analysisId">
+            <span>Analysis ID</span>
             <strong>{{ vm.analysisId }}</strong>
           </article>
         </div>
 
         <div class="zm-import-result__actions">
-          <a [routerLink]="['/zm/todos-analysis']" [queryParams]="{ analysisId: vm.analysisId }" class="btn-import btn-import--primary">
-            <svg cIcon name="cilSpeedometer"></svg>
-            Open this analysis
+          <a [routerLink]="primaryResultRoute" class="btn-import btn-import--primary">
+            <svg cIcon name="cilDescription"></svg>
+            {{ isComplaintCasesTarget ? 'Open complaint cases' : 'Open field todos' }}
           </a>
 
-          <a routerLink="/zm/imported-todos" class="btn-import btn-import--ghost-dark">
-            <svg cIcon name="cilDescription"></svg>
-            Open imported rows
+          <a
+            *ngIf="vm.analysisId"
+            [routerLink]="['/zm/todos-analysis']"
+            [queryParams]="{ analysisId: vm.analysisId }"
+            class="btn-import btn-import--ghost-dark"
+          >
+            <svg cIcon name="cilSpeedometer"></svg>
+            Open analysis
           </a>
         </div>
       </div>
