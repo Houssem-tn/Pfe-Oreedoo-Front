@@ -130,6 +130,10 @@ export class StockService {
     return this.http.get<SttStock>(`${this.url}/stt/my-stock`);
   }
 
+  getSttSelfStock(): Observable<TechStock> {
+    return this.http.get<TechStock>(`${this.url}/stt/my-self-stock`);
+  }
+
   distributeToTech(payload: DistributeToTechRequest): Observable<SttDistribution> {
     return this.http.post<SttDistribution>(`${this.url}/stt/distribute`, payload);
   }

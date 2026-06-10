@@ -288,7 +288,7 @@ interface OverLimitLine {
           </div>
         </form>
 
-        <section class="field-card field-form-grid" *ngIf="activeStep === 'stock' && isTechRole">
+        <section class="field-card field-form-grid" *ngIf="activeStep === 'stock' && (isTechRole || isSttSelfExecutionComplaint)">
           <div class="field-section-title">
             <h2>Stock step</h2>
             <span>Declare used stock first</span>
@@ -459,7 +459,7 @@ interface OverLimitLine {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = isTechRole ? 'stock' : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? 'stock' : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = 'metrics'">Next</button>
           </div>
         </section>
@@ -1159,7 +1159,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       steps.push({ key: 'diagnosis', label: 'Diagnosis', icon: 'cilNotes' });
     }
 
-    if (this.isTechRole) {
+    if (this.isTechRole || this.isSttSelfExecutionComplaint) {
       steps.push({ key: 'stock', label: 'Stock', icon: 'cilStorage' });
     }
 
@@ -1191,6 +1191,12 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
   get isTechRole(): boolean {
     return this.authStore.role() === 'ROLE_TECH';
+  }
+
+  get isSttSelfExecutionComplaint(): boolean {
+    return this.caseItem?.type === 'PLAINTE'
+      && this.caseItem?.executionMode === 'STT_SELF_EXECUTION'
+      && !this.isTechRole;
   }
 
   get techStockItems(): TechStockItem[] {
@@ -1526,6 +1532,10 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
           if (updated.status === 'DIAGNOSIS_STEP') {
             this.activeStep = this.firstExecutionStep;
+            if (this.isSttSelfExecutionComplaint) {
+              this.setUsageLinesFromCase(updated);
+              this.loadSttSelfStock();
+            }
             return;
           }
 
@@ -1821,6 +1831,9 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
             this.loadTechStock(true);
             this.loadCaseLimits(item.id);
             this.loadCasePermissions();
+          } else if (item.type === 'PLAINTE' && item.executionMode === 'STT_SELF_EXECUTION') {
+            this.setUsageLinesFromCase(item);
+            this.loadSttSelfStock();
           } else {
             this.techStock = null;
             this.techStockError = null;
@@ -1904,7 +1917,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       return null;
     }
 
-    const usedEquipmentPayload = this.isTechRole
+    const usedEquipmentPayload = (this.isTechRole || this.isSttSelfExecutionComplaint)
       ? buildUsedEquipmentPayload(this.usageLines, this.techStockItems, this.caseUsedEquipmentItems(target))
       : { items: [], error: null };
 
@@ -1941,7 +1954,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       locationLongitude: location?.longitude,
       locationCapturedAt: location?.capturedAt,
       locationAccuracyMeters: location?.accuracyMeters ?? undefined,
-      usedEquipment: this.isTechRole ? usedEquipmentPayload.items : undefined
+      usedEquipment: (this.isTechRole || this.isSttSelfExecutionComplaint) ? usedEquipmentPayload.items : undefined
     };
   }
 
@@ -2044,7 +2057,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       complaintCategory: diagnosis.complaintCategory ?? 'OTHER',
       rootCause: diagnosis.rootCause ?? '',
       diagnosisComment: diagnosis.diagnosisComment ?? item.complaintDescription ?? item.complaintDetail ?? '',
-      requiresFieldWork: diagnosis.requiresFieldWork ?? false,
+      requiresFieldWork: diagnosis.requiresFieldWork ?? true,
       requiresTechIntervention: diagnosis.requiresTechIntervention ?? false,
       requiresEscalation: diagnosis.requiresEscalation ?? false
     };
@@ -2067,7 +2080,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       complaintCategory: 'OTHER',
       rootCause: '',
       diagnosisComment: '',
-      requiresFieldWork: false,
+      requiresFieldWork: true,
       requiresTechIntervention: false,
       requiresEscalation: false
     };
@@ -2111,6 +2124,29 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Failed to load TECH stock for field execution', err);
+          this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
+        }
+      });
+  }
+
+  private loadSttSelfStock(): void {
+    if (this.isTechRole || this.techStockLoading) {
+      return;
+    }
+    this.techStockLoading = true;
+    this.techStockError = null;
+    this.stockService.getSttSelfStock()
+      .pipe(finalize(() => {
+        this.techStockLoading = false;
+        this.render();
+      }))
+      .subscribe({
+        next: (stock) => {
+          this.techStock = stock;
+          this.syncUsageSelection(this.caseItem);
+        },
+        error: (err) => {
+          console.error('Failed to load STT self-execution stock', err);
           this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
         }
       });
@@ -2412,7 +2448,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   }
 
   get firstExecutionStep(): FieldExecutionStep {
-    return this.isTechRole ? 'stock' : 'work';
+    return (this.isTechRole || this.isSttSelfExecutionComplaint) ? 'stock' : 'work';
   }
 
   private getItemLimit(item: TechStockItem): number | null {
