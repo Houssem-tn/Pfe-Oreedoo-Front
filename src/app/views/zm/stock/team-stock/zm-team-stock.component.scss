@@ -520,6 +520,32 @@ table.ts-table {
   &--empty { color: #94a3b8; }
 }
 
+/* ─── Distributor ZM row ─────────────────────────────────────────── */
+
+.ts-distributor-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.ts-distributor-label {
+  color: var(--ts-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ts-distributor-badge {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 999px;
+  color: #1d4ed8;
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+}
+
 /* ─── Animation ───────────────────────────────────────────────────── */
 
 @keyframes tsFadeUp {

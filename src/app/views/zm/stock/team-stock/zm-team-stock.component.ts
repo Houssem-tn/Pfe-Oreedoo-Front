@@ -2,12 +2,12 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
-import { finalize, map, switchMap } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
-import { SttStock, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
+import { DpmRequest, SttStock, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -28,6 +28,8 @@ export class ZmTeamStockComponent implements OnInit {
   sttMap = new Map<string, AppUser>();
   techMap = new Map<string, AppUser>();
   techUsageMap = new Map<string, TechStockUsage[]>();
+  /** For each sttId: unique ZM names whose DPMs were confirmed for that STT. */
+  sttDistributorZmsMap = new Map<string, string[]>();
 
   loading = false;
   error: string | null = null;
@@ -41,24 +43,28 @@ export class ZmTeamStockComponent implements OnInit {
     this.error = null;
 
     forkJoin({
-      dpms:       this.stockSvc.getMyDpms(),
+      // Source of truth for "my STTs": org-chart (assignedZmId), not DPM authorship.
+      myStts:     this.userSvc.getMyStts(),
       sttStocks:  this.stockSvc.zmGetMySttsStocks(),
       techStocks: this.stockSvc.zmGetMyTechsStocks(),
-      techUsages: this.stockSvc.zmGetMyTechsUsages()
+      techUsages: this.stockSvc.zmGetMyTechsUsages(),
+      // All DPMs for my STTs (any creator ZM) — used for distributor ZM labels.
+      sttsDpms:   this.stockSvc.zmGetMySttsDpms()
     }).pipe(
-      switchMap(({ dpms, sttStocks, techStocks, techUsages }) => {
-        // Build sttMap from DPM data — covers every STT ever targeted, regardless of assignedZmId
+      switchMap(({ myStts, sttStocks, techStocks, techUsages, sttsDpms }) => {
+        // Build sttMap from the org-chart STT list — correct source of truth.
         const sttMap = new Map<string, AppUser>();
-        for (const d of dpms) {
-          if (!sttMap.has(d.sttId)) {
-            sttMap.set(d.sttId, { id: d.sttId, fullName: d.sttName, email: d.sttEmail });
-          }
+        for (const stt of myStts) {
+          sttMap.set(stt.id, stt);
         }
         this.sttMap = sttMap;
 
+        // Build distributor ZM labels per STT from confirmed DPMs.
+        this.sttDistributorZmsMap = this.buildDistributorZmsMap(sttsDpms);
+
         const sttIds = sttStocks.map(s => s.sttId);
         const techCalls = sttIds.length
-          ? sttIds.map(id => this.userSvc.getMySttTechs(id))
+          ? sttIds.map(id => this.userSvc.getMySttTechs(id).pipe(catchError(() => of([] as AppUser[]))))
           : [of([] as AppUser[])];
 
         return forkJoin({ techLists: forkJoin(techCalls) }).pipe(
@@ -82,6 +88,22 @@ export class ZmTeamStockComponent implements OnInit {
       },
       error: e => this.error = e.message
     });
+  }
+
+  distributorZmsFor(sttId: string): string[] {
+    return this.sttDistributorZmsMap.get(sttId) ?? [];
+  }
+
+  private buildDistributorZmsMap(dpms: DpmRequest[]): Map<string, string[]> {
+    const map = new Map<string, Set<string>>();
+    for (const dpm of dpms) {
+      if (!dpm.sttId || !dpm.zmName) continue;
+      if (!map.has(dpm.sttId)) map.set(dpm.sttId, new Set());
+      map.get(dpm.sttId)!.add(dpm.zmName);
+    }
+    const result = new Map<string, string[]>();
+    for (const [sttId, names] of map) result.set(sttId, [...names]);
+    return result;
   }
 
   get filteredSttStocks(): SttStock[] {

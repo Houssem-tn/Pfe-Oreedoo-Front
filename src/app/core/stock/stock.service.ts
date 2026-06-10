@@ -210,6 +210,11 @@ export class StockService {
     return this.http.get<TechStockUsage[]>(`${this.url}/zm/my-techs-usages`);
   }
 
+  /** All DPMs received by STTs under this ZM's responsibility (any creator ZM). */
+  zmGetMySttsDpms(): Observable<DpmRequest[]> {
+    return this.http.get<DpmRequest[]>(`${this.url}/zm/my-stts-dpms`);
+  }
+
   // ── Case Stock Consumption Audit ──────────────────────────────────────────
 
   getCaseConsumptions(filters: CaseConsumptionFilters = {}): Observable<CaseConsumption[]> {

@@ -110,6 +110,14 @@
                   </svg>
                   STT Warehouse
                 </div>
+                @if (distributorZmsFor(ss.sttId).length > 0) {
+                  <div class="ts-distributor-row">
+                    <span class="ts-distributor-label">Stock distributed by:</span>
+                    @for (zmName of distributorZmsFor(ss.sttId); track zmName) {
+                      <span class="ts-distributor-badge">{{ zmName }}</span>
+                    }
+                  </div>
+                }
                 @if (ss.items.length === 0) {
                   <div class="ts-sub-empty">No stock received yet.</div>
                 } @else {
