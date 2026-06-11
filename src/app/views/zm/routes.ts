@@ -20,6 +20,12 @@ export const routes: Routes = [
     data: { caseType: 'PLAINTE' }
   },
   {
+    path: 'cases/resiliation',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'PLAINTE', caseModule: 'RES', title: 'Resiliation Cases' }
+  },
+  {
     path: 'cases/activation/new',
     loadComponent: () =>
       import('../cases/create-activation-case.component').then(m => m.CreateActivationCaseComponent)

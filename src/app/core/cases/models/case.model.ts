@@ -72,6 +72,8 @@ export interface CaseResponse {
   typeOffreSpeed?: string | null;
   typeClient?: string | null;
   source?: string | null;
+  /** PLT/RES discriminator for cases created from field-work imports (type=PLAINTE). */
+  caseModule?: string | null;
   complaintDetail?: string | null;
   complaintDescription?: string | null;
   openDateActivation?: string | null;

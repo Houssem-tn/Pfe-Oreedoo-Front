@@ -159,6 +159,7 @@ export class NotificationToastStackComponent {
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
+      case 'CASES_BULK_ASSIGNED_TO_ZM':
         return 'cilTask';
       case 'MATERIAL_RETURN_SUBMITTED':
       case 'MATERIAL_RETURN_REJECTED':
@@ -180,6 +181,7 @@ export class NotificationToastStackComponent {
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
+      case 'CASES_BULK_ASSIGNED_TO_ZM':
         return 'notification-toast--assignment';
       default:
         return 'notification-toast--info';

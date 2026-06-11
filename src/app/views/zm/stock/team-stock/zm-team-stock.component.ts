@@ -33,8 +33,24 @@ export class ZmTeamStockComponent implements OnInit {
 
   loading = false;
   error: string | null = null;
-  searchFilter = '';
   expandedSttIds = new Set<string>();
+
+  page = 1;
+  pageSize = 10;
+
+  private _searchFilter = '';
+  get searchFilter(): string { return this._searchFilter; }
+  set searchFilter(v: string) { this._searchFilter = v; this.page = 1; }
+
+  private readonly AVATAR_COLORS = [
+    'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+    'linear-gradient(135deg,#8b5cf6,#6d28d9)',
+    'linear-gradient(135deg,#f59e0b,#b45309)',
+    'linear-gradient(135deg,#10b981,#065f46)',
+    'linear-gradient(135deg,#ec4899,#be185d)',
+    'linear-gradient(135deg,#06b6d4,#0891b2)',
+    'linear-gradient(135deg,#ef4444,#b91c1c)',
+  ];
 
   ngOnInit(): void { this.load(); }
 
@@ -107,11 +123,51 @@ export class ZmTeamStockComponent implements OnInit {
   }
 
   get filteredSttStocks(): SttStock[] {
-    if (!this.searchFilter.trim()) return this.sttStocks;
-    const q = this.searchFilter.toLowerCase();
+    if (!this._searchFilter.trim()) return this.sttStocks;
+    const q = this._searchFilter.toLowerCase();
     return this.sttStocks.filter(s =>
       this.sttName(s.sttId).toLowerCase().includes(q)
     );
+  }
+
+  get pagedSttStocks(): SttStock[] {
+    const start = (this.page - 1) * this.pageSize;
+    return this.filteredSttStocks.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredSttStocks.length / this.pageSize));
+  }
+
+  get showingFrom(): number {
+    return this.filteredSttStocks.length === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
+  }
+
+  get showingTo(): number {
+    return Math.min(this.page * this.pageSize, this.filteredSttStocks.length);
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    for (let i = Math.max(1, this.page - 2); i <= Math.min(this.totalPages, this.page + 2); i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  setPage(p: number): void {
+    if (p >= 1 && p <= this.totalPages) this.page = p;
+  }
+
+  onPageSizeChange(event: Event): void {
+    this.pageSize = +(event.target as HTMLSelectElement).value;
+    this.page = 1;
+  }
+
+  sttAvatarColor(sttId: string): string {
+    let hash = 0;
+    for (let i = 0; i < sttId.length; i++) hash = (hash * 31 + sttId.charCodeAt(i)) | 0;
+    return this.AVATAR_COLORS[Math.abs(hash) % this.AVATAR_COLORS.length];
   }
 
   techStocksForStt(sttId: string): TechStock[] {

@@ -34,6 +34,11 @@ export function getNavZm(canCreateDpm: boolean, canImportCoverage = false): INav
       iconComponent: { name: 'cilNotes' }
     },
     {
+      name: 'Resiliation Cases',
+      url: '/zm/cases/resiliation',
+      iconComponent: { name: 'cilNotes' }
+    },
+    {
       name: 'Inject Todos',
       url: '/zm/inject-todos',
       iconComponent: { name: 'cilCloudUpload' }

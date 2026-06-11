@@ -232,6 +232,7 @@ export class NotificationStoreService {
       || item.eventType === 'CASE_ASSIGNED_TO_TECH'
       || item.eventType === 'CASE_ASSIGNED_TO_STT'
       || item.eventType === 'CASE_ASSIGNED_TO_ZM'
+      || item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM'
       || item.eventType === 'STOCK_CRITICAL'
       || item.eventType === 'STOCK_LOW_WARNING'
       || item.eventType === 'STOCK_USAGE_PERMISSION_REQUIRED'

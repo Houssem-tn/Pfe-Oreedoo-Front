@@ -51,7 +51,7 @@ export class AlertCenterComponent {
 
   readonly categoryCounters = computed(() => {
     const counts: Record<AlertCategory, number> = {
-      DPM: 0, STOCK: 0, CASE: 0, PERMISSION: 0, USER: 0, SLA: 0, SYSTEM: 0
+      DPM: 0, STOCK: 0, MATERIAL_RETURN: 0, CASE: 0, PERMISSION: 0, USER: 0, SLA: 0, SYSTEM: 0
     };
     for (const n of this.store.alertsByLevel()) {
       counts[effectiveCategory(n)]++;
@@ -221,6 +221,7 @@ export class AlertCenterComponent {
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':                     return 'cilTask';
+      case 'CASES_BULK_ASSIGNED_TO_ZM':                 return 'cilLayers';
       case 'USER_REGISTERED':                           return 'cilUser';
       case 'STOCK_DISTRIBUTED':                         return 'cilTruck';
       case 'MATERIAL_RETURN_SUBMITTED':
@@ -229,6 +230,7 @@ export class AlertCenterComponent {
       case 'MATERIAL_RETURN_SCHEDULE_CONFIRMED':
       case 'MATERIAL_RETURN_RESCHEDULE_REQUESTED':
       case 'MATERIAL_RETURN_HANDED_OVER':               return 'cilArrowThickFromRight';
+      case 'MATERIAL_RETURN_CLOSED':                    return 'cilCheckCircle';
       default:                                          return 'cilBell';
     }
   }
@@ -254,6 +256,19 @@ export class AlertCenterComponent {
   getMetaChips(item: NotificationItem): string[] {
     const chips: string[] = [];
     const data = item.data ?? {};
+
+    // Aggregated bulk batch: show count + operation type + responsible actor rather than
+    // single-case metadata, keeping the summary informative at a glance.
+    if (item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM') {
+      const count = Number(data['count'] ?? 0);
+      if (count > 0) chips.push(`${count} case${count === 1 ? '' : 's'}`);
+      const op = String(data['operation'] ?? '');
+      if (op === 'INJECTION') chips.push('Injection');
+      else if (op === 'DISTRIBUTION') chips.push('Distribution');
+      const actor = item.triggeredBy ?? data['zmName'];
+      if (actor) chips.push(`by ${actor}`);
+      return chips;
+    }
 
     const role = item.targetRole;
     if (role === 'ROLE_TECH') chips.push('TECH');
@@ -296,6 +311,13 @@ export class AlertCenterComponent {
   // ── Action ───────────────────────────────────────────────────────────
 
   getAlertActionLabel(item: NotificationItem): string | null {
+    // Aggregated bulk batch: surface the count so the summary stays the default while still
+    // letting the user expand into the detailed case list.
+    if (item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM') {
+      const count = Number(item.data?.['count'] ?? 0);
+      return count > 0 ? `View ${count} case${count === 1 ? '' : 's'}` : 'View cases';
+    }
+
     switch (item.actionType as AlertActionType) {
       case 'OPEN_CASE':                     return 'Open Case';
       case 'OPEN_DPM':

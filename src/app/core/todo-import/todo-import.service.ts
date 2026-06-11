@@ -180,6 +180,8 @@ export interface ZmFieldWorkImportResponse {
   invalidRowsCount: number;
   message: string;
   analysisId?: string | null;
+  dispatchMode?: string | null;
+  dispatchModeUserName?: string | null;
 }
 
 export interface ZmTodoAnalysisListItem {
@@ -232,13 +234,17 @@ export class TodoImportService {
     return this.http.post<ZmTodoAnalyticsResponse>(`${this.importUrl}/analyze`, formData);
   }
 
-  process(file: File, businessType: string): Observable<ZmFieldWorkImportResponse> {
+  process(
+    file: File,
+    businessType: string,
+    dispatchMode: string = 'BY_GOVERNORATE'
+  ): Observable<ZmFieldWorkImportResponse> {
     const formData = new FormData();
     formData.append('file', file, file.name);
-    return this.http.post<ZmFieldWorkImportResponse>(
-      `${this.importUrl}/process?businessType=${encodeURIComponent(businessType)}`,
-      formData
-    );
+    const url = `${this.importUrl}/process`
+      + `?businessType=${encodeURIComponent(businessType)}`
+      + `&dispatchMode=${encodeURIComponent(dispatchMode)}`;
+    return this.http.post<ZmFieldWorkImportResponse>(url, formData);
   }
 
   inject(file: File, managerFilter: string): Observable<TodoImportInjectResponse> {

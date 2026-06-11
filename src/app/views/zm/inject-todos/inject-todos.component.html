@@ -80,7 +80,55 @@
     <div class="card-body">
       <div class="zm-import-section-heading">
         <div>
-          <div class="zm-import-section-heading__title">Step 2 — Upload file</div>
+          <div class="zm-import-section-heading__title">Step 2 — Select task assignment method</div>
+          <div class="zm-import-section-heading__hint">
+            Choose how rows are matched to you. <strong>By Governorate</strong> imports rows whose GOUVERNORAT is inside your {{ selectedBusinessType || 'PLT/RES' }} governorate coverage. <strong>By Online User</strong> imports rows whose ZONE_MNANAGER matches you, the connected Zone Manager.
+          </div>
+        </div>
+      </div>
+
+      <div class="zm-import-type-selector">
+        <button
+          type="button"
+          class="zm-import-type-btn"
+          [class.zm-import-type-btn--active]="selectedDispatchMode === 'BY_GOVERNORATE'"
+          (click)="selectDispatchMode('BY_GOVERNORATE')"
+        >
+          <svg cIcon name="cilMap"></svg>
+          <span>By Governorate</span>
+          <small>Matched by your governorate coverage</small>
+        </button>
+
+        <button
+          type="button"
+          class="zm-import-type-btn"
+          [class.zm-import-type-btn--active]="selectedDispatchMode === 'BY_ONLINE_USER'"
+          (click)="selectDispatchMode('BY_ONLINE_USER')"
+        >
+          <svg cIcon name="cilPeople"></svg>
+          <span>By Online User</span>
+          <small>Assigned to you ({{ connectedZmName }})</small>
+        </button>
+      </div>
+
+      <div
+        *ngIf="selectedDispatchMode === 'BY_ONLINE_USER'"
+        class="zm-import-feedback zm-import-feedback--info mt-3"
+      >
+        <svg cIcon name="cilUser"></svg>
+        <div>
+          Tasks will be assigned to the connected Zone Manager
+          <strong>{{ connectedZmName }}</strong> (matched on the ZONE_MNANAGER column).
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="zm-import-card card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="zm-import-section-heading">
+        <div>
+          <div class="zm-import-section-heading__title">Step 3 — Upload file</div>
           <div class="zm-import-section-heading__hint">
             The backend will filter by your ZM identity and keep only rows where STATUT = En cours.
             Duplicate CRM cases (same type, same ZM) are skipped automatically.
@@ -212,7 +260,7 @@
         <div class="zm-import-result__actions">
           <a [routerLink]="primaryResultRoute" class="btn-import btn-import--primary">
             <svg cIcon name="cilDescription"></svg>
-            {{ isComplaintCasesTarget ? 'Open complaint cases' : 'Open field todos' }}
+            {{ isResTarget ? 'Open resiliation cases' : isComplaintCasesTarget ? 'Open complaint cases' : 'Open field todos' }}
           </a>
 
           <a

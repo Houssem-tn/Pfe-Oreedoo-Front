@@ -31,6 +31,7 @@ export class InjectTodosComponent implements OnInit {
 
   selectedFile: File | null = null;
   selectedBusinessType: 'PLT' | 'RES' | '' = '';
+  selectedDispatchMode: 'BY_ONLINE_USER' | 'BY_GOVERNORATE' = 'BY_GOVERNORATE';
   profile: AppUser | null = null;
   profileLoading = false;
   processing = false;
@@ -72,7 +73,13 @@ export class InjectTodosComponent implements OnInit {
     return this.result?.target === 'COMPLAINT_CASES';
   }
 
+  /** RES imports also create cases (COMPLAINT_CASES target) but live on the dedicated resiliation board. */
+  get isResTarget(): boolean {
+    return this.isComplaintCasesTarget && this.result?.businessType === 'RES';
+  }
+
   get primaryResultLabel(): string {
+    if (this.isResTarget) return 'Resiliation cases created';
     return this.isComplaintCasesTarget ? 'Complaint cases created' : 'Field todos created';
   }
 
@@ -84,6 +91,7 @@ export class InjectTodosComponent implements OnInit {
   }
 
   get primaryResultRoute(): string {
+    if (this.isResTarget) return '/zm/cases/resiliation';
     return this.isComplaintCasesTarget ? '/zm/cases/complaint' : '/zm/imported-todos';
   }
 
@@ -137,6 +145,11 @@ export class InjectTodosComponent implements OnInit {
     this.detectViewChanges();
   }
 
+  selectDispatchMode(mode: 'BY_ONLINE_USER' | 'BY_GOVERNORATE'): void {
+    this.selectedDispatchMode = mode;
+    this.detectViewChanges();
+  }
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement | null;
     this.selectedFile = input?.files?.[0] ?? null;
@@ -163,7 +176,11 @@ export class InjectTodosComponent implements OnInit {
     this.errorMessage = null;
     this.infoMessage = null;
 
-    this.todoImportService.process(this.selectedFile, this.selectedBusinessType)
+    this.todoImportService.process(
+      this.selectedFile,
+      this.selectedBusinessType,
+      this.selectedDispatchMode
+    )
       .pipe(
         finalize(() => {
           this.processing = false;
@@ -192,11 +209,17 @@ export class InjectTodosComponent implements OnInit {
           this.detectViewChanges();
 
           const successTitle = isComplaints ? 'PLT import completed' : 'Import completed';
-          const successMsg = isComplaints
+          const baseMsg = isComplaints
             ? `${createdCount} complaint case(s) created in your ZM workspace. ${response.message}`
             : `${createdCount} field work todo(s) created. ${response.message}`;
 
-          await this.swal.success(successTitle, successMsg);
+          const dispatchLine = response.dispatchMode === 'BY_ONLINE_USER'
+            ? `\n\nAssignment: By Online User${response.dispatchModeUserName ? ` (${response.dispatchModeUserName})` : ''}`
+            : response.dispatchMode === 'BY_GOVERNORATE'
+              ? '\n\nAssignment: By Governorate coverage'
+              : '';
+
+          await this.swal.success(successTitle, `${baseMsg}${dispatchLine}`);
         },
         error: async (err) => {
           const message = err?.error?.message ?? 'Failed to import the file for the connected Zone Manager.';

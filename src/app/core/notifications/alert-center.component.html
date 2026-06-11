@@ -83,6 +83,15 @@
       }
     </button>
 
+    <button class="cat-filter-btn cat-filter-btn--material-return"
+            [class.active]="activeCategoryFilter() === 'MATERIAL_RETURN'"
+            (click)="setCategoryFilter('MATERIAL_RETURN')">
+      Returns
+      @if (categoryCount('MATERIAL_RETURN') > 0) {
+        <span class="cat-filter-count">{{ categoryCount('MATERIAL_RETURN') }}</span>
+      }
+    </button>
+
     <button class="cat-filter-btn cat-filter-btn--case"
             [class.active]="activeCategoryFilter() === 'CASE'"
             (click)="setCategoryFilter('CASE')">

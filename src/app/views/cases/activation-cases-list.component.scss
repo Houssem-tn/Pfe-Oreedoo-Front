@@ -1845,3 +1845,98 @@
     width: 100% !important;
   }
 }
+
+// ============================================================
+// Compact pagination + jump-to-page + smooth refresh
+// ============================================================
+
+.crm-pagination {
+  gap: 0.75rem;
+}
+
+.crm-page-ellipsis {
+  align-self: center;
+  padding: 0 0.3rem;
+  color: var(--crm-muted);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.crm-page-btn--edge {
+  font-size: 1.05rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.crm-pagination__jump {
+  align-items: center;
+  color: var(--crm-muted);
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 0.45rem;
+
+  input {
+    background: #fff;
+    border: 1px solid rgba(83, 16, 24, 0.14);
+    border-radius: 0.7rem;
+    color: #2a2a2a;
+    font-weight: 700;
+    padding: 0.4rem 0.55rem;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    width: 4.5rem;
+
+    &:focus {
+      border-color: var(--crm-red);
+      box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.12);
+      outline: none;
+    }
+  }
+}
+
+// Keep the table visible (dimmed) while a page/filter change is loading.
+.crm-table-wrap {
+  position: relative;
+}
+
+.crm-table-wrap.is-refreshing .cases-table {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.crm-table-refresh {
+  align-items: flex-start;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding-top: 1.4rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+
+  .spinner-border {
+    color: var(--crm-red);
+  }
+}
+
+// Slightly stronger row hover lift for a more responsive feel.
+.cases-table tbody tr:hover {
+  box-shadow: 0 8px 20px rgba(227, 6, 19, 0.06);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  // Windowed pagination stays inline on mobile instead of stacking full-width.
+  .crm-pagination__controls .crm-page-btn {
+    flex: 0 0 auto;
+    min-width: 2.4rem;
+    width: auto;
+  }
+
+  .crm-pagination__jump {
+    justify-content: center;
+    width: 100%;
+  }
+}

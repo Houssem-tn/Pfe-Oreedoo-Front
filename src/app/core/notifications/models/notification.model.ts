@@ -1,6 +1,6 @@
 export type AlertLevel = 'CRITICAL' | 'WARNING' | 'INFO';
 
-export type AlertCategory = 'DPM' | 'STOCK' | 'CASE' | 'PERMISSION' | 'USER' | 'SLA' | 'SYSTEM';
+export type AlertCategory = 'DPM' | 'STOCK' | 'MATERIAL_RETURN' | 'CASE' | 'PERMISSION' | 'USER' | 'SLA' | 'SYSTEM';
 
 export type AlertActionType =
   | 'OPEN_CASE'
@@ -62,6 +62,7 @@ export function effectiveCategory(n: NotificationItem): AlertCategory {
   const at = n.actionType ?? '';
   if (et.startsWith('DPM_') || at === 'OPEN_DPM' || at === 'OPEN_DPM_REQUEST') return 'DPM';
   if (et.startsWith('SLA_'))                                                      return 'SLA';
+  if (et.startsWith('MATERIAL_RETURN_') || at === 'OPEN_MATERIAL_RETURN')        return 'MATERIAL_RETURN';
   if (et.startsWith('CASE_') || et.includes('COMPLAINT'))                        return 'CASE';
   if (et.startsWith('STOCK_USAGE_PERMISSION')
       || at === 'OPEN_PERMISSION_REQUEST'

@@ -197,13 +197,14 @@
 }
 
 /* Per-category colour tokens */
-.cat-filter-btn--dpm.active        { background: #6366f1; }
-.cat-filter-btn--stock.active      { background: #0ea5e9; }
-.cat-filter-btn--case.active       { background: #f59e0b; color: #000; .cat-filter-count { background: rgba(0,0,0,0.12); } }
-.cat-filter-btn--permission.active { background: #8b5cf6; }
-.cat-filter-btn--user.active       { background: #10b981; }
-.cat-filter-btn--sla.active        { background: #e55353; }
-.cat-filter-btn--system.active     { background: #6c757d; }
+.cat-filter-btn--dpm.active             { background: #6366f1; }
+.cat-filter-btn--stock.active           { background: #0ea5e9; }
+.cat-filter-btn--material-return.active { background: #14b8a6; }
+.cat-filter-btn--case.active            { background: #f59e0b; color: #000; .cat-filter-count { background: rgba(0,0,0,0.12); } }
+.cat-filter-btn--permission.active      { background: #8b5cf6; }
+.cat-filter-btn--user.active            { background: #10b981; }
+.cat-filter-btn--sla.active             { background: #e55353; }
+.cat-filter-btn--system.active          { background: #6c757d; }
 
 /* ── Active-filter indicator bar ─────────────────────────────────────── */
 

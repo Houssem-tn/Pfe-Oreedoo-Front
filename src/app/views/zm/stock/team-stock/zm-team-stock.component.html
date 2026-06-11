@@ -6,27 +6,76 @@
       <div class="ts-hero__title">Team Stock Overview</div>
       <div class="ts-hero__sub">Live view of STT warehouses and TECH inventories under your zone</div>
     </div>
-    <div class="ts-hero__chips">
-      <div class="ts-chip">
-        <span class="ts-chip__val">{{ sttStocks.length }}</span>
-        <span class="ts-chip__lbl">STTs</span>
+    <div class="ts-stats">
+
+      <div class="ts-stat">
+        <div class="ts-stat__icon ts-stat__icon--stt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="ts-stat__val">{{ sttStocks.length }}</div>
+          <div class="ts-stat__lbl">STTS</div>
+        </div>
       </div>
-      <div class="ts-chip ts-chip--tech">
-        <span class="ts-chip__val">{{ techStocks.length }}</span>
-        <span class="ts-chip__lbl">TECHs</span>
+
+      <div class="ts-stat">
+        <div class="ts-stat__icon ts-stat__icon--tech">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="ts-stat__val">{{ techStocks.length }}</div>
+          <div class="ts-stat__lbl">TECHS</div>
+        </div>
       </div>
-      <div class="ts-chip ts-chip--stt-units">
-        <span class="ts-chip__val">{{ totalSttUnitsLabel }}</span>
-        <span class="ts-chip__lbl">STT Avail.</span>
+
+      <div class="ts-stat">
+        <div class="ts-stat__icon ts-stat__icon--avail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="ts-stat__val">{{ totalSttUnitsLabel }}</div>
+          <div class="ts-stat__lbl">STT AVAIL.</div>
+        </div>
       </div>
-      <div class="ts-chip ts-chip--tech-units">
-        <span class="ts-chip__val">{{ totalTechUnitsLabel }}</span>
-        <span class="ts-chip__lbl">TECH Rem.</span>
+
+      <div class="ts-stat">
+        <div class="ts-stat__icon ts-stat__icon--rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 12V22H4V12"></path>
+            <path d="M22 7H2v5h20V7z"></path>
+            <path d="M12 22V7"></path>
+            <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"></path>
+            <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="ts-stat__val">{{ totalTechUnitsLabel }}</div>
+          <div class="ts-stat__lbl">TECH REM.</div>
+        </div>
       </div>
-      <div class="ts-chip ts-chip--tech">
-        <span class="ts-chip__val">{{ totalTechUsedUnitsLabel }}</span>
-        <span class="ts-chip__lbl">TECH Used</span>
+
+      <div class="ts-stat">
+        <div class="ts-stat__icon ts-stat__icon--used">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div class="ts-stat__val">{{ totalTechUsedUnitsLabel }}</div>
+          <div class="ts-stat__lbl">TECH USED</div>
+        </div>
       </div>
+
     </div>
   </div>
 
@@ -43,6 +92,12 @@
       <input class="ts-search__input" type="text" [(ngModel)]="searchFilter"
              placeholder="Search by STT name…" />
     </div>
+    <button class="ts-filter-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+      Filters
+    </button>
     <button class="ts-refresh-btn" (click)="load()" [disabled]="loading">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="23 4 23 10 17 10"></polyline>
@@ -64,13 +119,15 @@
     </div>
   } @else {
     <div class="ts-list">
-      @for (ss of filteredSttStocks; track ss.sttId) {
+      @for (ss of pagedSttStocks; track ss.sttId) {
         <div class="ts-stt-card" [class.ts-stt-card--expanded]="expandedSttIds.has(ss.sttId)">
 
-          <!-- STT header (click to expand/collapse) -->
+          <!-- STT header -->
           <div class="ts-stt-header" (click)="toggleStt(ss.sttId)">
             <div class="ts-stt-header__left">
-              <span class="ts-avatar ts-avatar--stt">{{ sttInitials(ss.sttId) }}</span>
+              <span class="ts-avatar" [style.background]="sttAvatarColor(ss.sttId)">
+                {{ sttInitials(ss.sttId) }}
+              </span>
               <div>
                 <div class="ts-stt-name">{{ sttName(ss.sttId) }}</div>
                 <div class="ts-stt-sub">
@@ -101,26 +158,36 @@
           @if (expandedSttIds.has(ss.sttId)) {
             <div class="ts-stt-body">
 
-              <!-- STT stock detail table -->
-              <div class="ts-section">
-                <div class="ts-section__title">
+              <!-- STT Warehouse section row -->
+              <div class="ts-section-row">
+                <div class="ts-section-row__icon ts-section-row__icon--stt">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="7" width="20" height="14" rx="2"></rect>
                     <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
                   </svg>
-                  STT Warehouse
                 </div>
-                @if (distributorZmsFor(ss.sttId).length > 0) {
-                  <div class="ts-distributor-row">
-                    <span class="ts-distributor-label">Stock distributed by:</span>
-                    @for (zmName of distributorZmsFor(ss.sttId); track zmName) {
-                      <span class="ts-distributor-badge">{{ zmName }}</span>
-                    }
+                <div class="ts-section-row__content">
+                  <div class="ts-section-row__title">STT WAREHOUSE</div>
+                  <div class="ts-section-row__sub">
+                    @if (ss.items.length === 0) { No stock received yet. }
+                    @else { Click to view stock details }
                   </div>
-                }
-                @if (ss.items.length === 0) {
-                  <div class="ts-sub-empty">No stock received yet.</div>
-                } @else {
+                </div>
+                <svg class="ts-section-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+
+              @if (ss.items.length > 0) {
+                <div class="ts-section-detail">
+                  @if (distributorZmsFor(ss.sttId).length > 0) {
+                    <div class="ts-distributor-row">
+                      <span class="ts-distributor-label">Stock distributed by:</span>
+                      @for (zmName of distributorZmsFor(ss.sttId); track zmName) {
+                        <span class="ts-distributor-badge">{{ zmName }}</span>
+                      }
+                    </div>
+                  }
                   <div class="ts-table-wrap">
                     <table class="ts-table">
                       <thead>
@@ -151,29 +218,41 @@
                       </tbody>
                     </table>
                   </div>
-                }
-              </div>
+                </div>
+              }
 
-              <!-- TECHs under this STT -->
-              <div class="ts-section">
-                <div class="ts-section__title">
+              <!-- TECHs section row -->
+              <div class="ts-section-row">
+                <div class="ts-section-row__icon ts-section-row__icon--tech">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
                     <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
                   </svg>
-                  TECHs ({{ techStocksForStt(ss.sttId).length }})
                 </div>
-                @if (techStocksForStt(ss.sttId).length === 0) {
-                  <div class="ts-sub-empty">No TECHs have received stock from this STT yet.</div>
-                } @else {
+                <div class="ts-section-row__content">
+                  <div class="ts-section-row__title">TECHS ({{ techStocksForStt(ss.sttId).length }})</div>
+                  <div class="ts-section-row__sub">
+                    @if (techStocksForStt(ss.sttId).length === 0) {
+                      No TECHs have received stock from this STT yet.
+                    } @else {
+                      {{ techStocksForStt(ss.sttId).length }} tech{{ techStocksForStt(ss.sttId).length !== 1 ? 's' : '' }} with active inventory
+                    }
+                  </div>
+                </div>
+                <svg class="ts-section-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+
+              @if (techStocksForStt(ss.sttId).length > 0) {
+                <div class="ts-section-detail">
                   <div class="ts-tech-grid">
                     @for (ts of techStocksForStt(ss.sttId); track ts.techId) {
                       <div class="ts-tech-card">
                         <div class="ts-tech-card__head">
-                          <span class="ts-avatar"
-                                [class.ts-avatar--tech]="!isSelfExecutor(ts)"
-                                [class.ts-avatar--self]="isSelfExecutor(ts)">
+                          <span class="ts-avatar ts-avatar--sm"
+                                [style.background]="isSelfExecutor(ts) ? 'linear-gradient(135deg,#f59e0b,#b45309)' : 'linear-gradient(135deg,#10b981,#065f46)'">
                             {{ techInitials(ts.techId) }}
                           </span>
                           <span class="ts-tech-card__name">{{ techName(ts.techId) }}</span>
@@ -232,14 +311,46 @@
                       </div>
                     }
                   </div>
-                }
-              </div>
+                </div>
+              }
 
             </div>
           }
 
         </div>
       }
+    </div>
+
+    <!-- Pagination -->
+    <div class="ts-pagination">
+      <span class="ts-pagination__info">
+        Showing {{ showingFrom }} to {{ showingTo }} of {{ filteredSttStocks.length }} STTs
+      </span>
+      <div class="ts-pagination__controls">
+        <button class="ts-page-btn" (click)="setPage(page - 1)" [disabled]="page === 1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        @for (p of pageNumbers; track p) {
+          <button class="ts-page-btn" [class.ts-page-btn--active]="p === page" (click)="setPage(p)">
+            {{ p }}
+          </button>
+        }
+        <button class="ts-page-btn" (click)="setPage(page + 1)" [disabled]="page === totalPages">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+      <div class="ts-pagination__size">
+        <span>Rows per page:</span>
+        <select [value]="pageSize" (change)="onPageSizeChange($event)">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="25">25</option>
+        </select>
+      </div>
     </div>
   }
 
