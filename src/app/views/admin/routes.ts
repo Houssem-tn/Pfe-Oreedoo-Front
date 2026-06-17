@@ -85,6 +85,13 @@ export const routes: Routes = [
       import('./audits/stock-audit/stock-audit.component').then(m => m.StockAuditComponent)
   },
 
+  // Interventions auditing
+  {
+    path: 'audits/interventions',
+    loadComponent: () =>
+      import('./audits/interventions-audit/interventions-audit.component').then(m => m.InterventionsAuditComponent)
+  },
+
   // Stock Management
   {
     path: 'stock',

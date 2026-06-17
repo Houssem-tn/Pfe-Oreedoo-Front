@@ -23,6 +23,8 @@ import {
   RecordExternalApprovalRequest,
   RejectPermissionRequest,
   ReviewPermissionRequest,
+  StockAuditEntry,
+  StockAuditType,
   StockMovement,
   StockThreshold,
   StockThresholdRequest,
@@ -244,6 +246,13 @@ export class StockService {
 
   getCaseConsumptionSummary(): Observable<CaseConsumptionSummary> {
     return this.http.get<CaseConsumptionSummary>(`${this.baseUrl}/api/v1/stock-audit/summary`);
+  }
+
+  /** Unified Admin audit feed: DPM requests + material returns, newest first. */
+  adminGetStockAuditEntries(type: StockAuditType | 'ALL' = 'ALL'): Observable<StockAuditEntry[]> {
+    return this.http.get<StockAuditEntry[]>(`${this.baseUrl}/api/v1/stock-audit/entries`, {
+      params: { type }
+    });
   }
 
   // ── Stock Thresholds (ZM) ──────────────────────────────────────────────────

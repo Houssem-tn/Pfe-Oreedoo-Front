@@ -27,7 +27,7 @@ export const navStt: INavData[] = [
     iconComponent: { name: 'cilNotes' }
   },
   {
-    name: 'RES Execution',
+    name: 'Resiliation Cases',
     url: '/stt/res-execution',
     iconComponent: { name: 'cilNotes' }
   },

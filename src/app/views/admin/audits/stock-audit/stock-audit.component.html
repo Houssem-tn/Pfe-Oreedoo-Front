@@ -17,18 +17,56 @@
         </svg>
         Stock Audit
       </div>
-      <h1 class="sa-title">{{ activeTab === 'dpm' ? 'DPM Audit Trail' : 'Case Consumption Audit' }}</h1>
+      <h1 class="sa-title">
+        @switch (activeTab) {
+          @case ('feed') { Stock Audit Feed }
+          @case ('dpm') { DPM Audit Trail }
+          @default { Case Consumption Audit }
+        }
+      </h1>
       <p class="sa-desc">
-        @if (activeTab === 'dpm') {
-          Full traceability — ZM requests, STT confirmations, quantities, dates, and TECH distributions.
-        } @else {
-          Per-case stock consumption — equipment used, quantities, before/after stock, by technician.
+        @switch (activeTab) {
+          @case ('feed') {
+            Unified trail of DPM distributions and material returns — actors, items, quantities, status, and dates.
+          }
+          @case ('dpm') {
+            Full traceability — ZM requests, STT confirmations, quantities, dates, and TECH distributions.
+          }
+          @default {
+            Per-case stock consumption — equipment used, quantities, before/after stock, by technician.
+          }
         }
       </p>
     </div>
 
     <div class="sa-stats">
-      @if (activeTab === 'dpm') {
+      @if (activeTab === 'feed') {
+        <div class="sa-stat">
+          <span class="sa-stat__value">{{ feedCount('ALL') }}</span>
+          <span class="sa-stat__label">Total</span>
+          <span class="sa-stat__dot sa-stat__dot--total"></span>
+        </div>
+        <div class="sa-stat">
+          <span class="sa-stat__value">{{ feedCount('DPM') }}</span>
+          <span class="sa-stat__label">DPM</span>
+          <span class="sa-stat__dot sa-stat__dot--total"></span>
+        </div>
+        <div class="sa-stat">
+          <span class="sa-stat__value">{{ feedCount('RETURN_MATERIAL') }}</span>
+          <span class="sa-stat__label">Returns</span>
+          <span class="sa-stat__dot sa-stat__dot--rejected"></span>
+        </div>
+        <div class="sa-stat">
+          <span class="sa-stat__value">{{ feedCountByCategory('PENDING') }}</span>
+          <span class="sa-stat__label">Pending</span>
+          <span class="sa-stat__dot sa-stat__dot--pending"></span>
+        </div>
+        <div class="sa-stat">
+          <span class="sa-stat__value">{{ feedCountByCategory('COMPLETED') }}</span>
+          <span class="sa-stat__label">Completed</span>
+          <span class="sa-stat__dot sa-stat__dot--confirmed"></span>
+        </div>
+      } @else if (activeTab === 'dpm') {
         <div class="sa-stat">
           <span class="sa-stat__value">{{ zmCards.length }}</span>
           <span class="sa-stat__label">ZMs</span>
@@ -81,6 +119,18 @@
 
   <!-- ══ Top-level audit tab toggle ══ -->
   <div class="sa-audit-tabs">
+    <button class="sa-audit-tab" [class.sa-audit-tab--active]="activeTab === 'feed'"
+            type="button" (click)="switchTab('feed')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="8" y1="6" x2="21" y2="6"></line>
+        <line x1="8" y1="12" x2="21" y2="12"></line>
+        <line x1="8" y1="18" x2="21" y2="18"></line>
+        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+      </svg>
+      Audit Feed
+    </button>
     <button class="sa-audit-tab" [class.sa-audit-tab--active]="activeTab === 'dpm'"
             type="button" (click)="switchTab('dpm')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -99,6 +149,346 @@
       Case Consumption Audit
     </button>
   </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--                  UNIFIED AUDIT FEED TAB                -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  @if (activeTab === 'feed') {
+
+    <!-- All / DPM / Returns segmented filter -->
+    <div class="sa-view-toggle">
+      <button class="sa-view-btn" [class.sa-view-btn--active]="feedTypeFilter === 'ALL'"
+              type="button" (click)="setFeedType('ALL')">
+        All
+        <span class="sa-view-count">{{ feedCount('ALL') }}</span>
+      </button>
+      <button class="sa-view-btn" [class.sa-view-btn--active]="feedTypeFilter === 'DPM'"
+              type="button" (click)="setFeedType('DPM')">
+        <span class="sa-type-badge sa-type-badge--dpm">DPM</span>
+        <span class="sa-view-count">{{ feedCount('DPM') }}</span>
+      </button>
+      <button class="sa-view-btn" [class.sa-view-btn--active]="feedTypeFilter === 'RETURN_MATERIAL'"
+              type="button" (click)="setFeedType('RETURN_MATERIAL')">
+        <span class="sa-type-badge sa-type-badge--return">RETURN</span>
+        <span class="sa-view-count">{{ feedCount('RETURN_MATERIAL') }}</span>
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="sa-cons-filters">
+      <div class="sa-search-wrap">
+        <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input class="sa-search" type="text" [(ngModel)]="feedSearch" (ngModelChange)="resetFeedPage()"
+               placeholder="Search reference, actor, STT, ZM, equipment, case…" />
+      </div>
+
+      <select class="sa-cons-select" [(ngModel)]="feedStatusFilter" (ngModelChange)="resetFeedPage()">
+        <option value="">All statuses</option>
+        <option value="PENDING">Pending</option>
+        <option value="IN_PROGRESS">In progress</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="REJECTED">Rejected</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+
+      <select class="sa-cons-select" [(ngModel)]="feedRoleFilter" (ngModelChange)="resetFeedPage()">
+        <option value="">All roles</option>
+        <option value="ZM">ZM</option>
+        <option value="STT">STT</option>
+        <option value="TECH">TECH</option>
+      </select>
+
+      <input class="sa-cons-select" type="date" [(ngModel)]="feedFrom" (ngModelChange)="resetFeedPage()"
+             title="From date" />
+      <input class="sa-cons-select" type="date" [(ngModel)]="feedTo" (ngModelChange)="resetFeedPage()"
+             title="To date" />
+
+      <span class="sa-count">{{ filteredFeed.length }} record{{ filteredFeed.length !== 1 ? 's' : '' }}</span>
+    </div>
+
+    @if (feedError) {
+      <div class="sa-alert">{{ feedError }}</div>
+    }
+
+    @if (loadingFeed) {
+      <div class="sa-loading">
+        <c-spinner size="sm"></c-spinner>
+        <span>Loading audit feed…</span>
+      </div>
+    }
+
+    @if (!loadingFeed && filteredFeed.length === 0 && !feedError) {
+      <div class="sa-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>No audit records found.</span>
+      </div>
+    }
+
+    @if (!loadingFeed && filteredFeed.length > 0) {
+      <div class="sa-card">
+        <div class="sa-dpm-list">
+          @for (entry of pagedFeed; track entry.auditType + entry.id) {
+            <div class="sa-audit-row"
+                 [class.sa-dpm-row--pending]="entry.statusCategory === 'PENDING'"
+                 [class.sa-dpm-row--partial]="entry.statusCategory === 'IN_PROGRESS'"
+                 [class.sa-dpm-row--confirmed]="entry.statusCategory === 'CONFIRMED' || entry.statusCategory === 'COMPLETED'"
+                 [class.sa-dpm-row--rejected]="entry.statusCategory === 'REJECTED'"
+                 [class.sa-dpm-row--cancelled]="entry.statusCategory === 'CANCELLED'"
+                 (click)="openFeedEntry(entry)">
+
+              <div class="sa-audit-row__top">
+                <span class="sa-type-badge"
+                      [class.sa-type-badge--dpm]="entry.auditType === 'DPM'"
+                      [class.sa-type-badge--return]="entry.auditType === 'RETURN_MATERIAL'">
+                  {{ entry.auditType === 'DPM' ? 'DPM' : 'RETURN' }}
+                </span>
+                <span class="sa-dpm-num">{{ entry.reference }}</span>
+
+                <div class="sa-dpm-actors">
+                  @if (entry.actorRole) {
+                    <span class="sa-role-badge"
+                          [class.sa-role-badge--zm]="entry.actorRole === 'ZM'"
+                          [class.sa-role-badge--stt]="entry.actorRole === 'STT'"
+                          [class.sa-role-badge--tech]="entry.actorRole === 'TECH'">
+                      {{ entry.actorRole }}
+                    </span>
+                  }
+                  <span class="sa-dpm-actor-name">{{ entry.actorName ?? '—' }}</span>
+                </div>
+
+                <span class="sa-pill"
+                      [class.sa-pill--pending]="entry.statusCategory === 'PENDING'"
+                      [class.sa-pill--inprogress]="entry.statusCategory === 'IN_PROGRESS'"
+                      [class.sa-pill--confirmed]="entry.statusCategory === 'CONFIRMED'"
+                      [class.sa-pill--completed]="entry.statusCategory === 'COMPLETED'"
+                      [class.sa-pill--rejected]="entry.statusCategory === 'REJECTED'"
+                      [class.sa-pill--cancelled]="entry.statusCategory === 'CANCELLED'">
+                  {{ entry.statusLabel ?? entry.status }}
+                </span>
+
+                <span class="sa-audit-date">{{ entry.updatedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+                <svg class="sa-dpm-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M9 18l6-6-6-6"></path>
+                </svg>
+              </div>
+
+              <div class="sa-audit-row__items">
+                <span class="sa-feed-parties">
+                  <span class="sa-role-badge sa-role-badge--stt">STT</span>
+                  <span class="sa-dpm-actor-name">{{ entry.sttName ?? '—' }}</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--sa-muted);flex-shrink:0">
+                    <path d="M5 12h14M12 5l7 7-7 7"></path>
+                  </svg>
+                  <span class="sa-role-badge sa-role-badge--zm">ZM</span>
+                  <span class="sa-dpm-actor-name">{{ entry.zmName ?? '—' }}</span>
+                </span>
+
+                @for (item of entry.items; track $index) {
+                  <span class="sa-audit-item-chip">
+                    {{ item.equipmentName ?? item.equipmentId }}
+                    <span class="sa-audit-item-chip__req">
+                      {{ item.unit === 'METERS' ? item.quantity + ' m' : '×' + item.quantity }}
+                    </span>
+                  </span>
+                }
+
+                @if (entry.auditType === 'RETURN_MATERIAL' && entry.reason) {
+                  <span class="sa-reason-chip">{{ reasonLabel(entry.reason) }}</span>
+                }
+                @if (entry.crmCase || entry.relatedCaseId) {
+                  <span class="sa-case-chip">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    {{ entry.crmCase ?? entry.relatedCaseId }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      @if (feedTotalPages > 1) {
+        <div class="sa-feed-pager">
+          <button class="sa-pager-btn" type="button" [disabled]="feedPage === 1" (click)="prevFeedPage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"></path></svg>
+            Prev
+          </button>
+          <span class="sa-pager-info">Page {{ feedPage }} / {{ feedTotalPages }}</span>
+          <button class="sa-pager-btn" type="button" [disabled]="feedPage === feedTotalPages" (click)="nextFeedPage()">
+            Next
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"></path></svg>
+          </button>
+        </div>
+      }
+    }
+
+    <!-- ── Return Material detail panel ──────────────────────────────────── -->
+    @if (selectedReturn && returnDetailVisible) {
+      <div class="sa-backdrop" (click)="closeReturnDetail()">
+        <div class="sa-panel sa-panel--wide" (click)="$event.stopPropagation()">
+
+          <div class="sa-panel-head">
+            <div class="sa-panel-head__left">
+              <span class="sa-type-badge sa-type-badge--return">RETURN</span>
+              <span class="sa-panel-dpm">{{ selectedReturn.reference }}</span>
+              <span class="sa-pill"
+                    [class.sa-pill--pending]="selectedReturn.statusCategory === 'PENDING'"
+                    [class.sa-pill--inprogress]="selectedReturn.statusCategory === 'IN_PROGRESS'"
+                    [class.sa-pill--confirmed]="selectedReturn.statusCategory === 'CONFIRMED'"
+                    [class.sa-pill--completed]="selectedReturn.statusCategory === 'COMPLETED'"
+                    [class.sa-pill--rejected]="selectedReturn.statusCategory === 'REJECTED'"
+                    [class.sa-pill--cancelled]="selectedReturn.statusCategory === 'CANCELLED'">
+                {{ selectedReturn.statusLabel ?? selectedReturn.status }}
+              </span>
+            </div>
+            <button class="sa-panel-close" type="button" (click)="closeReturnDetail()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="sa-flow" style="padding:1.25rem">
+
+            <!-- Parties -->
+            <div class="sa-section-title">Parties</div>
+            <div class="sa-cons-actors-row">
+              <div class="sa-actor-card">
+                <div class="sa-actor-av sa-actor-av--stt">{{ nameInitials(selectedReturn.sttName ?? '?') }}</div>
+                <div class="sa-actor-info">
+                  <span class="sa-actor-name">{{ selectedReturn.sttName ?? '—' }}</span>
+                  <span class="sa-role-badge sa-role-badge--stt">STT</span>
+                </div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--sa-muted);flex-shrink:0;margin:auto 0">
+                <path d="M5 12h14M12 5l7 7-7 7"></path>
+              </svg>
+              <div class="sa-actor-card">
+                <div class="sa-actor-av sa-actor-av--zm">{{ nameInitials(selectedReturn.zmName ?? '?') }}</div>
+                <div class="sa-actor-info">
+                  <span class="sa-actor-name">{{ selectedReturn.zmName ?? '—' }}</span>
+                  <span class="sa-role-badge sa-role-badge--zm">ZM</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Classification -->
+            <div class="sa-section-title" style="margin-top:1.25rem">Return Details</div>
+            <div class="sa-cons-detail-grid">
+              <div class="sa-detail-row">
+                <span class="sa-detail-label">Reason</span>
+                <span class="sa-detail-value">{{ reasonLabel(selectedReturn.reason) }}</span>
+              </div>
+              @if (selectedReturn.returnSource) {
+                <div class="sa-detail-row">
+                  <span class="sa-detail-label">Source</span>
+                  <span class="sa-detail-value">{{ prettyEnum(selectedReturn.returnSource) }}</span>
+                </div>
+              }
+              @if (selectedReturn.returnCondition) {
+                <div class="sa-detail-row">
+                  <span class="sa-detail-label">Condition</span>
+                  <span class="sa-detail-value">{{ prettyEnum(selectedReturn.returnCondition) }}</span>
+                </div>
+              }
+              @if (selectedReturn.destination) {
+                <div class="sa-detail-row">
+                  <span class="sa-detail-label">Destination</span>
+                  <span class="sa-detail-value">{{ prettyEnum(selectedReturn.destination) }}</span>
+                </div>
+              }
+              @if (selectedReturn.crmCase || selectedReturn.relatedCaseId) {
+                <div class="sa-detail-row">
+                  <span class="sa-detail-label">Related Case</span>
+                  <span class="sa-detail-value">
+                    {{ selectedReturn.crmCase ?? selectedReturn.relatedCaseId }}
+                    @if (selectedReturn.relatedCaseType) { <span class="sa-muted-text">({{ selectedReturn.relatedCaseType }})</span> }
+                  </span>
+                </div>
+              }
+              <div class="sa-detail-row">
+                <span class="sa-detail-label">Created</span>
+                <span class="sa-detail-value">{{ selectedReturn.createdAt | date:'dd MMM yyyy, HH:mm' }}</span>
+              </div>
+              <div class="sa-detail-row">
+                <span class="sa-detail-label">Last Update</span>
+                <span class="sa-detail-value">{{ selectedReturn.updatedAt | date:'dd MMM yyyy, HH:mm' }}</span>
+              </div>
+              @if (selectedReturn.notes) {
+                <div class="sa-detail-row">
+                  <span class="sa-detail-label">Notes</span>
+                  <span class="sa-detail-value">{{ selectedReturn.notes }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Items -->
+            <div class="sa-section-title" style="margin-top:1.25rem">
+              Items — {{ selectedReturn.items.length }} item{{ selectedReturn.items.length !== 1 ? 's' : '' }}
+            </div>
+            @if (selectedReturn.items.length > 0) {
+              <div class="sa-usage-table">
+                <div class="sa-usage-row sa-usage-row--head">
+                  <span>Equipment</span>
+                  <span class="sa-usage-cell--center">Quantity</span>
+                  <span class="sa-usage-cell--center">Condition</span>
+                </div>
+                @for (item of selectedReturn.items; track $index) {
+                  <div class="sa-usage-row">
+                    <span class="sa-usage-name">{{ item.equipmentName ?? item.equipmentId }}</span>
+                    <span class="sa-usage-qty">{{ item.unit === 'METERS' ? item.quantity + ' m' : item.quantity }}</span>
+                    <span class="sa-usage-unit">{{ item.condition ? prettyEnum(item.condition) : '—' }}</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="sa-muted-text" style="font-size:0.875rem">No items recorded.</p>
+            }
+
+            <!-- Lifecycle timeline -->
+            @if (selectedReturn.timeline.length > 0) {
+              <div class="sa-section-title" style="margin-top:1.25rem">Lifecycle</div>
+              <div class="sa-mini-tl" style="margin-top:0.5rem">
+                @for (ev of selectedReturn.timeline; track $index) {
+                  <div class="sa-mini-tl__entry">
+                    <div class="sa-mini-tl__dot"></div>
+                    <div>
+                      <div class="sa-mini-tl__meta">
+                        {{ ev.timestamp | date:'dd/MM/yy HH:mm' }}
+                        @if (ev.actorRole) { · {{ ev.actorRole }} }
+                        @if (ev.actorName) { · {{ ev.actorName }} }
+                      </div>
+                      <div class="sa-mini-tl__desc">{{ ev.description ?? ev.eventType }}</div>
+                      @if (ev.note) { <div class="sa-mini-tl__note">{{ ev.note }}</div> }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+          </div>
+
+          <div class="sa-panel-foot">
+            <button class="sa-panel-foot__btn" type="button" (click)="closeReturnDetail()">Close</button>
+          </div>
+
+        </div>
+      </div>
+    }
+
+  } <!-- end @if activeTab === 'feed' -->
 
   <!-- ══════════════════════════════════════════════════════ -->
   <!--                    DPM FLOW TAB                       -->

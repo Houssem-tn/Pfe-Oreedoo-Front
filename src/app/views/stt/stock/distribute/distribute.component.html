@@ -46,53 +46,46 @@
             </app-searchable-select>
           </div>
 
-          <!-- Step 2: Select DPM -->
+          <!-- Step 2: Pick items from your stock -->
           <div class="dist-step">
             <div class="dist-step__label">
-              <span class="dist-step__num">2</span> Select DPM to distribute from
+              <span class="dist-step__num">2</span> Select items from your stock
             </div>
-            @if (distributableDpms.length === 0) {
-              <div class="dist-no-dpms">No confirmed DPMs with remaining stock.</div>
+            @if (availableItems.length === 0) {
+              <div class="dist-no-dpms">No stock available to distribute.</div>
             } @else {
-              <div class="dist-dpm-grid">
-                @for (dpm of distributableDpms; track dpm.id) {
-                  <div class="dist-dpm-card"
-                       [class.dist-dpm-card--selected]="selectedDpmId === dpm.id"
-                       (click)="onDpmSelect(dpm.id)">
-                    <div class="dist-dpm-card__head">
-                      <span class="dist-dpm-card__num">{{ dpm.dpmNumber }}</span>
-                      <span class="dist-dpm-status"
-                            [class.dist-dpm-status--full]="dpm.status === 'FULLY_CONFIRMED'"
-                            [class.dist-dpm-status--partial]="dpm.status === 'PARTIALLY_CONFIRMED'">
-                        {{ dpm.status === 'FULLY_CONFIRMED' ? 'Full' : 'Partial' }}
-                      </span>
-                    </div>
-                    <div class="dist-dpm-card__zm">ZM: {{ dpm.zmName }}</div>
-                    <div class="dist-dpm-card__items">
-                      @for (item of dpm.items; track item.equipmentId) {
-                        <span class="dist-dpm-item-chip">
-                          {{ item.equipmentName }}:
-                          <strong>{{ item.remainingQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
-                          <small>/ {{ item.confirmedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</small>
-                        </span>
+              <div class="dist-stock-grid">
+                @for (item of availableItems; track item.equipmentId) {
+                  <button type="button" class="dist-stock-card"
+                          [class.dist-stock-card--selected]="isSelected(item.equipmentId)"
+                          (click)="toggleItem(item)">
+                    <span class="dist-stock-card__check">
+                      @if (isSelected(item.equipmentId)) {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                       }
-                    </div>
-                  </div>
+                    </span>
+                    <span class="dist-stock-card__name">{{ item.equipmentName }}</span>
+                    <span class="dist-stock-card__avail">
+                      {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }} available
+                    </span>
+                  </button>
                 }
               </div>
             }
           </div>
 
           <!-- Step 3: Configure quantities -->
-          @if (selectedDpm) {
+          @if (lines.length > 0) {
             <div class="dist-step">
               <div class="dist-step__label">
                 <span class="dist-step__num">3</span>
-                Adjust quantities — distributing from <strong>{{ selectedDpm.dpmNumber }}</strong>
+                Set quantities to distribute
               </div>
 
               <div class="dist-lines-list">
-                @for (line of lines; track $index; let i = $index) {
+                @for (line of lines; track line.equipmentId; let i = $index) {
                   <div class="dist-line-card">
                     <div class="dist-line-row">
                       <span class="dist-line-name">{{ line.equipmentName }}</span>
@@ -115,9 +108,6 @@
                       <div class="dist-line-warning">Exceeds available quantity!</div>
                     }
                   </div>
-                }
-                @if (lines.length === 0) {
-                  <div class="dist-lines-empty">All items removed — select a DPM again to reset.</div>
                 }
               </div>
 
@@ -154,7 +144,7 @@
             <thead>
               <tr>
                 <th>TECH</th>
-                <th>DPM</th>
+                <th>Source</th>
                 <th>Items</th>
                 <th>Date</th>
                 <th>Notes</th>
@@ -170,11 +160,7 @@
                     }
                   </td>
                   <td>
-                    @if (d.dpmId) {
-                      <span class="dist-dpm-ref">{{ dpmLabel(d) }}</span>
-                    } @else {
-                      <span style="color:#94a3b8">—</span>
-                    }
+                    <span class="dist-dpm-ref" [class.dist-dpm-ref--stock]="!d.dpmId">{{ sourceLabel(d) }}</span>
                   </td>
                   <td>
                     @for (i of d.items; track i.equipmentId) {

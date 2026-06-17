@@ -319,6 +319,75 @@ export interface CaseConsumptionFilters {
   to?: string;
 }
 
+// ── Unified Stock Audit Feed (DPM + Material Returns) ─────────────────────────
+
+export type StockAuditType = 'DPM' | 'RETURN_MATERIAL';
+
+export type StockAuditStatusCategory =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export interface StockAuditItem {
+  equipmentId?: string;
+  equipmentName?: string;
+  unit?: string;
+  quantity: number;
+  /** Returned-item condition (GOOD / DAMAGED / ...). Absent for DPM items. */
+  condition?: string;
+}
+
+export interface StockAuditEvent {
+  eventType?: string;
+  description?: string;
+  actorName?: string;
+  actorRole?: string;
+  timestamp?: string;
+  note?: string;
+}
+
+export interface StockAuditEntry {
+  auditType: StockAuditType;
+  id: string;
+  reference?: string;
+
+  status?: string;
+  statusLabel?: string;
+  statusCategory?: StockAuditStatusCategory;
+
+  actorName?: string;
+  actorRole?: string;
+
+  sttId?: string;
+  sttName?: string;
+  zmId?: string;
+  zmName?: string;
+  technicianName?: string;
+
+  items: StockAuditItem[];
+  totalQuantity?: number;
+
+  // Return-specific (absent for DPM)
+  reason?: string;
+  returnSource?: string;
+  returnCondition?: string;
+  destination?: string;
+
+  relatedCaseId?: string;
+  crmCase?: string;
+  relatedCaseType?: string;
+
+  notes?: string;
+
+  createdAt?: string;
+  updatedAt?: string;
+
+  timeline: StockAuditEvent[];
+}
+
 // ── Case Usage Limits (TECH proactive detection) ──────────────────────────────
 
 export interface CaseLimitItem {

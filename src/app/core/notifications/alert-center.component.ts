@@ -1,5 +1,5 @@
-import { DatePipe, NgClass } from '@angular/common';
-import { Component, inject, signal, computed } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { Component, inject, signal, computed, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { SpinnerComponent } from '@coreui/angular';
@@ -15,99 +15,164 @@ import {
 import { NotificationStoreService } from './notification-store.service';
 import { AuthStore } from '../auth/auth.store';
 
+type Tab            = 'ACTIVE' | 'ARCHIVED';
 type LevelFilter    = 'ALL' | AlertLevel;
 type CategoryFilter = 'ALL' | AlertCategory;
+
+/** One of the six headline metric tiles. */
+interface SummaryCard {
+  key:      string;
+  count:    number;
+  label:    string;
+  sublabel: string;
+  icon:     string;
+  tone:     string;
+}
 
 @Component({
   selector: 'app-alert-center',
   standalone: true,
-  imports: [NgClass, DatePipe, IconDirective, SpinnerComponent],
+  imports: [IconDirective, SpinnerComponent],
   templateUrl: './alert-center.component.html',
   styleUrls: ['./alert-center.component.scss']
 })
 export class AlertCenterComponent {
-  readonly store    = inject(NotificationStoreService);
+  readonly store             = inject(NotificationStoreService);
   private readonly router    = inject(Router);
   private readonly authStore = inject(AuthStore);
 
-  readonly activeLevelFilter    = signal<LevelFilter>('ALL');
-  readonly activeCategoryFilter = signal<CategoryFilter>('ALL');
-  readonly compact              = signal(false);
-  readonly selectedIds          = signal<Set<string>>(new Set());
+  // ── View state ────────────────────────────────────────────────────────
+  readonly activeTab       = signal<Tab>('ACTIVE');
+  readonly searchTerm      = signal('');
+  readonly fromDate        = signal('');
+  readonly toDate          = signal('');
+  readonly typeFilter      = signal<CategoryFilter>('ALL');
+  readonly severityFilter  = signal<LevelFilter>('ALL');
 
-  // ── Severity counters ────────────────────────────────────────────────
+  readonly categoryOptions: { value: CategoryFilter; label: string }[] = [
+    { value: 'ALL',             label: 'All Types' },
+    { value: 'SLA',             label: 'SLA' },
+    { value: 'CASE',            label: 'Cases' },
+    { value: 'STOCK',           label: 'Stock' },
+    { value: 'MATERIAL_RETURN', label: 'Material Returns' },
+    { value: 'DPM',             label: 'DPM' },
+    { value: 'PERMISSION',      label: 'Permissions' },
+    { value: 'USER',            label: 'Users' },
+    { value: 'SYSTEM',          label: 'System' },
+  ];
+
+  readonly severityOptions: { value: LevelFilter; label: string }[] = [
+    { value: 'ALL',      label: 'All Severities' },
+    { value: 'CRITICAL', label: 'Critical' },
+    { value: 'WARNING',  label: 'Warning' },
+    { value: 'INFO',     label: 'Info' },
+  ];
+
+  // ── Severity / category counters (scoped to active, unread alerts) ─────
+  private readonly activePool = computed(() =>
+    this.store.alertsByLevel().filter(n => !n.read)
+  );
 
   readonly criticalCount = computed(() =>
-    this.store.alertsByLevel().filter(n => effectiveLevel(n) === 'CRITICAL').length
+    this.activePool().filter(n => effectiveLevel(n) === 'CRITICAL').length
   );
   readonly warningCount = computed(() =>
-    this.store.alertsByLevel().filter(n => effectiveLevel(n) === 'WARNING').length
+    this.activePool().filter(n => effectiveLevel(n) === 'WARNING').length
   );
   readonly infoCount = computed(() =>
-    this.store.alertsByLevel().filter(n => effectiveLevel(n) === 'INFO').length
+    this.activePool().filter(n => effectiveLevel(n) === 'INFO').length
   );
 
-  // ── Category counters ────────────────────────────────────────────────
-
-  readonly categoryCounters = computed(() => {
+  private readonly categoryCounters = computed(() => {
     const counts: Record<AlertCategory, number> = {
       DPM: 0, STOCK: 0, MATERIAL_RETURN: 0, CASE: 0, PERMISSION: 0, USER: 0, SLA: 0, SYSTEM: 0
     };
-    for (const n of this.store.alertsByLevel()) {
+    for (const n of this.activePool()) {
       counts[effectiveCategory(n)]++;
     }
     return counts;
   });
 
-  categoryCount(cat: AlertCategory): number {
-    return this.categoryCounters()[cat];
-  }
+  /** The six headline tiles, mirroring the design, driven by live counts. */
+  readonly summaryCards = computed<SummaryCard[]>(() => {
+    const c = this.categoryCounters();
+    return [
+      { key: 'critical', count: this.criticalCount(),                label: 'Critical', sublabel: 'SLA Risk',         icon: 'cilXCircle',     tone: 'crit'   },
+      { key: 'warning',  count: this.warningCount(),                 label: 'Warnings', sublabel: 'Low Stock',        icon: 'cilWarning',     tone: 'warn'   },
+      { key: 'returns',  count: c.MATERIAL_RETURN,                   label: 'Pending',  sublabel: 'Material Returns', icon: 'cilReload',      tone: 'info'   },
+      { key: 'cases',    count: c.CASE + c.SLA,                      label: 'Active',   sublabel: 'Case Escalations', icon: 'cilChart',       tone: 'purple' },
+      { key: 'team',     count: c.USER + c.PERMISSION,               label: 'Team',     sublabel: 'Check-ins',        icon: 'cilPeople',      tone: 'green'  },
+      { key: 'urgent',   count: this.store.unreadCriticalCount(),    label: 'Urgent',   sublabel: 'Coverage Issue',   icon: 'cilLocationPin', tone: 'rose'   },
+    ];
+  });
 
-  // ── Filtered list (level ∩ category) ────────────────────────────────
+  // ── Tab + filter pipeline ─────────────────────────────────────────────
+  private readonly tabbedAlerts = computed(() => {
+    const archived = this.activeTab() === 'ARCHIVED';
+    return this.store.alertsByLevel().filter(n => archived ? n.read : !n.read);
+  });
 
   readonly filtered = computed(() => {
-    const lf = this.activeLevelFilter();
-    const cf = this.activeCategoryFilter();
-    return this.store.alertsByLevel().filter(n => {
-      const levelOk    = lf === 'ALL' || effectiveLevel(n) === lf;
-      const categoryOk = cf === 'ALL' || effectiveCategory(n) === cf;
-      return levelOk && categoryOk;
+    const term = this.searchTerm().trim().toLowerCase();
+    const sev  = this.severityFilter();
+    const cat  = this.typeFilter();
+    const from = this.fromDate() ? new Date(this.fromDate()).getTime() : null;
+    const to   = this.toDate()   ? new Date(this.toDate()).getTime() + 86_400_000 : null; // inclusive end-of-day
+
+    return this.tabbedAlerts().filter(n => {
+      if (sev !== 'ALL' && effectiveLevel(n) !== sev)    return false;
+      if (cat !== 'ALL' && effectiveCategory(n) !== cat) return false;
+
+      const t = new Date(n.createdAt).getTime();
+      if (from !== null && t < from) return false;
+      if (to   !== null && t >= to)  return false;
+
+      if (term) {
+        const hay = `${n.title} ${n.message} ${this.cardSubtitle(n)}`.toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
     });
   });
 
-  readonly allSelected = computed(() => {
-    const ids   = this.selectedIds();
-    const items = this.filtered();
-    return items.length > 0 && items.every(i => ids.has(i.id));
-  });
+  readonly hasActiveFilters = computed(() =>
+    this.searchTerm().trim() !== '' ||
+    this.fromDate() !== '' ||
+    this.toDate() !== '' ||
+    this.typeFilter() !== 'ALL' ||
+    this.severityFilter() !== 'ALL'
+  );
 
-  readonly selectionCount = computed(() => this.selectedIds().size);
+  readonly activeCount   = computed(() => this.store.alertsByLevel().filter(n => !n.read).length);
+  readonly archivedCount = computed(() => this.store.alertsByLevel().filter(n =>  n.read).length);
 
-  // ── Pagination ───────────────────────────────────────────────────────
-
-  readonly currentPage  = signal(1);
-  readonly pageSize     = 10 as const;
+  // ── Pagination ────────────────────────────────────────────────────────
+  readonly pageSize    = 9 as const;        // 3 rows × 3 columns
+  readonly currentPage = signal(1);
 
   readonly totalPages = computed(() =>
     Math.max(1, Math.ceil(this.filtered().length / this.pageSize))
   );
 
-  readonly paginatedItems = computed(() => {
-    const start = (this.currentPage() - 1) * this.pageSize;
+  /** Page index clamped to the valid range — the source of truth for the UI. */
+  readonly activePage = computed(() => Math.min(this.currentPage(), this.totalPages()));
+
+  readonly paginated = computed(() => {
+    const start = (this.activePage() - 1) * this.pageSize;
     return this.filtered().slice(start, start + this.pageSize);
   });
 
   readonly pageRangeLabel = computed(() => {
     const total = this.filtered().length;
-    if (total === 0) return '0 results';
-    const start = (this.currentPage() - 1) * this.pageSize + 1;
-    const end   = Math.min(this.currentPage() * this.pageSize, total);
+    if (total === 0) return '0 alerts';
+    const start = (this.activePage() - 1) * this.pageSize + 1;
+    const end   = Math.min(this.activePage() * this.pageSize, total);
     return `${start}–${end} of ${total}`;
   });
 
   readonly visiblePages = computed<(number | '...')[]>(() => {
     const total   = this.totalPages();
-    const current = this.currentPage();
+    const current = this.activePage();
     if (total <= 7) {
       return Array.from({ length: total }, (_, i) => i + 1);
     }
@@ -121,85 +186,60 @@ export class AlertCenterComponent {
     return pages;
   });
 
+  constructor() {
+    // Keep the page in range when the list shrinks (e.g. dismissing the last card on a page).
+    effect(() => {
+      const tp = this.totalPages();
+      if (this.currentPage() > tp) {
+        this.currentPage.set(tp);
+      }
+    });
+  }
+
   goToPage(n: number | '...'): void {
-    if (typeof n === 'number') {
-      this.currentPage.set(Math.max(1, Math.min(n, this.totalPages())));
-    }
+    if (typeof n !== 'number') return;
+    this.currentPage.set(Math.max(1, Math.min(n, this.totalPages())));
   }
 
-  // ── Filter / selection ──────────────────────────────────────────────
-
-  setLevelFilter(f: LevelFilter): void {
-    this.activeLevelFilter.set(f);
+  // ── State mutators ────────────────────────────────────────────────────
+  setTab(tab: Tab): void {
+    this.activeTab.set(tab);
     this.currentPage.set(1);
-    this.clearSelection();
   }
 
-  setCategoryFilter(f: CategoryFilter): void {
-    this.activeCategoryFilter.set(f);
+  onSearch(value: string): void       { this.searchTerm.set(value);   this.currentPage.set(1); }
+  onFromDate(value: string): void     { this.fromDate.set(value);     this.currentPage.set(1); }
+  onToDate(value: string): void       { this.toDate.set(value);       this.currentPage.set(1); }
+  onType(value: string): void         { this.typeFilter.set(value as CategoryFilter); this.currentPage.set(1); }
+  onSeverity(value: string): void     { this.severityFilter.set(value as LevelFilter); this.currentPage.set(1); }
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.fromDate.set('');
+    this.toDate.set('');
+    this.typeFilter.set('ALL');
+    this.severityFilter.set('ALL');
     this.currentPage.set(1);
-    this.clearSelection();
-  }
-
-  toggleCompact(): void {
-    this.compact.update(v => !v);
   }
 
   trackById(_: number, item: NotificationItem): string {
     return item.id;
   }
 
-  markRead(item: NotificationItem, event: Event): void {
-    event.stopPropagation();
-    this.store.markAsRead(item.id);
-  }
+  // ── Card visuals ──────────────────────────────────────────────────────
 
-  toggleSelect(id: string, event: Event): void {
-    event.stopPropagation();
-    this.selectedIds.update(set => {
-      const next = new Set(set);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
-  isSelected(id: string): boolean {
-    return this.selectedIds().has(id);
-  }
-
-  toggleSelectAll(): void {
-    if (this.allSelected()) {
-      this.clearSelection();
-    } else {
-      this.selectedIds.set(new Set(this.filtered().map(i => i.id)));
+  /** Accent / icon tone keyed off business category for a colourful board. */
+  cardTone(item: NotificationItem): string {
+    switch (effectiveCategory(item)) {
+      case 'SLA':             return 'crit';
+      case 'STOCK':           return 'warn';
+      case 'MATERIAL_RETURN': return 'info';
+      case 'CASE':            return 'purple';
+      case 'DPM':             return 'teal';
+      case 'PERMISSION':      return 'indigo';
+      case 'USER':            return 'green';
+      default:                return 'slate';
     }
-  }
-
-  clearSelection(): void {
-    this.selectedIds.set(new Set());
-  }
-
-  markSelectedRead(): void {
-    for (const id of this.selectedIds()) {
-      this.store.markAsRead(id);
-    }
-    this.clearSelection();
-  }
-
-  // ── Severity helpers ─────────────────────────────────────────────────
-
-  isCritical(item: NotificationItem): boolean {
-    return effectiveLevel(item) === 'CRITICAL';
-  }
-
-  isWarning(item: NotificationItem): boolean {
-    return effectiveLevel(item) === 'WARNING';
-  }
-
-  // ── Icon ─────────────────────────────────────────────────────────────
-
-  iconBg(item: NotificationItem): string {
-    return `alert-icon--${effectiveLevel(item).toLowerCase()}`;
   }
 
   iconName(item: NotificationItem): string {
@@ -217,84 +257,64 @@ export class AlertCenterComponent {
       case 'DPM_REJECTED':
       case 'DPM_RDV_SCHEDULED':
       case 'DPM_RDV_CONFIRMED_BY_STT':
-      case 'DPM_EXTERNAL_REJECTED':                     return 'cilStorage';
+      case 'DPM_EXTERNAL_REJECTED':                      return 'cilStorage';
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':
-      case 'CASE_ASSIGNED_TO_TECH':                     return 'cilTask';
-      case 'CASES_BULK_ASSIGNED_TO_ZM':                 return 'cilLayers';
-      case 'USER_REGISTERED':                           return 'cilUser';
-      case 'STOCK_DISTRIBUTED':                         return 'cilTruck';
+      case 'CASE_ASSIGNED_TO_TECH':                      return 'cilTask';
+      case 'CASES_BULK_ASSIGNED_TO_ZM':                  return 'cilLayers';
+      case 'USER_REGISTERED':                            return 'cilUser';
+      case 'STOCK_DISTRIBUTED':                          return 'cilStorage';
       case 'MATERIAL_RETURN_SUBMITTED':
       case 'MATERIAL_RETURN_REJECTED':
       case 'MATERIAL_RETURN_SCHEDULE_PROPOSED':
       case 'MATERIAL_RETURN_SCHEDULE_CONFIRMED':
       case 'MATERIAL_RETURN_RESCHEDULE_REQUESTED':
-      case 'MATERIAL_RETURN_HANDED_OVER':               return 'cilArrowThickFromRight';
-      case 'MATERIAL_RETURN_CLOSED':                    return 'cilCheckCircle';
-      default:                                          return 'cilBell';
+      case 'MATERIAL_RETURN_HANDED_OVER':                return 'cilReload';
+      case 'MATERIAL_RETURN_CLOSED':                     return 'cilCheckCircle';
+      default:                                           return 'cilBell';
     }
   }
 
-  // ── Lifecycle status ─────────────────────────────────────────────────
-
-  getLifecycleStatus(item: NotificationItem): 'NEW' | null {
-    return item.read ? null : 'NEW';
+  /** Severity pill shown top-right of every card. */
+  severityBadge(item: NotificationItem): { label: string; tone: string } {
+    switch (effectiveLevel(item)) {
+      case 'CRITICAL': return { label: 'Critical', tone: 'crit' };
+      case 'WARNING':  return { label: 'Warning',  tone: 'warn' };
+      default:         return { label: 'Info',     tone: 'info' };
+    }
   }
 
-  // ── Category chip ─────────────────────────────────────────────────────
-
-  getCategoryLabel(item: NotificationItem): string {
-    return effectiveCategory(item);
-  }
-
-  getCategoryChipClass(item: NotificationItem): string {
-    return `alert-chip--cat-${effectiveCategory(item).toLowerCase()}`;
-  }
-
-  // ── Metadata chips ───────────────────────────────────────────────────
-
-  getMetaChips(item: NotificationItem): string[] {
-    const chips: string[] = [];
+  /** Secondary identifier line under the title (case ref / actor / role). */
+  cardSubtitle(item: NotificationItem): string {
     const data = item.data ?? {};
 
-    // Aggregated bulk batch: show count + operation type + responsible actor rather than
-    // single-case metadata, keeping the summary informative at a glance.
-    if (item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM') {
-      const count = Number(data['count'] ?? 0);
-      if (count > 0) chips.push(`${count} case${count === 1 ? '' : 's'}`);
-      const op = String(data['operation'] ?? '');
-      if (op === 'INJECTION') chips.push('Injection');
-      else if (op === 'DISTRIBUTION') chips.push('Distribution');
-      const actor = item.triggeredBy ?? data['zmName'];
-      if (actor) chips.push(`by ${actor}`);
-      return chips;
-    }
-
-    const role = item.targetRole;
-    if (role === 'ROLE_TECH') chips.push('TECH');
-    else if (role === 'ROLE_STT') chips.push('STT');
-    else if (role === 'ROLE_ZM') chips.push('ZM');
+    const caseRef = data['caseReference'] ?? data['caseRef'];
+    if (caseRef) return `Case #${caseRef}`;
 
     const caseId = item.relatedCaseId ?? data['caseId'];
-    if (caseId) chips.push(`Case #${String(caseId).slice(-8)}`);
+    if (caseId) return `Case #${String(caseId).slice(-8).toUpperCase()}`;
 
-    const itemName = data['itemName'] ?? data['equipmentName'] ?? data['stockItemName'];
-    if (itemName) chips.push(String(itemName));
+    const actor = item.triggeredBy ?? data['actorName'] ?? data['triggeredBy'];
+    if (actor) return String(actor);
 
-    const actor = item.triggeredBy ?? data['triggeredBy'] ?? data['actorName'];
-    if (actor) chips.push(`by ${actor}`);
+    const zone = data['zone'] ?? data['zoneName'] ?? data['region'];
+    if (zone) return String(zone);
 
-    return chips;
+    switch (item.targetRole) {
+      case 'ROLE_TECH': return 'Field Technician';
+      case 'ROLE_STT':  return 'STT Team';
+      case 'ROLE_ZM':   return 'Zone Manager';
+      default:          return 'System';
+    }
   }
 
-  // ── Time ─────────────────────────────────────────────────────────────
-
+  // ── Time ──────────────────────────────────────────────────────────────
   getRelativeTime(dateStr: string): string {
     if (!dateStr) return '';
     const diffMs = Date.now() - new Date(dateStr).getTime();
-    if (diffMs < 0) return 'Just now';
+    if (diffMs < 0) return 'Now';
     const min = Math.floor(diffMs / 60_000);
-    if (min < 1)  return 'Just now';
+    if (min < 1)  return 'Now';
     if (min < 60) return `${min} min ago`;
     const h = Math.floor(min / 60);
     if (h < 24)   return `${h}h ago`;
@@ -304,22 +324,16 @@ export class AlertCenterComponent {
     return new DatePipe('en-US').transform(dateStr, 'dd MMM') ?? '';
   }
 
-  getAbsoluteTime(dateStr: string): string {
-    return new DatePipe('en-US').transform(dateStr, 'dd MMM, HH:mm') ?? '';
-  }
+  // ── Actions ───────────────────────────────────────────────────────────
 
-  // ── Action ───────────────────────────────────────────────────────────
-
-  getAlertActionLabel(item: NotificationItem): string | null {
-    // Aggregated bulk batch: surface the count so the summary stays the default while still
-    // letting the user expand into the detailed case list.
+  /** Filled primary button label, derived from the alert's action type. */
+  primaryActionLabel(item: NotificationItem): string {
     if (item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM') {
       const count = Number(item.data?.['count'] ?? 0);
-      return count > 0 ? `View ${count} case${count === 1 ? '' : 's'}` : 'View cases';
+      return count > 0 ? `View ${count} case${count === 1 ? '' : 's'}` : 'View Cases';
     }
-
     switch (item.actionType as AlertActionType) {
-      case 'OPEN_CASE':                     return 'Open Case';
+      case 'OPEN_CASE':                     return 'View Case';
       case 'OPEN_DPM':
       case 'OPEN_DPM_REQUEST':              return 'Open DPM';
       case 'OPEN_STOCK':
@@ -328,9 +342,9 @@ export class AlertCenterComponent {
       case 'OPEN_STOCK_PERMISSION_REQUEST': return 'Review Request';
       case 'OPEN_USER':                     return 'Review User';
       case 'OPEN_THRESHOLDS':
-      case 'OPEN_STOCK_THRESHOLDS':         return 'Configure Thresholds';
+      case 'OPEN_STOCK_THRESHOLDS':         return 'Configure';
       case 'OPEN_MATERIAL_RETURN':          return 'View Return';
-      default:                              return null;
+      default:                              return 'Open';
     }
   }
 
@@ -372,31 +386,30 @@ export class AlertCenterComponent {
         }
         break;
       }
+      default:
+        // No navigation target — treat the primary button as an acknowledge.
+        break;
     }
   }
 
-  // ── Empty state ──────────────────────────────────────────────────────
+  /** Outline secondary button: archive the alert out of the active board. */
+  dismiss(item: NotificationItem, event: Event): void {
+    event.stopPropagation();
+    this.store.markAsRead(item.id);
+  }
 
+  // ── Empty state ───────────────────────────────────────────────────────
   emptyMessage(): { title: string; sub: string } {
-    const lf = this.activeLevelFilter();
-    const cf = this.activeCategoryFilter();
-
-    if (lf !== 'ALL' && cf !== 'ALL') {
-      return { title: `No ${lf.toLowerCase()} ${cf} alerts.`, sub: 'Try adjusting the filters.' };
+    if (this.hasActiveFilters()) {
+      return { title: 'No alerts match your filters.', sub: 'Try widening the search or clearing filters.' };
     }
-    if (cf !== 'ALL') {
-      return { title: `No ${cf} alerts.`, sub: 'This category is clear.' };
+    if (this.activeTab() === 'ARCHIVED') {
+      return { title: 'No archived alerts.', sub: 'Dismissed alerts will appear here.' };
     }
-    switch (lf) {
-      case 'CRITICAL': return { title: 'No critical alerts.', sub: 'Operations are stable.' };
-      case 'WARNING':  return { title: 'No warnings detected.', sub: 'Everything looks good.' };
-      case 'INFO':     return { title: 'No information alerts.', sub: "You're all caught up." };
-      default:         return { title: 'No alerts yet.', sub: 'Alerts will appear here in real time.' };
-    }
+    return { title: 'All clear.', sub: 'New alerts will appear here in real time.' };
   }
 
-  // ── Private routes ───────────────────────────────────────────────────
-
+  // ── Default routes ────────────────────────────────────────────────────
   private defaultCaseRoute(role: string | null): string {
     switch (role) {
       case 'ROLE_ZM':   return '/zm/cases/activation';

@@ -124,4 +124,20 @@ export class SwalService {
       confirmButtonColor: this.confirmButtonColor
     });
   }
+
+  /**
+   * Hard-stop shown when a field-proof action cannot obtain GPS coordinates
+   * (location off, denied, unavailable, or timed out). Blocks proof
+   * capture/submission until the technician enables location.
+   */
+  locationRequired(): Promise<SweetAlertResult<unknown>> {
+    return Swal.fire({
+      icon: 'warning',
+      title: 'Location Required',
+      text: 'GPS/location is required to submit field proof. Please enable location services and allow location permission, then try again.',
+      confirmButtonText: 'Try Again',
+      confirmButtonColor: this.confirmButtonColor,
+      allowOutsideClick: false
+    });
+  }
 }

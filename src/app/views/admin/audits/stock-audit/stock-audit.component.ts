@@ -12,6 +12,9 @@ import {
   CaseConsumptionSummary,
   DpmRequest,
   DpmStatus,
+  StockAuditEntry,
+  StockAuditStatusCategory,
+  StockAuditType,
   SttDistribution,
   ZmStockAudit
 } from '../../../../core/stock/stock.model';
@@ -66,7 +69,7 @@ export class StockAuditComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  activeTab: 'dpm' | 'consumption' = 'dpm';
+  activeTab: 'feed' | 'dpm' | 'consumption' = 'feed';
   activeView: 'zm' | 'stock' = 'zm';
   zmSearch = '';
   itemSearch = '';
@@ -94,7 +97,25 @@ export class StockAuditComponent implements OnInit {
   selectedConsumption: CaseConsumption | null = null;
   consumptionDetailVisible = false;
 
-  ngOnInit(): void { this.load(); }
+  // ── Unified Audit Feed state (DPM + Returns) ─────────────────────────────
+  feedEntries: StockAuditEntry[] = [];
+  loadingFeed = false;
+  feedError: string | null = null;
+
+  feedTypeFilter: 'ALL' | StockAuditType = 'ALL';
+  feedStatusFilter: '' | StockAuditStatusCategory = '';
+  feedRoleFilter: '' | 'ZM' | 'STT' | 'TECH' = '';
+  feedSearch = '';
+  feedFrom = '';
+  feedTo = '';
+
+  feedPage = 1;
+  readonly feedPageSize = 25;
+
+  selectedReturn: StockAuditEntry | null = null;
+  returnDetailVisible = false;
+
+  ngOnInit(): void { this.load(); this.loadFeed(); }
 
   load(): void {
     this.loading = true;
@@ -257,10 +278,13 @@ export class StockAuditComponent implements OnInit {
       });
   }
 
-  switchTab(tab: 'dpm' | 'consumption'): void {
+  switchTab(tab: 'feed' | 'dpm' | 'consumption'): void {
     this.activeTab = tab;
     if (tab === 'consumption' && this.consumptions.length === 0) {
       this.loadConsumptions();
+    }
+    if (tab === 'feed' && this.feedEntries.length === 0 && !this.feedError) {
+      this.loadFeed();
     }
   }
 
@@ -310,6 +334,129 @@ export class StockAuditComponent implements OnInit {
 
   formatQty(qty: number, unit?: string): string {
     return unit === 'METERS' ? `${qty} m` : `×${qty}`;
+  }
+
+  // ── Unified Audit Feed tab methods ───────────────────────────────────────
+
+  loadFeed(): void {
+    this.loadingFeed = true;
+    this.feedError = null;
+    this.stockSvc.adminGetStockAuditEntries('ALL')
+      .pipe(finalize(() => { this.loadingFeed = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: entries => { this.feedEntries = entries ?? []; },
+        error: e => { this.feedError = e.message; }
+      });
+  }
+
+  setFeedType(type: 'ALL' | StockAuditType): void {
+    this.feedTypeFilter = type;
+    this.feedPage = 1;
+  }
+
+  resetFeedPage(): void {
+    this.feedPage = 1;
+  }
+
+  get filteredFeed(): StockAuditEntry[] {
+    let list = this.feedEntries;
+
+    if (this.feedTypeFilter !== 'ALL') {
+      list = list.filter(e => e.auditType === this.feedTypeFilter);
+    }
+    if (this.feedStatusFilter) {
+      list = list.filter(e => e.statusCategory === this.feedStatusFilter);
+    }
+    if (this.feedRoleFilter) {
+      list = list.filter(e => (e.actorRole ?? '').toUpperCase() === this.feedRoleFilter);
+    }
+    if (this.feedFrom) {
+      const from = new Date(this.feedFrom).getTime();
+      list = list.filter(e => e.updatedAt != null && new Date(e.updatedAt).getTime() >= from);
+    }
+    if (this.feedTo) {
+      // inclusive end-of-day
+      const to = new Date(this.feedTo).getTime() + 24 * 60 * 60 * 1000 - 1;
+      list = list.filter(e => e.updatedAt != null && new Date(e.updatedAt).getTime() <= to);
+    }
+    if (this.feedSearch.trim()) {
+      const q = this.feedSearch.toLowerCase();
+      list = list.filter(e =>
+        (e.reference ?? '').toLowerCase().includes(q) ||
+        (e.actorName ?? '').toLowerCase().includes(q) ||
+        (e.sttName ?? '').toLowerCase().includes(q) ||
+        (e.zmName ?? '').toLowerCase().includes(q) ||
+        (e.crmCase ?? '').toLowerCase().includes(q) ||
+        (e.items ?? []).some(i => (i.equipmentName ?? '').toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
+  get pagedFeed(): StockAuditEntry[] {
+    const start = (this.feedPage - 1) * this.feedPageSize;
+    return this.filteredFeed.slice(start, start + this.feedPageSize);
+  }
+
+  get feedTotalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredFeed.length / this.feedPageSize));
+  }
+
+  prevFeedPage(): void { if (this.feedPage > 1) this.feedPage--; }
+  nextFeedPage(): void { if (this.feedPage < this.feedTotalPages) this.feedPage++; }
+
+  feedCount(type: 'ALL' | StockAuditType): number {
+    if (type === 'ALL') return this.feedEntries.length;
+    return this.feedEntries.filter(e => e.auditType === type).length;
+  }
+
+  feedCountByCategory(cat: StockAuditStatusCategory): number {
+    return this.feedEntries.filter(e => e.statusCategory === cat).length;
+  }
+
+  openFeedEntry(entry: StockAuditEntry): void {
+    if (entry.auditType === 'DPM') {
+      // Reuse the rich DPM flow panel; the full DpmRequest is loaded by load().
+      const dpm = this.dpms.find(d => d.id === entry.id);
+      if (dpm) this.openDpm(dpm);
+      return;
+    }
+    this.selectedReturn = entry;
+    this.returnDetailVisible = true;
+    this.cdr.detectChanges();
+  }
+
+  closeReturnDetail(): void {
+    this.returnDetailVisible = false;
+    this.selectedReturn = null;
+  }
+
+  feedItemsQtyLabel(entry: StockAuditEntry): string {
+    const items = entry.items ?? [];
+    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.quantity, 0);
+    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.quantity, 0);
+    const parts: string[] = [];
+    if (m > 0) parts.push(`${m} m`);
+    if (p > 0) parts.push(`${p} pcs`);
+    return parts.join(' / ') || '0';
+  }
+
+  reasonLabel(reason?: string | null): string {
+    const m: Record<string, string> = {
+      DAMAGED: 'Damaged',
+      BROKEN: 'Broken',
+      CLIENT_RESILIATION_RECOVERY: 'Résiliation recovery',
+      UNUSED: 'Unused',
+      WRONG_DISTRIBUTION: 'Wrong distribution',
+      REPLACEMENT: 'Replacement',
+      OTHER: 'Other'
+    };
+    return reason ? (m[reason] ?? this.prettyEnum(reason)) : '—';
+  }
+
+  prettyEnum(value?: string | null): string {
+    if (!value) return '—';
+    return value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }
 
   statusLabel(s: DpmStatus): string {

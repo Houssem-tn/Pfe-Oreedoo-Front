@@ -1712,3 +1712,138 @@
   margin: 0 auto;
 }
 
+/* ══════════════════════════════════════════════════════════════════════ */
+/*                     UNIFIED AUDIT FEED TAB                              */
+/* ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Audit-type badges (DPM / RETURN) ─────────────────────────────────── */
+.sa-type-badge {
+  display: inline-block;
+  padding: 0.16rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--dpm    { background: rgba(59,130,246,.12);  color: #1d4ed8; border: 1px solid rgba(59,130,246,.28); }
+  &--return { background: rgba(139,92,246,.12);  color: #6d28d9; border: 1px solid rgba(139,92,246,.28); }
+}
+
+/* ── Extra status-pill variants used by the feed ──────────────────────── */
+.sa-pill {
+  &--inprogress { background: rgba(59,130,246,.1);  color: #1d4ed8; border: 1px solid rgba(59,130,246,.25); }
+  &--completed  { background: rgba(13,148,136,.1);  color: #0f766e; border: 1px solid rgba(13,148,136,.25); }
+}
+
+/* ── Count chip on the All/DPM/Returns segmented control ──────────────── */
+.sa-view-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 0.35rem;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+
+  .sa-view-btn--active & { background: rgba(255, 255, 255, 0.25); }
+}
+
+/* ── STT → ZM parties strip inside a feed row ─────────────────────────── */
+.sa-feed-parties {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-right: 0.5rem;
+  margin-right: 0.25rem;
+  border-right: 1px solid var(--sa-border);
+
+  .sa-dpm-actor-name { max-width: 130px; }
+}
+
+/* ── Reason / case chips ──────────────────────────────────────────────── */
+.sa-reason-chip {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 20px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #b45309;
+  white-space: nowrap;
+}
+
+.sa-case-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--sa-muted);
+  white-space: nowrap;
+
+  svg { flex-shrink: 0; }
+}
+
+/* ── Feed pagination ──────────────────────────────────────────────────── */
+.sa-feed-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.sa-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--sa-border);
+  border-radius: 8px;
+  background: var(--sa-card-bg);
+  color: var(--sa-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+
+  svg { width: 14px; height: 14px; }
+
+  &:hover:not(:disabled) {
+    background: rgba(229, 36, 59, 0.06);
+    border-color: rgba(229, 36, 59, 0.3);
+    color: var(--sa-primary);
+  }
+
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}
+
+.sa-pager-info {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sa-muted);
+}
+
+/* ── Timeline note line ───────────────────────────────────────────────── */
+.sa-mini-tl__note {
+  font-size: 0.78rem;
+  color: var(--sa-muted);
+  font-style: italic;
+  margin-top: 0.15rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--sa-border);
+}
+

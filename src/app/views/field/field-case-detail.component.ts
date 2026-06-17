@@ -7,6 +7,7 @@ import { finalize, firstValueFrom } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
 import { CaseResponse } from '../../core/cases/models/case.model';
+import { SwalService } from '../../core/ui/swal.service';
 import { extractRdv, extractWork } from '../tech/tech-case.helpers';
 import {
   canFinishFieldWork,
@@ -75,7 +76,7 @@ interface FieldGeoSnapshot {
             Update RDV
           </a>
 
-          <button class="field-button field-button--ghost" type="button" (click)="proofInput.click()" [disabled]="actionBusy">
+          <button class="field-button field-button--ghost" type="button" (click)="requestProofCapture(proofInput)" [disabled]="actionBusy">
             <svg cIcon name="cilMediaRecord"></svg>
             Take Proof Photo
           </button>
@@ -219,6 +220,10 @@ export class FieldCaseDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
+  private readonly swal = inject(SwalService);
+
+  /** GPS captured during the pre-capture check, reused by the upload. */
+  private pendingProofLocation: FieldGeoSnapshot | null = null;
 
   loading = false;
   actionBusy = false;
@@ -307,6 +312,32 @@ export class FieldCaseDetailComponent implements OnInit {
     return item.workProofs?.length ?? 0;
   }
 
+  /**
+   * Pre-capture gate: verify GPS is available BEFORE opening the camera. If the
+   * location is off/denied/unavailable/timed out, block and tell the technician
+   * to enable location instead of opening the camera for a proof we'd reject.
+   */
+  async requestProofCapture(input: HTMLInputElement): Promise<void> {
+    if (this.actionBusy) {
+      return;
+    }
+
+    this.actionBusy = true;
+    this.showBanner('Checking location…', 'info');
+    const location = await this.captureLocation();
+    this.actionBusy = false;
+    this.banner = null;
+    this.render();
+
+    if (!location) {
+      await this.swal.locationRequired();
+      return;
+    }
+
+    this.pendingProofLocation = location;
+    input.click();
+  }
+
   async uploadProof(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
@@ -322,21 +353,33 @@ export class FieldCaseDetailComponent implements OnInit {
       return;
     }
 
+    // GPS is mandatory for field proof. Reuse the snapshot captured before the
+    // camera opened; re-read as a fallback in case it is missing/stale.
+    let location = this.pendingProofLocation;
+    this.pendingProofLocation = null;
+    if (!location) {
+      location = await this.captureLocation();
+    }
+    if (!location) {
+      input.value = '';
+      await this.swal.locationRequired();
+      return;
+    }
+
     this.actionBusy = true;
     this.showBanner('Uploading proof...', 'info');
 
     try {
-      const location = await this.captureLocation();
       const updated = await firstValueFrom(this.casesService.uploadWorkProof(target.id, file, {
-        locationLatitude: location?.latitude ?? null,
-        locationLongitude: location?.longitude ?? null,
-        locationCapturedAt: location?.capturedAt ?? null,
-        locationAccuracyMeters: location?.accuracyMeters ?? null,
+        locationLatitude: location.latitude,
+        locationLongitude: location.longitude,
+        locationCapturedAt: location.capturedAt,
+        locationAccuracyMeters: location.accuracyMeters ?? null,
         captureSource: 'camera'
       }));
 
       this.caseItem = updated;
-      this.showBanner(location ? 'Proof uploaded with GPS.' : 'Proof uploaded.', 'success');
+      this.showBanner('Proof uploaded with GPS.', 'success');
     } catch (err: any) {
       console.error('Failed to upload field proof', err);
       this.showBanner(err?.error?.message ?? 'Unable to upload proof.', 'danger');

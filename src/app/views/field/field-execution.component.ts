@@ -1589,6 +1589,15 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // GPS is mandatory for proof photos. Verify location BEFORE accepting the
+    // photo; if it is off/denied/unavailable/timed out, block and prompt the
+    // technician to enable location instead of storing a proof without GPS.
+    const location = await this.captureLocation();
+    if (!location) {
+      await this.swal.locationRequired();
+      return;
+    }
+
     const proof: EquipmentItemProof = {
       file,
       previewUrl: '',
@@ -1600,10 +1609,10 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       macAddress: '',
       serialNumber: '',
       imei: '',
-      latitude: null,
-      longitude: null,
-      gpsAccuracy: null,
-      capturedAt: null
+      latitude: location.latitude,
+      longitude: location.longitude,
+      gpsAccuracy: location.accuracyMeters ?? null,
+      capturedAt: location.capturedAt
     };
 
     this.itemProofs.push(proof);
@@ -1612,17 +1621,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     proof.previewUrl = await this.readFileAsDataUrl(file);
     this.render();
 
-    const [location, responses] = await Promise.all([
-      this.captureLocation(),
-      firstValueFrom(this.ocrService.extract([file])).catch(() => [])
-    ]);
-
-    if (location) {
-      proof.latitude = location.latitude;
-      proof.longitude = location.longitude;
-      proof.gpsAccuracy = location.accuracyMeters ?? null;
-      proof.capturedAt = location.capturedAt;
-    }
+    const responses = await firstValueFrom(this.ocrService.extract([file])).catch(() => []);
 
     const metrics = this.ocrService.parseLabelMetrics(responses);
     proof.modemModel = metrics.modemModel;
@@ -1927,6 +1926,11 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     }
 
     const location = await this.captureLocation();
+    if (!location) {
+      await this.swal.locationRequired();
+      this.showBanner('GPS/location is required to submit field proof.', 'danger');
+      return null;
+    }
 
     const equipmentProofs: EquipmentItemProofPayload[] = this.itemProofs.map((p) => ({
       modemModel: p.modemModel.trim() || undefined,
