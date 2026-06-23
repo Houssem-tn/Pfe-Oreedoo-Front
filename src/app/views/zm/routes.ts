@@ -91,6 +91,12 @@ export const routes: Routes = [
     data: { title: 'Case Stock Audit' }
   },
   {
+    path: 'stock/team-distributions',
+    loadComponent: () =>
+      import('../shared/team-distributions/team-distributions.component').then(m => m.TeamDistributionsComponent),
+    data: { title: 'Team Distributions' }
+  },
+  {
     path: 'stock/thresholds',
     canActivate: [canCreateDpmGuard],
     loadComponent: () =>

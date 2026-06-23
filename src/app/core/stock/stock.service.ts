@@ -31,6 +31,8 @@ import {
   StockUsagePermission,
   SttDistribution,
   SttStock,
+  TeamDistribution,
+  TeamDistributionFilters,
   TechStock,
   TechStockUsage,
   ZmStockAudit
@@ -210,6 +212,34 @@ export class StockService {
 
   adminGetZmStockAudit(zmId: string): Observable<ZmStockAudit> {
     return this.http.get<ZmStockAudit>(`${this.url}/admin/audit/zm/${zmId}`);
+  }
+
+  // ── Team Distribution Tracking (DPM-source-independent) ────────────────────
+
+  /** Admin: all STT→TECH distributions across every team, including null-DPM pooled ones. */
+  adminGetTeamDistributions(filters: TeamDistributionFilters = {}): Observable<TeamDistribution[]> {
+    return this.http.get<TeamDistribution[]>(`${this.url}/admin/team-distributions`, {
+      params: this.teamDistributionParams(filters)
+    });
+  }
+
+  /** ZM: STT→TECH distributions scoped to the ZM's responsible STTs. */
+  zmGetTeamDistributions(filters: TeamDistributionFilters = {}): Observable<TeamDistribution[]> {
+    return this.http.get<TeamDistribution[]>(`${this.url}/zm/team-distributions`, {
+      params: this.teamDistributionParams(filters)
+    });
+  }
+
+  private teamDistributionParams(filters: TeamDistributionFilters): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (filters.zmId)        params['zmId']        = filters.zmId;
+    if (filters.sttId)       params['sttId']       = filters.sttId;
+    if (filters.techId)      params['techId']      = filters.techId;
+    if (filters.equipmentId) params['equipmentId'] = filters.equipmentId;
+    if (filters.from)        params['from']        = filters.from;
+    if (filters.to)          params['to']          = filters.to;
+    if (filters.status)      params['status']      = filters.status;
+    return params;
   }
 
   zmGetMyTechsUsages(): Observable<TechStockUsage[]> {

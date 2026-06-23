@@ -1,0 +1,367 @@
+<div class="td-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="td-header">
+    <div class="td-header__left">
+      <div class="td-header__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div>
+        <h1 class="td-title">Team Distribution Tracking</h1>
+        <p class="td-subtitle">
+          All STT → TECH distributions{{ isAdmin ? ' across every team' : ' for your STTs' }}, including pooled-stock handouts.
+        </p>
+      </div>
+    </div>
+    <button class="td-refresh" (click)="load()" [disabled]="loading">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- ── Stat cards ─────────────────────────────────────────────────────── -->
+  <div class="td-stats">
+    <div class="td-stat">
+      <div class="td-stat__icon td-stat__icon--red">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div class="td-stat__body">
+        <div class="td-stat__label">Distributions</div>
+        <div class="td-stat__value td-stat__value--red">{{ filtered.length }}</div>
+      </div>
+      <svg class="td-spark td-spark--red" viewBox="0 0 120 36" preserveAspectRatio="none">
+        <path d="M0 26 L15 22 L30 27 L45 18 L60 24 L75 14 L90 20 L105 12 L120 16" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="td-stat">
+      <div class="td-stat__icon td-stat__icon--red">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13"></rect>
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle>
+        </svg>
+      </div>
+      <div class="td-stat__body">
+        <div class="td-stat__label">Distributed</div>
+        <div class="td-stat__value td-stat__value--red">{{ totalDistributed }}</div>
+      </div>
+      <svg class="td-spark td-spark--red" viewBox="0 0 120 36" preserveAspectRatio="none">
+        <path d="M0 24 L15 26 L30 20 L45 23 L60 16 L75 22 L90 14 L105 18 L120 12" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="td-stat">
+      <div class="td-stat__icon td-stat__icon--blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+      </div>
+      <div class="td-stat__body">
+        <div class="td-stat__label">Used on cases</div>
+        <div class="td-stat__value td-stat__value--blue">{{ totalUsed }}</div>
+      </div>
+      <svg class="td-spark td-spark--blue" viewBox="0 0 120 36" preserveAspectRatio="none">
+        <path d="M0 28 L15 24 L30 26 L45 22 L60 25 L75 20 L90 23 L105 19 L120 22" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </div>
+
+    <div class="td-stat">
+      <div class="td-stat__icon td-stat__icon--green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+      </div>
+      <div class="td-stat__body">
+        <div class="td-stat__label">Remaining with TECH</div>
+        <div class="td-stat__value td-stat__value--green">{{ totalRemaining }}</div>
+      </div>
+      <svg class="td-spark td-spark--green" viewBox="0 0 120 36" preserveAspectRatio="none">
+        <path d="M0 22 L15 18 L30 24 L45 14 L60 20 L75 12 L90 18 L105 10 L120 14" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ── Filters ────────────────────────────────────────────────────────── -->
+  <div class="td-card td-filters">
+    <div class="td-filters__head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+      Filters
+    </div>
+
+    <div class="td-filters__grid">
+      <div class="td-field td-field--search">
+        <label>Search</label>
+        <div class="td-input-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input placeholder="STT, TECH, equipment, DPM…" [(ngModel)]="search" (ngModelChange)="resetPage()">
+        </div>
+      </div>
+
+      <div class="td-field" *ngIf="isAdmin">
+        <label>ZM</label>
+        <select [(ngModel)]="zmFilter" (ngModelChange)="resetPage()">
+          <option value="">All</option>
+          <option *ngFor="let o of zmOptions" [value]="o.id">{{ o.name }}</option>
+        </select>
+      </div>
+
+      <div class="td-field">
+        <label>STT</label>
+        <select [(ngModel)]="sttFilter" (ngModelChange)="resetPage()">
+          <option value="">All</option>
+          <option *ngFor="let o of sttOptions" [value]="o.id">{{ o.name }}</option>
+        </select>
+      </div>
+
+      <div class="td-field">
+        <label>TECH</label>
+        <select [(ngModel)]="techFilter" (ngModelChange)="resetPage()">
+          <option value="">All</option>
+          <option *ngFor="let o of techOptions" [value]="o.id">{{ o.name }}</option>
+        </select>
+      </div>
+
+      <div class="td-field">
+        <label>Equipment</label>
+        <select [(ngModel)]="equipmentFilter" (ngModelChange)="resetPage()">
+          <option value="">All</option>
+          <option *ngFor="let o of equipmentOptions" [value]="o.id">{{ o.name }}</option>
+        </select>
+      </div>
+
+      <div class="td-field">
+        <label>Status</label>
+        <select [(ngModel)]="statusFilter" (ngModelChange)="resetPage()">
+          <option value="">All</option>
+          <option *ngFor="let s of statusOptions" [value]="s">{{ statusLabel(s) }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="td-filters__grid td-filters__grid--row2">
+      <div class="td-field">
+        <label>From</label>
+        <input type="date" [(ngModel)]="fromFilter" (ngModelChange)="resetPage()">
+      </div>
+      <div class="td-field">
+        <label>To</label>
+        <input type="date" [(ngModel)]="toFilter" (ngModelChange)="resetPage()">
+      </div>
+      <div class="td-field td-field--clear">
+        <button class="td-clear" (click)="clearFilters()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── States ─────────────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="td-loading"><c-spinner></c-spinner></div>
+  <div *ngIf="error" class="td-error">{{ error }}</div>
+
+  <!-- ── Table ──────────────────────────────────────────────────────────── -->
+  <div *ngIf="!loading && !error" class="td-card td-table-card">
+    <div class="td-table-scroll">
+      <table class="td-table">
+        <thead>
+          <tr>
+            <th>
+              <span class="td-th-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </span>STT
+            </th>
+            <th>
+              <span class="td-th-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>TECH
+            </th>
+            <th *ngIf="isAdmin">ZM</th>
+            <th>
+              Date
+              <svg class="td-th-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </th>
+            <th>Items</th>
+            <th class="td-num">Dist.</th>
+            <th class="td-num">Used</th>
+            <th class="td-num">Remaining</th>
+            <th>Status</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of paged" (click)="open(r)">
+            <td>
+              <div class="td-actor">
+                <span class="td-av td-av--stt">ST</span>
+                <span class="td-actor__name">{{ r.sttName ?? r.sttId }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="td-actor">
+                <span class="td-av td-av--tech">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+                <span class="td-actor__name">{{ r.techName ?? r.techId }}</span>
+              </div>
+            </td>
+            <td *ngIf="isAdmin" class="td-muted">{{ r.zmName ?? '—' }}</td>
+            <td class="td-muted td-date">{{ r.distributedAt | date:'dd MMM yyyy, HH:mm' }}</td>
+            <td>
+              <div class="td-chips">
+                <span class="td-chip" *ngFor="let it of r.items">
+                  {{ it.equipmentName ?? it.equipmentId }} {{ qty(it.distributedQuantity, it.unit) }}
+                </span>
+              </div>
+            </td>
+            <td class="td-num td-num--dark">{{ r.totalDistributed }}</td>
+            <td class="td-num td-num--blue">{{ r.totalUsed }}</td>
+            <td class="td-num td-num--green">{{ r.totalRemaining }}</td>
+            <td>
+              <span class="td-badge" [ngClass]="'td-badge--' + r.derivedStatus.toLowerCase()">
+                <ng-container [ngSwitch]="r.derivedStatus">
+                  <svg *ngSwitchCase="'CONFIRMED'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <svg *ngSwitchCase="'FULLY_USED'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <svg *ngSwitchCase="'PENDING'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <svg *ngSwitchCase="'PARTIALLY_USED'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" stroke="none"></path>
+                  </svg>
+                  <svg *ngSwitchCase="'CANCELLED'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
+                </ng-container>
+                {{ statusLabel(r.derivedStatus) }}
+              </span>
+            </td>
+            <td>
+              <span *ngIf="r.historical" class="td-source-hist" title="DPM source not recorded for this pre-upgrade pooled distribution">
+                Historical
+              </span>
+              <ng-container *ngIf="!r.historical">
+                <ng-container *ngIf="dpmChips(r).length > 0; else pooled">
+                  <span class="td-source-dpm" *ngFor="let d of dpmChips(r)">{{ d }}</span>
+                </ng-container>
+                <ng-template #pooled><span class="td-muted td-source-pool">Pooled stock</span></ng-template>
+              </ng-container>
+            </td>
+          </tr>
+          <tr *ngIf="filtered.length === 0" class="td-empty-row">
+            <td [attr.colspan]="isAdmin ? 10 : 9">No distributions match the current filters.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer / pagination -->
+    <div class="td-foot" *ngIf="filtered.length > 0">
+      <span class="td-foot__count">Showing {{ paged.length }} of {{ filtered.length }} distributions</span>
+      <div class="td-pager">
+        <button class="td-pager__btn" (click)="prevPage()" [disabled]="page <= 1" aria-label="Previous">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button class="td-pager__page">{{ page }}</button>
+        <button class="td-pager__btn" (click)="nextPage()" [disabled]="page >= totalPages" aria-label="Next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <span class="td-foot__page">Page {{ page }} of {{ totalPages }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Detail panel ───────────────────────────────────────────────────── -->
+  <div class="detail-overlay" *ngIf="detailVisible && selected" (click)="closeDetail()">
+    <div class="detail-panel" (click)="$event.stopPropagation()">
+      <div class="dp-head">
+        <div>
+          <h5 class="dp-title">Distribution detail</h5>
+          <div class="td-muted dp-sub">{{ selected.distributedAt | date:'dd MMM yyyy, HH:mm' }}</div>
+        </div>
+        <button class="dp-close" (click)="closeDetail()" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="dp-grid">
+        <div><div class="dp-k">STT</div><div class="dp-v">{{ selected.sttName ?? selected.sttId }}</div></div>
+        <div><div class="dp-k">TECH</div><div class="dp-v">{{ selected.techName ?? selected.techId }}</div></div>
+        <div *ngIf="selected.zmName"><div class="dp-k">ZM</div><div class="dp-v">{{ selected.zmName }}</div></div>
+        <div>
+          <div class="dp-k">Status</div>
+          <span class="td-badge" [ngClass]="'td-badge--' + selected.derivedStatus.toLowerCase()">{{ statusLabel(selected.derivedStatus) }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="selected.historical" class="dp-hist">
+        <strong>Historical pooled-stock distribution.</strong>
+        The originating DPM source is unavailable for this pre-upgrade record and is not attributed.
+      </div>
+
+      <div class="dp-section-title">Items</div>
+      <div class="dp-items">
+        <div class="dp-item" *ngFor="let it of selected.items">
+          <div class="dp-item__head">
+            <span class="dp-item__name">{{ it.equipmentName ?? it.equipmentId }}</span>
+            <span class="td-muted dp-item__nums">
+              dist {{ it.distributedQuantity }} · used {{ it.usedQuantity }} · rem {{ it.remainingQuantity }} {{ unitLabel(it.unit) }}
+            </span>
+          </div>
+          <div class="dp-src" *ngIf="it.sources.length > 0">
+            <span class="td-source-dpm" *ngFor="let s of it.sources">{{ s.dpmNumber ?? s.dpmId }} : {{ s.allocatedQuantity }}</span>
+          </div>
+          <div class="td-muted dp-src-empty" *ngIf="it.sources.length === 0">
+            No DPM source allocated{{ selected.historical ? '' : ' (pooled / legacy stock)' }}.
+          </div>
+        </div>
+      </div>
+
+      <div class="dp-section-title">Related cases (TECH consumption)</div>
+      <div *ngIf="selected.relatedCases.length === 0" class="td-muted dp-empty">None recorded.</div>
+      <ul class="dp-cases" *ngIf="selected.relatedCases.length > 0">
+        <li *ngFor="let c of selected.relatedCases">
+          <span>{{ c.crmCase ?? c.caseId }} <span class="td-muted">({{ c.caseType ?? '—' }})</span></span>
+          <span class="td-muted">{{ c.consumedAt | date:'dd MMM yyyy' }}</span>
+        </li>
+      </ul>
+
+      <div class="dp-note" *ngIf="selected.notes">Note: {{ selected.notes }}</div>
+    </div>
+  </div>
+
+</div>

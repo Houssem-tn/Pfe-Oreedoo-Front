@@ -203,7 +203,112 @@ export interface PendingDistribution {
 
 export interface DpmTracking {
   dpm: DpmRequest;
+  /** Legacy distributions that carry this DPM id directly (pre-upgrade flow). */
   techDistributions: SttDistribution[];
+  /** Automatic source allocations attributing pooled distributions to this DPM. */
+  allocations?: DpmAllocation[];
+  /** Per-TECH distributed/used/returned/remaining rollup built from allocations. */
+  techRollups?: DpmTechRollup[];
+}
+
+export interface DpmAllocation {
+  id: string;
+  distributionId: string;
+  dpmId: string;
+  dpmNumber?: string;
+  sttId?: string;
+  technicianId: string;
+  technicianName?: string;
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  allocatedQuantity: number;
+  sourceBalanceBefore?: number;
+  sourceBalanceAfter?: number;
+  allocatedAt?: string;
+  distributionStatus?: DistributionStatus | null;
+}
+
+export interface DpmTechRollupItem {
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  distributedQuantity: number;
+  usedQuantity: number;
+  returnedQuantity: number;
+  remainingQuantity: number;
+}
+
+export interface DpmTechRollup {
+  technicianId: string;
+  technicianName?: string;
+  items: DpmTechRollupItem[];
+  totalDistributed: number;
+  totalUsed: number;
+  totalReturned: number;
+  totalRemaining: number;
+}
+
+/** Derived lifecycle status for a team distribution row. */
+export type TeamDistributionStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PARTIALLY_USED'
+  | 'FULLY_USED'
+  | 'CANCELLED';
+
+export interface TeamDistributionSource {
+  dpmId: string;
+  dpmNumber?: string;
+  allocatedQuantity: number;
+}
+
+export interface TeamDistributionItem {
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  distributedQuantity: number;
+  usedQuantity: number;
+  remainingQuantity: number;
+  sources: TeamDistributionSource[];
+}
+
+export interface TeamDistributionRelatedCase {
+  caseId: string;
+  crmCase?: string;
+  caseType?: string;
+  consumedAt?: string;
+}
+
+export interface TeamDistribution {
+  distributionId: string;
+  sttId: string;
+  sttName?: string;
+  techId: string;
+  techName?: string;
+  zmId?: string;
+  zmName?: string;
+  distributedAt?: string;
+  confirmedAt?: string;
+  notes?: string;
+  status?: DistributionStatus;
+  derivedStatus: TeamDistributionStatus;
+  historical: boolean;
+  items: TeamDistributionItem[];
+  totalDistributed: number;
+  totalUsed: number;
+  totalRemaining: number;
+  relatedCases: TeamDistributionRelatedCase[];
+}
+
+export interface TeamDistributionFilters {
+  zmId?: string;
+  sttId?: string;
+  techId?: string;
+  equipmentId?: string;
+  from?: string;
+  to?: string;
+  status?: string;
 }
 
 export interface ZmDpmAuditItem {

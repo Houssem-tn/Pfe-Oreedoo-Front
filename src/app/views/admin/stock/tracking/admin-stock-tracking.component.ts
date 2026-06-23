@@ -8,7 +8,7 @@ import { SpinnerComponent } from '@coreui/angular';
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
 import {
-  DpmRequest, DpmStatus, SttDistribution, SttStock, TechStock, TechStockUsage
+  DpmAllocation, DpmRequest, DpmStatus, DpmTechRollup, SttDistribution, SttStock, TechStock, TechStockUsage
 } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
@@ -40,6 +40,8 @@ export class AdminStockTrackingComponent implements OnInit {
 
   detailDpm: DpmRequest | null = null;
   detailTechDistributions: SttDistribution[] = [];
+  detailTechRollups: DpmTechRollup[] = [];
+  detailAllocations: DpmAllocation[] = [];
   detailVisible = false;
   loadingDetail = false;
 
@@ -76,15 +78,31 @@ export class AdminStockTrackingComponent implements OnInit {
   openDetail(d: DpmRequest): void {
     this.detailDpm = d;
     this.detailTechDistributions = [];
+    this.detailTechRollups = [];
+    this.detailAllocations = [];
     this.loadingDetail = true;
     this.detailVisible = true;
     this.cdr.detectChanges();
     this.stockSvc.adminGetDpmTracking(d.id)
       .pipe(finalize(() => { this.loadingDetail = false; this.cdr.detectChanges(); }))
       .subscribe({
-        next: t => { this.detailTechDistributions = t.techDistributions; this.cdr.detectChanges(); },
+        next: t => {
+          this.detailTechDistributions = t.techDistributions ?? [];
+          this.detailTechRollups = t.techRollups ?? [];
+          this.detailAllocations = t.allocations ?? [];
+          this.cdr.detectChanges();
+        },
         error: e => { this.error = e.message; }
       });
+  }
+
+  /** Distributions surfaced through automatic allocations or the legacy direct link. */
+  get hasAnyTechDistribution(): boolean {
+    return this.detailTechRollups.length > 0 || this.detailTechDistributions.length > 0;
+  }
+
+  unitShort(unit?: string): string {
+    return unit === 'METERS' ? 'm' : 'pcs';
   }
 
   nameInitials(name?: string): string {

@@ -110,6 +110,12 @@ export const routes: Routes = [
       import('./stock/tracking/admin-stock-tracking.component').then(m => m.AdminStockTrackingComponent),
     data: { title: 'Stock Tracking' }
   },
+  {
+    path: 'stock/team-distributions',
+    loadComponent: () =>
+      import('../shared/team-distributions/team-distributions.component').then(m => m.TeamDistributionsComponent),
+    data: { title: 'Team Distributions' }
+  },
 
   {
     path: 'network-coverage',

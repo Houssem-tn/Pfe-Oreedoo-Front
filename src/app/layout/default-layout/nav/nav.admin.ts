@@ -99,6 +99,12 @@ export const navAdmin: INavData[] = [
   },
 
   {
+    name: 'Team Distributions',
+    url: '/admin/stock/team-distributions',
+    iconComponent: { name: 'cilPeople' }
+  },
+
+  {
     name: 'Audit',
     url: '/admin/audits',
     iconComponent: { name: 'cil-folder' }

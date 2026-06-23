@@ -1142,10 +1142,11 @@
               </div>
             </div>
 
-            @if (selectedDpmDistributions.length > 0 ||
+            @if (selectedDpmHasDistribution ||
                  selectedDpm.status === 'FULLY_CONFIRMED' ||
-                 selectedDpm.status === 'PARTIALLY_CONFIRMED') {
-              <div class="sa-connector" [class.sa-connector--muted]="selectedDpmDistributions.length === 0">
+                 selectedDpm.status === 'PARTIALLY_CONFIRMED' ||
+                 selectedDpm.status === 'MATERIAL_RECEIVED') {
+              <div class="sa-connector" [class.sa-connector--muted]="!selectedDpmHasDistribution">
                 <div class="sa-connector__line"></div>
                 <svg class="sa-connector__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="6 9 12 15 18 9"></polyline>
@@ -1153,15 +1154,21 @@
               </div>
 
               <div class="sa-stage"
-                   [class.sa-stage--distribute]="selectedDpmDistributions.length > 0"
-                   [class.sa-stage--awaiting]="selectedDpmDistributions.length === 0">
+                   [class.sa-stage--distribute]="selectedDpmHasDistribution"
+                   [class.sa-stage--awaiting]="!selectedDpmHasDistribution">
                 <div class="sa-stage-head">
                   <div class="sa-stage-num"
-                       [class.sa-stage-num--distribute]="selectedDpmDistributions.length > 0"
-                       [class.sa-stage-num--awaiting]="selectedDpmDistributions.length === 0">3</div>
+                       [class.sa-stage-num--distribute]="selectedDpmHasDistribution"
+                       [class.sa-stage-num--awaiting]="!selectedDpmHasDistribution">3</div>
                   <div>
                     <div class="sa-stage-label">TECH Distribution</div>
-                    @if (selectedDpmDistributions.length > 0) {
+                    @if (loadingDpmRollups) {
+                      <div class="sa-stage-date sa-stage-date--muted">loading…</div>
+                    } @else if (selectedDpmRollups.length > 0) {
+                      <div class="sa-stage-date">
+                        {{ selectedDpmRollups.length }} TECH{{ selectedDpmRollups.length !== 1 ? 's' : '' }} via source allocation
+                      </div>
+                    } @else if (selectedDpmDistributions.length > 0) {
                       <div class="sa-stage-date">
                         {{ selectedDpmDistributions.length }} distribution{{ selectedDpmDistributions.length !== 1 ? 's' : '' }}
                       </div>
@@ -1170,7 +1177,39 @@
                     }
                   </div>
                 </div>
-                @if (selectedDpmDistributions.length > 0) {
+
+                <!-- Allocation-based per-TECH rollup (distributed / used / remaining) -->
+                @if (selectedDpmRollups.length > 0) {
+                  <div class="sa-stage-body">
+                    @for (roll of selectedDpmRollups; track roll.technicianId) {
+                      <div class="sa-dist-block">
+                        <div class="sa-actor-card">
+                          <div class="sa-actor-av sa-actor-av--tech">{{ nameInitials(roll.technicianName || '?') }}</div>
+                          <div class="sa-actor-info">
+                            <span class="sa-actor-name">{{ roll.technicianName || '—' }}</span>
+                            <span class="sa-actor-email">
+                              distributed {{ roll.totalDistributed }} · used {{ roll.totalUsed }} · remaining {{ roll.totalRemaining }}
+                            </span>
+                            <span class="sa-role-badge sa-role-badge--tech">TECH</span>
+                          </div>
+                        </div>
+                        <div class="sa-dist-items">
+                          @for (item of roll.items; track item.equipmentId) {
+                            <div class="sa-dist-line">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+                                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+                              </svg>
+                              <span>{{ item.equipmentName }}</span>
+                              <strong>{{ formatQty(item.distributedQuantity, item.unit) }}</strong>
+                              <span class="sa-dist-date">used {{ item.usedQuantity }} · rem {{ item.remainingQuantity }}</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                } @else if (selectedDpmDistributions.length > 0) {
                   <div class="sa-stage-body">
                     @for (dist of selectedDpmDistributions; track dist.id) {
                       <div class="sa-dist-block">

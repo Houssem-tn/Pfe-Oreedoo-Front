@@ -111,6 +111,11 @@ export function getNavZm(canCreateDpm: boolean, canImportCoverage = false): INav
       iconComponent: { name: 'cilPeople' }
     },
     {
+      name: 'Team Distributions',
+      url: '/zm/stock/team-distributions',
+      iconComponent: { name: 'cilShare' }
+    },
+    {
       name: 'Case Stock Audit',
       url: '/zm/stock/case-audit',
       iconComponent: { name: 'cilChart' }

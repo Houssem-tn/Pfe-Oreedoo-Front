@@ -480,20 +480,61 @@
           </table>
         </div>
 
-        <!-- TECH Distributions -->
+        <!-- TECH Distributions (automatic DPM source allocations) -->
         <div>
           <div class="track-panel-section-title">
             TECH Distributions
             @if (loadingDetail) {
               <span style="font-size:0.72rem;color:var(--t-muted);font-weight:400;letter-spacing:0">loading…</span>
             } @else {
-              <span class="track-tl-count">{{ detailTechDistributions.length }}</span>
+              <span class="track-tl-count">{{ detailTechRollups.length }}</span>
             }
           </div>
-          @if (detailTechDistributions.length === 0 && !loadingDetail) {
-            <p style="color:var(--t-muted);font-size:0.87rem;margin:0">No TECH distributions linked to this DPM yet.</p>
+
+          @if (!hasAnyTechDistribution && !loadingDetail) {
+            <p style="color:var(--t-muted);font-size:0.87rem;margin:0">
+              No TECH has received material sourced from this DPM yet.
+            </p>
           }
+
+          <!-- Allocation-based rollup: distributed / used / remaining per TECH -->
+          @if (detailTechRollups.length > 0) {
+            <div class="track-dist-list">
+              @for (roll of detailTechRollups; track roll.technicianId) {
+                <div class="track-dist-card">
+                  <div class="track-dist-header">
+                    <div class="track-dist-tech">
+                      <span class="track-dist-avatar">{{ nameInitials(roll.technicianName) }}</span>
+                      <div>
+                        <div class="track-dist-name">{{ roll.technicianName || '—' }}</div>
+                        <div class="track-dist-email">
+                          distributed {{ roll.totalDistributed }} · used {{ roll.totalUsed }} · remaining {{ roll.totalRemaining }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="track-dist-chips">
+                    @for (item of roll.items; track item.equipmentId) {
+                      <span class="track-dist-chip">
+                        {{ item.equipmentName }}
+                        <strong>{{ item.distributedQuantity }}{{ unitShort(item.unit) === 'm' ? ' m' : ' pcs' }}</strong>
+                        <span style="color:var(--t-muted)">
+                          · used {{ item.usedQuantity }} · rem {{ item.remainingQuantity }}
+                        </span>
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Legacy direct-link distributions (pre-upgrade records carrying dpmId) -->
           @if (detailTechDistributions.length > 0) {
+            <div class="track-panel-section-title" style="margin-top:0.9rem">
+              Legacy DPM-linked distributions
+              <span class="track-tl-count">{{ detailTechDistributions.length }}</span>
+            </div>
             <div class="track-dist-list">
               @for (dist of detailTechDistributions; track dist.id) {
                 <div class="track-dist-card">

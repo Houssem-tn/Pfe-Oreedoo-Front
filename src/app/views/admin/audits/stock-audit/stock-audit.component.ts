@@ -12,6 +12,7 @@ import {
   CaseConsumptionSummary,
   DpmRequest,
   DpmStatus,
+  DpmTechRollup,
   StockAuditEntry,
   StockAuditStatusCategory,
   StockAuditType,
@@ -80,6 +81,8 @@ export class StockAuditComponent implements OnInit {
 
   selectedDpm: DpmRequest | null = null;
   selectedDpmDistributions: SttDistribution[] = [];
+  selectedDpmRollups: DpmTechRollup[] = [];
+  loadingDpmRollups = false;
   panelVisible = false;
 
   selectedItemRow: ItemAuditRow | null = null;
@@ -162,8 +165,35 @@ export class StockAuditComponent implements OnInit {
   openDpm(dpm: DpmRequest, distributions?: SttDistribution[]): void {
     this.selectedDpm = dpm;
     this.selectedDpmDistributions = distributions ?? this.distributionsByDpmId.get(dpm.id) ?? [];
+    this.selectedDpmRollups = [];
     this.panelVisible = true;
     this.cdr.detectChanges();
+
+    // Fetch the enriched tracking so new pooled distributions (dpmId=null) surface
+    // through automatic source allocations, not only legacy dpmId-linked records.
+    this.loadingDpmRollups = true;
+    this.stockSvc.adminGetDpmTracking(dpm.id)
+      .pipe(finalize(() => { this.loadingDpmRollups = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: t => {
+          this.selectedDpmRollups = t.techRollups ?? [];
+          if ((!this.selectedDpmDistributions || this.selectedDpmDistributions.length === 0)
+              && (t.techDistributions?.length ?? 0) > 0) {
+            this.selectedDpmDistributions = t.techDistributions ?? [];
+          }
+          this.cdr.detectChanges();
+        },
+        error: () => { /* non-critical: panel still renders legacy data */ }
+      });
+  }
+
+  /** True when the DPM has TECH distributions via allocations or legacy direct link. */
+  get selectedDpmHasDistribution(): boolean {
+    return this.selectedDpmRollups.length > 0 || this.selectedDpmDistributions.length > 0;
+  }
+
+  unitShort(unit?: string): string {
+    return unit === 'METERS' ? 'm' : 'pcs';
   }
 
   openItemPanel(row: ItemAuditRow): void {

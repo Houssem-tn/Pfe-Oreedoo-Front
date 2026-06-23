@@ -11,7 +11,7 @@ import {
 
 import { StockService } from '../../../../core/stock/stock.service';
 import {
-  DpmRequest, DpmStatus, RecordExternalApprovalRequest,
+  DpmAllocation, DpmRequest, DpmStatus, DpmTechRollup, RecordExternalApprovalRequest,
   SttDistribution
 } from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
@@ -43,6 +43,8 @@ export class ZmStockTrackingComponent implements OnInit {
 
   detailDpm: DpmRequest | null = null;
   detailTechDistributions: SttDistribution[] = [];
+  detailTechRollups: DpmTechRollup[] = [];
+  detailAllocations: DpmAllocation[] = [];
   detailVisible = false;
   loadingDetail = false;
 
@@ -72,14 +74,29 @@ export class ZmStockTrackingComponent implements OnInit {
   openDetail(dpm: DpmRequest): void {
     this.detailDpm = dpm;
     this.detailTechDistributions = [];
+    this.detailTechRollups = [];
+    this.detailAllocations = [];
     this.loadingDetail = true;
     this.detailVisible = true;
     this.stockSvc.zmGetDpmTracking(dpm.id)
       .pipe(finalize(() => { this.loadingDetail = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: t => { this.detailTechDistributions = t.techDistributions; this.cdr.detectChanges(); },
+        next: t => {
+          this.detailTechDistributions = t.techDistributions ?? [];
+          this.detailTechRollups = t.techRollups ?? [];
+          this.detailAllocations = t.allocations ?? [];
+          this.cdr.detectChanges();
+        },
         error: () => { /* non-critical */ }
       });
+  }
+
+  get hasAnyTechDistribution(): boolean {
+    return this.detailTechRollups.length > 0 || this.detailTechDistributions.length > 0;
+  }
+
+  unitShort(unit?: string): string {
+    return unit === 'METERS' ? 'm' : 'pcs';
   }
 
   // ── RDV modal ──────────────────────────────────────────────────────────────
