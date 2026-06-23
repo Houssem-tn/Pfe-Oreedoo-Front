@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import {
+  BadgeComponent,
   ButtonCloseDirective,
   ButtonDirective,
   ModalBodyComponent,
@@ -18,6 +19,9 @@ import {
   CaseStatus,
   CaseTimelineEvent
 } from '../../../core/cases/models/case.model';
+import { StockService } from '../../../core/stock/stock.service';
+import { StockUsagePermission, PermissionStatus } from '../../../core/stock/stock.model';
+import { LocationActionsComponent } from '../../components/location-actions/location-actions.component';
 
 @Component({
   selector: 'app-case-detail',
@@ -31,18 +35,66 @@ import {
     ModalBodyComponent,
     ModalFooterComponent,
     ButtonDirective,
-    IconDirective
+    BadgeComponent,
+    IconDirective,
+    LocationActionsComponent
   ],
   templateUrl: './case-detail.component.html',
   styleUrl: './case-detail.component.scss'
 })
-export class CaseDetailComponent {
+export class CaseDetailComponent implements OnChanges {
+  private readonly stockService = inject(StockService);
+
   @Input() visible = false;
   @Input() caseData: CaseResponse | null = null;
+
+  casePermissions: StockUsagePermission[] = [];
+  permissionsLoading = false;
 
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() close = new EventEmitter<void>();
   @Output() download = new EventEmitter<CaseResponse>();
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if ((changes['visible']?.currentValue === true || changes['caseData']) && this.visible && this.caseData?.id) {
+      this.loadPermissions(this.caseData.id);
+    }
+    if (changes['visible']?.currentValue === false) {
+      this.casePermissions = [];
+    }
+  }
+
+  private loadPermissions(caseId: string): void {
+    this.permissionsLoading = true;
+    this.stockService.getPermissionsByCase(caseId).subscribe({
+      next: (list) => {
+        this.casePermissions = list.filter(p => p.status !== 'CANCELLED')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        this.permissionsLoading = false;
+      },
+      error: () => { this.permissionsLoading = false; }
+    });
+  }
+
+  permissionStatusLabel(status: PermissionStatus): string {
+    switch (status) {
+      case 'PENDING': return 'Pending';
+      case 'APPROVED': return 'Approved';
+      case 'PARTIALLY_APPROVED': return 'Partially Approved';
+      case 'REJECTED': return 'Rejected';
+      default: return status;
+    }
+  }
+
+  permissionStatusColor(status: PermissionStatus): string {
+    switch (status) {
+      case 'PENDING': return 'warning';
+      case 'APPROVED': return 'success';
+      case 'PARTIALLY_APPROVED': return 'info';
+      case 'REJECTED': return 'danger';
+      default: return 'secondary';
+    }
+  }
 
   onClose(): void {
     this.close.emit();
@@ -143,6 +195,7 @@ export class CaseDetailComponent {
 
   timelineIconName(eventType: string): string {
     const t = eventType?.toLowerCase() ?? '';
+    if (t.includes('stock_usage_permission')) return 'cilStorage';
     if (t.includes('assign')) return 'cilUserFollow';
     if (t.includes('rdv') || t.includes('appointment')) return 'cilCalendar';
     if (t.includes('work') || t.includes('complet')) return 'cilTask';

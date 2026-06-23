@@ -325,6 +325,27 @@
                   {{ isTogglingDpm(user.id) ? 'Saving...' : (user.canCreateDpm ? 'Revoke DPM' : 'Allow DPM') }}
                 </button>
               </div>
+
+              <div class="user-card__territory-header" style="margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle, #e5e7eb)">
+                <div class="user-card__assignment-copy">
+                  <div class="user-card__assignment-title">Coverage import permission</div>
+                  <div class="user-card__assignment-value">
+                    {{ user.canImportCoverage ? 'Can import KMZ/KML coverage files' : 'Cannot import coverage files' }}
+                  </div>
+                </div>
+
+                <button
+                  *ngIf="user.status === 'APPROVED'"
+                  type="button"
+                  class="user-button"
+                  [ngClass]="user.canImportCoverage ? 'user-button--danger' : 'user-button--soft'"
+                  [disabled]="isTogglingCoverageImport(user.id)"
+                  (click)="toggleCoverageImportPermission(user)"
+                >
+                  <svg cIcon [name]="user.canImportCoverage ? 'cilBan' : 'cilCheckCircle'"></svg>
+                  {{ isTogglingCoverageImport(user.id) ? 'Saving...' : (user.canImportCoverage ? 'Revoke import' : 'Allow import') }}
+                </button>
+              </div>
             </div>
           </div><!-- /user-card__body -->
 

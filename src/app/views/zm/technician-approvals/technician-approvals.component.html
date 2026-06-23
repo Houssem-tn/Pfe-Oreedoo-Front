@@ -1,71 +1,145 @@
-<div class="container-fluid">
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-      <div>
-        <h5 class="mb-1">Pending Technician Approvals</h5>
-        <small class="text-body-secondary">Approve or reject newly registered technicians.</small>
+<div class="ta-shell">
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+  <div class="ta-hero">
+    <div class="ta-hero__copy">
+      <div class="ta-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <polyline points="16 11 18 13 22 9"></polyline>
+        </svg>
+        Approvals
       </div>
-      <button class="btn btn-outline-secondary btn-sm" (click)="load()">Refresh</button>
+      <h1 class="ta-title">Technician Approvals</h1>
+      <p class="ta-desc">Review and approve newly registered technicians waiting for zone authorization.</p>
     </div>
+    <button class="ta-refresh-btn" type="button" (click)="load()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+      </svg>
+      Refresh
+    </button>
+  </div>
 
-    <div class="card-body">
-      <div *ngIf="successMessage" class="alert alert-success">
-        {{ successMessage }}
-      </div>
-
-      <div *ngIf="errorMessage" class="alert alert-danger">
-        {{ errorMessage }}
-      </div>
-
-      <div *ngIf="loading" class="text-center text-body-secondary py-4">
-        Loading pending approvals...
-      </div>
-
-      <div *ngIf="!loading && invitations.length === 0" class="text-center text-body-secondary py-4">
-        No pending technician approvals.
-      </div>
-
-      <div *ngIf="!loading && invitations.length > 0" class="table-responsive">
-        <table class="table align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Email</th>
-              <th>STT</th>
-              <th>Registered At</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of invitations">
-              <td>{{ item.email }}</td>
-              <td>{{ item.sttName }}</td>
-              <td>{{ item.registeredAt | date:'medium' }}</td>
-              <td>
-                <span class="badge bg-info text-dark">{{ item.status }}</span>
-              </td>
-              <td class="text-end">
-                <div class="btn-group">
-                  <button
-                    class="btn btn-sm btn-success"
-                    [disabled]="actionLoadingId === item.id"
-                    (click)="decide(item.id, true)"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    class="btn btn-sm btn-danger"
-                    [disabled]="actionLoadingId === item.id"
-                    (click)="decide(item.id, false)"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <!-- ── Stats ──────────────────────────────────────────────────────────────── -->
+  <div class="ta-stats">
+    <div class="ta-stat">
+      <span class="ta-stat__val">{{ invitations.length }}</span>
+      <span class="ta-stat__lbl">Pending Approvals</span>
+      <div class="ta-stat__dot ta-stat__dot--amber"></div>
+    </div>
+    <div class="ta-stat">
+      <span class="ta-stat__val">{{ invitations.length > 0 ? '—' : '✓' }}</span>
+      <span class="ta-stat__lbl">Queue Status</span>
+      <div class="ta-stat__dot ta-stat__dot--green"></div>
     </div>
   </div>
+
+  <!-- ── Feedback banners ───────────────────────────────────────────────────── -->
+  @if (successMessage) {
+    <div class="ta-banner ta-banner--success">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      {{ successMessage }}
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="ta-banner ta-banner--error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      {{ errorMessage }}
+    </div>
+  }
+
+  <!-- ── Loading ────────────────────────────────────────────────────────────── -->
+  @if (loading) {
+    <div class="ta-loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading pending approvals…</span>
+    </div>
+  }
+
+  <!-- ── Empty ──────────────────────────────────────────────────────────────── -->
+  @if (!loading && invitations.length === 0) {
+    <div class="ta-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="44" height="44">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <polyline points="16 11 18 13 22 9"></polyline>
+      </svg>
+      <h4>All clear</h4>
+      <p>No pending technician approvals at the moment.</p>
+    </div>
+  }
+
+  <!-- ── Invitation list ────────────────────────────────────────────────────── -->
+  @if (!loading && invitations.length > 0) {
+    <div class="ta-list">
+      @for (item of invitations; track item.id) {
+        <div class="ta-card" [class.ta-card--busy]="actionLoadingId === item.id">
+          <div class="ta-card__accent"></div>
+          <div class="ta-card__inner">
+
+            <!-- Identity -->
+            <div class="ta-card__identity">
+              <div class="ta-avatar">{{ item.email[0].toUpperCase() }}</div>
+              <div class="ta-card__details">
+                <div class="ta-card__email">{{ item.email }}</div>
+                <div class="ta-card__meta">
+                  <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                    STT: {{ item.sttName }}
+                  </span>
+                  <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    {{ item.registeredAt | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                </div>
+              </div>
+              <span class="ta-pill">{{ item.status }}</span>
+            </div>
+
+            <!-- Actions -->
+            <div class="ta-card__actions">
+              @if (actionLoadingId === item.id) {
+                <span class="ta-card__processing">
+                  <c-spinner size="sm"></c-spinner>
+                  Processing…
+                </span>
+              } @else {
+                <button class="ta-btn ta-btn--approve" type="button" (click)="decide(item.id, true)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Approve
+                </button>
+                <button class="ta-btn ta-btn--reject" type="button" (click)="decide(item.id, false)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  Reject
+                </button>
+              }
+            </div>
+
+          </div>
+        </div>
+      }
+    </div>
+  }
+
 </div>

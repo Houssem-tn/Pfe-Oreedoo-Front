@@ -19,6 +19,12 @@ export const routes: Routes = [
     data: { caseType: 'PLAINTE' }
   },
   {
+    path: 'res-execution',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'PLAINTE', caseModule: 'RES', title: 'RES Execution' }
+  },
+  {
     path: 'cases/execution',
     loadComponent: () =>
       import('../tech/tech-activation-cases.component').then(m => m.TechActivationCasesComponent)
@@ -61,6 +67,18 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./stock/distribute/distribute.component').then(m => m.DistributeComponent),
     data: { title: 'Distribute to TECH' }
+  },
+  {
+    path: 'stock/usage-approvals',
+    loadComponent: () =>
+      import('./stock/usage-approvals/stt-usage-approvals.component').then(m => m.SttUsageApprovalsComponent),
+    data: { title: 'Stock Usage Approvals' }
+  },
+  {
+    path: 'stock/returns',
+    loadComponent: () =>
+      import('./stock/returns/stt-material-returns.component').then(m => m.SttMaterialReturnsComponent),
+    data: { title: 'Material Returns' }
   },
 
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' }

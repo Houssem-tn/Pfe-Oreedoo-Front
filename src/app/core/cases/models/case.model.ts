@@ -72,6 +72,8 @@ export interface CaseResponse {
   typeOffreSpeed?: string | null;
   typeClient?: string | null;
   source?: string | null;
+  /** PLT/RES discriminator for cases created from field-work imports (type=PLAINTE). */
+  caseModule?: string | null;
   complaintDetail?: string | null;
   complaintDescription?: string | null;
   openDateActivation?: string | null;
@@ -231,6 +233,10 @@ export interface CaseMetrics {
   rsrp?: number | null;
   rsrq?: number | null;
   sinr?: number | null;
+  modemModel?: string | null;
+  macAddress?: string | null;
+  serialNumber?: string | null;
+  imei?: string | null;
 }
 
 export interface CaseZmValidation {
@@ -297,6 +303,17 @@ export interface SetRdvRequest {
   causeAbandon: string | null;
 }
 
+export interface EquipmentItemProofPayload {
+  modemModel?: string;
+  macAddress: string;
+  serialNumber: string;
+  imei?: string;
+  latitude: number;
+  longitude: number;
+  gpsAccuracy?: number;
+  capturedAt?: string;
+}
+
 export interface CompleteWorkRequest {
   repTravauxStt: string;
   dateFinTrv: string;
@@ -308,6 +325,7 @@ export interface CompleteWorkRequest {
   rsrp?: number;
   rsrq?: number;
   sinr?: number;
+  equipmentProofs?: EquipmentItemProofPayload[];
   locationLatitude?: number;
   locationLongitude?: number;
   locationCapturedAt?: string;

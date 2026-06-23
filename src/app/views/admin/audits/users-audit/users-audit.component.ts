@@ -79,6 +79,11 @@ export class UsersAuditComponent implements OnInit {
   selectedStatus = '';
   selectedRole = '';
 
+  // ── Pagination ────────────────────────────────────────────────────────
+  currentPage = 1;
+  pageSize = 10;
+  readonly pageSizeOptions = [10, 20, 50];
+
   readonly statusOptions = [
     { value: '', label: 'All statuses' },
     { value: 'PENDING', label: 'Pending' },
@@ -586,6 +591,61 @@ export class UsersAuditComponent implements OnInit {
     this.searchTerm = '';
     this.selectedStatus = '';
     this.selectedRole = '';
+    this.currentPage = 1;
+  }
+
+  onFilterChange(): void {
+    this.currentPage = 1;
+  }
+
+  onPageSizeChange(): void {
+    this.currentPage = 1;
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+    }
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredAuditUsers.length / this.pageSize) || 1;
+  }
+
+  get showingFrom(): number {
+    return this.filteredAuditUsers.length === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get showingTo(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filteredAuditUsers.length);
+  }
+
+  get paginatedUsers(): AppUser[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredAuditUsers.slice(start, start + this.pageSize);
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(total, start + 4);
+    start = Math.max(1, end - 4);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }
 
   formatRole(role?: string | null): string {

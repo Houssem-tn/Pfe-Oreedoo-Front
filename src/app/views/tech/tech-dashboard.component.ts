@@ -178,9 +178,9 @@ export class TechDashboardComponent implements OnInit, OnDestroy {
     return ['ASSIGNED_TO_TECH', 'RDV_SET'].includes(item.status);
   }
 
-  primaryPanel(item: CaseResponse): 'details' | 'rdv' | 'work' {
+  primaryPanel(item: CaseResponse): 'details' | 'rdv' | 'stock' {
     if (this.canSubmitWork(item) && item.status === 'RDV_SET') {
-      return 'work';
+      return 'stock';
     }
 
     if (this.canSetRdv(item)) {
@@ -188,6 +188,28 @@ export class TechDashboardComponent implements OnInit, OnDestroy {
     }
 
     return 'details';
+  }
+
+  primaryActionLabel(item: CaseResponse): string {
+    switch (this.primaryPanel(item)) {
+      case 'stock':
+        return 'Declare stock usage';
+      case 'rdv':
+        return 'Set RDV';
+      default:
+        return 'Open details';
+    }
+  }
+
+  primaryActionIcon(item: CaseResponse): string {
+    switch (this.primaryPanel(item)) {
+      case 'stock':
+        return 'cilStorage';
+      case 'rdv':
+        return 'cilCalendar';
+      default:
+        return 'cilMagnifyingGlass';
+    }
   }
 
   priorityScore(item: CaseResponse): number {

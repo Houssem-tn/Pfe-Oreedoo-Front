@@ -1,4 +1,12 @@
 export type DpmStatus =
+  // ── New workflow statuses ────────────────────────────────────────────────────
+  | 'WAITING_TEAM_STOCK_APPROVAL'
+  | 'TEAM_STOCK_REJECTED'
+  | 'RDV_SCHEDULED'
+  | 'RDV_CONFIRMED_BY_STT'
+  | 'MATERIAL_RECEIVED'
+  | 'COMPLETED'
+  // ── Legacy statuses ──────────────────────────────────────────────────────────
   | 'PENDING_STT_CONFIRMATION'
   | 'PARTIALLY_CONFIRMED'
   | 'FULLY_CONFIRMED'
@@ -12,7 +20,16 @@ export type StockMovementType =
   | 'DPM_CONFIRMED'
   | 'STT_TO_TECH_DISTRIBUTION'
   | 'TECH_RECEIVED_FROM_STT'
-  | 'CASE_USAGE';
+  | 'CASE_USAGE'
+  | 'MATERIAL_RETURN_SUBMITTED'
+  | 'MATERIAL_RETURN_APPROVED'
+  | 'MATERIAL_RETURN_REJECTED'
+  | 'RETURN_TO_USABLE_STOCK'
+  | 'RETURN_TO_DAMAGED_STOCK'
+  | 'RETURN_TO_REPAIR'
+  | 'RETURN_TO_RECONDITIONING'
+  | 'RETURN_TO_CENTRAL_WAREHOUSE'
+  | 'RETURN_TO_SCRAP';
 
 export type DistributionStatus =
   | 'PENDING_TECH_CONFIRMATION'
@@ -24,6 +41,7 @@ export type EquipmentCategory = 'CABLE' | 'BOX' | 'ROUTER' | 'ONT' | 'OTHER';
 export interface Equipment {
   id: string;
   name: string;
+  articleCode?: string;
   description?: string;
   unit?: StockUnit;
   category?: EquipmentCategory;
@@ -70,6 +88,23 @@ export interface DpmRequest {
   createdAt: string;
   confirmedAt?: string;
   timeline: DpmTimelineEvent[];
+
+  // External Team Stock approval fields
+  externalApprovalReference?: string;
+  externalApprovalNote?: string;
+  externalApprovalMarkedAt?: string;
+  externalApprovalMarkedByZmId?: string;
+
+  // RDV fields
+  rdvDate?: string;
+  rdvLocation?: string;
+  rdvNote?: string;
+  rdvScheduledAt?: string;
+  rdvScheduledByZmId?: string;
+
+  // Rejection fields
+  externalRejectionReason?: string;
+  externalRejectedAt?: string;
 }
 
 export interface SttStockItem {
@@ -78,9 +113,11 @@ export interface SttStockItem {
   unit?: string;
   totalReceived: number;
   totalDistributedToTechs: number;
+  totalReturned?: number;
   availableQuantity: number;
   lastReceivedAt?: string;
   lastDistributedAt?: string;
+  lastReturnedAt?: string;
 }
 
 export interface SttStock {
@@ -166,7 +203,112 @@ export interface PendingDistribution {
 
 export interface DpmTracking {
   dpm: DpmRequest;
+  /** Legacy distributions that carry this DPM id directly (pre-upgrade flow). */
   techDistributions: SttDistribution[];
+  /** Automatic source allocations attributing pooled distributions to this DPM. */
+  allocations?: DpmAllocation[];
+  /** Per-TECH distributed/used/returned/remaining rollup built from allocations. */
+  techRollups?: DpmTechRollup[];
+}
+
+export interface DpmAllocation {
+  id: string;
+  distributionId: string;
+  dpmId: string;
+  dpmNumber?: string;
+  sttId?: string;
+  technicianId: string;
+  technicianName?: string;
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  allocatedQuantity: number;
+  sourceBalanceBefore?: number;
+  sourceBalanceAfter?: number;
+  allocatedAt?: string;
+  distributionStatus?: DistributionStatus | null;
+}
+
+export interface DpmTechRollupItem {
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  distributedQuantity: number;
+  usedQuantity: number;
+  returnedQuantity: number;
+  remainingQuantity: number;
+}
+
+export interface DpmTechRollup {
+  technicianId: string;
+  technicianName?: string;
+  items: DpmTechRollupItem[];
+  totalDistributed: number;
+  totalUsed: number;
+  totalReturned: number;
+  totalRemaining: number;
+}
+
+/** Derived lifecycle status for a team distribution row. */
+export type TeamDistributionStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'PARTIALLY_USED'
+  | 'FULLY_USED'
+  | 'CANCELLED';
+
+export interface TeamDistributionSource {
+  dpmId: string;
+  dpmNumber?: string;
+  allocatedQuantity: number;
+}
+
+export interface TeamDistributionItem {
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  distributedQuantity: number;
+  usedQuantity: number;
+  remainingQuantity: number;
+  sources: TeamDistributionSource[];
+}
+
+export interface TeamDistributionRelatedCase {
+  caseId: string;
+  crmCase?: string;
+  caseType?: string;
+  consumedAt?: string;
+}
+
+export interface TeamDistribution {
+  distributionId: string;
+  sttId: string;
+  sttName?: string;
+  techId: string;
+  techName?: string;
+  zmId?: string;
+  zmName?: string;
+  distributedAt?: string;
+  confirmedAt?: string;
+  notes?: string;
+  status?: DistributionStatus;
+  derivedStatus: TeamDistributionStatus;
+  historical: boolean;
+  items: TeamDistributionItem[];
+  totalDistributed: number;
+  totalUsed: number;
+  totalRemaining: number;
+  relatedCases: TeamDistributionRelatedCase[];
+}
+
+export interface TeamDistributionFilters {
+  zmId?: string;
+  sttId?: string;
+  techId?: string;
+  equipmentId?: string;
+  from?: string;
+  to?: string;
+  status?: string;
 }
 
 export interface ZmDpmAuditItem {
@@ -282,10 +424,198 @@ export interface CaseConsumptionFilters {
   to?: string;
 }
 
+// ── Unified Stock Audit Feed (DPM + Material Returns) ─────────────────────────
+
+export type StockAuditType = 'DPM' | 'RETURN_MATERIAL';
+
+export type StockAuditStatusCategory =
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export interface StockAuditItem {
+  equipmentId?: string;
+  equipmentName?: string;
+  unit?: string;
+  quantity: number;
+  /** Returned-item condition (GOOD / DAMAGED / ...). Absent for DPM items. */
+  condition?: string;
+}
+
+export interface StockAuditEvent {
+  eventType?: string;
+  description?: string;
+  actorName?: string;
+  actorRole?: string;
+  timestamp?: string;
+  note?: string;
+}
+
+export interface StockAuditEntry {
+  auditType: StockAuditType;
+  id: string;
+  reference?: string;
+
+  status?: string;
+  statusLabel?: string;
+  statusCategory?: StockAuditStatusCategory;
+
+  actorName?: string;
+  actorRole?: string;
+
+  sttId?: string;
+  sttName?: string;
+  zmId?: string;
+  zmName?: string;
+  technicianName?: string;
+
+  items: StockAuditItem[];
+  totalQuantity?: number;
+
+  // Return-specific (absent for DPM)
+  reason?: string;
+  returnSource?: string;
+  returnCondition?: string;
+  destination?: string;
+
+  relatedCaseId?: string;
+  crmCase?: string;
+  relatedCaseType?: string;
+
+  notes?: string;
+
+  createdAt?: string;
+  updatedAt?: string;
+
+  timeline: StockAuditEvent[];
+}
+
+// ── Case Usage Limits (TECH proactive detection) ──────────────────────────────
+
+export interface CaseLimitItem {
+  itemId: string;
+  itemName: string;
+  unit?: string;
+  caseUsageLimit: number;
+  caseUsageLimitEnabled: boolean;
+}
+
+// ── Stock Thresholds ─────────────────────────────────────────────────────────
+
+export interface StockThreshold {
+  id: string;
+  zmId: string;
+  zmName: string;
+  itemId: string;
+  itemName: string;
+  itemType?: 'EQUIPMENT' | 'CABLE';
+  /** @deprecated Use sttWarningThreshold / techWarningThreshold */
+  warningThreshold: number;
+  /** @deprecated Use sttCriticalThreshold / techCriticalThreshold */
+  criticalThreshold: number;
+  unit?: 'PIECE' | 'METER';
+  enabled: boolean;
+  // STT-specific thresholds
+  sttWarningThreshold?: number;
+  sttCriticalThreshold?: number;
+  sttAlertsEnabled?: boolean;
+  // TECH-specific thresholds
+  techWarningThreshold?: number;
+  techCriticalThreshold?: number;
+  techAlertsEnabled?: boolean;
+  caseUsageLimit?: number;
+  caseUsageLimitEnabled?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface StockThresholdRequest {
+  itemId: string;
+  itemName: string;
+  itemType?: string;
+  unit?: string;
+  enabled: boolean;
+  /** @deprecated Use sttWarningThreshold / techWarningThreshold */
+  warningThreshold?: number;
+  /** @deprecated Use sttCriticalThreshold / techCriticalThreshold */
+  criticalThreshold?: number;
+  // STT-specific thresholds
+  sttWarningThreshold?: number;
+  sttCriticalThreshold?: number;
+  sttAlertsEnabled?: boolean;
+  // TECH-specific thresholds
+  techWarningThreshold?: number;
+  techCriticalThreshold?: number;
+  techAlertsEnabled?: boolean;
+  caseUsageLimit?: number;
+  caseUsageLimitEnabled?: boolean;
+}
+
+// ── Stock Usage Permissions ──────────────────────────────────────────────────
+
+export interface PermissionItemDetail {
+  itemId: string;
+  itemName: string;
+  requestedQuantity: number;
+  approvedQuantity: number;
+  unit?: string;
+}
+
+export type PermissionStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'PARTIALLY_APPROVED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export interface StockUsagePermission {
+  id: string;
+  caseId: string;
+  caseReference?: string;
+  techId: string;
+  techName: string;
+  sttId: string;
+  sttName: string;
+  zmId?: string;
+  zmName?: string;
+  status: PermissionStatus;
+  reason?: string;
+  requestedCableMeters: number;
+  approvedCableMeters: number;
+  requestedItems?: PermissionItemDetail[];
+  approvedItems?: PermissionItemDetail[];
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBySttId?: string;
+  reviewComment?: string;
+}
+
+export interface CreatePermissionRequest {
+  caseId: string;
+  reason?: string;
+  requestedCableMeters: number;
+  requestedItems?: { itemId: string; itemName: string; requestedQuantity: number; unit?: string }[];
+}
+
+export interface ReviewPermissionRequest {
+  approvedCableMeters: number;
+  approvedItems?: { itemId: string; approvedQuantity: number }[];
+  reviewComment?: string;
+}
+
+export interface RejectPermissionRequest {
+  reviewComment: string;
+}
+
 // ── Request payloads ──────────────────────────────────────────────────────────
 
 export interface CreateEquipmentRequest {
   name: string;
+  articleCode?: string;
   description?: string;
   unit?: StockUnit;
   category?: EquipmentCategory;
@@ -312,6 +642,18 @@ export interface DpmItemConfirmation {
 export interface ConfirmDpmRequest {
   items: DpmItemConfirmation[];
   rejectReason?: string;
+}
+
+export interface RecordExternalApprovalRequest {
+  approvalReference?: string;
+  approvalNote?: string;
+  rdvDate: string;
+  rdvLocation: string;
+  rdvNote?: string;
+}
+
+export interface ExternalRejectionRequest {
+  rejectionReason?: string;
 }
 
 export interface DistributionItemRequest {

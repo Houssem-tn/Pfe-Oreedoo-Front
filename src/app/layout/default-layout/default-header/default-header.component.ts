@@ -110,8 +110,7 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
           user.profileImageUrl ||
           this.defaultAvatarUrl;
 
-        console.log('Current user profile:', user);
-        console.log('Resolved avatar URL:', nextAvatarUrl);
+        this.authStore.patchCanCreateDpm(user.canCreateDpm ?? false);
 
         queueMicrotask(() => {
           this.currentUserAvatarUrl = nextAvatarUrl;
@@ -139,7 +138,28 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
 
     this.markOneAsRead(notification, event);
 
-    if (notification.eventType !== 'USER_REGISTERED') {
+    const role = this.authStore.role();
+    const eventType = notification.eventType;
+
+    // Stock alert → go to Alert Center
+    if (eventType === 'STOCK_CRITICAL' || eventType === 'STOCK_LOW_WARNING') {
+      this.router.navigate(['/alerts']);
+      return;
+    }
+
+    // STT: permission request arrived
+    if (eventType === 'STOCK_USAGE_PERMISSION_REQUIRED' && role === 'ROLE_STT') {
+      this.router.navigate(['/stt/stock/usage-approvals']);
+      return;
+    }
+
+    // TECH: permission was reviewed
+    if ((eventType === 'STOCK_USAGE_PERMISSION_APPROVED' || eventType === 'STOCK_USAGE_PERMISSION_REJECTED') && role === 'ROLE_TECH') {
+      this.router.navigate(['/tech/stock/my-permissions']);
+      return;
+    }
+
+    if (eventType !== 'USER_REGISTERED') {
       const roleRoute = this.getCaseRouteForNotification(notification);
 
       if (roleRoute && this.isCaseEvent(notification.eventType)) {
@@ -148,8 +168,6 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
 
       return;
     }
-
-    const role = this.authStore.role();
 
     if (role === 'ROLE_ADMIN') {
       this.router.navigate(['/admin/approvals']);
@@ -203,7 +221,17 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       case 'INTERVENTION_ASSIGNED':
         return 'cilTask';
       case 'STOCK_ALERT':
+      case 'STOCK_LOW_WARNING':
         return 'cilWarning';
+      case 'STOCK_CRITICAL':
+        return 'cilBan';
+      case 'STOCK_USAGE_PERMISSION_REQUIRED':
+        return 'cilStorage';
+      case 'STOCK_USAGE_PERMISSION_APPROVED':
+      case 'STOCK_USAGE_PERMISSION_PARTIALLY_APPROVED':
+        return 'cilCheckCircle';
+      case 'STOCK_USAGE_PERMISSION_REJECTED':
+        return 'cilXCircle';
       default:
         return 'cilBell';
     }
@@ -231,6 +259,16 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       case 'INTERVENTION_ASSIGNED':
         return 'warning';
       case 'STOCK_ALERT':
+      case 'STOCK_CRITICAL':
+        return 'danger';
+      case 'STOCK_LOW_WARNING':
+        return 'warning';
+      case 'STOCK_USAGE_PERMISSION_REQUIRED':
+        return 'warning';
+      case 'STOCK_USAGE_PERMISSION_APPROVED':
+      case 'STOCK_USAGE_PERMISSION_PARTIALLY_APPROVED':
+        return 'success';
+      case 'STOCK_USAGE_PERMISSION_REJECTED':
         return 'danger';
       default:
         return 'secondary';
@@ -253,16 +291,13 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   }
 
   private isCaseEvent(eventType?: string): boolean {
-    if (!eventType) {
-      return false;
-    }
-
+    if (!eventType) return false;
     return eventType === 'CASE_ASSIGNED_TO_ZM'
       || eventType === 'CASE_ASSIGNED_TO_STT'
       || eventType === 'CASE_ASSIGNED_TO_TECH'
       || eventType === 'SLA_WARNING'
-        || eventType === 'SLA_BREACHED'
-        || eventType === 'SLA_ESCALATED';
+      || eventType === 'SLA_BREACHED'
+      || eventType === 'SLA_ESCALATED';
   }
 
   private getCaseListRouteByRole(): string | null {

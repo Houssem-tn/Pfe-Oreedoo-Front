@@ -80,61 +80,47 @@
     </button>
 
     <div cDropdownMenu class="header-notification-menu pt-0">
-      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-        <div>
-          <div class="fw-semibold">Notifications</div>
-          <small class="text-body-secondary">
-            {{ unreadCount() }} unread
-          </small>
+      <div class="notif-header">
+        <div class="notif-header__left">
+          <span class="notif-header__title">Notifications</span>
+          <span class="notif-header__count">{{ unreadCount() }} unread</span>
         </div>
-
         <button
-          class="btn btn-sm btn-link text-decoration-none"
+          class="notif-header__mark-all"
           type="button"
           (click)="markAllAsRead($event)"
           [disabled]="unreadCount() === 0"
         >
-          Mark all as read
+          Mark all read
         </button>
       </div>
 
       @if (notifications().length === 0) {
-        <div class="px-3 py-3 text-body-secondary small">
-          No notifications yet.
-        </div>
+        <div class="notif-empty">No notifications yet.</div>
       } @else {
         <div class="header-notification-menu__list">
           @for (item of notifications().slice(0, 10); track item.id) {
             <button
-              cDropdownItem
               type="button"
-              class="d-block text-start border-bottom py-3"
+              class="notif-item"
+              [class.notif-item--unread]="!item.read"
               (click)="handleNotificationClick(item, $event)"
             >
-              <div class="d-flex justify-content-between align-items-start gap-3">
-                <div class="flex-shrink-0 mt-1">
-                  <c-badge [color]="getNotificationBadgeColor(item.eventType)" shape="rounded-pill">
-                    <svg cIcon [name]="getNotificationIcon(item.eventType)"></svg>
-                  </c-badge>
-                </div>
-
-                <div class="flex-grow-1">
-                  <div class="fw-semibold d-flex align-items-center gap-2">
-                    <span>{{ item.title }}</span>
-                    @if (!item.read) {
-                      <c-badge color="danger">New</c-badge>
-                    }
-                  </div>
-
-                  <div class="small text-body-secondary mt-1">
-                    {{ item.message }}
-                  </div>
-
-                  <div class="small text-body-tertiary mt-1">
-                    {{ item.createdAt | date:'medium' }}
-                  </div>
-                </div>
-              </div>
+              <span class="notif-icon">
+                <c-badge [color]="getNotificationBadgeColor(item.eventType)" shape="rounded-pill">
+                  <svg cIcon [name]="getNotificationIcon(item.eventType)"></svg>
+                </c-badge>
+              </span>
+              <span class="notif-body">
+                <span class="notif-title-row">
+                  <span class="notif-title">{{ item.title }}</span>
+                  @if (!item.read) {
+                    <c-badge color="danger" class="notif-new-badge">New</c-badge>
+                  }
+                </span>
+                <span class="notif-msg">{{ item.message }}</span>
+                <span class="notif-time">{{ item.createdAt | date:'MMM d · h:mm a' }}</span>
+              </span>
             </button>
           }
         </div>

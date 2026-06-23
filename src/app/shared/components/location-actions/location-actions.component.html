@@ -1,0 +1,81 @@
+<!-- Inline display: coords label + action buttons -->
+<div class="la-root">
+  @if (isValid && !disabled) {
+    <span class="la-coords">{{ coordsLabel }}</span>
+    <div class="la-buttons">
+      <button class="la-btn la-btn--maps" type="button" (click)="openGoogleMaps()"
+              title="Open in Google Maps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="la-btn__icon">
+          <circle cx="12" cy="10" r="3"></circle>
+          <path d="M12 2a8 8 0 00-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 00-8-8z"></path>
+        </svg>
+        Google Maps
+      </button>
+
+      <button class="la-btn la-btn--map" type="button" (click)="openMap()"
+              title="View on internal map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="la-btn__icon">
+          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+          <line x1="8" y1="2" x2="8" y2="18"></line>
+          <line x1="16" y1="6" x2="16" y2="22"></line>
+        </svg>
+        View Map
+      </button>
+    </div>
+  } @else {
+    <span class="la-unavailable">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="la-unavailable__icon">
+        <circle cx="12" cy="10" r="3"></circle>
+        <path d="M12 2a8 8 0 00-8 8c0 5.25 8 13 8 13s8-7.75 8-13a8 8 0 00-8-8z"></path>
+        <line x1="2" y1="2" x2="22" y2="22" stroke-width="2.5"></line>
+      </svg>
+      No valid coordinates
+    </span>
+  }
+</div>
+
+<!-- ── Map modal overlay ────────────────────────────────────────────── -->
+@if (mapOpen()) {
+  <div class="la-backdrop" (click)="onBackdropClick($event)" role="dialog"
+       aria-modal="true" [attr.aria-label]="modalTitle">
+
+    <div class="la-modal" (click)="$event.stopPropagation()">
+
+      <!-- Modal header -->
+      <div class="la-modal__header">
+        <div class="la-modal__header-left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="la-modal__header-icon">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <div>
+            <div class="la-modal__title">{{ modalTitle }}</div>
+            @if (label && label !== contextTitle) {
+              <div class="la-modal__subtitle">{{ label }}</div>
+            }
+          </div>
+        </div>
+
+        <button class="la-modal__close" type="button" (click)="closeMap()" aria-label="Close map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- MapLibre viewer — mapHeight must match .la-modal__body flex-basis minus 48px toolbar -->
+      <div class="la-modal__body">
+        <app-map-viewer
+          [lat]="validCoords!.lat"
+          [lng]="validCoords!.lng"
+          [title]="modalTitle"
+          [description]="coordsLabel"
+          [mapHeight]="440">
+        </app-map-viewer>
+      </div>
+
+    </div>
+  </div>
+}

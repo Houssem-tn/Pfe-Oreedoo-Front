@@ -192,6 +192,29 @@ table.equip-table {
   font-weight: 700;
 }
 
+.equip-code {
+  background: rgba(229, 36, 59, 0.07);
+  border-radius: 0.4rem;
+  color: #8f0c20;
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.18rem 0.45rem;
+  white-space: nowrap;
+}
+
+.equip-muted {
+  color: var(--equip-muted);
+}
+
+.equip-desc {
+  display: block;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .equip-status-badge {
   border-radius: 999px;
   font-size: 0.78rem;
@@ -488,6 +511,12 @@ table.equip-table {
     background: #fff;
     border-color: rgba(229, 36, 59, 0.42);
     box-shadow: 0 0 0 4px rgba(229, 36, 59, 0.1);
+  }
+
+  &--mono {
+    font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.03em;
   }
 }
 

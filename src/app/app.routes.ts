@@ -82,6 +82,13 @@ export const routes: Routes = [
         loadChildren: () => import('./views/zm/routes').then((m) => m.routes),
       },
 
+      {
+        path: 'alerts',
+        loadComponent: () =>
+          import('./views/alerts/alert-center-page.component').then(m => m.AlertCenterPageComponent),
+        data: { title: 'Alert Center' }
+      },
+
       { path: '**', redirectTo: 'dashboard' },
     ],
   },

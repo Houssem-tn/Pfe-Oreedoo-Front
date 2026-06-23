@@ -175,12 +175,12 @@
 
       <div class="crm-filter-panel__meta crm-filter-panel__meta--soft">
         <svg cIcon name="cilDescription"></svg>
-        <span>{{ filteredCases.length }} filtered cases</span>
+        <span>{{ totalElements }} filtered cases</span>
       </div>
     </div>
   </section>
 
-  <div *ngIf="loading" class="crm-state crm-state--loading">
+  <div *ngIf="loading && cases.length === 0" class="crm-state crm-state--loading">
     <div class="spinner-border" role="status"></div>
     <div>
       <strong>Loading {{ caseBoardLabel.toLowerCase() }} cases...</strong>
@@ -196,7 +196,7 @@
     </div>
   </div>
 
-  <ng-container *ngIf="!loading && !error">
+  <ng-container *ngIf="!error && !(loading && cases.length === 0)">
     <div class="tech-mobile-board d-lg-none" *ngIf="currentRole === 'ROLE_TECH'">
       <div class="tech-mobile-card" *ngFor="let item of techMobileCases; trackBy: trackById">
         <div class="tech-mobile-card__top">
@@ -307,7 +307,10 @@
         <div class="crm-table-panel__meta">{{ rangeLabel() }}</div>
       </div>
 
-      <div class="table-responsive">
+      <div class="crm-table-wrap" [class.is-refreshing]="loading">
+        <div class="crm-table-refresh" *ngIf="loading">
+          <div class="spinner-border spinner-border-sm" role="status"></div>
+        </div>
         <table class="table cases-table align-middle mb-0">
           <thead>
             <tr>
@@ -324,13 +327,8 @@
           <tbody>
             <tr *ngFor="let item of paginatedCases; trackBy: trackById">
               <td>
-                <div class="case-ref">
-                  <div class="case-ref__icon"><svg cIcon name="cilDescription"></svg></div>
-                  <div>
-                    <div class="case-ref__title">{{ item.crmCase }}</div>
-                    <div class="case-ref__meta">{{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</div>
-                  </div>
-                </div>
+                <div class="case-ref__title">{{ item.crmCase }}</div>
+                <div class="case-ref__meta">{{ item.createdAt ? (item.createdAt | date:'dd/MM HH:mm') : '-' }}</div>
               </td>
 
               <td>
@@ -348,27 +346,27 @@
 
               <td>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--zm">
+                  <div class="assignment-person assignment-person--zm" [title]="'ZM: ' + (ownerZmCompactLabel(item) || '-')">
                     <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.ownerZmName || item.zmName, item.zmEmail) }}</span>
-                    <span class="assignment-badge">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
+                    <span class="assignment-badge">ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--stt">
+                  <div class="assignment-person assignment-person--stt" [title]="'STT: ' + sttDisplayName(item)">
                     <span class="assignee-avatar assignee-avatar--stt">{{ initialsFor(item.sttName, item.sttEmail) }}</span>
                     <span class="assignment-badge">STT: {{ sttDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--tech">
+                  <div class="assignment-person assignment-person--tech" [title]="'TECH: ' + techDisplayName(item)">
                     <span class="assignee-avatar assignee-avatar--tech">{{ initialsFor(item.techName, item.techEmail) }}</span>
                     <span class="assignment-badge">TECH: {{ techDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--executor">
+                  <div class="assignment-person assignment-person--executor" [title]="'Executor: ' + executorDisplayName(item) + ' · ' + executionModeLabel(item)">
                     <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorDisplayName(item), executorDisplayName(item)) }}</span>
-                    <span class="assignment-badge">Executor: {{ executorDisplayName(item) }} - {{ executionModeLabel(item) }}</span>
+                    <span class="assignment-badge">{{ executionModeLabel(item) }}</span>
                   </div>
                 </div>
               </td>
@@ -394,16 +392,12 @@
 
               <td>
                 <div class="case-execution__item">
-                  <svg cIcon name="cilUser"></svg>
-                  <span>{{ executionModeLabel(item) }} - {{ executorDisplayName(item) }}</span>
-                </div>
-                <div class="case-execution__item">
                   <svg cIcon name="cilCalendar"></svg>
-                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM/yyyy HH:mm') : 'RDV not set' }}</span>
+                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'RDV not set' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilTask"></svg>
-                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work not submitted' }}</span>
+                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work pending' }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCheckCircle"></svg>
@@ -539,15 +533,40 @@
       </div>
     </section>
 
-    <section class="crm-pagination" *ngIf="filteredCases.length > 0">
+    <section class="crm-pagination" *ngIf="totalElements > 0">
       <div class="crm-pagination__meta">Page {{ currentPage }} of {{ totalPages }}</div>
 
       <div class="crm-pagination__controls">
-        <button type="button" class="crm-page-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
-        <button type="button" class="crm-page-btn" [class.crm-page-btn--active]="page === currentPage" *ngFor="let page of pages" (click)="setPage(page)">
-          {{ page }}
-        </button>
+        <button type="button" class="crm-page-btn crm-page-btn--edge" (click)="setPage(1)" [disabled]="currentPage === 1" title="First page" aria-label="First page">«</button>
+        <button type="button" class="crm-page-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">Prev</button>
+
+        <ng-container *ngFor="let page of visiblePages">
+          <button
+            *ngIf="page !== '...'"
+            type="button"
+            class="crm-page-btn"
+            [class.crm-page-btn--active]="page === currentPage"
+            (click)="setPage(+page)"
+          >{{ page }}</button>
+          <span *ngIf="page === '...'" class="crm-page-ellipsis">…</span>
+        </ng-container>
+
         <button type="button" class="crm-page-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+        <button type="button" class="crm-page-btn crm-page-btn--edge" (click)="setPage(totalPages)" [disabled]="currentPage === totalPages" title="Last page" aria-label="Last page">»</button>
+      </div>
+
+      <div class="crm-pagination__jump">
+        <span>Go to</span>
+        <input
+          type="number"
+          min="1"
+          [max]="totalPages"
+          [(ngModel)]="jumpPageValue"
+          (keyup.enter)="onJumpToPage()"
+          placeholder="#"
+          aria-label="Jump to page"
+        />
+        <button type="button" class="crm-page-btn crm-page-btn--go" (click)="onJumpToPage()">Go</button>
       </div>
     </section>
   </ng-container>

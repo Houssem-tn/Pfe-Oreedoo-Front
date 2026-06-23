@@ -6,6 +6,8 @@ import {
   CaseConsumption,
   CaseConsumptionFilters,
   CaseConsumptionSummary,
+  CaseLimitItem,
+  CreatePermissionRequest,
   DeclareTechUsageRequest,
   DeclareTechUsageResponse,
   ConfirmDpmRequest,
@@ -16,10 +18,21 @@ import {
   DpmRequest,
   DpmTracking,
   Equipment,
+  ExternalRejectionRequest,
   PendingDistribution,
+  RecordExternalApprovalRequest,
+  RejectPermissionRequest,
+  ReviewPermissionRequest,
+  StockAuditEntry,
+  StockAuditType,
   StockMovement,
+  StockThreshold,
+  StockThresholdRequest,
+  StockUsagePermission,
   SttDistribution,
   SttStock,
+  TeamDistribution,
+  TeamDistributionFilters,
   TechStock,
   TechStockUsage,
   ZmStockAudit
@@ -77,6 +90,18 @@ export class StockService {
     return this.http.post<DpmRequest>(`${this.url}/dpms/${id}/confirm`, payload);
   }
 
+  recordExternalApprovalAndRdv(id: string, payload: RecordExternalApprovalRequest): Observable<DpmRequest> {
+    return this.http.patch<DpmRequest>(`${this.url}/dpms/${id}/external-approval-and-rdv`, payload);
+  }
+
+  recordExternalRejection(id: string, payload: ExternalRejectionRequest): Observable<DpmRequest> {
+    return this.http.patch<DpmRequest>(`${this.url}/dpms/${id}/external-rejection`, payload);
+  }
+
+  confirmRdv(id: string): Observable<DpmRequest> {
+    return this.http.post<DpmRequest>(`${this.url}/dpms/${id}/confirm-rdv`, {});
+  }
+
   // ── ZM scoped ─────────────────────────────────────────────────────────────
 
   getMyDpms(): Observable<DpmRequest[]> {
@@ -107,6 +132,10 @@ export class StockService {
 
   getMySttStock(): Observable<SttStock> {
     return this.http.get<SttStock>(`${this.url}/stt/my-stock`);
+  }
+
+  getSttSelfStock(): Observable<TechStock> {
+    return this.http.get<TechStock>(`${this.url}/stt/my-self-stock`);
   }
 
   distributeToTech(payload: DistributeToTechRequest): Observable<SttDistribution> {
@@ -185,8 +214,41 @@ export class StockService {
     return this.http.get<ZmStockAudit>(`${this.url}/admin/audit/zm/${zmId}`);
   }
 
+  // ── Team Distribution Tracking (DPM-source-independent) ────────────────────
+
+  /** Admin: all STT→TECH distributions across every team, including null-DPM pooled ones. */
+  adminGetTeamDistributions(filters: TeamDistributionFilters = {}): Observable<TeamDistribution[]> {
+    return this.http.get<TeamDistribution[]>(`${this.url}/admin/team-distributions`, {
+      params: this.teamDistributionParams(filters)
+    });
+  }
+
+  /** ZM: STT→TECH distributions scoped to the ZM's responsible STTs. */
+  zmGetTeamDistributions(filters: TeamDistributionFilters = {}): Observable<TeamDistribution[]> {
+    return this.http.get<TeamDistribution[]>(`${this.url}/zm/team-distributions`, {
+      params: this.teamDistributionParams(filters)
+    });
+  }
+
+  private teamDistributionParams(filters: TeamDistributionFilters): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (filters.zmId)        params['zmId']        = filters.zmId;
+    if (filters.sttId)       params['sttId']       = filters.sttId;
+    if (filters.techId)      params['techId']      = filters.techId;
+    if (filters.equipmentId) params['equipmentId'] = filters.equipmentId;
+    if (filters.from)        params['from']        = filters.from;
+    if (filters.to)          params['to']          = filters.to;
+    if (filters.status)      params['status']      = filters.status;
+    return params;
+  }
+
   zmGetMyTechsUsages(): Observable<TechStockUsage[]> {
     return this.http.get<TechStockUsage[]>(`${this.url}/zm/my-techs-usages`);
+  }
+
+  /** All DPMs received by STTs under this ZM's responsibility (any creator ZM). */
+  zmGetMySttsDpms(): Observable<DpmRequest[]> {
+    return this.http.get<DpmRequest[]>(`${this.url}/zm/my-stts-dpms`);
   }
 
   // ── Case Stock Consumption Audit ──────────────────────────────────────────
@@ -214,5 +276,60 @@ export class StockService {
 
   getCaseConsumptionSummary(): Observable<CaseConsumptionSummary> {
     return this.http.get<CaseConsumptionSummary>(`${this.baseUrl}/api/v1/stock-audit/summary`);
+  }
+
+  /** Unified Admin audit feed: DPM requests + material returns, newest first. */
+  adminGetStockAuditEntries(type: StockAuditType | 'ALL' = 'ALL'): Observable<StockAuditEntry[]> {
+    return this.http.get<StockAuditEntry[]>(`${this.baseUrl}/api/v1/stock-audit/entries`, {
+      params: { type }
+    });
+  }
+
+  // ── Stock Thresholds (ZM) ──────────────────────────────────────────────────
+
+  getMyThresholds(): Observable<StockThreshold[]> {
+    return this.http.get<StockThreshold[]>(`${this.baseUrl}/api/v1/stock-thresholds/my`);
+  }
+
+  upsertThreshold(payload: StockThresholdRequest): Observable<StockThreshold> {
+    return this.http.post<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds`, payload);
+  }
+
+  updateThreshold(id: string, payload: StockThresholdRequest): Observable<StockThreshold> {
+    return this.http.put<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds/${id}`, payload);
+  }
+
+  toggleThreshold(id: string): Observable<StockThreshold> {
+    return this.http.patch<StockThreshold>(`${this.baseUrl}/api/v1/stock-thresholds/${id}/toggle`, {});
+  }
+
+  getCaseLimits(caseId: string): Observable<CaseLimitItem[]> {
+    return this.http.get<CaseLimitItem[]>(`${this.baseUrl}/api/v1/stock-thresholds/effective-case-limits/${caseId}`);
+  }
+
+  // ── Stock Usage Permissions ────────────────────────────────────────────────
+
+  createUsagePermission(payload: CreatePermissionRequest): Observable<StockUsagePermission> {
+    return this.http.post<StockUsagePermission>(`${this.baseUrl}/api/v1/stock-usage-permissions`, payload);
+  }
+
+  getMyPendingPermissions(): Observable<StockUsagePermission[]> {
+    return this.http.get<StockUsagePermission[]>(`${this.baseUrl}/api/v1/stock-usage-permissions/my-pending`);
+  }
+
+  getPermissionsByCase(caseId: string): Observable<StockUsagePermission[]> {
+    return this.http.get<StockUsagePermission[]>(`${this.baseUrl}/api/v1/stock-usage-permissions/case/${caseId}`);
+  }
+
+  getMyPermissionRequests(): Observable<StockUsagePermission[]> {
+    return this.http.get<StockUsagePermission[]>(`${this.baseUrl}/api/v1/stock-usage-permissions/tech/my-requests`);
+  }
+
+  approvePermission(id: string, payload: ReviewPermissionRequest): Observable<StockUsagePermission> {
+    return this.http.post<StockUsagePermission>(`${this.baseUrl}/api/v1/stock-usage-permissions/${id}/approve`, payload);
+  }
+
+  rejectPermission(id: string, payload: RejectPermissionRequest): Observable<StockUsagePermission> {
+    return this.http.post<StockUsagePermission>(`${this.baseUrl}/api/v1/stock-usage-permissions/${id}/reject`, payload);
   }
 }

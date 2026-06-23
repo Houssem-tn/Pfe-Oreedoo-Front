@@ -72,6 +72,17 @@ export const navAdmin: INavData[] = [
 
   {
     title: true,
+    name: 'Coverage Intelligence'
+  },
+
+  {
+    name: 'Network Coverage',
+    url: '/admin/network-coverage',
+    iconComponent: { name: 'cilMap' }
+  },
+
+  {
+    title: true,
     name: 'Stock Management'
   },
 
@@ -85,6 +96,12 @@ export const navAdmin: INavData[] = [
     name: 'Stock Tracking',
     url: '/admin/stock/tracking',
     iconComponent: { name: 'cilChartLine' }
+  },
+
+  {
+    name: 'Team Distributions',
+    url: '/admin/stock/team-distributions',
+    iconComponent: { name: 'cilPeople' }
   },
 
   {

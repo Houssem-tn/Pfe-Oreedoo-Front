@@ -26,5 +26,11 @@ export const navTech: INavData[] = [
     name: 'My Equipment',
     url: '/tech/stock/my-stock',
     iconComponent: { name: 'cilStorage' }
+  },
+
+  {
+    name: 'My Permissions',
+    url: '/tech/stock/my-permissions',
+    iconComponent: { name: 'cilTask' }
   }
 ];

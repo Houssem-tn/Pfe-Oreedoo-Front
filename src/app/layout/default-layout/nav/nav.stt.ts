@@ -27,6 +27,11 @@ export const navStt: INavData[] = [
     iconComponent: { name: 'cilNotes' }
   },
   {
+    name: 'Resiliation Cases',
+    url: '/stt/res-execution',
+    iconComponent: { name: 'cilNotes' }
+  },
+  {
     name: 'My Technicians',
     url: '/stt/my-technicians',
     iconComponent: { name: 'cilPeople' }
@@ -78,5 +83,17 @@ export const navStt: INavData[] = [
     name: 'Distribute to TECH',
     url: '/stt/stock/distribute',
     iconComponent: { name: 'cilArrowCircleRight' }
+  },
+
+  {
+    name: 'Usage Approvals',
+    url: '/stt/stock/usage-approvals',
+    iconComponent: { name: 'cilTask' }
+  },
+
+  {
+    name: 'Material Returns',
+    url: '/stt/stock/returns',
+    iconComponent: { name: 'cilArrowThickFromRight' }
   }
 ];

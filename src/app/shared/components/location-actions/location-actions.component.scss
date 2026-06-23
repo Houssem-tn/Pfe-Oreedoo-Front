@@ -1,0 +1,193 @@
+/* ── Inline root ─────────────────────────────────────────────────────── */
+
+.la-root {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.la-coords {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.78rem;
+  color: #4a5568;
+  letter-spacing: 0.02em;
+}
+
+/* ── Action buttons ──────────────────────────────────────────────────── */
+
+.la-buttons {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.la-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 0.4rem;
+  border: 1.5px solid;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+  white-space: nowrap;
+
+  &--maps {
+    border-color: #2563eb;
+    color: #2563eb;
+    &:hover { background: rgba(37, 99, 235, 0.07); }
+  }
+
+  &--map {
+    border-color: #e5243b;
+    color: #e5243b;
+    &:hover { background: rgba(229, 36, 59, 0.07); }
+  }
+}
+
+.la-btn__icon {
+  width: 0.82rem;
+  height: 0.82rem;
+  flex-shrink: 0;
+}
+
+/* ── Unavailable state ───────────────────────────────────────────────── */
+
+.la-unavailable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.la-unavailable__icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #cbd5e1;
+}
+
+/* ── Modal backdrop ──────────────────────────────────────────────────── */
+
+.la-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: la-backdrop-in 0.18s ease;
+}
+
+@keyframes la-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal panel ─────────────────────────────────────────────────────── */
+
+.la-modal {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  overflow: hidden;
+  animation: la-modal-in 0.2s ease;
+}
+
+@keyframes la-modal-in {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Modal header ────────────────────────────────────────────────────── */
+
+.la-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  gap: 0.75rem;
+}
+
+.la-modal__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.la-modal__header-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #e5243b;
+  flex-shrink: 0;
+}
+
+.la-modal__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.la-modal__subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 0.05rem;
+}
+
+.la-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: background 0.14s, color 0.14s;
+
+  svg { width: 1rem; height: 1rem; }
+
+  &:hover { background: #f1f5f9; color: #1e293b; }
+}
+
+/* ── Modal body (map area) ───────────────────────────────────────────── */
+
+.la-modal__body {
+  /* 440px canvas + 48px toolbar = 488px, no flex tricks needed */
+  flex: 0 0 488px;
+  overflow: hidden;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .la-modal { width: 100vw; max-height: 100dvh; border-radius: 1rem 1rem 0 0; align-self: flex-end; }
+  .la-backdrop { align-items: flex-end; padding: 0; }
+  /* 312px canvas + 48px toolbar = 360px */
+  .la-modal__body { flex-basis: 360px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .la-backdrop,
+  .la-modal { animation: none; }
+}

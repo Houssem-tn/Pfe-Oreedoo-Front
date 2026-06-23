@@ -165,6 +165,12 @@
 
   <div *ngIf="banner" class="tech-banner" [ngClass]="'tech-banner--' + banner.tone">
     {{ banner.text }}
+    <div *ngIf="permissionNeeded" style="margin-top:.75rem">
+      <button type="button" class="btn-tech btn-tech--primary"
+              (click)="openPermissionModal()" [disabled]="permissionSaving">
+        Request STT Permission
+      </button>
+    </div>
   </div>
 
   <div *ngIf="loading" class="tech-loading-card">
@@ -388,11 +394,30 @@
               RDV
             </button>
             <button
+              *ngIf="isTechRole"
+              type="button"
+              class="tech-tab"
+              [class.tech-tab--active]="activePanel === 'stock'"
+              (click)="switchPanel('stock')"
+              [disabled]="!canSubmitWork(selected)"
+            >
+              Stock Usage
+              @if (isTechRole && hasOverLimit && (!activeCasePermission || activeCasePermission.status === 'REJECTED')) {
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#c0102a;margin-left:4px;vertical-align:middle"></span>
+              }
+              @if (isTechRole && activeCasePermission?.status === 'PENDING') {
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;margin-left:4px;vertical-align:middle"></span>
+              }
+              @if (isTechRole && (activeCasePermission?.status === 'APPROVED' || activeCasePermission?.status === 'PARTIALLY_APPROVED')) {
+                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span>
+              }
+            </button>
+            <button
               type="button"
               class="tech-tab"
               [class.tech-tab--active]="activePanel === 'work'"
               (click)="switchPanel('work')"
-              [disabled]="!canSubmitWork(selected)"
+              [disabled]="!canSubmitWork(selected) || isSubmitBlocked"
             >
               Work + proof
             </button>
@@ -650,6 +675,189 @@
             </article>
           </div>
 
+          <!-- ══ Stock Usage Panel ══════════════════════════════════════════════ -->
+          <div class="tech-form" *ngIf="activePanel === 'stock' && isTechRole">
+            <div class="tech-form__intro">
+              <div class="tech-form__title">Stock Usage</div>
+              <div class="tech-form__hint">
+                Declare the equipment and cable used for this intervention.
+                Usage is compared against your ZM's per-case limits in real time.
+              </div>
+            </div>
+
+            <div class="tech-form__section">
+              <div class="tech-form__section-title-row">
+                <div class="tech-form__section-title">Declared items</div>
+                <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
+                        (click)="loadTechStock()" [disabled]="techStockLoading">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path>
+                  </svg>
+                  Refresh stock
+                </button>
+              </div>
+
+              @if (techStockLoading) {
+                <div class="tech-panel__loading">Loading your stock...</div>
+              }
+              @if (techStockError) {
+                <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
+              }
+
+              @if (!techStockLoading && techStockItems.length > 0) {
+                <div class="tech-usage-picker">
+                  @for (line of usageLines; track $index; let i = $index) {
+                    <div class="tech-usage-picker__row">
+                      <select
+                        class="tech-usage-picker__select"
+                        [(ngModel)]="line.equipmentId"
+                        [name]="'sEq_' + i"
+                        [disabled]="actionBusy"
+                      >
+                        <option value="">Select item...</option>
+                        @for (item of techStockItems; track item.equipmentId) {
+                          <option [value]="item.equipmentId">
+                            {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                          </option>
+                        }
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        class="tech-usage-picker__qty"
+                        [(ngModel)]="line.quantity"
+                        [name]="'sQty_' + i"
+                        [disabled]="actionBusy"
+                        placeholder="Qty"
+                      />
+                      @if (usageLines.length > 1) {
+                        <button type="button" class="tech-usage-picker__remove"
+                                (click)="removeUsageLine(i)" [disabled]="actionBusy">Remove</button>
+                      }
+                    </div>
+                  }
+                  <button type="button" class="tech-usage-picker__add"
+                          (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
+                </div>
+                <div class="tech-form__hint" style="margin-top:.5rem">
+                  Leave the list empty if no equipment was consumed. Duplicate lines are merged on submit.
+                </div>
+              } @else if (!techStockLoading && !techStockError) {
+                <div class="tech-empty tech-empty--inline">
+                  <div class="tech-empty__hint">No stock assigned to your account yet.</div>
+                </div>
+              }
+            </div>
+
+            <!-- Real-time limit check -->
+            @if (caseLimitsLoading) {
+              <div class="tech-panel__loading" style="font-size:.85rem">Checking ZM-configured limits...</div>
+            }
+
+            @if (!caseLimitsLoading && hasOverLimit) {
+              <div style="border:2px solid #c0102a;border-radius:.5rem;padding:1rem;background:#fff5f5;margin-top:1rem">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+                  <svg cIcon name="cilWarning" style="color:#c0102a;flex-shrink:0"></svg>
+                  <strong style="color:#c0102a">Permission required from your STT</strong>
+                </div>
+                <p style="font-size:.875rem;color:#555;margin:.25rem 0 .75rem">
+                  This usage exceeds the per-case limit configured by your ZM.
+                  Your STT supervisor must approve before you can proceed to the work report.
+                </p>
+
+                <table style="width:100%;font-size:.85rem;border-collapse:collapse">
+                  <thead>
+                    <tr style="color:#888;border-bottom:1px solid #f0d0d0">
+                      <th style="text-align:left;padding:.25rem .5rem">Item</th>
+                      <th style="text-align:right;padding:.25rem .5rem">Requested</th>
+                      <th style="text-align:right;padding:.25rem .5rem">Allowed</th>
+                      <th style="text-align:center;padding:.25rem .5rem">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (ol of overLimitLines; track ol.equipmentId) {
+                      <tr style="border-bottom:1px solid #f9e0e0">
+                        <td style="padding:.35rem .5rem;font-weight:500">{{ ol.equipmentName }}</td>
+                        <td style="text-align:right;padding:.35rem .5rem;color:#c0102a;font-weight:600">
+                          {{ ol.quantity }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+                        </td>
+                        <td style="text-align:right;padding:.35rem .5rem;color:#888">
+                          {{ ol.limit }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+                        </td>
+                        <td style="text-align:center;padding:.35rem .5rem">
+                          @if (activeCasePermission?.status === 'APPROVED') {
+                            <span style="background:#d1fae5;color:#065f46;padding:.15rem .5rem;border-radius:.25rem;font-size:.8rem;font-weight:600">Approved</span>
+                          } @else if (activeCasePermission?.status === 'PARTIALLY_APPROVED') {
+                            <span style="background:#dbeafe;color:#1e40af;padding:.15rem .5rem;border-radius:.25rem;font-size:.8rem;font-weight:600">Partial</span>
+                          } @else if (activeCasePermission?.status === 'PENDING') {
+                            <span style="background:#fef3c7;color:#92400e;padding:.15rem .5rem;border-radius:.25rem;font-size:.8rem;font-weight:600">Pending STT</span>
+                          } @else {
+                            <span style="background:#fee2e2;color:#991b1b;padding:.15rem .5rem;border-radius:.25rem;font-size:.8rem;font-weight:600">Required</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+
+                @if (activeCasePermission?.status === 'PENDING') {
+                  <div style="margin-top:.75rem;padding:.625rem;background:#fef9ec;border-radius:.375rem;font-size:.85rem;color:#92400e;display:flex;align-items:center;gap:.5rem">
+                    <span style="width:9px;height:9px;border-radius:50%;background:#f59e0b;flex-shrink:0;animation:pulse 1.5s ease-in-out infinite"></span>
+                    Waiting for STT approval — you will be notified automatically, no refresh needed.
+                  </div>
+                } @else if (activeCasePermission?.status === 'APPROVED' || activeCasePermission?.status === 'PARTIALLY_APPROVED') {
+                  <div style="margin-top:.75rem;padding:.625rem;background:#f0fdf4;border-radius:.375rem;font-size:.85rem;color:#065f46;display:flex;align-items:center;gap:.5rem">
+                    <svg cIcon name="cilCheckCircle" style="flex-shrink:0"></svg>
+                    {{ activeCasePermission?.status === 'APPROVED' ? 'Approved' : 'Partially approved' }} by {{ activeCasePermission?.sttName }}.
+                    @if (activeCasePermission?.reviewComment) {
+                      Note: {{ activeCasePermission?.reviewComment }}
+                    }
+                    You can now proceed to the work report.
+                  </div>
+                } @else if (activeCasePermission?.status === 'REJECTED') {
+                  <div style="margin-top:.75rem;padding:.625rem;background:#fef2f2;border-radius:.375rem;font-size:.85rem;color:#991b1b">
+                    Rejected by {{ activeCasePermission?.sttName }}.
+                    @if (activeCasePermission?.reviewComment) {
+                      Reason: {{ activeCasePermission?.reviewComment }}
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (!caseLimitsLoading && !hasOverLimit && hasAnyUsageLine) {
+              <div style="display:flex;align-items:center;gap:.5rem;padding:.625rem .75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:.375rem;margin-top:1rem;font-size:.875rem;color:#065f46">
+                <svg cIcon name="cilCheckCircle"></svg>
+                Usage is within the allowed limits. No STT permission required.
+              </div>
+            }
+
+            <div class="tech-form__actions" style="margin-top:1.5rem">
+              <button type="button" class="btn-tech btn-tech--ghost" (click)="switchPanel('details')">Cancel</button>
+
+              @if (hasOverLimit && (!activeCasePermission || activeCasePermission.status === 'REJECTED' || activeCasePermission.status === 'CANCELLED')) {
+                <button type="button" class="btn-tech btn-tech--warning"
+                        (click)="openPermissionModal()" [disabled]="permissionSaving">
+                  Ask STT Permission
+                </button>
+              }
+
+              <button type="button" class="btn-tech btn-tech--primary"
+                      (click)="switchPanel('work')"
+                      [disabled]="isSubmitBlocked">
+                <svg cIcon name="cilArrowRight"></svg>
+                @if (isSubmitBlocked && activeCasePermission?.status === 'PENDING') {
+                  Waiting for STT...
+                } @else {
+                  Next: Work &amp; proof →
+                }
+              </button>
+            </div>
+          </div>
+
           <form class="tech-form" *ngIf="activePanel === 'rdv'" (ngSubmit)="saveRdv()">
             <div class="tech-form__intro">
               <div class="tech-form__title">RDV flow</div>
@@ -746,9 +954,40 @@
             <div class="tech-form__intro">
               <div class="tech-form__title">Work and proof</div>
               <div class="tech-form__hint">
-                Attach the proof photo, save its GPS position, declare used stock, then submit the work update in one clean mobile flow.
+                Attach the proof photo, fill in the work result, then submit. Stock usage was declared in the previous step.
               </div>
             </div>
+
+            <!-- Permission flow banner: shows proactively when over-limit, or as 403 fallback -->
+            @if (showPermissionFlow) {
+              <div class="tech-banner tech-banner--warning" style="margin-bottom:1rem">
+                @if (activeCasePermission && activeCasePermission.status === 'PENDING') {
+                  <div><strong>Waiting for STT approval</strong></div>
+                  <div style="font-size:.875rem;margin:.25rem 0 0">
+                    Your permission request is under review by <strong>{{ activeCasePermission.sttName }}</strong>.
+                    You will be notified automatically when they respond — no refresh needed.
+                  </div>
+                } @else if (activeCasePermission && (activeCasePermission.status === 'APPROVED' || activeCasePermission.status === 'PARTIALLY_APPROVED')) {
+                  <div><strong>Permission {{ activeCasePermission.status === 'APPROVED' ? 'approved' : 'partially approved' }} by STT</strong></div>
+                  <div style="font-size:.875rem;margin:.25rem 0 0;color:#198754">
+                    You can now submit your work. Approved by {{ activeCasePermission.sttName }}.
+                    @if (activeCasePermission.reviewComment) {
+                      Note: {{ activeCasePermission.reviewComment }}
+                    }
+                  </div>
+                } @else {
+                  <div><strong>STT permission required</strong></div>
+                  <div style="font-size:.875rem;margin:.25rem 0 .75rem">
+                    Your declared usage exceeds the per-case limit configured by your ZM.
+                    You must request STT approval before submitting work.
+                  </div>
+                  <button type="button" class="btn-tech btn-tech--primary"
+                          (click)="openPermissionModal()" [disabled]="permissionSaving">
+                    Ask STT Permission
+                  </button>
+                }
+              </div>
+            }
 
             <div class="tech-form__section">
               <div class="tech-form__section-title">Photo proof</div>
@@ -850,83 +1089,6 @@
             </div>
 
             <div class="tech-form__section">
-              <div class="tech-form__section-title-row">
-                <div class="tech-form__section-title">Used stock</div>
-                <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
-                        (click)="loadTechStock()" [disabled]="techStockLoading">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <polyline points="1 20 1 14 7 14"></polyline>
-                    <path d="M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"></path>
-                  </svg>
-                  Refresh
-                </button>
-              </div>
-
-              <p class="tech-form__hint">
-                Add the equipment used on this case. Stock updates when you submit the work report, not before.
-              </p>
-
-              @if (currentCaseUsedEquipment.length > 0) {
-                <div class="tech-form__hint">
-                  This case already has {{ currentCaseUsedEquipment.length }} saved equipment item{{ currentCaseUsedEquipment.length > 1 ? 's' : '' }}. Edit the lines below to adjust them.
-                </div>
-              }
-
-              @if (techStockLoading) {
-                <div class="tech-panel__loading">Loading stock...</div>
-              }
-
-              @if (techStockError) {
-                <div class="tech-banner tech-banner--danger">{{ techStockError }}</div>
-              }
-
-              @if (!techStockLoading && techStockItems.length > 0) {
-                <div class="tech-usage-picker">
-                  @for (line of usageLines; track $index; let i = $index) {
-                    <div class="tech-usage-picker__row">
-                      <select
-                        class="tech-usage-picker__select"
-                        [(ngModel)]="line.equipmentId"
-                        [name]="'wEq_' + i"
-                        [disabled]="actionBusy"
-                      >
-                        <option value="">Item...</option>
-                        @for (item of techStockItems; track item.equipmentId) {
-                          <option [value]="item.equipmentId">
-                            {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
-                          </option>
-                        }
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        class="tech-usage-picker__qty"
-                        [(ngModel)]="line.quantity"
-                        [name]="'wQty_' + i"
-                        [disabled]="actionBusy"
-                        placeholder="Qty"
-                      />
-                      @if (usageLines.length > 1) {
-                        <button type="button" class="tech-usage-picker__remove" (click)="removeUsageLine(i)" [disabled]="actionBusy">Remove</button>
-                      }
-                    </div>
-                  }
-                  <button type="button" class="tech-usage-picker__add" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
-                </div>
-
-                <div class="tech-form__hint">
-                  Leave the list empty if no equipment was consumed. Duplicate lines are merged automatically when you submit the case.
-                </div>
-              } @else if (!techStockLoading && !techStockError) {
-                <div class="tech-empty tech-empty--inline">
-                  <div class="tech-empty__hint">No stock assigned to your account yet.</div>
-                </div>
-              }
-            </div>
-
-            <div class="tech-form__section">
               <div class="tech-form__section-title">Technical metrics</div>
               <div class="tech-metric-input-grid">
                 <label class="tech-field">
@@ -958,9 +1120,20 @@
 
             <div class="tech-form__actions">
               <button type="button" class="btn-tech btn-tech--ghost" (click)="switchPanel('details')">Cancel</button>
-              <button type="submit" class="btn-tech btn-tech--primary" [disabled]="actionBusy">
+              @if (showPermissionFlow && (!activeCasePermission || activeCasePermission.status === 'REJECTED' || activeCasePermission.status === 'CANCELLED')) {
+                <button type="button" class="btn-tech btn-tech--warning" (click)="openPermissionModal()" [disabled]="permissionSaving">
+                  Ask STT Permission
+                </button>
+              }
+              <button type="submit" class="btn-tech btn-tech--primary" [disabled]="actionBusy || isSubmitBlocked">
                 <svg cIcon name="cilTask"></svg>
-                {{ actionBusy ? 'Submitting...' : 'Submit work + proof' }}
+                @if (actionBusy) {
+                  Submitting...
+                } @else if (isSubmitBlocked && activeCasePermission?.status === 'PENDING') {
+                  Waiting for STT...
+                } @else {
+                  Submit work + proof
+                }
               </button>
             </div>
           </form>
@@ -984,3 +1157,61 @@
     </button>
   </nav>
 </div>
+
+<!-- ── STT Permission Request Modal ─────────────────────────────────────────── -->
+@if (permissionModalOpen) {
+  <div class="tech-modal-backdrop" (click)="permissionModalOpen = false" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1050;display:flex;align-items:center;justify-content:center;padding:1rem">
+    <div class="tech-modal" (click)="$event.stopPropagation()" style="background:#fff;border-radius:.75rem;padding:1.5rem;max-width:520px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem">
+        <svg cIcon name="cilWarning" style="color:#c0102a"></svg>
+        <div style="font-size:1.1rem;font-weight:700">Ask STT Permission</div>
+      </div>
+      <div style="font-size:.85rem;color:#6c757d;margin-bottom:1rem">
+        The following usage exceeds your ZM's per-case limit. Your STT supervisor must approve before you can finish.
+      </div>
+
+      <table style="width:100%;font-size:.875rem;border-collapse:collapse;margin-bottom:1rem">
+        <thead>
+          <tr style="color:#888;border-bottom:1px solid #dee2e6">
+            <th style="text-align:left;padding:.3rem .5rem">Item</th>
+            <th style="text-align:right;padding:.3rem .5rem">Requested</th>
+            <th style="text-align:right;padding:.3rem .5rem">Allowed</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ol of permissionUsageLines; track ol.equipmentId) {
+            <tr style="border-bottom:1px solid #f3f4f6">
+              <td style="padding:.35rem .5rem;font-weight:500">{{ ol.equipmentName }}</td>
+              <td style="text-align:right;padding:.35rem .5rem;color:#c0102a;font-weight:600">
+                {{ ol.quantity }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+              </td>
+              <td style="text-align:right;padding:.35rem .5rem;color:#888">
+                {{ ol.limit }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <label class="tech-field" style="margin-bottom:1.25rem">
+        <span>Justification <span style="color:#c0102a">*</span></span>
+        <textarea [(ngModel)]="permissionReason" rows="3"
+                  placeholder="Explain why extra stock is needed — client site conditions, cable path length, rework, etc."
+                  style="width:100%;padding:.5rem;border:1px solid #dee2e6;border-radius:.375rem;font-size:.9rem;resize:vertical"></textarea>
+      </label>
+
+      <div style="font-size:.8rem;color:#6c757d;margin-bottom:1rem">
+        After submitting, your STT will receive an immediate alert. You will be notified in real-time when they respond.
+      </div>
+
+      <div style="display:flex;gap:.75rem;justify-content:flex-end">
+        <button type="button" class="btn-tech btn-tech--ghost" (click)="permissionModalOpen = false" [disabled]="permissionSaving">
+          Cancel
+        </button>
+        <button type="button" class="btn-tech btn-tech--primary" (click)="submitPermissionRequest()" [disabled]="permissionSaving">
+          {{ permissionSaving ? 'Sending...' : 'Send Request to STT' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

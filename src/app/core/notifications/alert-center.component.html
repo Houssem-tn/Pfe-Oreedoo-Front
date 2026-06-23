@@ -1,0 +1,186 @@
+<div class="alert-center">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="ac-head">
+    <div class="ac-head__text">
+      <h1 class="ac-head__title">Alert Center</h1>
+      <p class="ac-head__subtitle">Monitor urgent events, operational warnings, and team actions in real time.</p>
+    </div>
+    <span class="ac-live">
+      <span class="ac-live__dot"></span>
+      Live Monitoring
+    </span>
+  </header>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+  <nav class="ac-tabs">
+    <button class="ac-tab" [class.ac-tab--active]="activeTab() === 'ACTIVE'" (click)="setTab('ACTIVE')">
+      Active Alerts
+      @if (activeCount() > 0) { <span class="ac-tab__count">{{ activeCount() }}</span> }
+    </button>
+    <button class="ac-tab" [class.ac-tab--active]="activeTab() === 'ARCHIVED'" (click)="setTab('ARCHIVED')">
+      Archived Alerts
+      @if (archivedCount() > 0) { <span class="ac-tab__count">{{ archivedCount() }}</span> }
+    </button>
+  </nav>
+
+  <!-- ── Summary tiles ──────────────────────────────────────────────────── -->
+  <section class="ac-summary">
+    @for (card of summaryCards(); track card.key) {
+      <article class="ac-stat" [class]="'ac-stat--' + card.tone">
+        <span class="ac-stat__icon">
+          <svg cIcon [name]="card.icon"></svg>
+        </span>
+        <div class="ac-stat__body">
+          <span class="ac-stat__count">{{ card.count }}</span>
+          <span class="ac-stat__label">{{ card.label }}</span>
+          <span class="ac-stat__sublabel">{{ card.sublabel }}</span>
+        </div>
+      </article>
+    }
+  </section>
+
+  <!-- ── Filter bar ─────────────────────────────────────────────────────── -->
+  <section class="ac-filters">
+    <div class="ac-search">
+      <svg cIcon name="cilSearch" class="ac-search__icon"></svg>
+      <input
+        type="text"
+        class="ac-search__input"
+        placeholder="Search alerts, cases, users..."
+        [value]="searchTerm()"
+        (input)="onSearch($any($event.target).value)" />
+    </div>
+
+    <div class="ac-field ac-field--date">
+      <input
+        type="date"
+        class="ac-field__input"
+        aria-label="From date"
+        [value]="fromDate()"
+        (change)="onFromDate($any($event.target).value)" />
+    </div>
+
+    <div class="ac-field ac-field--date">
+      <input
+        type="date"
+        class="ac-field__input"
+        aria-label="To date"
+        [value]="toDate()"
+        (change)="onToDate($any($event.target).value)" />
+    </div>
+
+    <div class="ac-field">
+      <select class="ac-field__input" aria-label="Alert type"
+              [value]="typeFilter()" (change)="onType($any($event.target).value)">
+        @for (opt of categoryOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="ac-field">
+      <select class="ac-field__input" aria-label="Severity"
+              [value]="severityFilter()" (change)="onSeverity($any($event.target).value)">
+        @for (opt of severityOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+        }
+      </select>
+    </div>
+
+    @if (hasActiveFilters()) {
+      <button class="ac-clear" (click)="clearFilters()" title="Clear filters">
+        <svg cIcon name="cilX"></svg>
+      </button>
+    }
+  </section>
+
+  <!-- ── Loading ────────────────────────────────────────────────────────── -->
+  @if (store.loading()) {
+    <div class="ac-state">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading alerts…</span>
+    </div>
+  }
+
+  <!-- ── Empty ──────────────────────────────────────────────────────────── -->
+  @if (!store.loading() && filtered().length === 0) {
+    <div class="ac-state ac-state--empty">
+      <svg cIcon name="cilCheckCircle" class="ac-state__icon"></svg>
+      <p class="ac-state__title">{{ emptyMessage().title }}</p>
+      <span class="ac-state__sub">{{ emptyMessage().sub }}</span>
+    </div>
+  }
+
+  <!-- ── Alert grid ─────────────────────────────────────────────────────── -->
+  @if (!store.loading() && filtered().length > 0) {
+    <section class="ac-grid">
+      @for (alert of paginated(); track alert.id) {
+        <article class="ac-card" [class]="'ac-card--' + cardTone(alert)">
+
+          <!-- Top row: icon + title + time -->
+          <div class="ac-card__top">
+            <span class="ac-card__icon">
+              <svg cIcon [name]="iconName(alert)"></svg>
+            </span>
+
+            <div class="ac-card__heading">
+              <span class="ac-card__title">{{ alert.title }}</span>
+              <span class="ac-card__subtitle">{{ cardSubtitle(alert) }}</span>
+            </div>
+
+            <div class="ac-card__meta">
+              <span class="ac-card__time">{{ getRelativeTime(alert.createdAt) }}</span>
+              @let badge = severityBadge(alert);
+              <span class="ac-badge" [class]="'ac-badge--' + badge.tone">{{ badge.label }}</span>
+            </div>
+          </div>
+
+          <!-- Message -->
+          <p class="ac-card__message">{{ alert.message }}</p>
+
+          <!-- Actions -->
+          <div class="ac-card__actions">
+            @if (activeTab() === 'ACTIVE') {
+              <button class="ac-btn ac-btn--ghost" (click)="dismiss(alert, $event)">
+                Dismiss
+              </button>
+            }
+            <button class="ac-btn ac-btn--solid" (click)="handleAction(alert)">
+              {{ primaryActionLabel(alert) }}
+              <svg cIcon name="cilArrowRight" class="ac-btn__arrow"></svg>
+            </button>
+          </div>
+
+        </article>
+      }
+    </section>
+
+    <!-- ── Pagination ───────────────────────────────────────────────────── -->
+    @if (totalPages() > 1) {
+      <nav class="ac-pager">
+        <span class="ac-pager__info">{{ pageRangeLabel() }}</span>
+        <div class="ac-pager__controls">
+          <button class="ac-page" [disabled]="activePage() === 1"
+                  (click)="goToPage(activePage() - 1)" title="Previous page" aria-label="Previous page">
+            <svg cIcon name="cilChevronLeft"></svg>
+          </button>
+          @for (p of visiblePages(); track $index) {
+            @if (p === '...') {
+              <span class="ac-page ac-page--gap">…</span>
+            } @else {
+              <button class="ac-page" [class.ac-page--active]="p === activePage()" (click)="goToPage(p)">
+                {{ p }}
+              </button>
+            }
+          }
+          <button class="ac-page" [disabled]="activePage() === totalPages()"
+                  (click)="goToPage(activePage() + 1)" title="Next page" aria-label="Next page">
+            <svg cIcon name="cilChevronRight"></svg>
+          </button>
+        </div>
+      </nav>
+    }
+  }
+
+</div>

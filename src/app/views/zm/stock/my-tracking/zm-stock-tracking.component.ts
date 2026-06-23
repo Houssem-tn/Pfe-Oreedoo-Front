@@ -3,16 +3,27 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import { SpinnerComponent } from '@coreui/angular';
+import {
+  SpinnerComponent,
+  ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
+  FormControlDirective, FormLabelDirective, ButtonDirective
+} from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { DpmRequest, DpmStatus, SttDistribution } from '../../../../core/stock/stock.model';
+import {
+  DpmAllocation, DpmRequest, DpmStatus, DpmTechRollup, RecordExternalApprovalRequest,
+  SttDistribution
+} from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
 import { DpmPdfService } from '../../../../core/pdf/dpm-pdf.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, DatePipe, FormsModule, RouterLink, SpinnerComponent],
+  imports: [
+    CommonModule, DatePipe, FormsModule, RouterLink, SpinnerComponent,
+    ModalComponent, ModalHeaderComponent, ModalBodyComponent, ModalFooterComponent,
+    FormControlDirective, FormLabelDirective, ButtonDirective
+  ],
   templateUrl: './zm-stock-tracking.component.html',
   styleUrls: ['./zm-stock-tracking.component.scss']
 })
@@ -32,8 +43,23 @@ export class ZmStockTrackingComponent implements OnInit {
 
   detailDpm: DpmRequest | null = null;
   detailTechDistributions: SttDistribution[] = [];
+  detailTechRollups: DpmTechRollup[] = [];
+  detailAllocations: DpmAllocation[] = [];
   detailVisible = false;
   loadingDetail = false;
+
+  // ── RDV / External Approval Modal ─────────────────────────────────────────
+  rdvModalVisible = false;
+  rdvTargetDpm: DpmRequest | null = null;
+  rdvForm: RecordExternalApprovalRequest = this.emptyRdvForm();
+  rdvSubmitting = false;
+  rdvError: string | null = null;
+
+  // ── Rejection Modal ────────────────────────────────────────────────────────
+  rejectModalVisible = false;
+  rejectTargetDpm: DpmRequest | null = null;
+  rejectionReason = '';
+  rejecting = false;
 
   ngOnInit(): void { this.load(); }
 
@@ -48,20 +74,86 @@ export class ZmStockTrackingComponent implements OnInit {
   openDetail(dpm: DpmRequest): void {
     this.detailDpm = dpm;
     this.detailTechDistributions = [];
+    this.detailTechRollups = [];
+    this.detailAllocations = [];
     this.loadingDetail = true;
     this.detailVisible = true;
     this.stockSvc.zmGetDpmTracking(dpm.id)
       .pipe(finalize(() => { this.loadingDetail = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: t => { this.detailTechDistributions = t.techDistributions; this.cdr.detectChanges(); },
-        error: () => { /* non-critical: show panel without distributions */ }
+        next: t => {
+          this.detailTechDistributions = t.techDistributions ?? [];
+          this.detailTechRollups = t.techRollups ?? [];
+          this.detailAllocations = t.allocations ?? [];
+          this.cdr.detectChanges();
+        },
+        error: () => { /* non-critical */ }
       });
   }
 
-  nameInitials(name?: string): string {
-    if (!name) return '?';
-    return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  get hasAnyTechDistribution(): boolean {
+    return this.detailTechRollups.length > 0 || this.detailTechDistributions.length > 0;
   }
+
+  unitShort(unit?: string): string {
+    return unit === 'METERS' ? 'm' : 'pcs';
+  }
+
+  // ── RDV modal ──────────────────────────────────────────────────────────────
+
+  openRdvModal(dpm: DpmRequest): void {
+    this.rdvTargetDpm = dpm;
+    this.rdvForm = this.emptyRdvForm();
+    this.rdvError = null;
+    this.rdvModalVisible = true;
+  }
+
+  submitRdv(): void {
+    if (!this.rdvTargetDpm) return;
+    if (!this.rdvForm.rdvDate?.trim() || !this.rdvForm.rdvLocation?.trim()) {
+      this.rdvError = 'RDV date and location are required.';
+      return;
+    }
+    this.rdvSubmitting = true;
+    this.rdvError = null;
+    this.stockSvc.recordExternalApprovalAndRdv(this.rdvTargetDpm.id, this.rdvForm)
+      .pipe(finalize(() => { this.rdvSubmitting = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: updated => {
+          this.rdvModalVisible = false;
+          this.dpms = this.dpms.map(d => d.id === updated.id ? updated : d);
+          if (this.detailDpm?.id === updated.id) this.detailDpm = updated;
+          this.cdr.detectChanges();
+        },
+        error: e => { this.rdvError = e.error?.message ?? e.message; }
+      });
+  }
+
+  // ── Rejection modal ────────────────────────────────────────────────────────
+
+  openRejectModal(dpm: DpmRequest): void {
+    this.rejectTargetDpm = dpm;
+    this.rejectionReason = '';
+    this.rejectModalVisible = true;
+  }
+
+  submitRejection(): void {
+    if (!this.rejectTargetDpm) return;
+    this.rejecting = true;
+    this.stockSvc.recordExternalRejection(this.rejectTargetDpm.id, { rejectionReason: this.rejectionReason.trim() || undefined })
+      .pipe(finalize(() => { this.rejecting = false; this.zone.run(() => this.cdr.detectChanges()); }))
+      .subscribe({
+        next: updated => {
+          this.rejectModalVisible = false;
+          this.dpms = this.dpms.map(d => d.id === updated.id ? updated : d);
+          if (this.detailDpm?.id === updated.id) this.detailDpm = updated;
+          this.cdr.detectChanges();
+        },
+        error: e => this.error = e.error?.message ?? e.message
+      });
+  }
+
+  // ── Cancel ────────────────────────────────────────────────────────────────
 
   cancelDpm(dpm: DpmRequest): void {
     this.swal.confirmAction(
@@ -77,6 +169,37 @@ export class ZmStockTrackingComponent implements OnInit {
     });
   }
 
+  // ── Status helpers ─────────────────────────────────────────────────────────
+
+  canZmScheduleRdv(dpm: DpmRequest): boolean {
+    return dpm.status === 'WAITING_TEAM_STOCK_APPROVAL';
+  }
+
+  canZmReject(dpm: DpmRequest): boolean {
+    return dpm.status === 'WAITING_TEAM_STOCK_APPROVAL';
+  }
+
+  canZmCancel(dpm: DpmRequest): boolean {
+    return dpm.status === 'WAITING_TEAM_STOCK_APPROVAL' || dpm.status === 'PENDING_STT_CONFIRMATION';
+  }
+
+  statusLabel(s: DpmStatus): string {
+    const m: Record<DpmStatus, string> = {
+      WAITING_TEAM_STOCK_APPROVAL: 'Waiting Approval',
+      TEAM_STOCK_REJECTED:         'Ext. Rejected',
+      RDV_SCHEDULED:               'RDV Scheduled',
+      RDV_CONFIRMED_BY_STT:        'RDV Confirmed',
+      MATERIAL_RECEIVED:           'Material Received',
+      COMPLETED:                   'Completed',
+      PENDING_STT_CONFIRMATION:    'Pending',
+      PARTIALLY_CONFIRMED:         'Partial',
+      FULLY_CONFIRMED:             'Confirmed',
+      REJECTED:                    'Rejected',
+      CANCELLED:                   'Cancelled'
+    };
+    return m[s] ?? s;
+  }
+
   get filtered(): DpmRequest[] {
     return this.dpms.filter(d => {
       const matchStatus = !this.filterStatus || d.status === this.filterStatus;
@@ -89,15 +212,30 @@ export class ZmStockTrackingComponent implements OnInit {
     return this.dpms.filter(d => d.status === status).length;
   }
 
+  countWaiting(): number {
+    return this.dpms.filter(d => d.status === 'WAITING_TEAM_STOCK_APPROVAL').length;
+  }
+
+  countRdvScheduled(): number {
+    return this.dpms.filter(d => d.status === 'RDV_SCHEDULED' || d.status === 'RDV_CONFIRMED_BY_STT').length;
+  }
+
+  countMaterialReceived(): number {
+    return this.dpms.filter(d =>
+      d.status === 'MATERIAL_RECEIVED' || d.status === 'FULLY_CONFIRMED' || d.status === 'COMPLETED'
+    ).length;
+  }
+
   downloadPdf(dpm: DpmRequest): void {
     this.pdfSvc.download(dpm);
   }
 
-  statusLabel(s: DpmStatus): string {
-    const m: Record<DpmStatus, string> = {
-      PENDING_STT_CONFIRMATION: 'Pending', PARTIALLY_CONFIRMED: 'Partial',
-      FULLY_CONFIRMED: 'Confirmed', REJECTED: 'Rejected', CANCELLED: 'Cancelled'
-    };
-    return m[s] ?? s;
+  nameInitials(name?: string): string {
+    if (!name) return '?';
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  private emptyRdvForm(): RecordExternalApprovalRequest {
+    return { approvalReference: '', approvalNote: '', rdvDate: '', rdvLocation: '', rdvNote: '' };
   }
 }

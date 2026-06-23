@@ -40,12 +40,14 @@
               "src/assets"
             ],
             "styles": [
-              "src/scss/styles.scss"
+              "src/scss/styles.scss",
+              "node_modules/maplibre-gl/dist/maplibre-gl.css"
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [
               "sweetalert2",
-              "@stomp/stompjs"
+              "@stomp/stompjs",
+              "maplibre-gl"
             ],
             "stylePreprocessorOptions": {
               "sass": {
@@ -63,8 +65,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "24kb",
-                  "maximumError": "32kb"
+                  "maximumWarning": "32kb",
+                  "maximumError": "48kb"
                 }
               ],
               "outputHashing": "all"

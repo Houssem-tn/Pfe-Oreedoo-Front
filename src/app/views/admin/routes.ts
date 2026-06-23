@@ -85,6 +85,13 @@ export const routes: Routes = [
       import('./audits/stock-audit/stock-audit.component').then(m => m.StockAuditComponent)
   },
 
+  // Interventions auditing
+  {
+    path: 'audits/interventions',
+    loadComponent: () =>
+      import('./audits/interventions-audit/interventions-audit.component').then(m => m.InterventionsAuditComponent)
+  },
+
   // Stock Management
   {
     path: 'stock',
@@ -102,6 +109,19 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./stock/tracking/admin-stock-tracking.component').then(m => m.AdminStockTrackingComponent),
     data: { title: 'Stock Tracking' }
+  },
+  {
+    path: 'stock/team-distributions',
+    loadComponent: () =>
+      import('../shared/team-distributions/team-distributions.component').then(m => m.TeamDistributionsComponent),
+    data: { title: 'Team Distributions' }
+  },
+
+  {
+    path: 'network-coverage',
+    loadComponent: () =>
+      import('../zm/network-coverage/network-coverage.component').then(m => m.NetworkCoverageComponent),
+    data: { title: 'Network Coverage Intelligence' }
   },
 
   { path: '', redirectTo: 'users', pathMatch: 'full' }

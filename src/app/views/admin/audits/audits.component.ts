@@ -38,14 +38,14 @@ export class AuditsComponent {
     {
       title: 'Interventions Auditing',
       description: 'Follow intervention activity and operational traces.',
-      route: '/admin/audits',
+      route: '/admin/audits/interventions',
       icon: 'cilList',
-      enabled: false,
-      signal: 'Planned for field execution and follow-up traceability.',
+      enabled: true,
+      signal: 'Live lifecycle trail across ACT, PLT and RES — assignments, field execution, SLA and closure.',
       highlights: [
         'Intervention lifecycle history',
         'Assignment and completion events',
-        'Escalation checkpoints'
+        'SLA and escalation checkpoints'
       ]
     },
     {

@@ -34,6 +34,8 @@ export interface AuthResponse {
     email?: string;
     status?: AccountStatus;
     role?: Role;
+    canCreateDpm?: boolean;
+    canImportCoverage?: boolean;
   };
 }
 
@@ -44,6 +46,8 @@ export interface AuthUser {
   email?: string;
   role: Role;
   status?: AccountStatus;
+  canCreateDpm?: boolean;
+  canImportCoverage?: boolean;
 }
 
 export interface JwtClaims {

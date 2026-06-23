@@ -2,12 +2,12 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
-import { finalize, map, switchMap } from 'rxjs/operators';
+import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
-import { SttStock, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
+import { DpmRequest, SttStock, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -28,11 +28,29 @@ export class ZmTeamStockComponent implements OnInit {
   sttMap = new Map<string, AppUser>();
   techMap = new Map<string, AppUser>();
   techUsageMap = new Map<string, TechStockUsage[]>();
+  /** For each sttId: unique ZM names whose DPMs were confirmed for that STT. */
+  sttDistributorZmsMap = new Map<string, string[]>();
 
   loading = false;
   error: string | null = null;
-  searchFilter = '';
   expandedSttIds = new Set<string>();
+
+  page = 1;
+  pageSize = 10;
+
+  private _searchFilter = '';
+  get searchFilter(): string { return this._searchFilter; }
+  set searchFilter(v: string) { this._searchFilter = v; this.page = 1; }
+
+  private readonly AVATAR_COLORS = [
+    'linear-gradient(135deg,#3b82f6,#1d4ed8)',
+    'linear-gradient(135deg,#8b5cf6,#6d28d9)',
+    'linear-gradient(135deg,#f59e0b,#b45309)',
+    'linear-gradient(135deg,#10b981,#065f46)',
+    'linear-gradient(135deg,#ec4899,#be185d)',
+    'linear-gradient(135deg,#06b6d4,#0891b2)',
+    'linear-gradient(135deg,#ef4444,#b91c1c)',
+  ];
 
   ngOnInit(): void { this.load(); }
 
@@ -41,24 +59,28 @@ export class ZmTeamStockComponent implements OnInit {
     this.error = null;
 
     forkJoin({
-      dpms:       this.stockSvc.getMyDpms(),
+      // Source of truth for "my STTs": org-chart (assignedZmId), not DPM authorship.
+      myStts:     this.userSvc.getMyStts(),
       sttStocks:  this.stockSvc.zmGetMySttsStocks(),
       techStocks: this.stockSvc.zmGetMyTechsStocks(),
-      techUsages: this.stockSvc.zmGetMyTechsUsages()
+      techUsages: this.stockSvc.zmGetMyTechsUsages(),
+      // All DPMs for my STTs (any creator ZM) — used for distributor ZM labels.
+      sttsDpms:   this.stockSvc.zmGetMySttsDpms()
     }).pipe(
-      switchMap(({ dpms, sttStocks, techStocks, techUsages }) => {
-        // Build sttMap from DPM data — covers every STT ever targeted, regardless of assignedZmId
+      switchMap(({ myStts, sttStocks, techStocks, techUsages, sttsDpms }) => {
+        // Build sttMap from the org-chart STT list — correct source of truth.
         const sttMap = new Map<string, AppUser>();
-        for (const d of dpms) {
-          if (!sttMap.has(d.sttId)) {
-            sttMap.set(d.sttId, { id: d.sttId, fullName: d.sttName, email: d.sttEmail });
-          }
+        for (const stt of myStts) {
+          sttMap.set(stt.id, stt);
         }
         this.sttMap = sttMap;
 
+        // Build distributor ZM labels per STT from confirmed DPMs.
+        this.sttDistributorZmsMap = this.buildDistributorZmsMap(sttsDpms);
+
         const sttIds = sttStocks.map(s => s.sttId);
         const techCalls = sttIds.length
-          ? sttIds.map(id => this.userSvc.getMySttTechs(id))
+          ? sttIds.map(id => this.userSvc.getMySttTechs(id).pipe(catchError(() => of([] as AppUser[]))))
           : [of([] as AppUser[])];
 
         return forkJoin({ techLists: forkJoin(techCalls) }).pipe(
@@ -84,12 +106,68 @@ export class ZmTeamStockComponent implements OnInit {
     });
   }
 
+  distributorZmsFor(sttId: string): string[] {
+    return this.sttDistributorZmsMap.get(sttId) ?? [];
+  }
+
+  private buildDistributorZmsMap(dpms: DpmRequest[]): Map<string, string[]> {
+    const map = new Map<string, Set<string>>();
+    for (const dpm of dpms) {
+      if (!dpm.sttId || !dpm.zmName) continue;
+      if (!map.has(dpm.sttId)) map.set(dpm.sttId, new Set());
+      map.get(dpm.sttId)!.add(dpm.zmName);
+    }
+    const result = new Map<string, string[]>();
+    for (const [sttId, names] of map) result.set(sttId, [...names]);
+    return result;
+  }
+
   get filteredSttStocks(): SttStock[] {
-    if (!this.searchFilter.trim()) return this.sttStocks;
-    const q = this.searchFilter.toLowerCase();
+    if (!this._searchFilter.trim()) return this.sttStocks;
+    const q = this._searchFilter.toLowerCase();
     return this.sttStocks.filter(s =>
       this.sttName(s.sttId).toLowerCase().includes(q)
     );
+  }
+
+  get pagedSttStocks(): SttStock[] {
+    const start = (this.page - 1) * this.pageSize;
+    return this.filteredSttStocks.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredSttStocks.length / this.pageSize));
+  }
+
+  get showingFrom(): number {
+    return this.filteredSttStocks.length === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
+  }
+
+  get showingTo(): number {
+    return Math.min(this.page * this.pageSize, this.filteredSttStocks.length);
+  }
+
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    for (let i = Math.max(1, this.page - 2); i <= Math.min(this.totalPages, this.page + 2); i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  setPage(p: number): void {
+    if (p >= 1 && p <= this.totalPages) this.page = p;
+  }
+
+  onPageSizeChange(event: Event): void {
+    this.pageSize = +(event.target as HTMLSelectElement).value;
+    this.page = 1;
+  }
+
+  sttAvatarColor(sttId: string): string {
+    let hash = 0;
+    for (let i = 0; i < sttId.length; i++) hash = (hash * 31 + sttId.charCodeAt(i)) | 0;
+    return this.AVATAR_COLORS[Math.abs(hash) % this.AVATAR_COLORS.length];
   }
 
   techStocksForStt(sttId: string): TechStock[] {

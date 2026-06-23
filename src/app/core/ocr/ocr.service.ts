@@ -30,7 +30,19 @@ export interface SpeedtestScreenData {
   needsReview?: boolean;
 }
 
-export type OcrScreenData = RouterSignalScreenData | SpeedtestScreenData;
+export interface EquipmentLabelScreenData {
+  type?: string;
+  model?: OcrField<string>;
+  modemModel?: OcrField<string>;
+  macAddress?: OcrField<string>;
+  serialNumber?: OcrField<string>;
+  imei?: OcrField<string>;
+  warnings?: string[];
+  needsReview?: boolean;
+  requiresConfirmation?: boolean;
+}
+
+export type OcrScreenData = RouterSignalScreenData | SpeedtestScreenData | EquipmentLabelScreenData;
 
 export interface OcrResponse {
   data: OcrScreenData;
@@ -50,6 +62,15 @@ export interface ParsedSignalMetrics {
 export interface ParsedSpeedtestMetrics {
   debitDl: number | null;
   debitUl: number | null;
+}
+
+export interface ParsedLabelMetrics {
+  modemModel: string;
+  macAddress: string;
+  serialNumber: string;
+  imei: string;
+  warnings?: string[];
+  needsReview?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -89,6 +110,36 @@ export class OcrService {
       debitDl: this.parseSpeedtestValue(data.descendant_mbps?.value),
       debitUl: this.parseSpeedtestValue(data.ascendant_mbps?.value)
     };
+  }
+
+  parseLabelMetrics(responses: OcrResponse[]): ParsedLabelMetrics {
+    const empty: ParsedLabelMetrics = { modemModel: '', macAddress: '', serialNumber: '', imei: '' };
+
+    const match = (responses ?? []).find(
+      (r) => r?.success && (r.documentType === 'EQUIPMENT_LABEL' || r.data?.type === 'equipment_label_screen' || r.data?.type === 'EQUIPMENT_LABEL')
+    );
+
+    if (!match) {
+      return empty;
+    }
+
+    const d = match.data as EquipmentLabelScreenData;
+
+    return {
+      modemModel: this.labelString(d.model ?? d.modemModel),
+      macAddress: this.labelString(d.macAddress),
+      serialNumber: this.labelString(d.serialNumber),
+      imei: this.labelString(d.imei),
+      warnings: d.warnings ?? [],
+      needsReview: d.needsReview ?? false
+    };
+  }
+
+  private labelString(field: OcrField<string> | null | undefined): string {
+    if (!field?.value) {
+      return '';
+    }
+    return String(field.value).trim();
   }
 
   private findScreen<T extends OcrScreenData>(

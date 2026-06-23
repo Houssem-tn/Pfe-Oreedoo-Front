@@ -9,10 +9,10 @@ import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import {
-  DistributableDpm,
   DistributeToTechRequest,
   DistributionItemRequest,
-  SttDistribution
+  SttDistribution,
+  SttStockItem
 } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/searchable-select/searchable-select.component';
@@ -38,7 +38,7 @@ export class DistributeComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
 
-  distributableDpms: DistributableDpm[] = [];
+  stockItems: SttStockItem[] = [];
   techs: AppUser[] = [];
   distributions: SttDistribution[] = [];
 
@@ -49,7 +49,6 @@ export class DistributeComponent implements OnInit {
   successMsg: string | null = null;
 
   selectedTechId = '';
-  selectedDpmId = '';
   notes = '';
   lines: DistributionLine[] = [];
 
@@ -65,12 +64,12 @@ export class DistributeComponent implements OnInit {
   loadData(): void {
     this.loading = true;
     forkJoin({
-      dpms: this.stockSvc.getDistributableDpms(),
+      stock: this.stockSvc.getMySttStock(),
       techs: this.userSvc.getMyTechs()
     }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: ({ dpms, techs }) => {
-          this.distributableDpms = dpms;
+        next: ({ stock, techs }) => {
+          this.stockItems = stock?.items ?? [];
           this.techs = techs;
         },
         error: e => this.error = e.message
@@ -84,21 +83,29 @@ export class DistributeComponent implements OnInit {
       .subscribe({ next: d => this.distributions = d, error: () => {} });
   }
 
-  get selectedDpm(): DistributableDpm | null {
-    return this.distributableDpms.find(d => d.id === this.selectedDpmId) ?? null;
+  /** Items the STT actually has on hand and can still hand out. */
+  get availableItems(): SttStockItem[] {
+    return this.stockItems.filter(i => i.availableQuantity > 0);
   }
 
-  onDpmSelect(dpmId: string): void {
-    this.selectedDpmId = dpmId;
-    const dpm = this.distributableDpms.find(d => d.id === dpmId);
-    if (!dpm) { this.lines = []; return; }
-    this.lines = dpm.items.map(item => ({
-      equipmentId: item.equipmentId,
-      equipmentName: item.equipmentName,
-      unit: item.unit,
-      available: item.remainingQuantity,
-      quantity: item.remainingQuantity
-    }));
+  isSelected(equipmentId: string): boolean {
+    return this.lines.some(l => l.equipmentId === equipmentId);
+  }
+
+  /** Add or remove an item from the distribution based on remaining stock. */
+  toggleItem(item: SttStockItem): void {
+    const idx = this.lines.findIndex(l => l.equipmentId === item.equipmentId);
+    if (idx >= 0) {
+      this.lines.splice(idx, 1);
+    } else {
+      this.lines.push({
+        equipmentId: item.equipmentId,
+        equipmentName: item.equipmentName,
+        unit: item.unit,
+        available: item.availableQuantity,
+        quantity: 1
+      });
+    }
   }
 
   decrementQuantity(line: DistributionLine): void {
@@ -142,7 +149,7 @@ export class DistributeComponent implements OnInit {
   }
 
   get canSubmit(): boolean {
-    return !!this.selectedTechId && !!this.selectedDpmId &&
+    return !!this.selectedTechId &&
       this.lines.length > 0 &&
       this.lines.every(l => l.quantity > 0 && l.quantity <= l.available);
   }
@@ -151,10 +158,9 @@ export class DistributeComponent implements OnInit {
     return !!this.currentUser?.id && techId === this.currentUser.id;
   }
 
-  dpmLabel(d: SttDistribution): string {
-    if (!d.dpmId) return '—';
-    const dpm = this.distributableDpms.find(x => x.id === d.dpmId);
-    return dpm ? dpm.dpmNumber : d.dpmId.slice(-6);
+  /** History rows are now stock-based; legacy rows may still carry a DPM ref. */
+  sourceLabel(d: SttDistribution): string {
+    return d.dpmId ? `DPM ${d.dpmId.slice(-6)}` : 'Stock';
   }
 
   submit(): void {
@@ -164,7 +170,6 @@ export class DistributeComponent implements OnInit {
     this.successMsg = null;
     const payload: DistributeToTechRequest = {
       techId: this.selectedTechId,
-      dpmId: this.selectedDpmId,
       notes: this.notes.trim() || undefined,
       items: this.lines.map<DistributionItemRequest>(l => ({
         equipmentId: l.equipmentId,
@@ -177,7 +182,6 @@ export class DistributeComponent implements OnInit {
         next: () => {
           this.successMsg = 'Distribution recorded successfully.';
           this.selectedTechId = '';
-          this.selectedDpmId = '';
           this.notes = '';
           this.lines = [];
           this.loadData();

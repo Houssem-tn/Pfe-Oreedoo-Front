@@ -23,6 +23,14 @@ export class AuthStore {
     return this._user()?.status === 'APPROVED';
   });
 
+  readonly canCreateDpm = computed<boolean>(() => {
+    return this._user()?.canCreateDpm === true;
+  });
+
+  readonly canImportCoverage = computed<boolean>(() => {
+    return this._user()?.canImportCoverage === true;
+  });
+
   setUser(user: AuthUser | null) {
     if (!user) {
       this._user.set(null);
@@ -36,7 +44,23 @@ export class AuthStore {
       email: user.email,
       role: user.role,
       status: user.status,
+      canCreateDpm: user.canCreateDpm ?? false,
+      canImportCoverage: user.canImportCoverage ?? false,
     });
+  }
+
+  patchCanCreateDpm(value: boolean): void {
+    const u = this._user();
+    if (u) {
+      this._user.set({ ...u, canCreateDpm: value });
+    }
+  }
+
+  patchCanImportCoverage(value: boolean): void {
+    const u = this._user();
+    if (u) {
+      this._user.set({ ...u, canImportCoverage: value });
+    }
   }
 
   clear() {

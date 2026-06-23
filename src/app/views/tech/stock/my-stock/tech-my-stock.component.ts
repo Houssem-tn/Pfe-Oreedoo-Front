@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -25,10 +25,12 @@ import { PendingDistribution, TechStock, TechStockItem } from '../../../../core/
 })
 export class TechMyStockComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly zone = inject(NgZone);
 
   stock: TechStock | null = null;
   pendingConfirmations: PendingDistribution[] = [];
-  loading = false;
+  loading = true;
   confirming: Record<string, boolean> = {};
   error: string | null = null;
 
@@ -40,7 +42,7 @@ export class TechMyStockComponent implements OnInit {
     forkJoin({
       stock: this.stockSvc.getMyTechStock(),
       pending: this.stockSvc.getMyPendingConfirmations()
-    }).pipe(finalize(() => this.loading = false)).subscribe({
+    }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); })).subscribe({
       next: ({ stock, pending }) => {
         this.stock = stock;
         this.pendingConfirmations = pending;

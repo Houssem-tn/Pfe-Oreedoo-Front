@@ -1,0 +1,518 @@
+<div class="ia-shell">
+
+  <!-- Back -->
+  <a class="ia-back" routerLink="/admin/audits">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M19 12H5M12 5l-7 7 7 7"></path>
+    </svg>
+    Audit Center
+  </a>
+
+  <!-- Hero -->
+  <div class="ia-hero">
+    <div class="ia-hero__copy">
+      <div class="ia-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+        Interventions Audit Cockpit
+      </div>
+      <h1 class="ia-title">Field Intervention Traceability</h1>
+      <p class="ia-desc">
+        Operational audit of every field intervention — who executed it, exact timings, SLA &amp; escalation,
+        consumed materials, and photo/GPS proof across ACT, PLT and RES.
+      </p>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="ia-summary">
+    <div class="ia-sum-card ia-sum-card--total">
+      <div class="ia-sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+      </div>
+      <div class="ia-sum-body">
+        <span class="ia-sum-value">{{ summary?.totalInterventions ?? 0 }}</span>
+        <span class="ia-sum-label">Interventions audited</span>
+      </div>
+    </div>
+
+    <div class="ia-sum-card ia-sum-card--done">
+      <div class="ia-sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <div class="ia-sum-body">
+        <span class="ia-sum-value">{{ summary?.completedToday ?? 0 }}</span>
+        <span class="ia-sum-label">Completed today</span>
+      </div>
+    </div>
+
+    <div class="ia-sum-card ia-sum-card--breach">
+      <div class="ia-sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <div class="ia-sum-body">
+        <span class="ia-sum-value">{{ summary?.slaBreached ?? 0 }}</span>
+        <span class="ia-sum-label">SLA breached</span>
+      </div>
+    </div>
+
+    <div class="ia-sum-card ia-sum-card--pending">
+      <div class="ia-sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+      </div>
+      <div class="ia-sum-body">
+        <span class="ia-sum-value">{{ summary?.pendingValidation ?? 0 }}</span>
+        <span class="ia-sum-label">Pending validation</span>
+      </div>
+    </div>
+
+    <div class="ia-sum-card ia-sum-card--proof">
+      <div class="ia-sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"></path>
+          <circle cx="12" cy="13" r="4"></circle><line x1="3" y1="3" x2="21" y2="21"></line>
+        </svg>
+      </div>
+      <div class="ia-sum-body">
+        <span class="ia-sum-value">{{ summary?.proofMissing ?? 0 }}</span>
+        <span class="ia-sum-label">Proof missing</span>
+      </div>
+    </div>
+
+    <div class="ia-sum-card ia-sum-card--material">
+      <div class="ia-sum-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+        </svg>
+      </div>
+      <div class="ia-sum-body">
+        <span class="ia-sum-value">{{ summary?.materialsConsumed ?? 0 }}</span>
+        <span class="ia-sum-label">Materials consumed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="ia-filters">
+    <div class="ia-search-wrap">
+      <svg class="ia-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input class="ia-search" type="text" [(ngModel)]="search" (ngModelChange)="onSearchChange()"
+             placeholder="Search case ref, technician, STT, ZM, customer…" />
+    </div>
+
+    <select class="ia-select" [(ngModel)]="moduleFilter" (ngModelChange)="onFilterChange()">
+      <option value="">All modules</option>
+      <option value="ACT">ACT</option>
+      <option value="PLT">PLT</option>
+      <option value="RES">RES</option>
+    </select>
+
+    <select class="ia-select" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()">
+      <option value="">All statuses</option>
+      @for (s of statusOptions; track s) { <option [value]="s">{{ prettyEnum(s) }}</option> }
+    </select>
+
+    <select class="ia-select" [(ngModel)]="eventTypeFilter" (ngModelChange)="onFilterChange()">
+      <option value="">All events</option>
+      @for (e of eventTypeOptions; track e) { <option [value]="e">{{ eventTypeLabel(e) }}</option> }
+    </select>
+
+    <select class="ia-select" [(ngModel)]="slaFilter" (ngModelChange)="onFilterChange()">
+      <option value="">All SLA</option>
+      <option value="ON_TIME">On time</option>
+      <option value="WARNING">Warning</option>
+      <option value="BREACHED">Breached</option>
+    </select>
+
+    <select class="ia-select" [(ngModel)]="proofFilter" (ngModelChange)="onFilterChange()">
+      <option value="">Any proof</option>
+      <option value="UPLOADED">Proof uploaded</option>
+      <option value="MISSING">Proof missing</option>
+    </select>
+
+    <input class="ia-select" type="text" [(ngModel)]="governorate" (ngModelChange)="onSearchChange()"
+           placeholder="Governorate" style="min-width:130px" />
+
+    <input class="ia-select" type="text" [(ngModel)]="technician" (ngModelChange)="onSearchChange()"
+           placeholder="Technician" style="min-width:130px" />
+
+    <input class="ia-select" type="date" [(ngModel)]="from" (ngModelChange)="onFilterChange()" title="From date" />
+    <input class="ia-select" type="date" [(ngModel)]="to" (ngModelChange)="onFilterChange()" title="To date" />
+
+    @if (hasActiveFilters) {
+      <button class="ia-clear" type="button" (click)="clearFilters()">Clear</button>
+    }
+
+    <span class="ia-count">{{ totalElements }} intervention{{ totalElements !== 1 ? 's' : '' }}</span>
+  </div>
+
+  @if (error) { <div class="ia-alert">{{ error }}</div> }
+
+  @if (loading) {
+    <div class="ia-loading">
+      <c-spinner size="sm"></c-spinner>
+      <span>Loading interventions…</span>
+    </div>
+  }
+
+  @if (!loading && audits.length === 0 && !error) {
+    <div class="ia-empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>No interventions match the current filters.</span>
+    </div>
+  }
+
+  <!-- Table -->
+  @if (!loading && audits.length > 0) {
+    <div class="ia-card ia-table-scroll">
+      <div class="ia-table">
+        <div class="ia-thead">
+          <span>Case Ref</span>
+          <span>Module</span>
+          <span>Status</span>
+          <span>Technician</span>
+          <span>STT</span>
+          <span>ZM</span>
+          <span>Governorate</span>
+          <span>SLA</span>
+          <span>Mat.</span>
+          <span>Proof</span>
+          <span>Finished</span>
+          <span>Last action</span>
+          <span></span>
+        </div>
+
+        @for (a of audits; track a.auditId ?? $index) {
+          <div class="ia-trow" (click)="openDrawer(a)">
+            <span class="ia-cell-ref">{{ a.caseReference ?? a.caseId }}</span>
+
+            <span>
+              <span class="ia-mod-badge"
+                    [class.ia-mod-badge--act]="a.module === 'ACT'"
+                    [class.ia-mod-badge--plt]="a.module === 'PLT'"
+                    [class.ia-mod-badge--res]="a.module === 'RES'">{{ a.module ?? '—' }}</span>
+            </span>
+
+            <span>
+              <span class="ia-status-badge" [attr.data-group]="statusGroup(a.currentStatus)">
+                {{ statusLabel(a.currentStatus) }}
+              </span>
+            </span>
+
+            <span class="ia-cell-actor">
+              @if (a.technicianName) {
+                <span class="ia-mini-av ia-mini-av--tech">{{ nameInitials(a.technicianName) }}</span>
+                <span class="ia-cell-name">{{ a.technicianName }}</span>
+              } @else { <span class="ia-muted">—</span> }
+            </span>
+
+            <span class="ia-cell-name ia-muted-strong">{{ a.sttName ?? '—' }}</span>
+            <span class="ia-cell-name ia-muted-strong">{{ a.zmName ?? '—' }}</span>
+            <span class="ia-cell-name">{{ a.governorate ?? '—' }}</span>
+
+            <span>
+              @if (a.slaCategory && a.slaCategory !== 'NONE') {
+                <span class="ia-sla-badge"
+                      [class.ia-sla-badge--ontime]="a.slaCategory === 'ON_TIME'"
+                      [class.ia-sla-badge--warning]="a.slaCategory === 'WARNING'"
+                      [class.ia-sla-badge--breached]="a.slaCategory === 'BREACHED'">
+                  {{ slaLabel(a.slaCategory) }}
+                </span>
+              } @else { <span class="ia-muted">—</span> }
+            </span>
+
+            <span>
+              @if (a.materialCount && a.materialCount > 0) {
+                <span class="ia-mat-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path></svg>
+                  {{ a.materialCount }}
+                </span>
+              } @else { <span class="ia-muted">0</span> }
+            </span>
+
+            <span>
+              @if (a.proofPresent) {
+                <span class="ia-proof-badge ia-proof-badge--ok" title="Proof uploaded">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Proof
+                </span>
+              } @else {
+                <span class="ia-proof-badge ia-proof-badge--missing" title="Proof missing">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  Missing
+                </span>
+              }
+            </span>
+
+            <span class="ia-cell-date">{{ a.completedAt ? (a.completedAt | date:'dd MMM, HH:mm') : '—' }}</span>
+
+            <span class="ia-cell-last">
+              <span class="ia-cell-last-title">{{ eventTypeLabel(a.eventType) }}</span>
+              <span class="ia-cell-last-time">{{ a.lastActionAt | date:'dd MMM, HH:mm' }}</span>
+            </span>
+
+            <svg class="ia-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"></path></svg>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="ia-pager">
+      <span class="ia-pager-range">{{ rangeStart }}–{{ rangeEnd }} of {{ totalElements }}</span>
+      <div class="ia-pager-controls">
+        <button class="ia-pager-btn" type="button" [disabled]="page === 0" (click)="prevPage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"></path></svg>
+          Prev
+        </button>
+        <span class="ia-pager-info">Page {{ page + 1 }} / {{ totalPages }}</span>
+        <button class="ia-pager-btn" type="button" [disabled]="page >= totalPages - 1" (click)="nextPage()">
+          Next
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"></path></svg>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════════════════ DETAILS DRAWER ══════════════════════ -->
+  @if (selected && drawerVisible) {
+    <div class="ia-drawer-backdrop" (click)="closeDrawer()">
+      <aside class="ia-drawer" (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="ia-drawer-head">
+          <div class="ia-drawer-head__top">
+            <span class="ia-mod-badge"
+                  [class.ia-mod-badge--act]="selected.module === 'ACT'"
+                  [class.ia-mod-badge--plt]="selected.module === 'PLT'"
+                  [class.ia-mod-badge--res]="selected.module === 'RES'">{{ selected.module ?? '—' }}</span>
+            <span class="ia-drawer-ref">{{ selected.caseReference ?? selected.caseId }}</span>
+            <span class="ia-status-badge" [attr.data-group]="statusGroup(selected.currentStatus)">
+              {{ statusLabel(selected.currentStatus) }}
+            </span>
+            <button class="ia-drawer-close" type="button" (click)="closeDrawer()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          @if (selected.customerName || selected.governorate) {
+            <div class="ia-drawer-sub">
+              @if (selected.customerName) { <span>{{ selected.customerName }}</span> }
+              @if (selected.governorate) {
+                <span class="ia-drawer-zone">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  {{ selected.governorate }}@if (selected.delegation) { · {{ selected.delegation }} }
+                </span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="ia-drawer-body">
+
+          <!-- Overview key timings -->
+          <div class="ia-section-title">Overview</div>
+          <div class="ia-overview-grid">
+            <div class="ia-ov-item"><span class="ia-ov-lbl">Created</span><span class="ia-ov-val">{{ selected.createdAt ? (selected.createdAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+            <div class="ia-ov-item"><span class="ia-ov-lbl">Assigned</span><span class="ia-ov-val">{{ selected.assignedAt ? (selected.assignedAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+            <div class="ia-ov-item"><span class="ia-ov-lbl">RDV</span><span class="ia-ov-val">{{ selected.rdvAt ? (selected.rdvAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+            <div class="ia-ov-item"><span class="ia-ov-lbl">Started</span><span class="ia-ov-val">{{ selected.startedAt ? (selected.startedAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+            <div class="ia-ov-item"><span class="ia-ov-lbl">Finished</span><span class="ia-ov-val">{{ selected.completedAt ? (selected.completedAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+            <div class="ia-ov-item"><span class="ia-ov-lbl">Validated</span><span class="ia-ov-val">{{ selected.validatedAt ? (selected.validatedAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+            <div class="ia-ov-item"><span class="ia-ov-lbl">Closed</span><span class="ia-ov-val">{{ selected.closedAt ? (selected.closedAt | date:'dd MMM yyyy, HH:mm') : '—' }}</span></div>
+          </div>
+
+          <!-- Assignment chain -->
+          <div class="ia-section-title">Assignment Chain</div>
+          <div class="ia-chain">
+            <div class="ia-chain-node">
+              <div class="ia-chain-av ia-chain-av--zm">{{ nameInitials(selected.zmName) }}</div>
+              <div class="ia-chain-info">
+                <span class="ia-chain-role">ZM</span>
+                <span class="ia-chain-name">{{ selected.zmName ?? '—' }}</span>
+                @if (selected.assignedZmAt) { <span class="ia-chain-time">{{ selected.assignedZmAt | date:'dd MMM, HH:mm' }}</span> }
+              </div>
+            </div>
+            <svg class="ia-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            <div class="ia-chain-node">
+              <div class="ia-chain-av ia-chain-av--stt">{{ nameInitials(selected.sttName) }}</div>
+              <div class="ia-chain-info">
+                <span class="ia-chain-role">STT</span>
+                <span class="ia-chain-name">{{ selected.sttName ?? '—' }}</span>
+                @if (selected.assignedSttAt) { <span class="ia-chain-time">{{ selected.assignedSttAt | date:'dd MMM, HH:mm' }}</span> }
+              </div>
+            </div>
+            <svg class="ia-chain-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+            <div class="ia-chain-node">
+              <div class="ia-chain-av ia-chain-av--tech">{{ nameInitials(selected.technicianName) }}</div>
+              <div class="ia-chain-info">
+                <span class="ia-chain-role">TECH</span>
+                <span class="ia-chain-name">{{ selected.technicianName ?? '—' }}</span>
+                @if (selected.assignedTechAt) { <span class="ia-chain-time">{{ selected.assignedTechAt | date:'dd MMM, HH:mm' }}</span> }
+              </div>
+            </div>
+          </div>
+
+          <!-- SLA / escalation -->
+          <div class="ia-section-title">SLA &amp; Escalation</div>
+          <div class="ia-sla-panel">
+            <span class="ia-sla-badge ia-sla-badge--lg"
+                  [class.ia-sla-badge--ontime]="selected.slaCategory === 'ON_TIME'"
+                  [class.ia-sla-badge--warning]="selected.slaCategory === 'WARNING'"
+                  [class.ia-sla-badge--breached]="selected.slaCategory === 'BREACHED'"
+                  [class.ia-sla-badge--none]="!selected.slaCategory || selected.slaCategory === 'NONE'">
+              {{ selected.slaCategory && selected.slaCategory !== 'NONE' ? slaLabel(selected.slaCategory) : 'No SLA' }}
+            </span>
+            @if (selected.slaDeadline) {
+              <div class="ia-sla-meta"><span class="ia-ov-lbl">Deadline</span><span class="ia-ov-val">{{ selected.slaDeadline | date:'dd MMM yyyy, HH:mm' }}</span></div>
+            }
+            <div class="ia-sla-meta"><span class="ia-ov-lbl">Escalations</span><span class="ia-ov-val">{{ selected.escalationLevel ?? 0 }}</span></div>
+          </div>
+
+          <!-- Materials consumed -->
+          <div class="ia-section-title">
+            Materials Consumed
+            @if (selected.totalMaterialQuantity) { <span class="ia-section-tag">{{ selected.totalMaterialQuantity }} units</span> }
+          </div>
+          @if (selected.consumedMaterials.length > 0) {
+            <div class="ia-mat-table">
+              <div class="ia-mat-head">
+                <span>Equipment</span><span>Article</span><span>Qty</span><span>Unit</span>
+              </div>
+              @for (m of selected.consumedMaterials; track $index) {
+                <div class="ia-mat-row">
+                  <span class="ia-mat-name">
+                    {{ m.equipmentName ?? m.equipmentId }}
+                    @if (m.category) { <span class="ia-mat-cat">{{ prettyEnum(m.category) }}</span> }
+                  </span>
+                  <span class="ia-mono">{{ m.articleCode ?? '—' }}</span>
+                  <span class="ia-mat-qty">{{ m.quantity }}</span>
+                  <span class="ia-muted">{{ m.unit ? prettyEnum(m.unit) : '—' }}</span>
+                </div>
+              }
+            </div>
+            @if (selected.consumedMaterials[0]?.consumedByTechName || selected.consumedMaterials[0]?.consumedAt) {
+              <div class="ia-mat-foot">
+                Consumed by {{ selected.consumedMaterials[0]?.consumedByTechName ?? '—' }}
+                @if (selected.consumedMaterials[0]?.consumedAt) { · {{ selected.consumedMaterials[0]?.consumedAt | date:'dd MMM yyyy, HH:mm' }} }
+              </div>
+            }
+          } @else {
+            <p class="ia-empty-line">No material consumption recorded.</p>
+          }
+
+          @if (selected.relatedReturns.length > 0) {
+            <div class="ia-section-title">Related Material Returns</div>
+            <div class="ia-returns">
+              @for (r of selected.relatedReturns; track $index) {
+                <span class="ia-return-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 00-4-4H4"></path></svg>
+                  {{ r.returnCode }} · {{ prettyEnum(r.status) }}
+                </span>
+              }
+            </div>
+          }
+
+          <!-- Photo / GPS proof -->
+          <div class="ia-section-title">Photo &amp; GPS Proof</div>
+          <div class="ia-proof-panel">
+            <div class="ia-proof-tile" [class.ia-proof-tile--ok]="selected.proofPresent" [class.ia-proof-tile--missing]="!selected.proofPresent">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"></path><circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <div class="ia-proof-tile__body">
+                <span class="ia-proof-tile__title">{{ selected.proofPresent ? 'Proof uploaded' : 'No proof uploaded' }}</span>
+                @if (selected.proofPresent) {
+                  <span class="ia-proof-tile__sub">{{ selected.proofFileName ?? selected.proofFileId }} @if (selected.proofCount && selected.proofCount > 1) { · {{ selected.proofCount }} files }</span>
+                }
+              </div>
+            </div>
+            <div class="ia-proof-tile" [class.ia-proof-tile--ok]="hasGps(selected)" [class.ia-proof-tile--missing]="!hasGps(selected)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <div class="ia-proof-tile__body">
+                <span class="ia-proof-tile__title">{{ hasGps(selected) ? 'GPS captured' : 'No GPS' }}</span>
+                @if (hasGps(selected)) {
+                  <span class="ia-proof-tile__sub ia-mono">{{ gpsString(selected) }}@if (selected.gpsAccuracy != null) { · ±{{ selected.gpsAccuracy }}m }</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          <div class="ia-section-title">Intervention Timeline</div>
+          @if (selected.timeline.length > 0) {
+            <div class="ia-timeline">
+              @for (ev of selected.timeline; track trackByEventId($index, ev)) {
+                <div class="ia-tl-entry ia-tl-entry--{{ eventCategory(ev) }}">
+                  <div class="ia-tl-node">
+                    @switch (eventIcon(ev)) {
+                      @case ('created') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> }
+                      @case ('zm') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg> }
+                      @case ('stt') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg> }
+                      @case ('tech') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.1 2.1-2.1-.6-.6-2.1z"></path></svg> }
+                      @case ('assign') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"></circle><path d="M3 20c0-3.3 2.7-6 6-6"></path><line x1="17" y1="11" x2="23" y2="11"></line><line x1="20" y1="8" x2="20" y2="14"></line></svg> }
+                      @case ('rdv') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> }
+                      @case ('diagnosis') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2h6v3H9z"></path><path d="M9 4H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2h-2"></path><line x1="9" y1="12" x2="15" y2="12"></line><line x1="9" y1="16" x2="13" y2="16"></line></svg> }
+                      @case ('work') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.1 2.1-2.1-.6-.6-2.1z"></path></svg> }
+                      @case ('material') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path></svg> }
+                      @case ('proof') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"></path><circle cx="12" cy="13" r="4"></circle></svg> }
+                      @case ('validate') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> }
+                      @case ('close') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg> }
+                      @case ('reopen') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path></svg> }
+                      @case ('sla') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> }
+                      @default { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path></svg> }
+                    }
+                  </div>
+                  <div class="ia-tl-content">
+                    <div class="ia-tl-title">{{ ev.title ?? eventTypeLabel(ev.eventType) }}</div>
+                    <div class="ia-tl-meta">
+                      <span>{{ ev.occurredAt | date:'dd MMM yyyy, HH:mm' }}</span>
+                      @if (ev.actorRole) {
+                        <span class="ia-role-badge"
+                              [class.ia-role-badge--zm]="ev.actorRole === 'ZM'"
+                              [class.ia-role-badge--stt]="ev.actorRole === 'STT'"
+                              [class.ia-role-badge--tech]="ev.actorRole === 'TECH'"
+                              [class.ia-role-badge--admin]="ev.actorRole === 'ADMIN'"
+                              [class.ia-role-badge--system]="ev.actorRole === 'SYSTEM'">{{ ev.actorRole }}</span>
+                      }
+                      @if (ev.actorName) { <span class="ia-tl-actor">{{ ev.actorName }}</span> }
+                    </div>
+                    @if (ev.description) { <div class="ia-tl-desc">{{ ev.description }}</div> }
+                    <div class="ia-tl-tags">
+                      @if (ev.previousStatus && ev.newStatus && ev.previousStatus !== ev.newStatus) {
+                        <span class="ia-tl-status">{{ prettyEnum(ev.previousStatus) }} → {{ prettyEnum(ev.newStatus) }}</span>
+                      }
+                      @if (ev.proofFileId) { <span class="ia-tl-chip ia-tl-chip--proof">Photo</span> }
+                      @if (ev.latitude && ev.longitude) { <span class="ia-tl-chip ia-tl-chip--gps">GPS</span> }
+                      @if (ev.targetName) { <span class="ia-tl-chip">→ {{ ev.targetName }}</span> }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="ia-empty-line">No timeline events recorded.</p>
+          }
+
+          <!-- Notes -->
+          @if (selected.notes) {
+            <div class="ia-section-title">Notes</div>
+            <p class="ia-notes">{{ selected.notes }}</p>
+          }
+
+        </div>
+      </aside>
+    </div>
+  }
+
+</div>

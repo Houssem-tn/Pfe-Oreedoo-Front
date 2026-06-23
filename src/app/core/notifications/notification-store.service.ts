@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 
 import { NotificationApiService } from './notification-api.service';
 import { NotificationWsService } from './notification-ws.service';
-import { NotificationItem } from './models/notification.model';
+import { AlertLevel, NotificationItem, effectiveLevel } from './models/notification.model';
 import { AuthStore } from '../auth/auth.store';
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +36,32 @@ export class NotificationStoreService {
     [...this._items()].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
+  );
+
+  /**
+   * Alerts sorted: unread before read → CRITICAL → WARNING → INFO → newest first.
+   * Within the read group the same level → date ordering applies.
+   */
+  readonly alertsByLevel = computed(() => {
+    const levelOrder: Record<AlertLevel, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+    return [...this._items()].sort((a, b) => {
+      // unread first
+      if (a.read !== b.read) return a.read ? 1 : -1;
+      // level order within same read group
+      const la = levelOrder[effectiveLevel(a)] ?? 2;
+      const lb = levelOrder[effectiveLevel(b)] ?? 2;
+      if (la !== lb) return la - lb;
+      // newest first within same level
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  });
+
+  readonly criticalAlerts = computed(() =>
+    this.alertsByLevel().filter(n => effectiveLevel(n) === 'CRITICAL')
+  );
+
+  readonly unreadCriticalCount = computed(() =>
+    this.criticalAlerts().filter(n => !n.read).length
   );
 
   init(): void {
@@ -199,12 +225,19 @@ export class NotificationStoreService {
   }
 
   private isOperationalAlert(item: NotificationItem): boolean {
+    if (item.level === 'CRITICAL' || item.level === 'WARNING') return true;
     return item.eventType === 'SLA_WARNING'
       || item.eventType === 'SLA_BREACHED'
       || item.eventType === 'SLA_ESCALATED'
       || item.eventType === 'CASE_ASSIGNED_TO_TECH'
       || item.eventType === 'CASE_ASSIGNED_TO_STT'
-      || item.eventType === 'CASE_ASSIGNED_TO_ZM';
+      || item.eventType === 'CASE_ASSIGNED_TO_ZM'
+      || item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM'
+      || item.eventType === 'STOCK_CRITICAL'
+      || item.eventType === 'STOCK_LOW_WARNING'
+      || item.eventType === 'STOCK_USAGE_PERMISSION_REQUIRED'
+      || item.eventType === 'STOCK_USAGE_PERMISSION_APPROVED'
+      || item.eventType === 'STOCK_USAGE_PERMISSION_REJECTED';
   }
 
   private clearPopupTimer(notificationId: string): void {

@@ -2,7 +2,7 @@
 
   <div class="idpm-card">
     <div class="idpm-card-header">
-      <span class="idpm-card-title">Incoming DPM Requests</span>
+      <span class="idpm-card-title">My DPM Requests</span>
       <button class="idpm-refresh-btn" type="button" (click)="load()" title="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="23 4 23 10 17 10"></polyline>
@@ -19,58 +19,180 @@
     @if (loading) {
       <div style="padding:2rem;text-align:center"><c-spinner size="sm"></c-spinner></div>
     } @else {
-      <div class="idpm-table-wrap">
-        <table class="idpm-table">
-          <thead>
-            <tr>
-              <th>DPM #</th>
-              <th>ZM</th>
-              <th>Delivery Person</th>
-              <th>Items</th>
-              <th>Created</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (d of dpms; track d.id) {
-              <tr>
-                <td><span class="idpm-dpm-num">{{ d.dpmNumber }}</span></td>
-                <td>
-                  <div class="idpm-user-name">{{ d.zmName }}</div>
-                  <div class="idpm-user-email">{{ d.zmEmail }}</div>
-                </td>
-                <td>{{ d.deliveryPersonName }}</td>
-                <td>
-                  @for (item of d.items; track item.equipmentId) {
-                    <span class="idpm-item-chip">{{ item.equipmentName }}: {{ item.requestedQuantity }}{{ unitSuffix(item.unit) }}</span>
+
+      <!-- ── DPM list ────────────────────────────────────────────────────── -->
+      @for (dpm of dpms; track dpm.id) {
+
+        <div class="idpm-dpm-block" [class.idpm-dpm-block--waiting]="isWaitingApproval(dpm)">
+
+          <!-- Header row -->
+          <div class="idpm-dpm-header">
+            <div class="idpm-dpm-title">
+              <span class="idpm-dpm-num">{{ dpm.dpmNumber }}</span>
+              <span class="idpm-status-pill idpm-status-pill--{{ statusColor(dpm.status) }}">
+                {{ statusLabel(dpm.status) }}
+              </span>
+            </div>
+            <div class="idpm-dpm-meta">
+              <span>ZM: <strong>{{ dpm.zmName }}</strong></span>
+              <span>·</span>
+              <span>{{ dpm.createdAt | date:'dd/MM/yy HH:mm' }}</span>
+            </div>
+          </div>
+
+          <!-- ── WAITING_TEAM_STOCK_APPROVAL: read-only, blocked message ─── -->
+          @if (dpm.status === 'WAITING_TEAM_STOCK_APPROVAL') {
+            <div class="idpm-waiting-banner">
+              <div class="idpm-waiting-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+              </div>
+              <div class="idpm-waiting-text">
+                <strong>Waiting for external Team Stock approval</strong>
+                <p>This DPM request is pending approval from the external Team Stock team. You will be notified once the rendez-vous is scheduled. No action is required from you at this time.</p>
+              </div>
+            </div>
+            <div class="idpm-items-readonly">
+              <div class="idpm-items-label">Requested items (read-only)</div>
+              @for (item of dpm.items; track item.equipmentId) {
+                <span class="idpm-item-chip">
+                  @if (item.equipmentImageUrl) {
+                    <img [src]="item.equipmentImageUrl" width="20" height="20" style="border-radius:4px;object-fit:cover" />
                   }
-                </td>
-                <td>{{ d.createdAt | date:'dd/MM/yy HH:mm' }}</td>
-                <td>
-                  <button class="idpm-confirm-btn" type="button" (click)="openConfirm(d)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Confirm
-                  </button>
-                </td>
-              </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="idpm-table-empty">No pending DPMs.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                  {{ item.equipmentName }}: <strong>{{ item.requestedQuantity }}{{ unitSuffix(item.unit) }}</strong>
+                </span>
+              }
+            </div>
+          }
+
+          <!-- ── TEAM_STOCK_REJECTED ─────────────────────────────────────── -->
+          @if (dpm.status === 'TEAM_STOCK_REJECTED') {
+            <div class="idpm-rejected-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+              </svg>
+              <div>
+                <strong>Rejected by external Team Stock</strong>
+                @if (dpm.externalRejectionReason) {
+                  <p>Reason: {{ dpm.externalRejectionReason }}</p>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- ── RDV_SCHEDULED: show RDV info + confirm button ──────────── -->
+          @if (dpm.status === 'RDV_SCHEDULED') {
+            <div class="idpm-rdv-banner">
+              <div class="idpm-rdv-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div class="idpm-rdv-details">
+                <strong>Pickup RDV Scheduled</strong>
+                <div class="idpm-rdv-row">
+                  <span class="idpm-rdv-label">Date:</span>
+                  <span class="idpm-rdv-value">{{ dpm.rdvDate }}</span>
+                </div>
+                <div class="idpm-rdv-row">
+                  <span class="idpm-rdv-label">Location:</span>
+                  <span class="idpm-rdv-value">{{ dpm.rdvLocation }}</span>
+                </div>
+                @if (dpm.rdvNote) {
+                  <div class="idpm-rdv-row">
+                    <span class="idpm-rdv-label">Note:</span>
+                    <span class="idpm-rdv-value">{{ dpm.rdvNote }}</span>
+                  </div>
+                }
+                @if (dpm.externalApprovalReference) {
+                  <div class="idpm-rdv-row">
+                    <span class="idpm-rdv-label">Approval ref:</span>
+                    <span class="idpm-rdv-value idpm-rdv-ref">{{ dpm.externalApprovalReference }}</span>
+                  </div>
+                }
+              </div>
+              <button class="idpm-rdv-confirm-btn" type="button"
+                      [disabled]="confirmingRdv"
+                      (click)="submitRdvConfirmation(dpm)">
+                @if (confirmingRdv) { <c-spinner size="sm" class="me-1"></c-spinner> }
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Confirm Attendance
+              </button>
+            </div>
+            <div class="idpm-items-readonly">
+              <div class="idpm-items-label">Requested items</div>
+              @for (item of dpm.items; track item.equipmentId) {
+                <span class="idpm-item-chip">
+                  @if (item.equipmentImageUrl) {
+                    <img [src]="item.equipmentImageUrl" width="20" height="20" style="border-radius:4px;object-fit:cover" />
+                  }
+                  {{ item.equipmentName }}: <strong>{{ item.requestedQuantity }}{{ unitSuffix(item.unit) }}</strong>
+                </span>
+              }
+            </div>
+          }
+
+          <!-- ── RDV_CONFIRMED_BY_STT: confirm material reception ─────────── -->
+          @if (dpm.status === 'RDV_CONFIRMED_BY_STT') {
+            <div class="idpm-reception-banner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"></path>
+                <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+              </svg>
+              <div>
+                <strong>RDV confirmed — please confirm material reception</strong>
+                <p>You confirmed attendance for this RDV. Once you have received the materials, record the quantities below.</p>
+              </div>
+            </div>
+            <div class="idpm-action-row">
+              <button class="idpm-confirm-btn" type="button" (click)="openConfirm(dpm)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Record Material Reception
+              </button>
+            </div>
+          }
+
+          <!-- ── PENDING_STT_CONFIRMATION (legacy flow) ─────────────────── -->
+          @if (dpm.status === 'PENDING_STT_CONFIRMATION') {
+            <div class="idpm-action-row">
+              <button class="idpm-confirm-btn" type="button" (click)="openConfirm(dpm)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Confirm
+              </button>
+            </div>
+          }
+
+        </div>
+
+      } @empty {
+        <div class="idpm-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+          </svg>
+          <p>No active DPM requests.</p>
+        </div>
+      }
     }
   </div>
 
-  <!-- Confirmation Modal -->
+  <!-- ── Material Reception Modal ──────────────────────────────────────────── -->
   @if (confirmingDpm) {
     <c-modal [visible]="confirmModalVisible" (visibleChange)="confirmModalVisible = $event" size="lg">
       <c-modal-header>
-        <strong>Confirm DPM {{ confirmingDpm.dpmNumber }}</strong>
+        <strong>Confirm Material Reception — {{ confirmingDpm.dpmNumber }}</strong>
       </c-modal-header>
       <c-modal-body>
 
@@ -78,8 +200,16 @@
           <div class="idpm-modal-meta-row">
             <span class="idpm-modal-meta-label">ZM</span>
             <span class="idpm-modal-meta-value">{{ confirmingDpm.zmName }}</span>
-            <span class="idpm-modal-meta-label">Delivery</span>
+            <span class="idpm-modal-meta-label">Delivery Person</span>
             <span class="idpm-modal-meta-value">{{ confirmingDpm.deliveryPersonName }}</span>
+            @if (confirmingDpm.rdvDate) {
+              <span class="idpm-modal-meta-label">RDV Date</span>
+              <span class="idpm-modal-meta-value">{{ confirmingDpm.rdvDate }}</span>
+            }
+            @if (confirmingDpm.rdvLocation) {
+              <span class="idpm-modal-meta-label">RDV Location</span>
+              <span class="idpm-modal-meta-value">{{ confirmingDpm.rdvLocation }}</span>
+            }
             @if (confirmingDpm.notes) {
               <span class="idpm-modal-meta-label">Notes</span>
               <span class="idpm-modal-meta-value">{{ confirmingDpm.notes }}</span>
@@ -155,8 +285,7 @@
 
         @if (!isRejecting && hasShortage) {
           <div class="idpm-shortage-alert">
-            Total shortage: <strong>{{ shortageLabel }}</strong> — DPM will be
-            marked as <strong>Partially Confirmed</strong>.
+            Total shortage: <strong>{{ shortageLabel }}</strong>
           </div>
         }
 
@@ -168,7 +297,7 @@
                 [disabled]="confirming || (isRejecting && !rejectReason.trim())"
                 (click)="submitConfirmation()">
           @if (confirming) { <c-spinner size="sm" class="me-1"></c-spinner> }
-          {{ isRejecting ? 'Reject DPM' : 'Submit Confirmation' }}
+          {{ isRejecting ? 'Reject DPM' : 'Submit Reception' }}
         </button>
       </c-modal-footer>
     </c-modal>

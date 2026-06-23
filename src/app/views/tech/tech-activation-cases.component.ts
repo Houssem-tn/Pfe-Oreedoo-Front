@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
-import { finalize, firstValueFrom } from 'rxjs';
+import { Subscription, finalize, firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
@@ -22,8 +22,9 @@ import {
 } from '../../core/cases/models/case.model';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
+import { NotificationWsService } from '../../core/notifications/notification-ws.service';
 import { StockService } from '../../core/stock/stock.service';
-import { TechStock, TechStockItem } from '../../core/stock/stock.model';
+import { CaseLimitItem, TechStock, TechStockItem, StockUsagePermission, CreatePermissionRequest } from '../../core/stock/stock.model';
 import {
   buildUsedEquipmentPayload,
   EquipmentUsageLine,
@@ -42,7 +43,15 @@ import {
 } from './tech-case.helpers';
 
 type TechQuickFilter = 'urgent' | 'rdv' | 'work' | 'all';
-type TechPanel = 'details' | 'rdv' | 'work';
+
+interface OverLimitLine {
+  equipmentId: string;
+  equipmentName: string;
+  quantity: number;
+  limit: number;
+  unit: string;
+}
+type TechPanel = 'details' | 'rdv' | 'stock' | 'work';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
 type TechProofSource = 'camera' | 'gallery';
 
@@ -117,6 +126,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private readonly casesService = inject(CasesService);
   private readonly authStore = inject(AuthStore);
   private readonly notificationsStore = inject(NotificationStoreService);
+  private readonly notificationWsService = inject(NotificationWsService);
   private readonly stockService = inject(StockService);
   private readonly route = inject(ActivatedRoute);
 
@@ -151,6 +161,18 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   usageLines: EquipmentUsageLine[] = [];
   techStock: TechStock | null = null;
   proofDrafts: Record<string, TechProofDraft> = {};
+  casePermissions: StockUsagePermission[] = [];
+  permissionsLoading = false;
+  permissionModalOpen = false;
+  permissionReason = '';
+  permissionSaving = false;
+  permissionNeeded = false;
+  caseLimits: CaseLimitItem[] = [];
+  caseLimitsLoading = false;
+  private wsPermissionSub: Subscription | null = null;
+  private pendingPermissionNotification: NotificationItem | null = null;
+  private permissionsRequestCaseId: string | null = null;
+  private caseLimitsRequestCaseId: string | null = null;
   private pendingProofLocation: TechGeoSnapshot | null = null;
   private pendingProofSource: TechProofSource | null = null;
   private backgroundProofSyncCaseId: string | null = null;
@@ -183,6 +205,11 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.loadPerformance();
     this.startClock();
     this.startResync();
+    if (this.isTechRole) {
+      this.wsPermissionSub = this.notificationWsService.notifications$.subscribe((n) => {
+        this.handlePermissionNotification(n);
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -195,6 +222,9 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       clearInterval(this.resyncHandle);
       this.resyncHandle = null;
     }
+
+    this.wsPermissionSub?.unsubscribe();
+    this.wsPermissionSub = null;
   }
 
   get activeCases(): CaseResponse[] {
@@ -432,6 +462,76 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return this.techStockItems.reduce((sum, item) => sum + item.usedQuantity, 0);
   }
 
+  get overLimitLines(): OverLimitLine[] {
+    if (!this.isTechRole) return [];
+    const merged = new Map<string, { qty: number; item: TechStockItem }>();
+    for (const line of this.usageLines) {
+      const id = (line.equipmentId ?? '').trim();
+      const qty = Number(String(line.quantity ?? '').trim());
+      if (!id || !Number.isFinite(qty) || qty <= 0) continue;
+      const stockItem = this.techStockItems.find(i => i.equipmentId === id);
+      if (!stockItem) continue;
+      const existing = merged.get(id);
+      if (existing) existing.qty += qty;
+      else merged.set(id, { qty, item: stockItem });
+    }
+    const result: OverLimitLine[] = [];
+    for (const { qty, item } of merged.values()) {
+      const limit = this.getItemLimit(item);
+      if (limit !== null && qty > limit) {
+        result.push({ equipmentId: item.equipmentId, equipmentName: item.equipmentName, quantity: qty, limit, unit: item.unit ?? 'pcs' });
+      }
+    }
+    return result;
+  }
+
+  get hasOverLimit(): boolean {
+    return this.overLimitLines.length > 0;
+  }
+
+  get hasAnyUsageLine(): boolean {
+    return this.usageLines.some(l => !!l.equipmentId);
+  }
+
+  /** True when the TECH should see the permission flow UI (proactive or 403 fallback). */
+  get showPermissionFlow(): boolean {
+    if (!this.isTechRole) return false;
+    return this.hasOverLimit || this.permissionNeeded;
+  }
+
+  /** True when the submit button must be disabled because a permission is needed but not yet approved. */
+  get isSubmitBlocked(): boolean {
+    if (!this.showPermissionFlow) return false;
+    const perm = this.activeCasePermission;
+    if (!perm) return true;
+    return perm.status !== 'APPROVED' && perm.status !== 'PARTIALLY_APPROVED';
+  }
+
+  get permissionUsageLines(): OverLimitLine[] {
+    const overLimit = this.overLimitLines;
+    if (overLimit.length) return overLimit;
+
+    const result: OverLimitLine[] = [];
+    for (const line of this.usageLines) {
+      const id = (line.equipmentId ?? '').trim();
+      const qty = Number(String(line.quantity ?? '').trim());
+      if (!id || !Number.isFinite(qty) || qty <= 0) continue;
+      const stockItem = this.techStockItems.find(i => i.equipmentId === id);
+      const unit = stockItem?.unit ?? 'pcs';
+      const equipmentName = stockItem?.equipmentName ?? id;
+      const limit = stockItem ? this.getItemLimit(stockItem) : (unit === 'METERS' ? 20 : 1);
+      result.push({ equipmentId: id, equipmentName, quantity: qty, limit: limit ?? (unit === 'METERS' ? 20 : 1), unit });
+    }
+    return result;
+  }
+
+  get activeCasePermission(): StockUsagePermission | null {
+    const active = this.casePermissions
+      .filter(p => p.status !== 'CANCELLED')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return active[0] ?? null;
+  }
+
   loadCases(): void {
     if (this.loading) {
       return;
@@ -653,7 +753,8 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   openPrimaryAction(item: CaseResponse): void {
     if (this.canSubmitWork(item) && item.status === 'RDV_SET') {
-      this.openPanel(item, 'work');
+      // TECH goes to the dedicated Stock Usage step first; STT self-execution goes straight to Work
+      this.openPanel(item, this.isTechRole ? 'stock' : 'work');
       return;
     }
 
@@ -667,7 +768,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   primaryActionLabel(item: CaseResponse): string {
     if (this.canSubmitWork(item) && item.status === 'RDV_SET') {
-      return 'Submit work';
+      return this.isTechRole ? 'Declare stock usage' : 'Submit work';
     }
 
     if (this.canSetRdv(item)) {
@@ -679,7 +780,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   primaryActionIcon(item: CaseResponse): string {
     if (this.canSubmitWork(item) && item.status === 'RDV_SET') {
-      return 'cilTask';
+      return this.isTechRole ? 'cilStorage' : 'cilTask';
     }
 
     if (this.canSetRdv(item)) {
@@ -690,9 +791,22 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   }
 
   openPanel(item: CaseResponse, panel: TechPanel): void {
+    const caseChanged = this.selectedCaseId !== item.id;
     this.banner = null;
     this.panelError = null;
+    this.permissionNeeded = false;
+    this.permissionModalOpen = false;
     this.focusCasePage(item.id);
+
+    if (caseChanged) {
+      this.casePermissions = [];
+      this.caseLimits = [];
+      this.permissionsLoading = false;
+      this.caseLimitsLoading = false;
+      this.permissionsRequestCaseId = null;
+      this.caseLimitsRequestCaseId = null;
+    }
+
     this.selectedCaseId = item.id;
     this.activePanel = panel;
     this.selectedCaseDetails = this.selectedCaseDetails?.id === item.id ? this.selectedCaseDetails : null;
@@ -701,13 +815,22 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       this.rdvForm = this.createRdvForm(item);
     }
 
+    if (panel === 'stock') {
+      this.setUsageLinesFromCase(item);
+      this.loadCaseLimits(item.id);
+    }
+
     if (panel === 'work') {
       this.workForm = this.createWorkForm(item);
-      this.setUsageLinesFromCase(item);
+      if (!this.isTechRole) {
+        this.setUsageLinesFromCase(item);
+      }
     }
 
     if (this.isTechRole) {
-      this.loadTechStock(true);
+      this.applyPendingPermissionNotification(item.id);
+      this.loadTechStock(panel === 'stock');
+      this.loadCasePermissions();
     }
 
     this.loadCaseDetails(item.id);
@@ -719,6 +842,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     this.activePanel = 'details';
     this.panelLoading = false;
     this.panelError = null;
+    this.casePermissions = [];
+    this.caseLimits = [];
+    this.permissionsRequestCaseId = null;
+    this.caseLimitsRequestCaseId = null;
+    this.permissionModalOpen = false;
+    this.permissionNeeded = false;
   }
 
   switchPanel(panel: TechPanel): void {
@@ -727,15 +856,28 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.banner = null;
+    this.permissionNeeded = false;
     this.activePanel = panel;
 
     if (panel === 'rdv') {
       this.rdvForm = this.createRdvForm(target);
     }
 
+    if (panel === 'stock') {
+      this.syncUsageSelection(target);
+      this.loadCaseLimits(target.id);
+      if (!this.techStock && !this.techStockLoading) {
+        this.loadTechStock(false);
+      }
+      this.loadCasePermissions();
+    }
+
     if (panel === 'work') {
       this.workForm = this.createWorkForm(target);
-      this.syncUsageSelection(target);
+      if (!this.isTechRole) {
+        this.syncUsageSelection(target);
+      }
     }
   }
 
@@ -843,7 +985,17 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       void this.syncProofAfterWork(target.id);
     } catch (err: any) {
       console.error('Failed to submit TECH work', err);
-      this.banner = { tone: 'danger', text: err?.error?.message ?? 'Unable to submit the work update.' };
+      const msg: string = err?.error?.message ?? err?.message ?? '';
+      if (err?.status === 403) {
+        this.permissionNeeded = true;
+        this.banner = { tone: 'warning', text: 'Stock usage exceeds the allowed limit. Request STT permission below before submitting.' };
+        if (this.selectedCaseId) {
+          this.loadCasePermissions();
+        }
+      } else {
+        this.permissionNeeded = false;
+        this.banner = { tone: 'danger', text: msg || 'Unable to submit the work update.' };
+      }
     } finally {
       this.actionBusy = false;
     }
@@ -1132,7 +1284,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
       this.quickFilter = focus;
     }
 
-    if (panel === 'details' || panel === 'rdv' || panel === 'work') {
+    if (panel === 'details' || panel === 'rdv' || panel === 'stock' || panel === 'work') {
       this.routeIntentPanel = panel;
     }
 
@@ -1202,6 +1354,108 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
           this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
         }
       });
+  }
+
+  loadCasePermissions(): void {
+    const caseId = this.selectedCaseId;
+    if (!caseId) return;
+    this.permissionsLoading = true;
+    this.permissionsRequestCaseId = caseId;
+    this.stockService.getPermissionsByCase(caseId).subscribe({
+      next: (permissions) => {
+        if (this.permissionsRequestCaseId !== caseId) return;
+        this.casePermissions = permissions;
+        this.permissionsLoading = false;
+      },
+      error: () => {
+        if (this.permissionsRequestCaseId !== caseId) return;
+        this.permissionsLoading = false;
+      }
+    });
+  }
+
+  loadCaseLimits(caseId: string): void {
+    if (!this.isTechRole) return;
+    this.caseLimitsLoading = true;
+    this.caseLimitsRequestCaseId = caseId;
+    this.stockService.getCaseLimits(caseId).subscribe({
+      next: (limits) => {
+        if (this.caseLimitsRequestCaseId !== caseId) return;
+        this.caseLimits = limits;
+        this.caseLimitsLoading = false;
+      },
+      error: () => {
+        if (this.caseLimitsRequestCaseId !== caseId) return;
+        this.caseLimits = [];
+        this.caseLimitsLoading = false;
+      }
+    });
+  }
+
+  openPermissionModal(): void {
+    this.permissionReason = '';
+    this.permissionModalOpen = true;
+  }
+
+  submitPermissionRequest(): void {
+    const caseId = this.selectedCaseId;
+    if (!caseId) return;
+    const lines = this.permissionUsageLines;
+    if (!lines.length) {
+      this.permissionModalOpen = false;
+      return;
+    }
+
+    const cableItems = lines.filter(l => l.unit === 'METERS');
+    const equipmentItems = lines.filter(l => l.unit !== 'METERS');
+
+    const payload: CreatePermissionRequest = {
+      caseId,
+      reason: this.permissionReason.trim() || undefined,
+      requestedCableMeters: cableItems.reduce((sum, l) => sum + l.quantity, 0),
+      requestedItems: equipmentItems.map(l => ({
+        itemId: l.equipmentId,
+        itemName: l.equipmentName,
+        requestedQuantity: l.quantity,
+        unit: l.unit
+      }))
+    };
+
+    this.permissionSaving = true;
+    this.stockService.createUsagePermission(payload).subscribe({
+      next: (permission) => {
+        this.permissionSaving = false;
+        this.permissionModalOpen = false;
+        this.permissionNeeded = false;
+        this.casePermissions = [permission, ...this.casePermissions.filter(p => p.id !== permission.id)];
+        this.banner = { tone: 'info', text: 'Permission request sent to your STT supervisor. You can submit work once it is approved.' };
+      },
+      error: (err) => {
+        this.permissionSaving = false;
+        this.permissionModalOpen = false;
+        this.banner = { tone: 'danger', text: err?.error?.message ?? 'Failed to send permission request.' };
+      }
+    });
+  }
+
+  permissionStatusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING': return 'Pending STT Review';
+      case 'APPROVED': return 'Approved';
+      case 'PARTIALLY_APPROVED': return 'Partially Approved';
+      case 'REJECTED': return 'Rejected';
+      default: return status;
+    }
+  }
+
+  permissionStatusTone(status: string): string {
+    switch (status) {
+      case 'PENDING': return 'warning';
+      case 'APPROVED': return 'success';
+      case 'PARTIALLY_APPROVED': return 'info';
+      case 'REJECTED': return 'danger';
+      default: return 'info';
+    }
   }
 
   private matchesQuickFilter(item: CaseResponse): boolean {
@@ -1933,5 +2187,97 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private toNullable(value?: string | null): string | null {
     const trimmed = (value ?? '').trim();
     return trimmed ? trimmed : null;
+  }
+
+  /**
+   * Reacts to incoming WebSocket notifications for stock usage permission events.
+   * Updates the case panel in real-time without requiring a manual refresh.
+   */
+  private handlePermissionNotification(notification: NotificationItem): void {
+    const relevantEvents = [
+      'STOCK_USAGE_PERMISSION_APPROVED',
+      'STOCK_USAGE_PERMISSION_REJECTED'
+    ];
+    if (!relevantEvents.includes(notification.eventType)) return;
+
+    const relatedCaseId = this.resolveNotificationCaseId(notification);
+    if (!relatedCaseId) return;
+
+    const selectedCaseId = this.normalizeCaseId(this.selectedCaseId);
+    if (!selectedCaseId || relatedCaseId !== selectedCaseId) {
+      this.pendingPermissionNotification = notification;
+      return;
+    }
+
+    this.pendingPermissionNotification = null;
+    this.applyPermissionNotification(notification);
+  }
+
+  private applyPermissionNotification(notification: NotificationItem): void {
+    if (this.selectedCaseId) {
+      this.loadCasePermissions();
+    }
+
+    if (notification.eventType === 'STOCK_USAGE_PERMISSION_APPROVED') {
+      const status = notification.data?.['permissionStatus'] as string | undefined;
+      const comment = notification.data?.['reviewComment'] as string | undefined;
+      const isPartial = status === 'PARTIALLY_APPROVED';
+      this.permissionNeeded = false;
+      this.banner = {
+        tone: isPartial ? 'info' : 'success',
+        text: isPartial
+          ? `STT partially approved your stock usage request.${comment ? ' Note: ' + comment : ''} Check the approved amounts and adjust if needed.`
+          : `STT approved your stock usage request. You can now submit your work.${comment ? ' Note: ' + comment : ''}`
+      };
+    } else {
+      const reason = notification.data?.['reviewComment'] as string | undefined;
+      this.permissionNeeded = true;
+      this.banner = {
+        tone: 'danger',
+        text: `STT rejected your stock usage request.${reason ? ' Reason: ' + reason : ''} Reduce your usage below the limit or submit a new permission request.`
+      };
+    }
+  }
+
+  private applyPendingPermissionNotification(caseId: string): void {
+    if (!this.pendingPermissionNotification) {
+      return;
+    }
+
+    const pendingCaseId = this.resolveNotificationCaseId(this.pendingPermissionNotification);
+    const normalizedCaseId = this.normalizeCaseId(caseId);
+    if (!pendingCaseId || !normalizedCaseId || pendingCaseId !== normalizedCaseId) {
+      return;
+    }
+
+    const notification = this.pendingPermissionNotification;
+    this.pendingPermissionNotification = null;
+    this.applyPermissionNotification(notification);
+  }
+
+  private resolveNotificationCaseId(notification: NotificationItem): string | null {
+    return this.normalizeCaseId(
+      notification.relatedCaseId
+        ?? (notification.data?.['caseId'] as string | undefined)
+    );
+  }
+
+  private normalizeCaseId(value: string | null | undefined): string | null {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  /**
+   * Resolves the per-case usage limit for a stock item.
+   * Uses ZM-configured caseLimits if available, falls back to hardcoded defaults.
+   * Returns null when the ZM explicitly disabled enforcement for this item.
+   */
+  private getItemLimit(item: TechStockItem): number | null {
+    const cfg = this.caseLimits.find(l => l.itemId === item.equipmentId);
+    if (cfg) {
+      return cfg.caseUsageLimitEnabled ? cfg.caseUsageLimit : null;
+    }
+    // Fallback constants — used when no ZM threshold is configured
+    return item.unit === 'METERS' ? 20 : 1;
   }
 }

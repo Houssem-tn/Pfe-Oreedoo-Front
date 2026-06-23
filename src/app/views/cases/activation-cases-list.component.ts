@@ -2,7 +2,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, firstValueFrom } from 'rxjs';
+import { Subject, Subscription, debounceTime, finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
 import { CaseDetailComponent } from '../../shared/modals/case-detail/case-detail.component';
@@ -13,7 +13,7 @@ import { SwalService } from '../../core/ui/swal.service';
 import { TechnicianListItem } from '../../core/stt/models/technician-list-item.model';
 import { SttTechnicianApiService } from '../../core/stt/stt-technician-api.service';
 import { UserService } from '../../core/users/user.service';
-import { CasesService } from '../../core/cases/cases.service';
+import { CasesService, CaseBoardQuery, CaseBoardSummaryResponse } from '../../core/cases/cases.service';
 import {
   CASE_STATUS_UI,
   CaseDiagnosis,
@@ -112,19 +112,43 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   pageSize = 10;
   readonly pageSizeOptions = [5, 10, 20];
 
+  // Server-driven pagination state.
+  totalElements = 0;
+  jumpPageValue: number | null = null;
+  summary: CaseBoardSummaryResponse | null = null;
+
+  // Caches so re-opening a detail or an assign modal is instant (no repeat network calls).
+  private readonly detailCache = new Map<string, CaseResponse>();
+  private cachedSttUsers: Array<{ id: string; fullName: string; email: string; coveredGovernorates?: string[] | null }> | null = null;
+  private cachedTechs: AssignableUser[] | null = null;
+
+  // Debounced filter pipeline (search typing + dropdown changes).
+  private readonly filterChange$ = new Subject<void>();
+  private filterSub?: Subscription;
+  private loadSeq = 0;
+
   private nowEpochMs = Date.now();
   private liveTickHandle: ReturnType<typeof setInterval> | null = null;
   private resyncHandle: ReturnType<typeof setInterval> | null = null;
   private readonly warningThresholdPercent = 50;
 
   ngOnInit(): void {
+    // Filter changes (search typing + dropdowns) are debounced, reset to page 1, and reload from the server.
+    this.filterSub = this.filterChange$.pipe(debounceTime(300)).subscribe(() => {
+      this.currentPage = 1;
+      this.loadCases();
+      this.loadSummary();
+    });
+
     this.loadCases();
+    this.loadSummary();
     this.loadPerformance();
     this.startLiveTicker();
     this.startBackendResync();
   }
 
   ngOnDestroy(): void {
+    this.filterSub?.unsubscribe();
     this.stopLiveTicker();
     this.stopBackendResync();
   }
@@ -141,11 +165,30 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return this.caseType === 'PLAINTE';
   }
 
+  /** PLT/RES discriminator for the field-import case boards (both persist as type=PLAINTE). */
+  get caseModule(): 'PLT' | 'RES' | null {
+    return this.resolveCaseModuleFromRoute();
+  }
+
+  get isResModule(): boolean {
+    return this.caseModule === 'RES';
+  }
+
+  /** Module filter for performance metrics so each board's stats are scoped to its own cases. */
+  get performanceModule(): 'PLT' | 'RES' | undefined {
+    if (this.caseType !== 'PLAINTE') {
+      return undefined;
+    }
+    return this.isResModule ? 'RES' : 'PLT';
+  }
+
   get caseBoardLabel(): string {
+    if (this.isResModule) return 'Resiliation';
     return this.isComplaintModule ? 'Complaint' : 'Activation';
   }
 
   get caseBoardLabelPlural(): string {
+    if (this.isResModule) return 'Resiliation cases';
     return this.isComplaintModule ? 'Complaints' : 'Activation cases';
   }
 
@@ -193,6 +236,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get workspaceTitle(): string {
+    if (this.isResModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'Ooredoo Resiliation Command Center';
+        case 'ROLE_ZM':
+          return 'Zone Resiliation Oversight';
+        case 'ROLE_STT':
+          return 'Resiliation Execution Control';
+        case 'ROLE_TECH':
+          return 'Field Resiliation Queue';
+        default:
+          return 'Resiliation Case Management';
+      }
+    }
+
     if (this.isComplaintModule) {
       switch (this.currentRole) {
         case 'ROLE_ADMIN':
@@ -223,6 +281,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get workspaceSubtitle(): string {
+    if (this.isResModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'Drive imported RES resiliation orders through the same assignment, execution, and validation discipline as complaints.';
+        case 'ROLE_ZM':
+          return 'Supervise resiliation ownership, STT execution, and final validation across your zone.';
+        case 'ROLE_STT':
+          return 'Manage resiliation technician decisions and resolution submission from one operational board.';
+        case 'ROLE_TECH':
+          return 'Review resiliation interventions, proof capture, and field execution progress in the same mobile workspace.';
+        default:
+          return 'Telecom resiliation workflow: assignment, execution, work, validation, and closure.';
+      }
+    }
+
     if (this.isComplaintModule) {
       switch (this.currentRole) {
         case 'ROLE_ADMIN':
@@ -252,78 +325,65 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     }
   }
 
+  // The server already scopes/filters/paginates, so these are simply the current page of items.
   get accessibleCases(): CaseResponse[] {
-    return this.cases.filter((item) => this.canAccessCase(item));
+    return this.cases;
   }
 
   get filteredCases(): CaseResponse[] {
-    const term = this.searchTerm.trim().toLowerCase();
-
-    return this.accessibleCases.filter((item) => {
-      const matchesSearch =
-        !term ||
-        item.crmCase.toLowerCase().includes(term) ||
-        item.clientName.toLowerCase().includes(term) ||
-        item.clientPhone.toLowerCase().includes(term) ||
-        (item.complaintDetail ?? '').toLowerCase().includes(term) ||
-        (item.complaintDescription ?? '').toLowerCase().includes(term) ||
-        this.ownerZmDisplayName(item).toLowerCase().includes(term) ||
-        (item.sttName ?? '').toLowerCase().includes(term) ||
-        (item.techName ?? '').toLowerCase().includes(term) ||
-        (item.offre ?? '').toLowerCase().includes(term) ||
-        item.localite.toLowerCase().includes(term) ||
-        item.delegation.toLowerCase().includes(term) ||
-        item.gouvernorat.toLowerCase().includes(term);
-
-      const matchesStatus = !this.selectedStatus || item.status === this.selectedStatus;
-      const matchesGouvernorat = !this.selectedGouvernorat || item.gouvernorat === this.selectedGouvernorat;
-      const matchesDelegation = !this.selectedDelegation || item.delegation === this.selectedDelegation;
-
-      return matchesSearch && matchesStatus && matchesGouvernorat && matchesDelegation;
-    });
+    return this.cases;
   }
 
   get paginatedCases(): CaseResponse[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.filteredCases.slice(start, start + this.pageSize);
+    return this.cases;
   }
 
   get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredCases.length / this.pageSize));
+    return Math.max(1, Math.ceil(this.totalElements / this.pageSize));
   }
 
-  get pages(): number[] {
-    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  /** Compact page list: 1 … (current±2) … last, with '...' markers for the gaps. */
+  get visiblePages(): Array<number | '...'> {
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    const delta = 2;
+    const left = Math.max(2, current - delta);
+    const right = Math.min(total - 1, current + delta);
+    const pages: Array<number | '...'> = [1];
+
+    if (left > 2) pages.push('...');
+    for (let i = left; i <= right; i++) pages.push(i);
+    if (right < total - 1) pages.push('...');
+    pages.push(total);
+
+    return pages;
   }
 
   get gouvernoratOptions(): string[] {
-    return [...new Set(this.accessibleCases.map((item) => item.gouvernorat).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b));
+    return this.summary?.governorates ?? [];
   }
 
   get delegationOptions(): string[] {
-    return [...new Set(this.accessibleCases.map((item) => item.delegation).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b));
+    return this.summary?.delegations ?? [];
   }
 
   get statsCards(): StatCard[] {
-    const source = this.accessibleCases;
-    const workDoneCount = source.filter((c) => this.isWorkCompletedStatus(c.status)).length;
-    const warningCount = source.filter((c) => this.getSlaStatus(c) === 'WARNING').length;
-    const breachCount = source.filter((c) => {
-      const status = this.getSlaStatus(c);
-      return status === 'BREACHED' || status === 'COMPLETED_LATE';
-    }).length;
+    const s = this.summary;
 
     return [
-      { label: this.isComplaintModule ? 'Total complaints' : 'Total Cases', value: source.length, icon: 'cilDescription', className: 'stat-neutral' },
-      { label: 'Owned by ZM', value: source.filter((c) => !!this.ownerZmId(c)).length, icon: 'cilUser', className: 'stat-primary' },
-      { label: 'Assigned to STT', value: source.filter((c) => !!c.sttId).length, icon: 'cilPeople', className: 'stat-info' },
-      { label: 'Assigned to TECH', value: source.filter((c) => !!c.techId).length, icon: 'cilUserFollow', className: 'stat-warning' },
-      { label: 'SLA Warning', value: warningCount, icon: 'cilWarning', className: 'stat-warning' },
-      { label: 'SLA Breached', value: breachCount, icon: 'cilBan', className: 'stat-danger' },
-      { label: this.isComplaintModule ? 'Resolution ready' : 'Work Done', value: workDoneCount, icon: 'cilTask', className: 'stat-success' },
-      { label: 'Closed', value: source.filter((c) => c.status === 'CLOSED').length, icon: 'cilLockLocked', className: 'stat-dark' }
+      { label: this.isResModule ? 'Total resiliations' : this.isComplaintModule ? 'Total complaints' : 'Total Cases', value: s?.totalCases ?? 0, icon: 'cilDescription', className: 'stat-neutral' },
+      { label: 'Owned by ZM', value: s?.ownedByZm ?? 0, icon: 'cilUser', className: 'stat-primary' },
+      { label: 'Assigned to STT', value: s?.assignedStt ?? 0, icon: 'cilPeople', className: 'stat-info' },
+      { label: 'Assigned to TECH', value: s?.assignedTech ?? 0, icon: 'cilUserFollow', className: 'stat-warning' },
+      { label: 'SLA Warning', value: s?.slaWarning ?? 0, icon: 'cilWarning', className: 'stat-warning' },
+      { label: 'SLA Breached', value: s?.slaBreached ?? 0, icon: 'cilBan', className: 'stat-danger' },
+      { label: this.isComplaintModule ? 'Resolution ready' : 'Work Done', value: s?.workDone ?? 0, icon: 'cilTask', className: 'stat-success' },
+      { label: 'Closed', value: s?.closed ?? 0, icon: 'cilLockLocked', className: 'stat-dark' }
     ];
   }
 
@@ -445,37 +505,68 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get sttMobileCases(): CaseResponse[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-
-    return [...this.filteredCases]
-      .sort((left, right) => this.mobileSttPriority(left) - this.mobileSttPriority(right))
-      .slice(start, start + this.pageSize);
+    // The current page is already paginated server-side — just prioritise it for the mobile view.
+    return [...this.cases].sort((left, right) => this.mobileSttPriority(left) - this.mobileSttPriority(right));
   }
 
   loadCases(): void {
-    if (this.loading) return;
-
     this.loading = true;
     this.error = null;
+    // Sequence guard: only the latest in-flight request applies its result (avoids dropped
+    // page clicks and out-of-order responses when interactions overlap).
+    const seq = ++this.loadSeq;
 
-    this.caseListRequest()
+    this.casesService.getCasesPage(this.boardQuery())
       .pipe(
         finalize(() => {
-          this.loading = false;
-          this.zone.run(() => this.cdr.detectChanges());
+          if (seq === this.loadSeq) {
+            this.loading = false;
+            this.zone.run(() => this.cdr.detectChanges());
+          }
         })
       )
       .subscribe({
-        next: (rows) => {
-          const previousPage = this.currentPage;
-          this.cases = rows ?? [];
-          this.currentPage = Math.min(Math.max(1, previousPage), this.totalPages);
+        next: (res) => {
+          if (seq !== this.loadSeq) return;
+          this.cases = res.items ?? [];
+          this.totalElements = res.totalElements ?? 0;
+          // Clamp if the active page fell out of range (e.g. filtering shrank the set).
+          if (this.currentPage > this.totalPages) {
+            this.currentPage = this.totalPages;
+          }
         },
         error: (err) => {
+          if (seq !== this.loadSeq) return;
           console.error(`Failed to load ${this.caseType.toLowerCase()} cases:`, err);
           this.error = err?.error?.message ?? `Failed to load ${this.caseBoardLabel.toLowerCase()} cases`;
         }
       });
+  }
+
+  loadSummary(): void {
+    this.casesService.getCasesSummary(this.boardQuery())
+      .subscribe({
+        next: (summary) => {
+          this.summary = summary;
+          this.zone.run(() => this.cdr.detectChanges());
+        },
+        error: (err) => {
+          console.error('Failed to load board summary:', err);
+        }
+      });
+  }
+
+  private boardQuery(): CaseBoardQuery {
+    return {
+      type: this.caseType,
+      caseModule: this.performanceModule,
+      page: this.currentPage - 1,
+      size: this.pageSize,
+      search: this.searchTerm,
+      status: this.selectedStatus || undefined,
+      gouvernorat: this.selectedGouvernorat || undefined,
+      delegation: this.selectedDelegation || undefined
+    };
   }
 
   loadPerformance(): void {
@@ -485,7 +576,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     this.performanceLoading = true;
 
-    this.casesService.getMyPerformance(this.caseType)
+    this.casesService.getMyPerformance(this.caseType, this.performanceModule)
       .pipe(finalize(() => {
         this.performanceLoading = false;
         this.zone.run(() => this.cdr.detectChanges());
@@ -501,7 +592,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       });
 
     if (this.isAdmin || this.isZm || this.isStt) {
-      this.casesService.getTechPerformance(this.caseType).subscribe({
+      this.casesService.getTechPerformance(this.caseType, this.performanceModule).subscribe({
         next: (rows) => {
           this.teamTechPerformance = rows ?? [];
         },
@@ -517,12 +608,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   onFiltersChange(): void {
-    this.currentPage = 1;
+    // Debounced → resets to page 1 and reloads the page + summary from the server.
+    this.filterChange$.next();
   }
 
   setPage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
+    const target = Math.min(Math.max(1, Math.trunc(page)), this.totalPages);
+    if (target === this.currentPage) return;
+    this.currentPage = target;
+    this.loadCases();
+  }
+
+  onJumpToPage(): void {
+    if (this.jumpPageValue == null || Number.isNaN(this.jumpPageValue)) return;
+    this.setPage(this.jumpPageValue);
+    this.jumpPageValue = null;
   }
 
   resetFilters(): void {
@@ -531,16 +631,18 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     this.selectedGouvernorat = '';
     this.selectedDelegation = '';
     this.currentPage = 1;
+    this.loadCases();
+    this.loadSummary();
   }
 
   rangeLabel(): string {
-    if (this.filteredCases.length === 0) {
+    if (this.totalElements === 0) {
       return '0 of 0';
     }
 
     const start = (this.currentPage - 1) * this.pageSize + 1;
-    const end = Math.min(this.currentPage * this.pageSize, this.filteredCases.length);
-    return `${start}-${end} of ${this.filteredCases.length}`;
+    const end = Math.min(this.currentPage * this.pageSize, this.totalElements);
+    return `${start}-${end} of ${this.totalElements}`;
   }
 
   statusBadgeClass(status: CaseStatus): string {
@@ -794,6 +896,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
 
     if (item.type === 'PLAINTE') {
+      if (this.isImportedFieldComplaint(item)) {
+        // PLT/RES imported complaints follow the ACT-like direct TECH assignment (no diagnosis required).
+        return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+      }
+      // Standard complaint: diagnosis with a field-work decision is required first.
       return this.hasComplaintFieldDecision(item)
         && ['DIAGNOSIS_STEP', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
     }
@@ -805,6 +912,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!this.isStt || !this.isCaseOwnedByStt(item)) return false;
 
     if (item.type === 'PLAINTE') {
+      if (this.isImportedFieldComplaint(item)) {
+        return ['ASSIGNED_TO_STT', 'ASSIGNED_TO_TECH', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
+      }
       return this.hasComplaintFieldDecision(item)
         && ['DIAGNOSIS_STEP', 'ASSIGNED_TO_STT', 'RETURNED_TO_STT', 'REOPENED'].includes(item.status);
     }
@@ -839,7 +949,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   canUpdateWork(item: CaseResponse): boolean {
     if (item.type === 'PLAINTE') {
-      if (!this.hasComplaintFieldDecision(item)) {
+      const isImported = this.isImportedFieldComplaint(item);
+      // Standard complaints require a field-work diagnosis decision; PLT/RES imports skip that gate.
+      if (!isImported && !this.hasComplaintFieldDecision(item)) {
         return false;
       }
 
@@ -1477,10 +1589,20 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   async openDetails(item: CaseResponse): Promise<void> {
+    // Serve from cache instantly; only hit the network the first time a case is expanded.
+    const cached = this.detailCache.get(item.id);
+    if (cached) {
+      this.caseDetailData = cached;
+      this.caseDetailVisible = true;
+      this.zone.run(() => this.cdr.detectChanges());
+      return;
+    }
+
     this.actionLoadingCaseId = item.id;
 
     try {
       const fullCase = await firstValueFrom(this.casesService.getCaseById(item.id));
+      this.detailCache.set(item.id, fullCase);
       this.caseDetailData = fullCase;
       this.caseDetailVisible = true;
     } catch (err: any) {
@@ -1566,7 +1688,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     try {
       await firstValueFrom(action());
       await this.swal.success(successTitle, 'Operation completed successfully.');
+      this.detailCache.delete(caseId);
       this.loadCases();
+      this.loadSummary();
       this.loadPerformance();
     } catch (err: any) {
       console.error('Case action failed:', err);
@@ -1709,19 +1833,25 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   private async loadAssignableStts(item: CaseResponse): Promise<AssignableUser[]> {
-    const users = await firstValueFrom(this.userService.getMySttsForZm());
-    return (users ?? [])
+    // Cache the raw STT roster (rarely changes within a session); filter per-case by governorate.
+    if (!this.cachedSttUsers) {
+      this.cachedSttUsers = (await firstValueFrom(this.userService.getMySttsForZm())) ?? [];
+    }
+    return this.cachedSttUsers
       .filter((u) => this.userCoversGovernorate(u.coveredGovernorates, item.gouvernorat))
       .map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
 
   private async loadAssignableTechs(): Promise<AssignableUser[]> {
-    const myTechs = await firstValueFrom(this.sttTechApi.getMyTechnicians());
-    return (myTechs ?? [])
-      .filter((u: TechnicianListItem) => u.status === 'APPROVED' && u.enabled)
-      .map((u: TechnicianListItem) => ({ id: u.id, fullName: u.fullName, email: u.email }))
-      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    if (!this.cachedTechs) {
+      const myTechs = await firstValueFrom(this.sttTechApi.getMyTechnicians());
+      this.cachedTechs = (myTechs ?? [])
+        .filter((u: TechnicianListItem) => u.status === 'APPROVED' && u.enabled)
+        .map((u: TechnicianListItem) => ({ id: u.id, fullName: u.fullName, email: u.email }))
+        .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    }
+    return this.cachedTechs;
   }
 
   private extractRdv(item: CaseResponse): CaseRdv {
@@ -1837,12 +1967,6 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     return caseType === this.caseType;
   }
 
-  private caseListRequest() {
-    return this.caseType === 'PLAINTE'
-      ? this.casesService.getComplaintCases()
-      : this.casesService.getActivationCases();
-  }
-
   private resolveCaseTypeFromRoute(): CaseType | null {
     const snapshots = [...this.route.snapshot.pathFromRoot].reverse();
     for (const snapshot of snapshots) {
@@ -1857,11 +1981,37 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       return 'PLAINTE';
     }
 
+    if (url.includes('/resiliation') || url.includes('/res-execution')) {
+      return 'PLAINTE';
+    }
+
     if (url.includes('/activation')) {
       return 'ACTIVATION';
     }
 
     return null;
+  }
+
+  private resolveCaseModuleFromRoute(): 'PLT' | 'RES' | null {
+    const snapshots = [...this.route.snapshot.pathFromRoot].reverse();
+    for (const snapshot of snapshots) {
+      const value = snapshot.data?.['caseModule'];
+      if (value === 'PLT' || value === 'RES') {
+        return value;
+      }
+    }
+
+    const url = this.router.url.toLowerCase();
+    if (url.includes('/resiliation') || url.includes('/res-execution')) {
+      return 'RES';
+    }
+
+    return null;
+  }
+
+  /** PLT and RES imported complaints share the ACT-like direct-TECH workflow (no diagnosis gate). */
+  private isImportedFieldComplaint(item: CaseResponse): boolean {
+    return item.source === 'PLT_TODO_IMPORT' || item.source === 'RES_TODO_IMPORT';
   }
 
   private extractProofs(item: CaseResponse): CaseProofFile[] {
@@ -2268,6 +2418,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
         this.zone.run(() => {
           this.loadCases();
+          this.loadSummary();
           this.loadPerformance();
         });
       }, ActivationCasesListComponent.BACKEND_RESYNC_MS);

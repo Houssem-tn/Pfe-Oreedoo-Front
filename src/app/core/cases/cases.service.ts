@@ -19,6 +19,38 @@ import {
   ValidateZmRequest
 } from './models/case.model';
 
+export interface CaseBoardQuery {
+  type: CaseType;
+  caseModule?: 'PLT' | 'RES';
+  page?: number;
+  size?: number;
+  search?: string;
+  status?: string;
+  gouvernorat?: string;
+  delegation?: string;
+}
+
+export interface CasePageResponse {
+  items: CaseResponse[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export interface CaseBoardSummaryResponse {
+  totalCases: number;
+  ownedByZm: number;
+  assignedStt: number;
+  assignedTech: number;
+  slaWarning: number;
+  slaBreached: number;
+  workDone: number;
+  closed: number;
+  governorates: string[];
+  delegations: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CasesService {
   private readonly http = inject(HttpClient);
@@ -26,16 +58,48 @@ export class CasesService {
   private readonly casesUrl = `${this.baseUrl}/api/v1/cases`;
   private readonly plaintesUrl = `${this.baseUrl}/api/v1/plaintes`;
 
-  getCasesByType(type: CaseType): Observable<CaseResponse[]> {
-    return this.http.get<CaseResponse[]>(`${this.casesUrl}?type=${type}`);
+  getCasesByType(type: CaseType, caseModule?: 'PLT' | 'RES'): Observable<CaseResponse[]> {
+    const url = caseModule
+      ? `${this.casesUrl}?type=${type}&caseModule=${caseModule}`
+      : `${this.casesUrl}?type=${type}`;
+    return this.http.get<CaseResponse[]>(url);
+  }
+
+  getCasesPage(params: CaseBoardQuery): Observable<CasePageResponse> {
+    return this.http.get<CasePageResponse>(`${this.casesUrl}/page${this.boardQuery(params, true)}`);
+  }
+
+  getCasesSummary(params: CaseBoardQuery): Observable<CaseBoardSummaryResponse> {
+    return this.http.get<CaseBoardSummaryResponse>(`${this.casesUrl}/summary${this.boardQuery(params, false)}`);
+  }
+
+  private boardQuery(params: CaseBoardQuery, withPaging: boolean): string {
+    const q = new URLSearchParams();
+    q.set('type', params.type);
+    if (params.caseModule) q.set('caseModule', params.caseModule);
+    if (withPaging) {
+      q.set('page', String(params.page ?? 0));
+      q.set('size', String(params.size ?? 10));
+    }
+    if (params.search?.trim()) q.set('search', params.search.trim());
+    if (params.status?.trim()) q.set('status', params.status.trim());
+    if (params.gouvernorat?.trim()) q.set('gouvernorat', params.gouvernorat.trim());
+    if (params.delegation?.trim()) q.set('delegation', params.delegation.trim());
+    return `?${q.toString()}`;
   }
 
   getActivationCases(): Observable<CaseResponse[]> {
     return this.getCasesByType('ACTIVATION');
   }
 
+  /** Complaint board: PLAINTE cases excluding the RES module (which has its own board). */
   getComplaintCases(): Observable<CaseResponse[]> {
-    return this.getCasesByType('PLAINTE');
+    return this.getCasesByType('PLAINTE', 'PLT');
+  }
+
+  /** Resiliation board: only RES-module PLAINTE cases. */
+  getResiliationCases(): Observable<CaseResponse[]> {
+    return this.getCasesByType('PLAINTE', 'RES');
   }
 
   importComplaintCsv(file: File): Observable<ComplaintImportResponse> {
@@ -155,13 +219,22 @@ export class CasesService {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/close`, {});
   }
 
-  getMyPerformance(type?: CaseType): Observable<PerformanceSummaryResponse> {
-    const suffix = type ? `?type=${type}` : '';
-    return this.http.get<PerformanceSummaryResponse>(`${this.casesUrl}/analytics/my-performance${suffix}`);
+  getMyPerformance(type?: CaseType, caseModule?: 'PLT' | 'RES'): Observable<PerformanceSummaryResponse> {
+    return this.http.get<PerformanceSummaryResponse>(
+      `${this.casesUrl}/analytics/my-performance${this.performanceQuery(type, caseModule)}`
+    );
   }
 
-  getTechPerformance(type?: CaseType): Observable<PerformanceSummaryResponse[]> {
-    const suffix = type ? `?type=${type}` : '';
-    return this.http.get<PerformanceSummaryResponse[]>(`${this.casesUrl}/analytics/tech-performance${suffix}`);
+  getTechPerformance(type?: CaseType, caseModule?: 'PLT' | 'RES'): Observable<PerformanceSummaryResponse[]> {
+    return this.http.get<PerformanceSummaryResponse[]>(
+      `${this.casesUrl}/analytics/tech-performance${this.performanceQuery(type, caseModule)}`
+    );
+  }
+
+  private performanceQuery(type?: CaseType, caseModule?: 'PLT' | 'RES'): string {
+    const params: string[] = [];
+    if (type) params.push(`type=${type}`);
+    if (caseModule) params.push(`caseModule=${caseModule}`);
+    return params.length ? `?${params.join('&')}` : '';
   }
 }

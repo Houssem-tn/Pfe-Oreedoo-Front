@@ -8,7 +8,7 @@ import { SpinnerComponent } from '@coreui/angular';
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
 import {
-  DpmRequest, DpmStatus, SttDistribution, SttStock, TechStock, TechStockUsage
+  DpmAllocation, DpmRequest, DpmStatus, DpmTechRollup, SttDistribution, SttStock, TechStock, TechStockUsage
 } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
@@ -40,6 +40,8 @@ export class AdminStockTrackingComponent implements OnInit {
 
   detailDpm: DpmRequest | null = null;
   detailTechDistributions: SttDistribution[] = [];
+  detailTechRollups: DpmTechRollup[] = [];
+  detailAllocations: DpmAllocation[] = [];
   detailVisible = false;
   loadingDetail = false;
 
@@ -76,15 +78,31 @@ export class AdminStockTrackingComponent implements OnInit {
   openDetail(d: DpmRequest): void {
     this.detailDpm = d;
     this.detailTechDistributions = [];
+    this.detailTechRollups = [];
+    this.detailAllocations = [];
     this.loadingDetail = true;
     this.detailVisible = true;
     this.cdr.detectChanges();
     this.stockSvc.adminGetDpmTracking(d.id)
       .pipe(finalize(() => { this.loadingDetail = false; this.cdr.detectChanges(); }))
       .subscribe({
-        next: t => { this.detailTechDistributions = t.techDistributions; this.cdr.detectChanges(); },
+        next: t => {
+          this.detailTechDistributions = t.techDistributions ?? [];
+          this.detailTechRollups = t.techRollups ?? [];
+          this.detailAllocations = t.allocations ?? [];
+          this.cdr.detectChanges();
+        },
         error: e => { this.error = e.message; }
       });
+  }
+
+  /** Distributions surfaced through automatic allocations or the legacy direct link. */
+  get hasAnyTechDistribution(): boolean {
+    return this.detailTechRollups.length > 0 || this.detailTechDistributions.length > 0;
+  }
+
+  unitShort(unit?: string): string {
+    return unit === 'METERS' ? 'm' : 'pcs';
   }
 
   nameInitials(name?: string): string {
@@ -174,7 +192,10 @@ export class AdminStockTrackingComponent implements OnInit {
   techUsagesFor(techId: string): TechStockUsage[] { return this.techUsageMap.get(techId) ?? []; }
 
   statusLabel(status: DpmStatus): string {
-    const m: Record<DpmStatus, string> = {
+    const m: Partial<Record<DpmStatus, string>> = {
+      WAITING_TEAM_STOCK_APPROVAL: 'Waiting Approval', TEAM_STOCK_REJECTED: 'Ext. Rejected',
+      RDV_SCHEDULED: 'RDV Scheduled', RDV_CONFIRMED_BY_STT: 'RDV Confirmed',
+      MATERIAL_RECEIVED: 'Material Received', COMPLETED: 'Completed',
       PENDING_STT_CONFIRMATION: 'Pending', PARTIALLY_CONFIRMED: 'Partial',
       FULLY_CONFIRMED: 'Confirmed', REJECTED: 'Rejected', CANCELLED: 'Cancelled'
     };
