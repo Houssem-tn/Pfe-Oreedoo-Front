@@ -167,13 +167,14 @@ export interface ZmFieldWorkImportResponse {
   sourceFileName: string;
   uploadedAt: string;
   businessType: string;
-  /** "COMPLAINT_CASES" for PLT, "FIELD_TODOS" for RES and future types */
+  /** "COMPLAINT_CASES", "ACTIVATION_CASES", or "FIELD_TODOS" */
   target?: string | null;
   totalRows: number;
   matchedConnectedZmRows: number;
   enCoursRows: number;
   createdWorkTodoCount: number;
   createdComplaintCasesCount?: number;
+  createdActivationCasesCount?: number;
   duplicateCount: number;
   ignoredOtherZmCount: number;
   ignoredStatusCount: number;

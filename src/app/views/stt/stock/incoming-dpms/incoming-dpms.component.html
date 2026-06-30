@@ -262,7 +262,7 @@
                     <button cButton color="secondary" size="sm" variant="outline"
                             (click)="decrement(line)" [disabled]="line.confirmedQty <= 0 || isRejecting">−</button>
                     <input cFormControl type="number" min="0" [max]="line.requestedQuantity"
-                           [(ngModel)]="line.confirmedQty" [disabled]="isRejecting"
+                           [(ngModel)]="line.confirmedQty" (ngModelChange)="onQtyChange(line)" [disabled]="isRejecting"
                            style="width:72px;text-align:center" />
                     <button cButton color="secondary" size="sm" variant="outline"
                             (click)="increment(line)"
@@ -279,6 +279,36 @@
                          placeholder="e.g. damaged" [disabled]="isRejecting" />
                 </td>
               </tr>
+
+              <!-- ── Per-unit IMEI / Serial rows for tracked equipment ──────── -->
+              @if (!isRejecting && isTracked(line.trackingMode) && line.confirmedQty > 0) {
+                <tr class="idpm-units-row">
+                  <td colspan="4">
+                    <div class="idpm-units-head">
+                      Unit tracking — enter {{ line.confirmedQty }} unit(s)
+                      <span class="idpm-units-mode">{{ line.trackingMode }}</span>
+                    </div>
+                    @for (u of line.units; track ui; let ui = $index) {
+                      <div class="idpm-unit-line">
+                        <span class="idpm-unit-idx">#{{ ui + 1 }}</span>
+                        @if (requiresImei(line.trackingMode) || requiresAtLeastOne(line.trackingMode)) {
+                          <input cFormControl class="idpm-unit-input" type="text" [(ngModel)]="u.imei"
+                                 [placeholder]="requiresImei(line.trackingMode) ? 'IMEI *' : 'IMEI'"
+                                 autocomplete="off" />
+                        }
+                        @if (requiresSerial(line.trackingMode) || requiresAtLeastOne(line.trackingMode)) {
+                          <input cFormControl class="idpm-unit-input" type="text" [(ngModel)]="u.serialNumber"
+                                 [placeholder]="requiresSerial(line.trackingMode) ? 'Serial Number *' : 'Serial Number'"
+                                 autocomplete="off" />
+                        }
+                      </div>
+                    }
+                    @if (unitError(line)) {
+                      <div class="idpm-unit-error">{{ unitError(line) }}</div>
+                    }
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>
@@ -294,7 +324,7 @@
         <button cButton color="secondary" variant="outline"
                 (click)="confirmModalVisible = false">Cancel</button>
         <button cButton [color]="isRejecting ? 'danger' : 'success'"
-                [disabled]="confirming || (isRejecting && !rejectReason.trim())"
+                [disabled]="confirming || (isRejecting && !rejectReason.trim()) || (!isRejecting && !trackingValid)"
                 (click)="submitConfirmation()">
           @if (confirming) { <c-spinner size="sm" class="me-1"></c-spinner> }
           {{ isRejecting ? 'Reject DPM' : 'Submit Reception' }}

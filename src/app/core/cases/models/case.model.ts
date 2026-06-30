@@ -193,6 +193,10 @@ export interface CaseWork {
   locationAccuracyMeters?: number | null;
   usedEquipment?: CaseUsedEquipmentItem[] | null;
   stockAppliedTechId?: string | null;
+  /** RES only: material retrieved from the client (recovered, not consumed from stock). */
+  recoveredEquipment?: CaseRecoveredEquipmentItem[] | null;
+  recoveredAt?: string | null;
+  recoveredBy?: string | null;
 }
 
 export interface CaseUsedEquipmentItem {
@@ -200,6 +204,36 @@ export interface CaseUsedEquipmentItem {
   equipmentName?: string | null;
   unit?: string | null;
   quantity: number;
+  /** Exact tracked-unit ids consumed (tracked equipment only; size === quantity). */
+  instanceIds?: string[];
+}
+
+export interface CaseRecoveredEquipmentItem {
+  equipmentId: string;
+  equipmentName?: string | null;
+  articleCode?: string | null;
+  unit?: string | null;
+  quantity: number;
+  serialNumber?: string | null;
+  macAddress?: string | null;
+  condition?: string | null;
+  returnCode?: string | null;
+}
+
+export interface RecoveredEquipmentRequestItem {
+  equipmentId: string;
+  equipmentName?: string;
+  unit?: string;
+  quantity: number;
+  serialNumber?: string;
+  macAddress?: string;
+  imei?: string;
+  condition?: string;
+}
+
+export interface DeclareClientRecoveryRequest {
+  items: RecoveredEquipmentRequestItem[];
+  comment?: string;
 }
 
 export interface CaseDiagnosis {

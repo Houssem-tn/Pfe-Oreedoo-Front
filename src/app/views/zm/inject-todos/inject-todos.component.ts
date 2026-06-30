@@ -30,7 +30,7 @@ export class InjectTodosComponent implements OnInit {
   private readonly zone = inject(NgZone);
 
   selectedFile: File | null = null;
-  selectedBusinessType: 'PLT' | 'RES' | '' = '';
+  selectedBusinessType: 'ACT' | 'PLT' | 'RES' | '' = '';
   selectedDispatchMode: 'BY_ONLINE_USER' | 'BY_GOVERNORATE' = 'BY_GOVERNORATE';
   profile: AppUser | null = null;
   profileLoading = false;
@@ -73,26 +73,47 @@ export class InjectTodosComponent implements OnInit {
     return this.result?.target === 'COMPLAINT_CASES';
   }
 
+  get isActivationCasesTarget(): boolean {
+    return this.result?.target === 'ACTIVATION_CASES';
+  }
+
   /** RES imports also create cases (COMPLAINT_CASES target) but live on the dedicated resiliation board. */
   get isResTarget(): boolean {
     return this.isComplaintCasesTarget && this.result?.businessType === 'RES';
   }
 
   get primaryResultLabel(): string {
+    if (this.isActivationCasesTarget) return 'Activation cases created';
     if (this.isResTarget) return 'Resiliation cases created';
     return this.isComplaintCasesTarget ? 'Complaint cases created' : 'Field todos created';
   }
 
   get primaryResultValue(): number {
     if (!this.result) return 0;
+    if (this.isActivationCasesTarget) {
+      return this.result.createdActivationCasesCount ?? 0;
+    }
     return this.isComplaintCasesTarget
       ? (this.result.createdComplaintCasesCount ?? 0)
       : (this.result.createdWorkTodoCount ?? 0);
   }
 
   get primaryResultRoute(): string {
+    if (this.isActivationCasesTarget) return '/zm/cases/activation';
     if (this.isResTarget) return '/zm/cases/resiliation';
     return this.isComplaintCasesTarget ? '/zm/cases/complaint' : '/zm/imported-todos';
+  }
+
+  get workspaceShortcutLabel(): string {
+    if (this.selectedBusinessType === 'ACT') return 'Open Activation Cases';
+    if (this.selectedBusinessType === 'RES') return 'Open Resiliation Cases';
+    return 'Open Complaint Cases';
+  }
+
+  get workspaceShortcutRoute(): string {
+    if (this.selectedBusinessType === 'ACT') return '/zm/cases/activation';
+    if (this.selectedBusinessType === 'RES') return '/zm/cases/resiliation';
+    return '/zm/cases/complaint';
   }
 
   get importSummaryCards(): ImportSummaryCard[] {
@@ -140,7 +161,7 @@ export class InjectTodosComponent implements OnInit {
     ];
   }
 
-  selectBusinessType(type: 'PLT' | 'RES'): void {
+  selectBusinessType(type: 'ACT' | 'PLT' | 'RES'): void {
     this.selectedBusinessType = type;
     this.detectViewChanges();
   }
@@ -161,7 +182,7 @@ export class InjectTodosComponent implements OnInit {
 
   processUpload(): void {
     if (!this.selectedBusinessType) {
-      this.errorMessage = 'Select the file type (PLT or RES) before starting the import.';
+      this.errorMessage = 'Select the file type (ACT, PLT, or RES) before starting the import.';
       this.detectViewChanges();
       return;
     }
@@ -191,25 +212,38 @@ export class InjectTodosComponent implements OnInit {
         next: async (response) => {
           this.result = response;
 
+          const isActivation = response.target === 'ACTIVATION_CASES';
           const isComplaints = response.target === 'COMPLAINT_CASES';
-          const createdCount = isComplaints
+          const createdCount = isActivation
+            ? (response.createdActivationCasesCount ?? 0)
+            : isComplaints
             ? (response.createdComplaintCasesCount ?? 0)
             : (response.createdWorkTodoCount ?? 0);
 
           if (createdCount === 0) {
-            this.infoMessage = isComplaints
+            this.infoMessage = isActivation
+              ? 'No new activation cases were created. Verify that the file contains rows assigned to you with STATUT = En cours.'
+              : isComplaints
               ? 'No new complaint cases were created. Verify that the file contains rows assigned to you with STATUT = En cours.'
               : 'No new field work todos were created. Verify the file type and that the file contains rows assigned to you with STATUT = En cours.';
           } else if (response.invalidRowsCount > 0) {
-            this.infoMessage = isComplaints
+            this.infoMessage = isActivation
+              ? `${response.invalidRowsCount} row(s) had missing ACT business fields (for example CASE_CRM or FX_GOUVERNORAT) and could not become activation cases.`
+              : isComplaints
               ? `${response.invalidRowsCount} row(s) had missing fields (e.g. CRM_CASE) and could not become complaint cases.`
               : `${response.invalidRowsCount} saved todo(s) have validation issues. They are accessible in Field Todos.`;
           }
 
           this.detectViewChanges();
 
-          const successTitle = isComplaints ? 'PLT import completed' : 'Import completed';
-          const baseMsg = isComplaints
+          const successTitle = isActivation
+            ? 'ACT import completed'
+            : isComplaints
+              ? 'PLT/RES import completed'
+              : 'Import completed';
+          const baseMsg = isActivation
+            ? `${createdCount} activation case(s) created in your ZM workspace. ${response.message}`
+            : isComplaints
             ? `${createdCount} complaint case(s) created in your ZM workspace. ${response.message}`
             : `${createdCount} field work todo(s) created. ${response.message}`;
 

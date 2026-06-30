@@ -11,15 +11,23 @@ import {
   BadgeComponent
 } from '@coreui/angular';
 
+import { forkJoin } from 'rxjs';
 import { StockService } from '../../../../core/stock/stock.service';
 import {
   ConfirmDpmRequest, DpmItem, DpmItemConfirmation,
-  DpmRequest, DpmStatus
+  DpmRequest, DpmStatus, Equipment, TrackingMode, UnitTrackingInput
 } from '../../../../core/stock/stock.model';
+
+interface ConfirmUnit {
+  imei: string;
+  serialNumber: string;
+}
 
 interface ConfirmLine extends DpmItem {
   confirmedQty: number;
   note: string;
+  trackingMode: TrackingMode;
+  units: ConfirmUnit[];
 }
 
 @Component({
@@ -44,6 +52,9 @@ export class IncomingDpmsComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
+  /** equipmentId → trackingMode, for deciding which reception lines need IMEI/Serial rows. */
+  private trackingByEquipment = new Map<string, TrackingMode>();
+
   // ── Material reception modal (RDV_CONFIRMED_BY_STT or legacy PENDING) ──────
   confirmModalVisible = false;
   confirmingDpm: DpmRequest | null = null;
@@ -60,10 +71,18 @@ export class IncomingDpmsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.stockSvc.getIncomingDpms()
+    forkJoin({
+      dpms: this.stockSvc.getIncomingDpms(),
+      equipment: this.stockSvc.getEquipment()
+    })
       .pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: d => this.dpms = d,
+        next: ({ dpms, equipment }) => {
+          this.dpms = dpms;
+          this.trackingByEquipment = new Map(
+            equipment.map((e: Equipment) => [e.id, e.trackingMode ?? 'NONE'])
+          );
+        },
         error: e => this.error = e.message
       });
   }
@@ -133,33 +152,97 @@ export class IncomingDpmsComponent implements OnInit {
 
   openConfirm(dpm: DpmRequest): void {
     this.confirmingDpm = dpm;
-    this.confirmLines = dpm.items.map(item => ({
-      ...item,
-      confirmedQty: item.requestedQuantity,
-      note: ''
-    }));
+    this.confirmLines = dpm.items.map(item => {
+      const trackingMode = this.trackingByEquipment.get(item.equipmentId) ?? 'NONE';
+      const line: ConfirmLine = {
+        ...item,
+        confirmedQty: item.requestedQuantity,
+        note: '',
+        trackingMode,
+        units: []
+      };
+      this.syncUnits(line);
+      return line;
+    });
     this.rejectReason = '';
     this.isRejecting = false;
     this.confirmModalVisible = true;
   }
 
-  increment(line: ConfirmLine): void { line.confirmedQty++; }
-  decrement(line: ConfirmLine): void { if (line.confirmedQty > 0) line.confirmedQty--; }
+  increment(line: ConfirmLine): void { line.confirmedQty++; this.syncUnits(line); }
+  decrement(line: ConfirmLine): void { if (line.confirmedQty > 0) { line.confirmedQty--; this.syncUnits(line); } }
+
+  /** Keep a tracked line's IMEI/Serial rows in sync with the confirmed quantity. */
+  onQtyChange(line: ConfirmLine): void {
+    if (!Number.isFinite(line.confirmedQty) || line.confirmedQty < 0) line.confirmedQty = 0;
+    this.syncUnits(line);
+  }
+
+  private syncUnits(line: ConfirmLine): void {
+    if (!this.isTracked(line.trackingMode)) { line.units = []; return; }
+    const target = Math.max(0, line.confirmedQty);
+    while (line.units.length < target) line.units.push({ imei: '', serialNumber: '' });
+    if (line.units.length > target) line.units.length = target;
+  }
 
   toggleReject(): void {
     this.isRejecting = !this.isRejecting;
-    if (this.isRejecting) this.confirmLines.forEach(l => l.confirmedQty = 0);
-    else this.confirmLines.forEach((l, i) => l.confirmedQty = this.confirmingDpm!.items[i].requestedQuantity);
+    if (this.isRejecting) {
+      this.confirmLines.forEach(l => { l.confirmedQty = 0; this.syncUnits(l); });
+    } else {
+      this.confirmLines.forEach((l, i) => { l.confirmedQty = this.confirmingDpm!.items[i].requestedQuantity; this.syncUnits(l); });
+    }
+  }
+
+  // ── Tracking helpers ───────────────────────────────────────────────────────
+
+  isTracked(mode?: TrackingMode): boolean { return !!mode && mode !== 'NONE'; }
+  requiresImei(mode?: TrackingMode): boolean { return mode === 'IMEI_ONLY' || mode === 'SERIAL_AND_IMEI'; }
+  requiresSerial(mode?: TrackingMode): boolean { return mode === 'SERIAL_ONLY' || mode === 'SERIAL_AND_IMEI'; }
+  requiresAtLeastOne(mode?: TrackingMode): boolean { return mode === 'SERIAL_OR_IMEI'; }
+
+  /** Per-line validation error message for tracked items, or null when valid. */
+  unitError(line: ConfirmLine): string | null {
+    if (this.isRejecting || !this.isTracked(line.trackingMode) || line.confirmedQty <= 0) return null;
+    if (line.units.length !== line.confirmedQty) return `Enter details for all ${line.confirmedQty} unit(s).`;
+    const seenImei = new Set<string>();
+    const seenSerial = new Set<string>();
+    for (let i = 0; i < line.units.length; i++) {
+      const imei = (line.units[i].imei ?? '').trim().toUpperCase();
+      const serial = (line.units[i].serialNumber ?? '').trim().toUpperCase();
+      if (this.requiresImei(line.trackingMode) && !imei) return `Unit #${i + 1}: IMEI is required.`;
+      if (this.requiresSerial(line.trackingMode) && !serial) return `Unit #${i + 1}: Serial Number is required.`;
+      if (this.requiresAtLeastOne(line.trackingMode) && !imei && !serial) return `Unit #${i + 1}: enter an IMEI or a Serial Number.`;
+      if (imei) { if (seenImei.has(imei)) return `IMEI "${line.units[i].imei}" is repeated.`; seenImei.add(imei); }
+      if (serial) { if (seenSerial.has(serial)) return `Serial "${line.units[i].serialNumber}" is repeated.`; seenSerial.add(serial); }
+    }
+    return null;
+  }
+
+  get trackingValid(): boolean {
+    if (this.isRejecting) return true;
+    return this.confirmLines.every(l => this.unitError(l) === null);
   }
 
   submitConfirmation(): void {
     if (!this.confirmingDpm) return;
+    if (!this.trackingValid) {
+      this.error = 'Please complete the required IMEI / Serial details for tracked items.';
+      return;
+    }
     this.confirming = true;
+    this.error = null;
     const payload: ConfirmDpmRequest = {
       items: this.confirmLines.map<DpmItemConfirmation>(l => ({
         equipmentId: l.equipmentId,
         confirmedQuantity: l.confirmedQty,
-        confirmationNote: l.note.trim() || undefined
+        confirmationNote: l.note.trim() || undefined,
+        units: (!this.isRejecting && this.isTracked(l.trackingMode) && l.confirmedQty > 0)
+          ? l.units.map<UnitTrackingInput>(u => ({
+              imei: u.imei.trim() || undefined,
+              serialNumber: u.serialNumber.trim() || undefined
+            }))
+          : undefined
       })),
       rejectReason: this.isRejecting ? this.rejectReason.trim() : undefined
     };

@@ -39,6 +39,7 @@
               <th>Article code</th>
               <th>Description / Spécification</th>
               <th>Unit</th>
+              <th>Usage</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -74,6 +75,15 @@
                 </td>
                 <td>{{ unitLabel(eq.unit) }}</td>
                 <td>
+                  <div class="equip-usage-cell">
+                    @for (badge of usageBadges(eq); track badge.label) {
+                      <span class="equip-usage-badge" [class]="badge.cls">{{ badge.label }}</span>
+                    } @empty {
+                      <span class="equip-muted">—</span>
+                    }
+                  </div>
+                </td>
+                <td>
                   <span class="equip-status-badge"
                         [class.equip-status-badge--active]="eq.active"
                         [class.equip-status-badge--inactive]="!eq.active">
@@ -101,7 +111,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="equip-table-empty">No equipment found.</td>
+                <td colspan="8" class="equip-table-empty">No equipment found.</td>
               </tr>
             }
           </tbody>
@@ -199,6 +209,72 @@
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </div>
+        </div>
+
+        <!-- Business usage classification -->
+        <div class="eq-field">
+          <label class="eq-label">Business usage</label>
+          <div class="eq-usage-hint">Controls which field workflow may consume or recover this item.</div>
+          <div class="eq-checks">
+            <label class="eq-check">
+              <input type="checkbox" [(ngModel)]="form.packItem" (ngModelChange)="onPackItemChange()" />
+              <span class="eq-check__box"></span>
+              <span class="eq-check__text">
+                <strong>Pack item</strong>
+                <small>Boutique pack (e.g. ODU P90, IDU). Blocked from ACT consumption.</small>
+              </span>
+            </label>
+
+            <label class="eq-check" [class.eq-check--disabled]="form.packItem">
+              <input type="checkbox" [(ngModel)]="form.usableInAct" [disabled]="!!form.packItem" />
+              <span class="eq-check__box"></span>
+              <span class="eq-check__text">
+                <strong>Usable in ACT</strong>
+                <small>Consumed during activation (cable, connecteur, fixation).</small>
+              </span>
+            </label>
+
+            <label class="eq-check">
+              <input type="checkbox" [(ngModel)]="form.usableInPlt" />
+              <span class="eq-check__box"></span>
+              <span class="eq-check__text">
+                <strong>Usable in PLT</strong>
+                <small>Used / swapped during a complaint (ODU, IDU, modem).</small>
+              </span>
+            </label>
+
+            <label class="eq-check">
+              <input type="checkbox" [(ngModel)]="form.recoverableFromClient" />
+              <span class="eq-check__box"></span>
+              <span class="eq-check__text">
+                <strong>Recoverable from client</strong>
+                <small>Can be retrieved from the client during a résiliation (RES).</small>
+              </span>
+            </label>
+          </div>
+          @if (form.packItem) {
+            <div class="eq-usage-note">Pack items are automatically excluded from ACT consumption.</div>
+          }
+        </div>
+
+        <!-- Unit tracking (IMEI / Serial) -->
+        <div class="eq-field">
+          <label class="eq-label">Unit tracking</label>
+          <div class="eq-usage-hint">
+            Track high-value devices (ODU, IDU, modem) individually by IMEI and/or Serial Number across
+            their lifecycle. Simple items stay quantity-based.
+          </div>
+          <div class="eq-select-wrap">
+            <select class="eq-select" [(ngModel)]="form.trackingMode">
+              @for (opt of trackingModeOptions; track opt.value) {
+                <option [ngValue]="opt.value">{{ opt.label }}</option>
+              }
+            </select>
+            <svg class="eq-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="eq-usage-note">{{ trackingHint(form.trackingMode) }}</div>
         </div>
 
         <!-- Image upload -->

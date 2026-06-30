@@ -18,6 +18,7 @@ import {
   DpmRequest,
   DpmTracking,
   Equipment,
+  EquipmentInstance,
   ExternalRejectionRequest,
   PendingDistribution,
   RecordExternalApprovalRequest,
@@ -35,6 +36,7 @@ import {
   TeamDistributionFilters,
   TechStock,
   TechStockUsage,
+  UnitTrackingFilters,
   ZmStockAudit
 } from './stock.model';
 
@@ -154,6 +156,13 @@ export class StockService {
     return this.http.get<DistributableDpm[]>(`${this.url}/stt/distributable-dpms`);
   }
 
+  /** Tracked units currently in my STT stock (optionally for one equipment), for the distribution picker. */
+  getMySttInstances(equipmentId?: string): Observable<EquipmentInstance[]> {
+    const params: Record<string, string> = {};
+    if (equipmentId) params['equipmentId'] = equipmentId;
+    return this.http.get<EquipmentInstance[]>(`${this.url}/stt/my-instances`, { params });
+  }
+
   // ── TECH scoped ───────────────────────────────────────────────────────────
 
   getMyTechStock(): Observable<TechStock> {
@@ -162,6 +171,13 @@ export class StockService {
 
   declareMyTechUsage(payload: DeclareTechUsageRequest): Observable<DeclareTechUsageResponse> {
     return this.http.post<DeclareTechUsageResponse>(`${this.url}/tech/usage`, payload);
+  }
+
+  /** Tracked units currently in my TECH stock (optionally for one equipment), for the usage picker. */
+  getMyTechInstances(equipmentId?: string): Observable<EquipmentInstance[]> {
+    const params: Record<string, string> = {};
+    if (equipmentId) params['equipmentId'] = equipmentId;
+    return this.http.get<EquipmentInstance[]>(`${this.url}/tech/my-instances`, { params });
   }
 
   getMyPendingConfirmations(): Observable<PendingDistribution[]> {
@@ -212,6 +228,42 @@ export class StockService {
 
   adminGetZmStockAudit(zmId: string): Observable<ZmStockAudit> {
     return this.http.get<ZmStockAudit>(`${this.url}/admin/audit/zm/${zmId}`);
+  }
+
+  // ── Per-unit tracking (IMEI / Serial) audit ─────────────────────────────────
+
+  adminGetUnitTracking(filters: UnitTrackingFilters = {}): Observable<EquipmentInstance[]> {
+    return this.http.get<EquipmentInstance[]>(`${this.url}/admin/unit-tracking`, {
+      params: this.unitTrackingParams(filters)
+    });
+  }
+
+  adminGetUnitTrackingDetail(id: string): Observable<EquipmentInstance> {
+    return this.http.get<EquipmentInstance>(`${this.url}/admin/unit-tracking/${id}`);
+  }
+
+  zmGetUnitTracking(filters: UnitTrackingFilters = {}): Observable<EquipmentInstance[]> {
+    return this.http.get<EquipmentInstance[]>(`${this.url}/zm/unit-tracking`, {
+      params: this.unitTrackingParams(filters)
+    });
+  }
+
+  zmGetUnitTrackingDetail(id: string): Observable<EquipmentInstance> {
+    return this.http.get<EquipmentInstance>(`${this.url}/zm/unit-tracking/${id}`);
+  }
+
+  private unitTrackingParams(filters: UnitTrackingFilters): Record<string, string> {
+    const params: Record<string, string> = {};
+    if (filters.equipmentId) params['equipmentId'] = filters.equipmentId;
+    if (filters.imei)        params['imei']        = filters.imei;
+    if (filters.serial)      params['serial']      = filters.serial;
+    if (filters.ownerType)   params['ownerType']   = filters.ownerType;
+    if (filters.ownerId)     params['ownerId']     = filters.ownerId;
+    if (filters.status)      params['status']      = filters.status;
+    if (filters.caseId)      params['caseId']      = filters.caseId;
+    if (filters.dpmId)       params['dpmId']       = filters.dpmId;
+    if (filters.q)           params['q']           = filters.q;
+    return params;
   }
 
   // ── Team Distribution Tracking (DPM-source-independent) ────────────────────

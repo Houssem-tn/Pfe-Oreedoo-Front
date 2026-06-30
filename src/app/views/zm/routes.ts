@@ -97,6 +97,12 @@ export const routes: Routes = [
     data: { title: 'Team Distributions' }
   },
   {
+    path: 'stock/unit-tracking',
+    loadComponent: () =>
+      import('../shared/unit-tracking/unit-tracking.component').then(m => m.UnitTrackingComponent),
+    data: { title: 'Unit Tracking' }
+  },
+  {
     path: 'stock/thresholds',
     canActivate: [canCreateDpmGuard],
     loadComponent: () =>

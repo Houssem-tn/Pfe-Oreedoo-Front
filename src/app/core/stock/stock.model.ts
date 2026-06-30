@@ -38,6 +38,14 @@ export type DistributionStatus =
 
 export type EquipmentCategory = 'CABLE' | 'BOX' | 'ROUTER' | 'ONT' | 'OTHER';
 
+/** Per-unit tracking configuration for an equipment. NONE = quantity-based (legacy). */
+export type TrackingMode =
+  | 'NONE'
+  | 'SERIAL_ONLY'
+  | 'IMEI_ONLY'
+  | 'SERIAL_AND_IMEI'
+  | 'SERIAL_OR_IMEI';
+
 export interface Equipment {
   id: string;
   name: string;
@@ -48,6 +56,17 @@ export interface Equipment {
   imageFileId?: string;
   imageUrl?: string;
   active: boolean;
+  // ── Business usage classification ──────────────────────────────────────────
+  /** Boutique pack item (e.g. ODU P90, IDU) — blocked from ACT consumption. */
+  packItem?: boolean;
+  /** Consumable during an ACT activation (cable, connector, fixation). */
+  usableInAct?: boolean;
+  /** Consumable/swappable during a PLT complaint (ODU, IDU, modem). */
+  usableInPlt?: boolean;
+  /** Recoverable from the client during a RES résiliation. */
+  recoverableFromClient?: boolean;
+  /** Per-unit IMEI/Serial tracking mode (default NONE). */
+  trackingMode?: TrackingMode;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -162,11 +181,22 @@ export interface TechStockUsage {
   notes?: string;
 }
 
+/** Denormalised IMEI/Serial of a tracked unit moved with a distribution / usage line. */
+export interface TrackedUnitRef {
+  instanceId: string;
+  imei?: string;
+  serialNumber?: string;
+}
+
 export interface DistributionItem {
   equipmentId: string;
   equipmentName: string;
   unit?: string;
   quantity: number;
+  /** Tracked-unit ids moved with this line (tracked items only). */
+  instanceIds?: string[];
+  /** Denormalised IMEI/Serial of the moved units. */
+  trackedUnits?: TrackedUnitRef[];
 }
 
 export interface SttDistribution {
@@ -388,6 +418,8 @@ export interface CaseConsumption {
   caseId: string;
   crmCase?: string | null;
   caseType?: CaseType | null;
+  /** ACT_CONSUMPTION vs PLT_USAGE_SWAP. */
+  usageContext?: string | null;
   technicianId?: string | null;
   technicianName?: string | null;
   sttId?: string | null;
@@ -619,6 +651,11 @@ export interface CreateEquipmentRequest {
   description?: string;
   unit?: StockUnit;
   category?: EquipmentCategory;
+  packItem?: boolean;
+  usableInAct?: boolean;
+  usableInPlt?: boolean;
+  recoverableFromClient?: boolean;
+  trackingMode?: TrackingMode;
 }
 
 export interface DpmItemRequest {
@@ -633,10 +670,19 @@ export interface CreateDpmRequest {
   notes?: string;
 }
 
+/** One physical-unit detail row entered during DPM reception for a tracked item. */
+export interface UnitTrackingInput {
+  imei?: string;
+  serialNumber?: string;
+  note?: string;
+}
+
 export interface DpmItemConfirmation {
   equipmentId: string;
   confirmedQuantity: number;
   confirmationNote?: string;
+  /** Exactly `confirmedQuantity` rows for tracked equipment; omitted for quantity-based items. */
+  units?: UnitTrackingInput[];
 }
 
 export interface ConfirmDpmRequest {
@@ -659,6 +705,8 @@ export interface ExternalRejectionRequest {
 export interface DistributionItemRequest {
   equipmentId: string;
   quantity: number;
+  /** Exact tracked-unit ids to distribute (size === quantity for tracked items). */
+  instanceIds?: string[];
 }
 
 export interface DistributeToTechRequest {
@@ -673,6 +721,8 @@ export interface DeclareTechUsageItemRequest {
   equipmentName?: string;
   unit?: string;
   quantity: number;
+  /** Exact tracked-unit ids consumed (size === quantity for tracked items). */
+  instanceIds?: string[];
 }
 
 export interface DeclareTechUsageRequest {
@@ -686,4 +736,67 @@ export interface DeclareTechUsageResponse {
   usage: TechStockUsage;
   hasWarnings: boolean;
   warnings: string[];
+}
+
+// ── Per-unit tracking (IMEI / Serial) ─────────────────────────────────────────
+
+export type InstanceOwnerType = 'STT' | 'TECH' | 'CLIENT' | 'DEPOT' | 'RETURN';
+
+export type InstanceStatus =
+  | 'IN_STT_STOCK'
+  | 'IN_TECH_STOCK'
+  | 'USED_ON_CASE'
+  | 'RECOVERED_FROM_CLIENT'
+  | 'RETURNED_TO_DEPOT';
+
+export interface InstanceMovement {
+  type: string;
+  fromOwnerType?: InstanceOwnerType;
+  fromOwnerName?: string;
+  toOwnerType?: InstanceOwnerType;
+  toOwnerName?: string;
+  resultingStatus?: InstanceStatus;
+  caseReference?: string;
+  dpmNumber?: string;
+  returnCode?: string;
+  note?: string;
+  occurredAt?: string;
+  performedBy?: string;
+}
+
+export interface EquipmentInstance {
+  id: string;
+  equipmentId: string;
+  equipmentName?: string;
+  articleCode?: string;
+  trackingMode?: TrackingMode;
+  imei?: string;
+  serialNumber?: string;
+  sourceDpmId?: string;
+  sourceDpmNumber?: string;
+  originSttId?: string;
+  currentOwnerType?: InstanceOwnerType;
+  currentOwnerId?: string;
+  currentOwnerName?: string;
+  status?: InstanceStatus;
+  caseId?: string;
+  caseReference?: string;
+  returnId?: string;
+  returnCode?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  /** Full movement history — populated only by the detail endpoint. */
+  movements?: InstanceMovement[];
+}
+
+export interface UnitTrackingFilters {
+  equipmentId?: string;
+  imei?: string;
+  serial?: string;
+  ownerType?: string;
+  ownerId?: string;
+  status?: string;
+  caseId?: string;
+  dpmId?: string;
+  q?: string;
 }

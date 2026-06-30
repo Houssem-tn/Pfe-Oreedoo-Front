@@ -485,3 +485,56 @@ table.idpm-table {
   svg { opacity: 0.4; }
   p { font-size: 0.9rem; margin: 0; }
 }
+
+/* ─── Per-unit IMEI / Serial tracking rows (reception modal) ───────── */
+.idpm-units-row td {
+  background: rgba(99, 102, 241, 0.05);
+  border-top: none !important;
+}
+
+.idpm-units-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4338ca;
+  margin-bottom: 0.5rem;
+}
+
+.idpm-units-mode {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: rgba(99, 102, 241, 0.14);
+  color: #4338ca;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.idpm-unit-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.idpm-unit-idx {
+  flex: 0 0 auto;
+  width: 2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.idpm-unit-input {
+  flex: 1 1 0;
+  min-width: 120px;
+}
+
+.idpm-unit-error {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #dc2626;
+}

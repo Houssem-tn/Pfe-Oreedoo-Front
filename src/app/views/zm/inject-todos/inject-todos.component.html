@@ -8,7 +8,7 @@
 
       <h1>Import Field Work Todos</h1>
       <p>
-        Upload a PLT or RES Excel file. Only rows assigned to you with
+        Upload an ACT, PLT, or RES Excel file. Only rows assigned to you with
         <strong>STATUT = En cours</strong> will be imported as active field work todos.
         Rows for other ZMs and non-En cours rows are ignored automatically.
       </p>
@@ -26,9 +26,9 @@
     </div>
 
     <div class="zm-import-hero__actions">
-      <a routerLink="/zm/cases/complaint" class="btn-import btn-import--primary">
+      <a [routerLink]="workspaceShortcutRoute" class="btn-import btn-import--primary">
         <svg cIcon name="cilDescription"></svg>
-        Open Complaint Cases
+        {{ workspaceShortcutLabel }}
       </a>
 
       <a routerLink="/zm/todos-analysis" class="btn-import btn-import--ghost">
@@ -44,13 +44,24 @@
         <div>
           <div class="zm-import-section-heading__title">Step 1 — Select file type</div>
           <div class="zm-import-section-heading__hint">
-            Choose whether this file contains PLT or RES work orders. The backend uses this to classify todos and prevent cross-type duplicates.
+            Choose whether this file contains ACT, PLT, or RES work orders. The backend uses this to classify the import and prevent cross-type duplicates.
           </div>
         </div>
         <span class="zm-import-section-heading__badge" *ngIf="profileLoading">Loading identity...</span>
       </div>
 
       <div class="zm-import-type-selector">
+        <button
+          type="button"
+          class="zm-import-type-btn"
+          [class.zm-import-type-btn--active]="selectedBusinessType === 'ACT'"
+          (click)="selectBusinessType('ACT')"
+        >
+          <svg cIcon name="cilTask"></svg>
+          <span>ACT</span>
+          <small>Activation cases</small>
+        </button>
+
         <button
           type="button"
           class="zm-import-type-btn"
@@ -131,7 +142,7 @@
           <div class="zm-import-section-heading__title">Step 3 — Upload file</div>
           <div class="zm-import-section-heading__hint">
             The backend will filter by your ZM identity and keep only rows where STATUT = En cours.
-            Duplicate CRM cases (same type, same ZM) are skipped automatically.
+            Duplicate CRM cases are skipped automatically. ACT imports create activation cases, while PLT/RES imports create complaint and resiliation cases in the same lifecycle workspace.
           </div>
         </div>
       </div>
@@ -144,7 +155,7 @@
           <div class="zm-import-picker__body">
             <strong>{{ selectedFile?.name || 'Choose a CSV, XLS or XLSX file' }}</strong>
             <span *ngIf="selectedBusinessType">
-              Will be imported as <strong>{{ selectedBusinessType }}</strong> field work todos.
+              Will be imported as <strong>{{ selectedBusinessType }}</strong> {{ selectedBusinessType === 'ACT' ? 'activation cases' : 'field-work cases' }}.
             </span>
             <span *ngIf="!selectedBusinessType">Select the file type above first.</span>
           </div>
@@ -166,7 +177,7 @@
           [disabled]="processing || !selectedFile || !selectedBusinessType"
         >
           <svg cIcon [name]="processing ? 'cilClock' : 'cilCloudUpload'"></svg>
-          {{ processing ? 'Importing...' : 'Import ' + (selectedBusinessType || 'file') + ' todos' }}
+          {{ processing ? 'Importing...' : 'Import ' + (selectedBusinessType || 'file') + ' file' }}
         </button>
       </div>
     </div>
@@ -188,7 +199,7 @@
         <article class="zm-import-empty__card">
           <svg cIcon name="cilTask"></svg>
           <strong>Real field work todos</strong>
-          <span>Each matched En cours row becomes an active field work todo for your zone, ready for STT assignment.</span>
+          <span>Each matched En cours row becomes an active ACT, PLT, or RES case for your zone, ready for STT assignment.</span>
         </article>
 
         <article class="zm-import-empty__card">
@@ -260,7 +271,7 @@
         <div class="zm-import-result__actions">
           <a [routerLink]="primaryResultRoute" class="btn-import btn-import--primary">
             <svg cIcon name="cilDescription"></svg>
-            {{ isResTarget ? 'Open resiliation cases' : isComplaintCasesTarget ? 'Open complaint cases' : 'Open field todos' }}
+            {{ isActivationCasesTarget ? 'Open activation cases' : isResTarget ? 'Open resiliation cases' : isComplaintCasesTarget ? 'Open complaint cases' : 'Open field todos' }}
           </a>
 
           <a

@@ -6,10 +6,16 @@
       <h1 class="ac-head__title">Alert Center</h1>
       <p class="ac-head__subtitle">Monitor urgent events, operational warnings, and team actions in real time.</p>
     </div>
-    <span class="ac-live">
-      <span class="ac-live__dot"></span>
-      Live Monitoring
-    </span>
+    <div class="ac-head__actions">
+      <button class="ac-refresh" type="button" (click)="store.refresh()" title="Refresh alerts" aria-label="Refresh alerts">
+        <svg cIcon name="cilReload"></svg>
+        Refresh
+      </button>
+      <span class="ac-live">
+        <span class="ac-live__dot"></span>
+        Live Monitoring
+      </span>
+    </div>
   </header>
 
   <!-- ── Tabs ───────────────────────────────────────────────────────────── -->

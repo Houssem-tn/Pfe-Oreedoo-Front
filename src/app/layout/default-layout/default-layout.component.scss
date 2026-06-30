@@ -120,6 +120,11 @@
 
 .body {
   overflow-x: clip;
+  background:
+    radial-gradient(circle at top right, rgba(229, 36, 59, 0.08), transparent 34%),
+    radial-gradient(circle at left bottom, rgba(132, 14, 31, 0.08), transparent 28%),
+    linear-gradient(180deg, #fff6f7 0%, #fff0f2 48%, #ffe8eb 100%);
+  background-attachment: fixed;
 }
 
 .body > .container,

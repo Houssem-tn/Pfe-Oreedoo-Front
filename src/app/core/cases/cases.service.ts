@@ -13,6 +13,7 @@ import {
   CompleteWorkRequest,
   CreateCaseRequest,
   CreateActivationCaseRequest,
+  DeclareClientRecoveryRequest,
   PerformanceSummaryResponse,
   ReopenComplaintRequest,
   SetRdvRequest,
@@ -156,6 +157,11 @@ export class CasesService {
 
   completeWork(caseId: string, payload: CompleteWorkRequest): Observable<CaseResponse> {
     return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/work`, payload);
+  }
+
+  /** RES only: declare equipment recovered from the client; the backend links it to a material return. */
+  declareClientRecovery(caseId: string, payload: DeclareClientRecoveryRequest): Observable<CaseResponse> {
+    return this.http.post<CaseResponse>(`${this.casesUrl}/${caseId}/res-recovery`, payload);
   }
 
   diagnoseComplaint(caseId: string, payload: ComplaintDiagnosisRequest): Observable<CaseResponse> {

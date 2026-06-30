@@ -1,0 +1,312 @@
+<div class="ut-shell">
+
+  <div class="ut-card">
+    <div class="ut-card-header">
+      <div class="ut-card-header__left">
+        <div class="ut-head-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="13" width="18" height="8" rx="2"></rect>
+            <line x1="7" y1="17" x2="7.01" y2="17"></line>
+            <line x1="11" y1="17" x2="13" y2="17"></line>
+            <path d="M5.5 9.5a7 7 0 0113 0"></path>
+            <path d="M8.5 12a4 4 0 017 0"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="ut-card-title">Unit Tracking</span>
+          <span class="ut-card-sub">Follow individual devices by IMEI / Serial Number across their lifecycle.</span>
+        </div>
+      </div>
+      <button class="ut-refresh-btn" type="button" (click)="load()" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Summary chips -->
+    <div class="ut-stats">
+      <div class="ut-stat">
+        <div class="ut-stat__icon ut-stat__icon--total">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </div>
+        <div class="ut-stat__copy">
+          <span class="ut-stat__label">Tracked units</span>
+          <span class="ut-stat__value">{{ trackedUnitsCount }}</span>
+        </div>
+      </div>
+
+      <div class="ut-stat">
+        <div class="ut-stat__icon ut-stat__icon--tech">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="ut-stat__copy">
+          <span class="ut-stat__label">In tech stock</span>
+          <span class="ut-stat__value">{{ inTechStockCount }}</span>
+        </div>
+      </div>
+
+      <div class="ut-stat">
+        <div class="ut-stat__icon ut-stat__icon--used">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+          </svg>
+        </div>
+        <div class="ut-stat__copy">
+          <span class="ut-stat__label">Used on case</span>
+          <span class="ut-stat__value">{{ usedOnCaseCount }}</span>
+        </div>
+      </div>
+    </div>
+
+    @if (error) {
+      <div class="ut-alert">{{ error }}</div>
+    }
+
+    <!-- Filters -->
+    <div class="ut-filters">
+      <div class="ut-search-wrap">
+        <svg class="ut-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input class="ut-search" type="text" placeholder="Search by IMEI, Serial or equipment…"
+               [(ngModel)]="search" (keyup.enter)="applyFilters()" />
+      </div>
+
+      <div class="ut-select-wrap">
+        <svg class="ut-select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        <select class="ut-select" [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
+          <option value="">All statuses</option>
+          @for (opt of statusOptions; track opt.value) {
+            <option [ngValue]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+        <svg class="ut-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+
+      <button class="ut-btn ut-btn--primary" type="button" (click)="applyFilters()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        Search
+      </button>
+      <button class="ut-btn ut-btn--ghost" type="button" (click)="clearFilters()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        Clear
+      </button>
+    </div>
+
+    @if (loading) {
+      <div class="ut-loading"><c-spinner size="sm"></c-spinner> Loading…</div>
+    } @else {
+      <div class="ut-table-wrap">
+        <table class="ut-table">
+          <thead>
+            <tr>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path>
+                  </svg>
+                  Equipment
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line>
+                    <line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line>
+                  </svg>
+                  IMEI / Serial
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                  Status
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  Current owner
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  Source DPM
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+                    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
+                  </svg>
+                  Case
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  Updated
+                </span>
+              </th>
+              <th>
+                <span class="ut-th">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle>
+                  </svg>
+                  Actions
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (inst of instances; track inst.id) {
+              <tr (click)="openDetail(inst)" class="ut-row">
+                <td>
+                  <div class="ut-eq">
+                    <div class="ut-eq-thumb">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                      </svg>
+                    </div>
+                    <span class="ut-eq-name">{{ inst.equipmentName }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="ut-ident">
+                    @if (inst.serialNumber) {
+                      <span class="ut-ident__pair"><span class="ut-ident__k">SN</span><span class="ut-ident__v">{{ inst.serialNumber }}</span></span>
+                    }
+                    @if (inst.serialNumber && inst.imei) { <span class="ut-ident__sep">•</span> }
+                    @if (inst.imei) {
+                      <span class="ut-ident__pair"><span class="ut-ident__k">IMEI</span><span class="ut-ident__v">{{ inst.imei }}</span></span>
+                    }
+                    @if (!inst.serialNumber && !inst.imei) { <span class="ut-ident__v">—</span> }
+                  </div>
+                </td>
+                <td><span class="ut-badge" [class]="statusClass(inst.status)">{{ statusLabel(inst.status) }}</span></td>
+                <td><span class="ut-owner">{{ ownerLabel(inst) }}</span></td>
+                <td><span class="ut-mono">{{ inst.sourceDpmNumber || '—' }}</span></td>
+                <td><span class="ut-case">{{ inst.caseReference || '—' }}</span></td>
+                <td><span class="ut-date">{{ inst.updatedAt | date:'dd/MM/yy HH:mm' }}</span></td>
+                <td>
+                  <span class="ut-view">View
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M5 12h14M12 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="ut-empty">No tracked units found.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+</div>
+
+<!-- ─── Detail panel ───────────────────────────────────────────────── -->
+@if (detailVisible && detail) {
+  <div class="ut-modal-backdrop" (click)="closeDetail()">
+    <div class="ut-modal" (click)="$event.stopPropagation()">
+      <div class="ut-modal-header">
+        <div>
+          <div class="ut-modal-eyebrow">Tracked unit</div>
+          <div class="ut-modal-title">{{ detail.equipmentName }}</div>
+          <div class="ut-modal-sub">{{ identifier(detail) }}</div>
+        </div>
+        <button class="ut-modal-close" type="button" (click)="closeDetail()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="ut-modal-body">
+        <div class="ut-facts">
+          <div class="ut-fact"><span>Status</span><strong><span class="ut-badge" [class]="statusClass(detail.status)">{{ statusLabel(detail.status) }}</span></strong></div>
+          <div class="ut-fact"><span>Current owner</span><strong>{{ ownerLabel(detail) }}</strong></div>
+          <div class="ut-fact"><span>Tracking mode</span><strong>{{ detail.trackingMode }}</strong></div>
+          <div class="ut-fact"><span>Source DPM</span><strong>{{ detail.sourceDpmNumber || '—' }}</strong></div>
+          <div class="ut-fact"><span>Related case</span><strong>{{ detail.caseReference || '—' }}</strong></div>
+          <div class="ut-fact"><span>Material return</span><strong>{{ detail.returnCode || '—' }}</strong></div>
+          <div class="ut-fact"><span>Article code</span><strong>{{ detail.articleCode || '—' }}</strong></div>
+          <div class="ut-fact"><span>Created</span><strong>{{ detail.createdAt | date:'dd/MM/yy HH:mm' }}</strong></div>
+        </div>
+
+        <div class="ut-section-title">Movement history</div>
+        @if (loadingDetail) {
+          <div class="ut-loading"><c-spinner size="sm"></c-spinner></div>
+        } @else if (detail.movements && detail.movements.length) {
+          <ul class="ut-timeline">
+            @for (m of detail.movements; track $index) {
+              <li class="ut-timeline-item">
+                <div class="ut-timeline-dot"></div>
+                <div class="ut-timeline-body">
+                  <div class="ut-timeline-head">
+                    <span class="ut-timeline-type">{{ m.type }}</span>
+                    <span class="ut-timeline-date">{{ m.occurredAt | date:'dd/MM/yy HH:mm' }}</span>
+                  </div>
+                  <div class="ut-timeline-meta">
+                    @if (m.fromOwnerType) { <span>{{ m.fromOwnerType }}{{ m.fromOwnerName ? ' (' + m.fromOwnerName + ')' : '' }}</span> }
+                    @if (m.fromOwnerType && m.toOwnerType) { <span class="ut-arrow">→</span> }
+                    @if (m.toOwnerType) { <span>{{ m.toOwnerType }}{{ m.toOwnerName ? ' (' + m.toOwnerName + ')' : '' }}</span> }
+                  </div>
+                  <div class="ut-timeline-refs">
+                    @if (m.dpmNumber) { <span class="ut-ref">DPM {{ m.dpmNumber }}</span> }
+                    @if (m.caseReference) { <span class="ut-ref">Case {{ m.caseReference }}</span> }
+                    @if (m.returnCode) { <span class="ut-ref">Return {{ m.returnCode }}</span> }
+                    @if (m.performedBy) { <span class="ut-ref ut-ref--actor">{{ m.performedBy }}</span> }
+                  </div>
+                  @if (m.note) { <div class="ut-timeline-note">{{ m.note }}</div> }
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="ut-empty">No movement history.</div>
+        }
+      </div>
+    </div>
+  </div>
+}

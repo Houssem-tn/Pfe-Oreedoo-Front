@@ -163,15 +163,22 @@ export class StockAuditComponent implements OnInit {
   }
 
   openDpm(dpm: DpmRequest, distributions?: SttDistribution[]): void {
+    // Open the panel synchronously with a loading state. The app runs zoneless
+    // (Angular v21, no zone.js), so we must notify change detection ourselves —
+    // but via markForCheck(), NOT a synchronous detectChanges(). Forcing a
+    // re-entrant detectChanges() from inside this click handler left the newly
+    // created @if panel view uncommitted, so it only appeared on the next
+    // scheduler tick (i.e. after clicking elsewhere). markForCheck() lets the
+    // scheduler render the panel in one clean tick on this first click.
     this.selectedDpm = dpm;
     this.selectedDpmDistributions = distributions ?? this.distributionsByDpmId.get(dpm.id) ?? [];
     this.selectedDpmRollups = [];
+    this.loadingDpmRollups = true;
     this.panelVisible = true;
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
 
     // Fetch the enriched tracking so new pooled distributions (dpmId=null) surface
     // through automatic source allocations, not only legacy dpmId-linked records.
-    this.loadingDpmRollups = true;
     this.stockSvc.adminGetDpmTracking(dpm.id)
       .pipe(finalize(() => { this.loadingDpmRollups = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
@@ -444,16 +451,24 @@ export class StockAuditComponent implements OnInit {
     return this.feedEntries.filter(e => e.statusCategory === cat).length;
   }
 
-  openFeedEntry(entry: StockAuditEntry): void {
+  openFeedEntry(entry: StockAuditEntry, event?: Event): void {
+    // The detail backdrop is created on the next change-detection tick, so it can
+    // never receive this same opening click — but stop propagation defensively so
+    // no ancestor handler can interfere with opening the panel.
+    event?.stopPropagation();
+
     if (entry.auditType === 'DPM') {
       // Reuse the rich DPM flow panel; the full DpmRequest is loaded by load().
       const dpm = this.dpms.find(d => d.id === entry.id);
       if (dpm) this.openDpm(dpm);
       return;
     }
+    // Return-material entry: open synchronously, then let the zoneless scheduler
+    // render the panel on this first click (markForCheck, not a re-entrant
+    // detectChanges()).
     this.selectedReturn = entry;
     this.returnDetailVisible = true;
-    this.cdr.detectChanges();
+    this.cdr.markForCheck();
   }
 
   closeReturnDetail(): void {

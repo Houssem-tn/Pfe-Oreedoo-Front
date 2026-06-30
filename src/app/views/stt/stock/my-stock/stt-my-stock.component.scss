@@ -149,6 +149,45 @@
   }
 }
 
+.dash-header-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.dash-refresh {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--dash-border);
+  border-radius: 0.6rem;
+  color: var(--dash-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+
+  svg {
+    color: currentcolor;
+    height: 0.95rem;
+    width: 0.95rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(229, 36, 59, 0.06);
+    border-color: rgba(229, 36, 59, 0.28);
+    color: var(--dash-primary-strong);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
 .dash-card-body {
   padding: 0;
 }

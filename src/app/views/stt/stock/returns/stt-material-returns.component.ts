@@ -80,6 +80,7 @@ export class SttMaterialReturnsComponent implements OnInit {
   private viewDestroyed = false;
 
   loading = true;
+  refreshing = false;
   returns: MaterialReturn[] = [];
 
   eligibleZms: EligibleZmOption[] = [];
@@ -170,6 +171,34 @@ export class SttMaterialReturnsComponent implements OnInit {
     });
 
     this.loadInitialData();
+  }
+
+  refresh(): void {
+    if (this.refreshing) {
+      return;
+    }
+
+    this.refreshing = true;
+    this.returnService
+      .getSttReturns()
+      .pipe(
+        timeout(SttMaterialReturnsComponent.ACTION_TIMEOUT_MS),
+        tap((response) => console.debug('[MaterialReturn][STT] manual refresh getSttReturns()', response)),
+        catchError((error) => {
+          console.error('[MaterialReturn][STT] manual refresh getSttReturns() failed', error);
+          this.toast('Unable to refresh material returns.', 'error');
+          return of<MaterialReturn[]>([]);
+        }),
+        finalize(() => {
+          this.refreshing = false;
+          this.requestViewRefresh();
+        }),
+      )
+      .subscribe((returns) => {
+        this.returns = this.sortReturns(returns);
+        this.handlePendingReturnId();
+        this.requestViewRefresh();
+      });
   }
 
   openCreateModal(): void {

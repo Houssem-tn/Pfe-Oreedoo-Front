@@ -242,7 +242,7 @@
                  [class.sa-dpm-row--confirmed]="entry.statusCategory === 'CONFIRMED' || entry.statusCategory === 'COMPLETED'"
                  [class.sa-dpm-row--rejected]="entry.statusCategory === 'REJECTED'"
                  [class.sa-dpm-row--cancelled]="entry.statusCategory === 'CANCELLED'"
-                 (click)="openFeedEntry(entry)">
+                 (click)="openFeedEntry(entry, $event)">
 
               <div class="sa-audit-row__top">
                 <span class="sa-type-badge"
@@ -995,8 +995,12 @@
       </div>
     }
 
-    <!-- ── DPM Flow panel overlay ──────────────────────────────────────────── -->
-    @if (selectedDpm && panelVisible) {
+  } <!-- end @if activeTab === 'dpm' -->
+
+  <!-- ── DPM Flow panel overlay ──────────────────────────────────────────────
+       Rendered at the top level (NOT inside the DPM-tab block) so it also opens
+       when a DPM is selected from the Feed tab via openFeedEntry(). -->
+  @if (selectedDpm && panelVisible) {
       <div class="sa-backdrop" (click)="panelVisible = false">
         <div class="sa-panel" (click)="$event.stopPropagation()">
 
@@ -1254,9 +1258,7 @@
 
         </div>
       </div>
-    }
-
-  } <!-- end @if activeTab === 'dpm' -->
+  }
 
   <!-- ══════════════════════════════════════════════════════ -->
   <!--               CASE CONSUMPTION TAB                    -->

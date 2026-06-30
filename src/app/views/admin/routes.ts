@@ -49,6 +49,12 @@ export const routes: Routes = [
     data: { caseType: 'PLAINTE' }
   },
   {
+    path: 'cases/resiliation',
+    loadComponent: () =>
+      import('../cases/activation-cases-list.component').then(m => m.ActivationCasesListComponent),
+    data: { caseType: 'PLAINTE', caseModule: 'RES', title: 'Resiliation Cases' }
+  },
+  {
     path: 'cases/activation/new',
     loadComponent: () =>
       import('../cases/create-activation-case.component').then(m => m.CreateActivationCaseComponent)
@@ -115,6 +121,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('../shared/team-distributions/team-distributions.component').then(m => m.TeamDistributionsComponent),
     data: { title: 'Team Distributions' }
+  },
+  {
+    path: 'stock/unit-tracking',
+    loadComponent: () =>
+      import('../shared/unit-tracking/unit-tracking.component').then(m => m.UnitTrackingComponent),
+    data: { title: 'Unit Tracking' }
   },
 
   {
