@@ -11,8 +11,10 @@ import { AuthStore } from '../../../../core/auth/auth.store';
 import {
   DistributeToTechRequest,
   DistributionItemRequest,
+  EquipmentInstance,
   SttDistribution,
-  SttStockItem
+  SttStockItem,
+  TrackingMode
 } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/searchable-select/searchable-select.component';
@@ -23,6 +25,12 @@ interface DistributionLine {
   unit?: string;
   available: number;
   quantity: number;
+  /** Tracking mode of the equipment (NONE = quantity-based). */
+  trackingMode: TrackingMode;
+  /** Tracked units available in STT stock for this equipment (tracked items only). */
+  availableUnits: EquipmentInstance[];
+  /** Selected tracked-unit ids (tracked items only). */
+  selectedInstanceIds: string[];
 }
 
 @Component({
@@ -41,6 +49,10 @@ export class DistributeComponent implements OnInit {
   stockItems: SttStockItem[] = [];
   techs: AppUser[] = [];
   distributions: SttDistribution[] = [];
+
+  /** equipmentId → trackingMode, and equipmentId → available tracked units in my stock. */
+  private trackingByEquipment = new Map<string, TrackingMode>();
+  private unitsByEquipment = new Map<string, EquipmentInstance[]>();
 
   loading = false;
   loadingHistory = false;
@@ -65,15 +77,49 @@ export class DistributeComponent implements OnInit {
     this.loading = true;
     forkJoin({
       stock: this.stockSvc.getMySttStock(),
-      techs: this.userSvc.getMyTechs()
+      techs: this.userSvc.getMyTechs(),
+      equipment: this.stockSvc.getEquipment(),
+      instances: this.stockSvc.getMySttInstances()
     }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); }))
       .subscribe({
-        next: ({ stock, techs }) => {
+        next: ({ stock, techs, equipment, instances }) => {
           this.stockItems = stock?.items ?? [];
           this.techs = techs;
+          this.trackingByEquipment = new Map(equipment.map(e => [e.id, e.trackingMode ?? 'NONE']));
+          this.unitsByEquipment = new Map();
+          for (const inst of instances) {
+            const list = this.unitsByEquipment.get(inst.equipmentId) ?? [];
+            list.push(inst);
+            this.unitsByEquipment.set(inst.equipmentId, list);
+          }
+          // Drop any in-progress selections that are no longer in stock.
+          this.lines = [];
         },
         error: e => this.error = e.message
       });
+  }
+
+  isTracked(equipmentId: string): boolean {
+    const mode = this.trackingByEquipment.get(equipmentId);
+    return !!mode && mode !== 'NONE';
+  }
+
+  unitLabel(inst: EquipmentInstance): string {
+    const parts: string[] = [];
+    if (inst.serialNumber) parts.push(`SN ${inst.serialNumber}`);
+    if (inst.imei) parts.push(`IMEI ${inst.imei}`);
+    return parts.join(' · ') || inst.id;
+  }
+
+  isUnitSelected(line: DistributionLine, instanceId: string): boolean {
+    return line.selectedInstanceIds.includes(instanceId);
+  }
+
+  toggleUnit(line: DistributionLine, instanceId: string): void {
+    const idx = line.selectedInstanceIds.indexOf(instanceId);
+    if (idx >= 0) line.selectedInstanceIds.splice(idx, 1);
+    else line.selectedInstanceIds.push(instanceId);
+    line.quantity = line.selectedInstanceIds.length;
   }
 
   loadHistory(): void {
@@ -98,12 +144,18 @@ export class DistributeComponent implements OnInit {
     if (idx >= 0) {
       this.lines.splice(idx, 1);
     } else {
+      const trackingMode = this.trackingByEquipment.get(item.equipmentId) ?? 'NONE';
+      const tracked = trackingMode !== 'NONE';
+      const availableUnits = tracked ? (this.unitsByEquipment.get(item.equipmentId) ?? []) : [];
       this.lines.push({
         equipmentId: item.equipmentId,
         equipmentName: item.equipmentName,
         unit: item.unit,
-        available: item.availableQuantity,
-        quantity: 1
+        available: tracked ? availableUnits.length : item.availableQuantity,
+        quantity: tracked ? 0 : 1,
+        trackingMode,
+        availableUnits,
+        selectedInstanceIds: []
       });
     }
   }
@@ -151,7 +203,9 @@ export class DistributeComponent implements OnInit {
   get canSubmit(): boolean {
     return !!this.selectedTechId &&
       this.lines.length > 0 &&
-      this.lines.every(l => l.quantity > 0 && l.quantity <= l.available);
+      this.lines.every(l => l.trackingMode !== 'NONE'
+        ? (l.selectedInstanceIds.length > 0 && l.selectedInstanceIds.length <= l.available)
+        : (l.quantity > 0 && l.quantity <= l.available));
   }
 
   isSelfDistribution(techId: string): boolean {
@@ -171,10 +225,9 @@ export class DistributeComponent implements OnInit {
     const payload: DistributeToTechRequest = {
       techId: this.selectedTechId,
       notes: this.notes.trim() || undefined,
-      items: this.lines.map<DistributionItemRequest>(l => ({
-        equipmentId: l.equipmentId,
-        quantity: l.quantity
-      }))
+      items: this.lines.map<DistributionItemRequest>(l => l.trackingMode !== 'NONE'
+        ? { equipmentId: l.equipmentId, quantity: l.selectedInstanceIds.length, instanceIds: l.selectedInstanceIds }
+        : { equipmentId: l.equipmentId, quantity: l.quantity })
     };
     this.stockSvc.distributeToTech(payload)
       .pipe(finalize(() => { this.submitting = false; this.zone.run(() => this.cdr.detectChanges()); }))

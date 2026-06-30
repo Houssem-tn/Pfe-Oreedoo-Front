@@ -53,11 +53,7 @@ export const navAdmin: INavData[] = [
     name: 'Monitoring'
   },
 
-  {
-    name: 'Interventions',
-    url: '/admin/interventions',
-    iconComponent: { name: 'cil-list' }
-  },
+ 
 
   {
     name: 'Activation Cases',
@@ -67,6 +63,11 @@ export const navAdmin: INavData[] = [
   {
     name: 'Complaint Cases',
     url: '/admin/cases/complaint',
+    iconComponent: { name: 'cilNotes' }
+  },
+  {
+    name: 'Resiliation Cases',
+    url: '/admin/cases/resiliation',
     iconComponent: { name: 'cilNotes' }
   },
 
@@ -102,6 +103,12 @@ export const navAdmin: INavData[] = [
     name: 'Team Distributions',
     url: '/admin/stock/team-distributions',
     iconComponent: { name: 'cilPeople' }
+  },
+
+  {
+    name: 'Unit Tracking',
+    url: '/admin/stock/unit-tracking',
+    iconComponent: { name: 'cilTags' }
   },
 
   {

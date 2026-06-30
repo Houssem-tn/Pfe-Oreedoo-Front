@@ -72,3 +72,33 @@ export interface PointCheckResponse {
   decision: string;
   matchedLayerNames: string[];
 }
+
+/**
+ * A single coverage marker read directly from the merged-analytics dataset
+ * (imported Merged Operations file). For SOURCE = MES, each point is an activation.
+ */
+export interface CoverageAnalyticsPoint {
+  id: string;
+  caseCrm: string;
+  source: string;
+  latitude: number;
+  longitude: number;
+  governorate?: string;
+  delegation?: string;
+  locality?: string;
+  msisdn?: string;
+  debitDl?: number;
+  debitUl?: number;
+  rsrp?: number;
+  rsrq?: number;
+  sinr?: number;
+}
+
+export interface CoverageAnalyticsPointsResponse {
+  studyId: string | null;
+  source: string;
+  totalMatching: number;
+  returned: number;
+  capped: boolean;
+  points: CoverageAnalyticsPoint[];
+}

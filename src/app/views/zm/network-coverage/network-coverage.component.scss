@@ -139,6 +139,23 @@
   margin: 0;
 }
 
+// Loading / empty / no-study placeholder shown under the map
+.empty-state {
+  font-size: 0.85rem;
+  color: #777;
+  text-align: center;
+  padding: 14px 16px;
+  background: #fafafa;
+  border: 1px dashed #e0e0e0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  strong { color: #555; }
+}
+
 // ── Layer items ───────────────────────────────────────────────────────────────
 .layer-item {
   display: flex;

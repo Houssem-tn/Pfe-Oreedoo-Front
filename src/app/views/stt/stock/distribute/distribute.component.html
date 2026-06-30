@@ -88,23 +88,59 @@
                 @for (line of lines; track line.equipmentId; let i = $index) {
                   <div class="dist-line-card">
                     <div class="dist-line-row">
-                      <span class="dist-line-name">{{ line.equipmentName }}</span>
-                      <div class="dist-qty-control">
-                        <button class="dist-qty-btn" type="button"
-                                (click)="decrementQuantity(line)" [disabled]="line.quantity <= 1">−</button>
-                        <input class="dist-qty-input" type="number" min="1" [max]="line.available"
-                               [(ngModel)]="line.quantity" />
-                        <button class="dist-qty-btn" type="button"
-                                (click)="incrementQuantity(line)" [disabled]="line.quantity >= line.available">+</button>
-                        <span class="dist-qty-max">/ {{ line.available }}{{ line.unit === 'METERS' ? ' m' : ' pcs' }} avail.</span>
-                      </div>
+                      <span class="dist-line-name">
+                        {{ line.equipmentName }}
+                        @if (line.trackingMode !== 'NONE') {
+                          <span class="dist-tracked-tag">Tracked</span>
+                        }
+                      </span>
+
+                      @if (line.trackingMode === 'NONE') {
+                        <div class="dist-qty-control">
+                          <button class="dist-qty-btn" type="button"
+                                  (click)="decrementQuantity(line)" [disabled]="line.quantity <= 1">−</button>
+                          <input class="dist-qty-input" type="number" min="1" [max]="line.available"
+                                 [(ngModel)]="line.quantity" />
+                          <button class="dist-qty-btn" type="button"
+                                  (click)="incrementQuantity(line)" [disabled]="line.quantity >= line.available">+</button>
+                          <span class="dist-qty-max">/ {{ line.available }}{{ line.unit === 'METERS' ? ' m' : ' pcs' }} avail.</span>
+                        </div>
+                      } @else {
+                        <span class="dist-qty-max">{{ line.selectedInstanceIds.length }} / {{ line.available }} unit(s) selected</span>
+                      }
+
                       <button class="dist-remove-btn" type="button" (click)="removeLine(i)">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                           <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                       </button>
                     </div>
-                    @if (line.quantity > line.available && line.available > 0) {
+
+                    <!-- Tracked: pick the exact units by IMEI / Serial -->
+                    @if (line.trackingMode !== 'NONE') {
+                      @if (line.availableUnits.length === 0) {
+                        <div class="dist-line-warning">No tracked units available in your stock for this item.</div>
+                      } @else {
+                        <div class="dist-units-list">
+                          @for (u of line.availableUnits; track u.id) {
+                            <button type="button" class="dist-unit-chip"
+                                    [class.dist-unit-chip--selected]="isUnitSelected(line, u.id)"
+                                    (click)="toggleUnit(line, u.id)">
+                              <span class="dist-unit-check">
+                                @if (isUnitSelected(line, u.id)) {
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
+                                }
+                              </span>
+                              {{ unitLabel(u) }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    }
+
+                    @if (line.trackingMode === 'NONE' && line.quantity > line.available && line.available > 0) {
                       <div class="dist-line-warning">Exceeds available quantity!</div>
                     }
                   </div>
@@ -165,6 +201,13 @@
                   <td>
                     @for (i of d.items; track i.equipmentId) {
                       <span class="dist-item-chip">{{ i.equipmentName }}: {{ i.quantity }}{{ i.unit === 'METERS' ? ' m' : ' pcs' }}</span>
+                      @if (i.trackedUnits && i.trackedUnits.length) {
+                        <span class="dist-units-inline">
+                          @for (u of i.trackedUnits; track u.instanceId) {
+                            <span class="dist-unit-tag">{{ u.serialNumber || u.imei }}</span>
+                          }
+                        </span>
+                      }
                     }
                   </td>
                   <td>{{ d.distributedAt | date:'dd/MM/yy HH:mm' }}</td>

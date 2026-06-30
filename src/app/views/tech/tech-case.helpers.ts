@@ -21,6 +21,8 @@ export interface LiveSlaState {
 export interface EquipmentUsageLine {
   equipmentId: string;
   quantity: string | number;
+  /** Selected tracked-unit ids for this line (tracked equipment only). */
+  instanceIds?: string[];
 }
 
 const DEFAULT_WARNING_THRESHOLD = 50;
@@ -226,6 +228,7 @@ export function buildUsedEquipmentPayload(
   for (const line of lines) {
     const equipmentId = line.equipmentId.trim();
     const quantityText = String(line.quantity ?? '').trim();
+    const instanceIds = (line.instanceIds ?? []).filter((id) => !!id && id.trim());
 
     if (!equipmentId && !quantityText) {
       continue;
@@ -249,12 +252,16 @@ export function buildUsedEquipmentPayload(
     const existing = mergedSelected.get(equipmentId);
     if (existing) {
       existing.quantity += quantity;
+      if (instanceIds.length) {
+        existing.instanceIds = [...(existing.instanceIds ?? []), ...instanceIds];
+      }
       continue;
     }
 
     mergedSelected.set(equipmentId, {
       equipmentId,
-      quantity
+      quantity,
+      instanceIds: instanceIds.length ? instanceIds : undefined
     });
   }
 
@@ -277,11 +284,19 @@ export function buildUsedEquipmentPayload(
       };
     }
 
+    if (selected.instanceIds && selected.instanceIds.length !== selected.quantity) {
+      return {
+        items: [],
+        error: `Select exactly ${selected.quantity} unit(s) by IMEI/Serial for ${stockItem.equipmentName}.`
+      };
+    }
+
     items.push({
       equipmentId: stockItem.equipmentId,
       equipmentName: stockItem.equipmentName,
       unit: stockItem.unit ?? null,
-      quantity: selected.quantity
+      quantity: selected.quantity,
+      instanceIds: selected.instanceIds
     });
   }
 

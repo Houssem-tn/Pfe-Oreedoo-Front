@@ -4,11 +4,17 @@
 
 .ts-shell {
   --ts-primary: #e5243b;
+  --ts-primary-strong: #b5112d;
+  --ts-accent: #7f1227;
+  --ts-ink: #1e1e2e;
   --ts-text: #1e1e2e;
   --ts-muted: #8a8aa0;
-  --ts-border: rgba(0, 0, 0, 0.07);
-  --ts-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  background: #fff5f6;
+  --ts-border: rgba(0, 0, 0, 0.08);
+  --ts-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  background:
+    radial-gradient(circle at top right, rgba(229, 36, 59, 0.08), transparent 34%),
+    radial-gradient(circle at left bottom, rgba(132, 14, 31, 0.08), transparent 28%),
+    linear-gradient(180deg, #fff6f7 0%, #fff0f2 48%, #ffe8eb 100%);
   border-radius: 1.5rem;
   color: var(--ts-text);
   display: grid;
@@ -26,6 +32,21 @@
   justify-content: space-between;
 }
 
+.ts-hero__heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.7rem;
+}
+
+.ts-hero__accent {
+  background: var(--ts-primary);
+  border-radius: 999px;
+  flex-shrink: 0;
+  height: 2.4rem;
+  margin-top: 0.15rem;
+  width: 0.28rem;
+}
+
 .ts-hero__title {
   font-size: 1.25rem;
   font-weight: 900;
@@ -39,59 +60,62 @@
   max-width: 22rem;
 }
 
-/* ─── Stats row ─────────────────────────────────────────────────────── */
+/* ─── Stats bar (segmented) ──────────────────────────────────────────── */
 
 .ts-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.ts-stat {
-  align-items: center;
+  align-items: stretch;
   background: #fff;
   border: 1px solid var(--ts-border);
   border-radius: 1rem;
   box-shadow: var(--ts-shadow);
   display: flex;
-  gap: 0.75rem;
-  padding: 0.65rem 1rem;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
 
-  &__val {
-    font-size: 1.25rem;
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    line-height: 1;
+.ts-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  justify-content: center;
+  min-width: 6rem;
+  padding: 0.7rem 1.15rem;
+
+  & + & { border-left: 1px solid var(--ts-border); }
+
+  &__top {
+    align-items: center;
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  &__dot {
+    border-radius: 50%;
+    flex-shrink: 0;
+    height: 0.5rem;
+    width: 0.5rem;
+
+    &--neutral { background: var(--ts-ink); }
+    &--green   { background: #16a34a; }
+    &--amber   { background: #f59e0b; }
+    &--red     { background: var(--ts-primary); }
   }
 
   &__lbl {
     color: var(--ts-muted);
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    margin-top: 0.15rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
-  &__icon {
-    align-items: center;
-    border-radius: 0.65rem;
-    display: flex;
-    flex-shrink: 0;
-    height: 2.4rem;
-    justify-content: center;
-    width: 2.4rem;
-
-    svg {
-      height: 1.1rem;
-      width: 1.1rem;
-    }
-
-    &--stt   { background: #fce7f3; color: #e11d48; }
-    &--tech  { background: #ede9fe; color: #7c3aed; }
-    &--avail { background: #dbeafe; color: #2563eb; }
-    &--rem   { background: #fed7aa; color: #ea580c; }
-    &--used  { background: #d1fae5; color: #16a34a; }
+  &__val {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    white-space: nowrap;
   }
 }
 
@@ -168,23 +192,23 @@
 
 .ts-refresh-btn {
   align-items: center;
-  background: rgba(229, 36, 59, 0.07);
+  background: var(--ts-primary);
   border: none;
   border-radius: 0.85rem;
-  color: var(--ts-primary);
+  color: #fff;
   cursor: pointer;
   display: inline-flex;
   font-size: 0.86rem;
   font-weight: 800;
   gap: 0.4rem;
-  padding: 0.6rem 1rem;
-  transition: background 0.15s;
+  padding: 0.6rem 1.15rem;
+  transition: background 0.15s, transform 0.12s;
   white-space: nowrap;
 
-  svg { height: 0.9rem; width: 0.9rem; }
+  svg { height: 0.95rem; width: 0.95rem; }
 
-  &:hover:not(:disabled) { background: rgba(229, 36, 59, 0.13); }
-  &:disabled { cursor: not-allowed; opacity: 0.5; }
+  &:hover:not(:disabled) { background: #c81e33; transform: translateY(-1px); }
+  &:disabled { cursor: not-allowed; opacity: 0.55; }
 }
 
 /* ─── Loading / Empty ────────────────────────────────────────────────── */
@@ -258,21 +282,42 @@
   gap: 0.6rem;
 }
 
+.ts-stt-id { min-width: 0; }
+
+.ts-stt-name-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .ts-stt-name {
   font-size: 0.98rem;
   font-weight: 800;
 }
 
+.ts-stt-code {
+  background: #f1f2f4;
+  border-radius: 0.4rem;
+  color: var(--ts-muted);
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.12rem 0.45rem;
+}
+
 .ts-stt-sub {
   color: var(--ts-muted);
   font-size: 0.78rem;
-  margin-top: 0.1rem;
+  margin-top: 0.15rem;
 }
 
 .ts-stt-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.35rem;
+  justify-content: flex-end;
 }
 
 .ts-chevron {
@@ -285,73 +330,117 @@
   .ts-stt-card--expanded & { transform: rotate(180deg); }
 }
 
-/* ─── STT Body ───────────────────────────────────────────────────────── */
+/* ─── Mini chips (header badges) ────────────────────────────────────── */
+
+.ts-mini-chip {
+  align-items: center;
+  background: #f4f5f7;
+  border: 1px solid var(--ts-border);
+  border-radius: 999px;
+  color: var(--ts-text);
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 600;
+  gap: 0.3rem;
+  max-width: 11rem;
+  padding: 0.2rem 0.6rem;
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong { color: var(--ts-text); font-weight: 800; }
+
+  &--zero { color: var(--ts-muted); }
+}
+
+/* ─── STT Body / Tabs ────────────────────────────────────────────────── */
 
 .ts-stt-body {
   border-top: 1px solid var(--ts-border);
 }
 
-/* ─── Section Row (warehouse / techs header) ─────────────────────────── */
-
-.ts-section-row {
-  align-items: center;
-  background: #fdf8f8;
-  cursor: default;
+.ts-tabs {
   display: flex;
-  gap: 0.85rem;
-  padding: 0.85rem 1.15rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.85rem 1.15rem 0;
+}
 
-  & + & { border-top: 1px solid var(--ts-border); }
+.ts-tab {
+  align-items: center;
+  background: #f4f5f7;
+  border: 1px solid var(--ts-border);
+  border-radius: 0.7rem;
+  color: var(--ts-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 
-  &__icon {
-    align-items: center;
-    border-radius: 0.6rem;
-    display: flex;
-    flex-shrink: 0;
-    height: 2.2rem;
-    justify-content: center;
-    width: 2.2rem;
-
-    svg { height: 1rem; width: 1rem; }
-
-    &--stt  { background: #fce7f3; color: #e11d48; }
-    &--tech { background: #ede9fe; color: #7c3aed; }
-  }
-
-  &__content { flex: 1; min-width: 0; }
-
-  &__title {
-    font-size: 0.82rem;
+  &__count {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    color: inherit;
+    font-size: 0.7rem;
     font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    min-width: 1.2rem;
+    padding: 0.05rem 0.4rem;
+    text-align: center;
   }
 
-  &__sub {
-    color: var(--ts-muted);
-    font-size: 0.78rem;
-    margin-top: 0.1rem;
-  }
+  &:hover:not(.ts-tab--active) { background: #ebedf0; }
 
-  &__arrow {
-    color: var(--ts-muted);
-    flex-shrink: 0;
-    height: 1rem;
-    width: 1rem;
+  &--active {
+    background: var(--ts-ink);
+    border-color: var(--ts-ink);
+    color: #fff;
+
+    .ts-tab__count { background: rgba(255, 255, 255, 0.22); color: #fff; }
   }
 }
 
-/* ─── Section Detail (table / tech grid) ────────────────────────────── */
-
-.ts-section-detail {
-  border-top: 1px solid var(--ts-border);
-  padding: 0.85rem 1.15rem;
+.ts-tab-panel {
+  padding: 0.85rem 1.15rem 1.05rem;
 }
 
 .ts-sub-empty {
   color: var(--ts-muted);
   font-size: 0.85rem;
   padding: 0.25rem 0;
+}
+
+/* ─── Distributor row ────────────────────────────────────────────────── */
+
+.ts-distributor-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.ts-distributor-label {
+  color: var(--ts-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ts-distributor-badge {
+  background: rgba(229, 36, 59, 0.1);
+  border: 1px solid rgba(229, 36, 59, 0.22);
+  border-radius: 999px;
+  color: #be123c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.14rem 0.55rem;
 }
 
 /* ─── Table ──────────────────────────────────────────────────────────── */
@@ -363,38 +452,96 @@ table.ts-table {
   width: 100%;
 
   th {
-    background: #f9fafb;
     border-bottom: 1.5px solid var(--ts-border);
     color: var(--ts-muted);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 0.06em;
-    padding: 0.55rem 0.8rem;
+    padding: 0.5rem 0.8rem;
     text-align: left;
     text-transform: uppercase;
     white-space: nowrap;
+
+    &.ts-num { text-align: right; }
   }
 
   td {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.045);
     color: var(--ts-text);
     font-size: 0.86rem;
-    padding: 0.55rem 0.8rem;
+    padding: 0.65rem 0.8rem;
     vertical-align: middle;
+
+    &.ts-num { text-align: right; }
   }
 
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(59, 130, 246, 0.025); }
+  tr:hover td { background: rgba(0, 0, 0, 0.015); }
 }
 
-.ts-qty-badge {
+.ts-equip-cell { min-width: 12rem; }
+
+.ts-equip-name {
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.ts-unit {
+  color: var(--ts-muted);
+  font-weight: 700;
+}
+
+.ts-progress {
+  background: #eceef1;
   border-radius: 999px;
+  height: 0.3rem;
+  margin-top: 0.45rem;
+  max-width: 18rem;
+  overflow: hidden;
+  width: 100%;
+
+  &__fill {
+    background: var(--ts-ink);
+    border-radius: 999px;
+    display: block;
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+}
+
+.ts-avail {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
   font-size: 0.76rem;
   font-weight: 800;
-  padding: 0.2rem 0.55rem;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
 
-  &--avail { background: rgba(16, 185, 129, 0.12); color: #065f46; }
-  &--zero  { background: rgba(100, 116, 139, 0.09); color: #64748b; }
+  &__dot {
+    border-radius: 50%;
+    flex-shrink: 0;
+    height: 0.45rem;
+    width: 0.45rem;
+  }
+
+  &--ok {
+    background: rgba(16, 185, 129, 0.12);
+    color: #065f46;
+    .ts-avail__dot { background: #16a34a; }
+  }
+
+  &--low {
+    background: rgba(245, 158, 11, 0.15);
+    color: #92400e;
+    .ts-avail__dot { background: #f59e0b; }
+  }
+
+  &--zero {
+    background: rgba(100, 116, 139, 0.1);
+    color: #64748b;
+    .ts-avail__dot { background: #94a3b8; }
+  }
 }
 
 /* ─── TECH Grid ──────────────────────────────────────────────────────── */
@@ -527,6 +674,14 @@ table.ts-table {
   width: 2rem;
 
   &--sm { height: 1.75rem; width: 1.75rem; font-size: 0.66rem; }
+
+  &--square {
+    background: var(--ts-ink);
+    border-radius: 0.7rem;
+    font-size: 0.8rem;
+    height: 2.5rem;
+    width: 2.5rem;
+  }
 }
 
 .ts-self-badge {
@@ -537,27 +692,6 @@ table.ts-table {
   font-weight: 800;
   letter-spacing: 0.05em;
   padding: 0.12rem 0.45rem;
-}
-
-/* ─── Mini chips (header badges) ────────────────────────────────────── */
-
-.ts-mini-chip {
-  border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  padding: 0.18rem 0.55rem;
-
-  &--avail {
-    background: rgba(20, 184, 166, 0.12);
-    border: 1px solid rgba(20, 184, 166, 0.25);
-    color: #0f766e;
-  }
-
-  &--zero {
-    background: rgba(244, 63, 94, 0.1);
-    border: 1px solid rgba(244, 63, 94, 0.2);
-    color: #be123c;
-  }
 }
 
 /* ─── Tech chips (usage) ─────────────────────────────────────────────── */
@@ -572,32 +706,6 @@ table.ts-table {
   padding: 0.18rem 0.55rem;
 
   &--empty { background: #f1f1f4; border-color: transparent; color: #94a3b8; }
-}
-
-/* ─── Distributor row ────────────────────────────────────────────────── */
-
-.ts-distributor-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.65rem;
-}
-
-.ts-distributor-label {
-  color: var(--ts-muted);
-  font-size: 0.74rem;
-  font-weight: 600;
-}
-
-.ts-distributor-badge {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.22);
-  border-radius: 999px;
-  color: #1d4ed8;
-  font-size: 0.71rem;
-  font-weight: 700;
-  padding: 0.12rem 0.5rem;
 }
 
 /* ─── Pagination ─────────────────────────────────────────────────────── */
@@ -690,13 +798,14 @@ table.ts-table {
 
 @media (max-width: 860px) {
   .ts-hero { flex-direction: column; align-items: flex-start; }
+  .ts-stats { width: 100%; }
   .ts-stt-header { flex-wrap: wrap; }
+  .ts-stt-header__right { width: 100%; justify-content: space-between; }
+  .ts-stt-summary { justify-content: flex-start; }
   .ts-pagination { flex-direction: column; align-items: flex-start; }
 }
 
 @media (max-width: 600px) {
   .ts-shell { border-radius: 1rem; padding: 1rem; }
   .ts-tech-grid { grid-template-columns: 1fr; }
-  .ts-stats { gap: 0.45rem; }
-  .ts-stat { padding: 0.5rem 0.75rem; }
 }

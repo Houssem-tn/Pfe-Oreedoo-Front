@@ -59,21 +59,7 @@ export function getNavZm(canCreateDpm: boolean, canImportCoverage = false): INav
       url: '/zm/my-team',
       iconComponent: { name: 'cil-people' }
     },
-    {
-      name: 'Validation Queue',
-      url: '/zm/validations',
-      iconComponent: { name: 'cilTask' }
-    },
-    {
-      name: 'Audit Dossiers',
-      url: '/zm/audits',
-      iconComponent: { name: 'cilFolder' }
-    },
-    {
-      name: 'Reports',
-      url: '/zm/reports',
-      iconComponent: { name: 'cilChart' }
-    },
+   
 
     {
       title: true,
@@ -114,6 +100,11 @@ export function getNavZm(canCreateDpm: boolean, canImportCoverage = false): INav
       name: 'Team Distributions',
       url: '/zm/stock/team-distributions',
       iconComponent: { name: 'cilShare' }
+    },
+    {
+      name: 'Unit Tracking',
+      url: '/zm/stock/unit-tracking',
+      iconComponent: { name: 'cilTags' }
     },
     {
       name: 'Case Stock Audit',

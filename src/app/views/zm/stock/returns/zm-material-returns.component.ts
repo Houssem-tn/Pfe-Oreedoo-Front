@@ -62,6 +62,7 @@ export class ZmMaterialReturnsComponent implements OnInit {
   private viewDestroyed = false;
 
   loading = true;
+  refreshing = false;
   allReturns: MaterialReturn[] = [];
   activeTab: ActiveTab = 'pending';
 
@@ -162,6 +163,34 @@ export class ZmMaterialReturnsComponent implements OnInit {
     });
 
     this.loadReturns();
+  }
+
+  refresh(): void {
+    if (this.refreshing) {
+      return;
+    }
+
+    this.refreshing = true;
+    this.returnService
+      .getZmReturns()
+      .pipe(
+        timeout(ZmMaterialReturnsComponent.ACTION_TIMEOUT_MS),
+        tap((response) => console.debug('[MaterialReturn][ZM] manual refresh getZmReturns()', response)),
+        catchError((error) => {
+          console.error('[MaterialReturn][ZM] manual refresh getZmReturns() failed', error);
+          this.toast('Unable to refresh material returns.', 'error');
+          return of<MaterialReturn[]>([]);
+        }),
+        finalize(() => {
+          this.refreshing = false;
+          this.requestViewRefresh();
+        }),
+      )
+      .subscribe((returns) => {
+        this.allReturns = this.sortReturns(returns);
+        this.handlePendingReturnId();
+        this.requestViewRefresh();
+      });
   }
 
   openDetail(returnItem: MaterialReturn): void {

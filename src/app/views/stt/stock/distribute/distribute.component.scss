@@ -795,3 +795,69 @@ table.dist-table {
     width: 100%;
   }
 }
+
+/* ─── Tracked-unit selection (distribution) ───────────────────────── */
+.dist-tracked-tag {
+  margin-left: 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: rgba(99, 102, 241, 0.14);
+  color: #4338ca;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.dist-units-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.dist-unit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.dist-unit-chip:hover { border-color: #818cf8; }
+
+.dist-unit-chip--selected {
+  border-color: #4f46e5;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+}
+
+.dist-unit-check {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  color: #4f46e5;
+}
+
+.dist-units-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: 0.25rem;
+}
+
+.dist-unit-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+  padding: 0.05rem 0.35rem;
+  border-radius: 6px;
+}

@@ -33,20 +33,20 @@
           <span class="layer-dot" style="background:#9C27B0"></span>WS 5G
         </button>
         <button class="toggle-btn"
-                [class.active]="visibility().cases"
-                (click)="toggleVisibility('cases')">
-          <span class="layer-dot" style="background:#2196F3"></span>Cases
+                [class.active]="visibility().points"
+                (click)="toggleVisibility('points')">
+          <span class="layer-dot" style="background:#2196F3"></span>Activation (MES)
         </button>
       </div>
 
-      <!-- Run analysis -->
+      <!-- Reload activation (MES) coverage data -->
       <button class="btn-run"
-              [disabled]="loadingAnalysis()"
-              (click)="runAnalysis()">
-        @if (loadingAnalysis()) {
-          <span class="spinner"></span> Analyzing…
+              [disabled]="loadingPoints()"
+              (click)="loadActivationPoints()">
+        @if (loadingPoints()) {
+          <span class="spinner"></span> Loading…
         } @else {
-          ▶ Run Coverage Analysis
+          ↻ Reload Activation (MES)
         }
       </button>
     </div>
@@ -216,118 +216,113 @@
 
       <!-- Map legend: marker types -->
       <div class="map-legend">
-        <div class="legend-item"><span class="legend-dot" style="background:#4CAF50"></span>Inside coverage</div>
-        <div class="legend-item"><span class="legend-dot" style="background:#F44336"></span>Outside coverage</div>
-        <div class="legend-item"><span class="legend-dot legend-selected"></span>Selected case</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#2196F3"></span>Activation (MES) point</div>
+        <div class="legend-item"><span class="legend-dot legend-selected"></span>Selected point</div>
         <div class="legend-item"><span class="legend-dot legend-locate"></span>Custom location</div>
       </div>
     </div>
 
-    <!-- RIGHT PANEL: selected case details -->
-    @if (selectedResult()) {
+    <!-- RIGHT PANEL: selected point details -->
+    @if (selectedPoint(); as sel) {
       <aside class="side-panel right-panel">
         <div class="panel-section">
           <div class="section-header">
-            Case Details
+            Activation Details
             <button class="btn-close" (click)="clearSelection()">✕</button>
           </div>
 
-          <div class="detail-row"><span class="detail-label">CRM Case</span><strong>{{ selectedResult()!.crmCase }}</strong></div>
-          <div class="detail-row"><span class="detail-label">Type</span>{{ selectedResult()!.caseType }}</div>
-          <div class="detail-row"><span class="detail-label">Governorate</span>{{ selectedResult()!.governorate || '—' }}</div>
+          <div class="detail-row"><span class="detail-label">CRM Case</span><strong>{{ sel.caseCrm || '—' }}</strong></div>
+          <div class="detail-row"><span class="detail-label">Source</span>{{ sel.source || '—' }}</div>
+          <div class="detail-row"><span class="detail-label">Governorate</span>{{ sel.governorate || '—' }}</div>
+          <div class="detail-row"><span class="detail-label">Delegation</span>{{ sel.delegation || '—' }}</div>
+          <div class="detail-row"><span class="detail-label">Locality</span>{{ sel.locality || '—' }}</div>
+          <div class="detail-row"><span class="detail-label">MSISDN</span>{{ sel.msisdn || '—' }}</div>
           <div class="detail-row">
             <span class="detail-label">Coordinates</span>
-            {{ selectedResult()!.latitude | number:'1.4-4' }},
-            {{ selectedResult()!.longitude | number:'1.4-4' }}
+            {{ sel.latitude | number:'1.4-4' }}, {{ sel.longitude | number:'1.4-4' }}
           </div>
 
-          <div class="coverage-flags">
-            <span class="flag" [class.flag-yes]="selectedResult()!.inside4G" [class.flag-no]="!selectedResult()!.inside4G">4G</span>
-            <span class="flag" [class.flag-yes]="selectedResult()!.inside5G" [class.flag-no]="!selectedResult()!.inside5G">5G</span>
-            <span class="flag" [class.flag-yes]="selectedResult()!.insideWs4G" [class.flag-no]="!selectedResult()!.insideWs4G">WS4G</span>
-            <span class="flag" [class.flag-yes]="selectedResult()!.insideWs5G" [class.flag-no]="!selectedResult()!.insideWs5G">WS5G</span>
-          </div>
-
-          <div class="decision-box" [ngClass]="decisionBadgeClass(selectedResult()!.decision)">
-            {{ selectedResult()!.decision }}
-          </div>
+          <div class="section-header" style="margin-top:12px">Network Quality</div>
+          <div class="detail-row"><span class="detail-label">DEBIT_DL</span>{{ sel.debitDl != null ? (sel.debitDl | number:'1.0-2') : '—' }}</div>
+          <div class="detail-row"><span class="detail-label">DEBIT_UL</span>{{ sel.debitUl != null ? (sel.debitUl | number:'1.0-2') : '—' }}</div>
+          <div class="detail-row"><span class="detail-label">RSRP</span>{{ sel.rsrp != null ? (sel.rsrp | number:'1.0-2') : '—' }}</div>
+          <div class="detail-row"><span class="detail-label">RSRQ</span>{{ sel.rsrq != null ? (sel.rsrq | number:'1.0-2') : '—' }}</div>
+          <div class="detail-row"><span class="detail-label">SINR</span>{{ sel.sinr != null ? (sel.sinr | number:'1.0-2') : '—' }}</div>
         </div>
       </aside>
     }
   </div>
 
-  <!-- ═══════════════════════ SUMMARY CARDS ════════════════════════════════ -->
-  @if (summary()) {
+  <!-- ═══════════════════════ SUMMARY BAR ══════════════════════════════════ -->
+  @if (pointsLoaded() && !pointsError() && hasStudy()) {
     <div class="summary-row">
       <div class="summary-card">
-        <div class="card-value">{{ summary()!.totalCases }}</div>
-        <div class="card-label">Total Cases</div>
+        <div class="card-value">{{ totalPoints() }}</div>
+        <div class="card-label">Activation (MES) points</div>
       </div>
       <div class="summary-card card-4g">
-        <div class="card-value">{{ summary()!.inside4G }}</div>
-        <div class="card-label">Inside 4G</div>
+        <div class="card-value">{{ points().length }}</div>
+        <div class="card-label">Plotted on map</div>
       </div>
-      <div class="summary-card card-5g">
-        <div class="card-value">{{ summary()!.inside5G }}</div>
-        <div class="card-label">Inside 5G</div>
-      </div>
-      <div class="summary-card card-ws4g">
-        <div class="card-value">{{ summary()!.insideWs4G }}</div>
-        <div class="card-label">WS 4G</div>
-      </div>
-      <div class="summary-card card-ws5g">
-        <div class="card-value">{{ summary()!.insideWs5G }}</div>
-        <div class="card-label">WS 5G</div>
-      </div>
-      <div class="summary-card card-outside">
-        <div class="card-value">{{ summary()!.outsideAllCoverage }}</div>
-        <div class="card-label">Outside All</div>
-      </div>
-      <div class="summary-card card-invalid">
-        <div class="card-value">{{ summary()!.invalidCoordinateCases }}</div>
-        <div class="card-label">Invalid Coords</div>
-      </div>
+      @if (capped()) {
+        <div class="summary-card card-invalid">
+          <div class="card-value">⚠</div>
+          <div class="card-label">Showing first {{ points().length }} — zoom/filter for more</div>
+        </div>
+      }
     </div>
   }
 
-  <!-- ═══════════════════════ RESULTS TABLE ════════════════════════════════ -->
-  @if (analysisError()) {
-    <div class="alert-error" style="margin:0 16px 8px">{{ analysisError() }}</div>
-  }
-
-  @if (analysisResults().length > 0) {
+  <!-- ═══════════════════════ STATES + RESULTS TABLE ════════════════════════ -->
+  @if (pointsError()) {
+    <div class="alert-error" style="margin:8px 16px">{{ pointsError() }}</div>
+  } @else if (pointsLoaded() && !hasStudy()) {
+    <div class="empty-state" style="margin:16px">
+      No imported Merged Operations file found. Import one from <strong>Import Analytics</strong>, then reload.
+    </div>
+  } @else if (loadingPoints()) {
+    <div class="empty-state" style="margin:16px">
+      <span class="spinner-sm"></span> Loading activation coverage data…
+    </div>
+  } @else if (pointsLoaded() && points().length === 0) {
+    <div class="empty-state" style="margin:16px">
+      No activation (SOURCE = MES) rows with valid coordinates in the latest import.
+    </div>
+  } @else if (points().length > 0) {
     <div class="results-table-wrapper">
       <table class="results-table">
         <thead>
           <tr>
             <th>CRM Case</th>
-            <th>Type</th>
+            <th>Source</th>
             <th>Governorate</th>
-            <th>4G</th>
-            <th>5G</th>
-            <th>WS 4G</th>
-            <th>WS 5G</th>
-            <th>Decision</th>
+            <th>Delegation</th>
+            <th>Locality</th>
+            <th>MSISDN</th>
+            <th>DEBIT_DL</th>
+            <th>DEBIT_UL</th>
+            <th>RSRP</th>
+            <th>RSRQ</th>
+            <th>SINR</th>
           </tr>
         </thead>
         <tbody>
-          @for (r of analysisResults(); track r.id) {
+          @for (p of points(); track p.id) {
             <tr class="result-row"
-                [class.selected]="selectedResult()?.id === r.id"
-                (click)="selectResult(r)"
-                [title]="'Click to focus on map: ' + r.crmCase">
-              <td>{{ r.crmCase }}</td>
-              <td>{{ r.caseType }}</td>
-              <td>{{ r.governorate || '—' }}</td>
-              <td><span class="status-dot" [class.dot-yes]="r.inside4G" [class.dot-no]="!r.inside4G"></span></td>
-              <td><span class="status-dot" [class.dot-yes]="r.inside5G" [class.dot-no]="!r.inside5G"></span></td>
-              <td><span class="status-dot" [class.dot-yes]="r.insideWs4G" [class.dot-no]="!r.insideWs4G"></span></td>
-              <td><span class="status-dot" [class.dot-yes]="r.insideWs5G" [class.dot-no]="!r.insideWs5G"></span></td>
-              <td>
-                <span class="badge" [ngClass]="decisionBadgeClass(r.decision)">
-                  {{ r.decision }}
-                </span>
-              </td>
+                [class.selected]="selectedPoint()?.id === p.id"
+                (click)="selectPoint(p)"
+                [title]="'Click to focus on map: ' + (p.caseCrm || p.id)">
+              <td>{{ p.caseCrm || '—' }}</td>
+              <td>{{ p.source || '—' }}</td>
+              <td>{{ p.governorate || '—' }}</td>
+              <td>{{ p.delegation || '—' }}</td>
+              <td>{{ p.locality || '—' }}</td>
+              <td>{{ p.msisdn || '—' }}</td>
+              <td>{{ p.debitDl != null ? (p.debitDl | number:'1.0-2') : '—' }}</td>
+              <td>{{ p.debitUl != null ? (p.debitUl | number:'1.0-2') : '—' }}</td>
+              <td>{{ p.rsrp != null ? (p.rsrp | number:'1.0-2') : '—' }}</td>
+              <td>{{ p.rsrq != null ? (p.rsrq | number:'1.0-2') : '—' }}</td>
+              <td>{{ p.sinr != null ? (p.sinr | number:'1.0-2') : '—' }}</td>
             </tr>
           }
         </tbody>

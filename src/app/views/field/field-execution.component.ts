@@ -14,7 +14,9 @@ import {
   ComplaintCategory,
   ComplaintDiagnosisRequest,
   CompleteWorkRequest,
+  DeclareClientRecoveryRequest,
   EquipmentItemProofPayload,
+  RecoveredEquipmentRequestItem,
   SetRdvRequest
 } from '../../core/cases/models/case.model';
 import {
@@ -39,6 +41,8 @@ import { StockService } from '../../core/stock/stock.service';
 import {
   CaseLimitItem,
   CreatePermissionRequest,
+  Equipment,
+  EquipmentInstance,
   StockUsagePermission,
   TechStock,
   TechStockItem
@@ -48,8 +52,9 @@ import { SwalService } from '../../core/ui/swal.service';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationWsService } from '../../core/notifications/notification-ws.service';
 
-type FieldExecutionStep = 'rdv' | 'diagnosis' | 'stock' | 'work' | 'metrics' | 'completion';
+type FieldExecutionStep = 'rdv' | 'diagnosis' | 'stock' | 'recovery' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
+type CaseUsageContext = 'ACT' | 'PLT' | 'RES';
 
 interface FieldExecutionStepItem {
   key: FieldExecutionStep;
@@ -123,6 +128,15 @@ interface OverLimitLine {
   quantity: number;
   limit: number;
   unit: string;
+}
+
+interface RecoveryLine {
+  equipmentId: string;
+  quantity: number | string;
+  serialNumber: string;
+  macAddress: string;
+  imei: string;
+  condition: string;
 }
 
 @Component({
@@ -288,14 +302,16 @@ interface OverLimitLine {
           </div>
         </form>
 
-        <section class="field-card field-form-grid" *ngIf="activeStep === 'stock' && (isTechRole || isSttSelfExecutionComplaint)">
+        <section class="field-card field-form-grid" *ngIf="activeStep === 'stock' && !isResCase && (isTechRole || isSttSelfExecutionComplaint)">
           <div class="field-section-title">
             <h2>Stock step</h2>
-            <span>Declare used stock first</span>
+            <span *ngIf="caseUsageContext === 'PLT'">Complaint material usage / swap</span>
+            <span *ngIf="caseUsageContext !== 'PLT'">Declare used stock first</span>
           </div>
 
           <div class="field-fact">
-            <span>Add the equipment consumed on this case before continuing to work and metrics.</span>
+            <span *ngIf="caseUsageContext === 'PLT'">Add the equipment used or swapped to repair broken client material for this complaint (PLT). Only PLT-allowed items are listed.</span>
+            <span *ngIf="caseUsageContext !== 'PLT'">Add the equipment consumed for this activation (ACT) before continuing to work and metrics. Pack items are not consumable here — only ACT-allowed items are listed.</span>
           </div>
 
           <div class="field-fact" *ngIf="currentCaseUsedEquipment.length > 0">
@@ -309,18 +325,34 @@ interface OverLimitLine {
 
           <div *ngIf="techStockError" class="field-banner field-banner--danger">{{ techStockError }}</div>
 
-          <ng-container *ngIf="!techStockLoading && techStockItems.length > 0">
+          <ng-container *ngIf="!techStockLoading && pickerStockItems.length > 0">
             <div class="field-usage-picker">
-              <div class="field-usage-line" *ngFor="let line of usageLines; let i = index">
-                <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" [name]="'fsEq_' + i" [disabled]="actionBusy">
-                  <option value="">Item...</option>
-                  <option *ngFor="let stockItem of techStockItems" [value]="stockItem.equipmentId">
-                    {{ stockItem.equipmentName }} - {{ stockQuantityLabel(stockItem.remainingQuantity, stockItem.unit) }} left
-                  </option>
-                </select>
-                <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fsQty_' + i" [disabled]="actionBusy" placeholder="Qty" />
-                <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="actionBusy" *ngIf="usageLines.length > 1">Remove</button>
-              </div>
+              <ng-container *ngFor="let line of usageLines; let i = index">
+                <div class="field-usage-line">
+                  <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" (ngModelChange)="onUsageEquipmentChange(line)" [name]="'fsEq_' + i" [disabled]="actionBusy">
+                    <option value="">Item...</option>
+                    <option *ngFor="let stockItem of pickerStockItems" [value]="stockItem.equipmentId">
+                      {{ stockItem.equipmentName }} - {{ stockQuantityLabel(stockItem.remainingQuantity, stockItem.unit) }} left
+                    </option>
+                  </select>
+                  <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fsQty_' + i" [disabled]="actionBusy || isTrackedEquipment(line.equipmentId)" placeholder="Qty" />
+                  <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="actionBusy" *ngIf="usageLines.length > 1">Remove</button>
+                </div>
+                <div class="field-units" *ngIf="line.equipmentId && isTrackedEquipment(line.equipmentId)">
+                  <div class="field-units__head">Select the exact unit(s) by IMEI / Serial</div>
+                  <div class="field-units__list" *ngIf="unitsForEquipment(line.equipmentId).length > 0; else fsNoUnits">
+                    <button type="button" class="field-unit-chip"
+                            *ngFor="let u of unitsForEquipment(line.equipmentId)"
+                            [class.field-unit-chip--selected]="isUsageUnitSelected(line, u.id)"
+                            (click)="toggleUsageUnit(line, u.id)" [disabled]="actionBusy">
+                      {{ unitOptionLabel(u) }}
+                    </button>
+                  </div>
+                  <ng-template #fsNoUnits>
+                    <div class="field-units__empty">No tracked units in your stock for this item.</div>
+                  </ng-template>
+                </div>
+              </ng-container>
               <button class="field-usage-add" type="button" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
             </div>
 
@@ -328,6 +360,10 @@ interface OverLimitLine {
               <span>Leave the list empty if no equipment was used. Duplicate lines are merged automatically when you finish work.</span>
             </div>
           </ng-container>
+
+          <div class="field-fact" *ngIf="!techStockLoading && !techStockError && pickerStockItems.length === 0 && techStockItems.length > 0">
+            <span>None of your stock items are allowed for {{ usageContextLabel }}. Pack items and items not flagged for this workflow are hidden.</span>
+          </div>
 
           <div class="field-fact" *ngIf="!techStockLoading && !techStockError && techStockItems.length === 0">
             <span>No stock assigned yet</span>
@@ -437,6 +473,70 @@ interface OverLimitLine {
           </div>
         </section>
 
+        <!-- RES: recovered client material declaration (no stock consumption) -->
+        <section class="field-card field-form-grid" *ngIf="activeStep === 'recovery' && isResCase && (isTechRole || isSttSelfExecutionComplaint)">
+          <div class="field-section-title">
+            <h2>Recovery step</h2>
+            <span>Recovered client material</span>
+          </div>
+
+          <div class="field-alert field-alert--info">
+            <svg cIcon name="cilInfo"></svg>
+            Résiliation cases do not consume stock. Declare the equipment retrieved from the client below.
+            It is recorded as recovered material and linked to a return so the STT can hand it back to the ZM/depot on a scheduled date.
+          </div>
+
+          <div class="field-fact" *ngIf="currentCaseRecoveredEquipment.length > 0">
+            <span>This case already has {{ currentCaseRecoveredEquipment.length }} declared recovered item{{ currentCaseRecoveredEquipment.length > 1 ? 's' : '' }}.</span>
+          </div>
+
+          <div *ngIf="!catalogLoaded" class="field-loading">
+            <span class="field-spinner"></span>
+            Loading recoverable equipment...
+          </div>
+
+          <div class="field-fact" *ngIf="catalogLoaded && !hasRecoverableCatalog">
+            <span>No equipment is marked as recoverable from the client. Ask an admin to flag the relevant items.</span>
+          </div>
+
+          <ng-container *ngIf="catalogLoaded && hasRecoverableCatalog">
+            <div class="field-usage-picker">
+              <div class="field-recovery-line" *ngFor="let line of recoveryLines; let i = index">
+                <select class="field-input" [(ngModel)]="line.equipmentId" [name]="'frEq_' + i" [disabled]="recoverySaving">
+                  <option value="">Recovered item...</option>
+                  <option *ngFor="let eq of recoverableCatalogItems" [value]="eq.id">{{ eq.name }}</option>
+                </select>
+                <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'frQty_' + i" [disabled]="recoverySaving" placeholder="Qty" />
+                <select class="field-input" [(ngModel)]="line.condition" [name]="'frCond_' + i" [disabled]="recoverySaving">
+                  <option *ngFor="let opt of recoveryConditionOptions" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+                <input class="field-input" type="text" [(ngModel)]="line.serialNumber" [name]="'frSn_' + i" [disabled]="recoverySaving" placeholder="Serial (optional)" />
+                <input class="field-input" type="text" [(ngModel)]="line.imei" [name]="'frImei_' + i" [disabled]="recoverySaving" placeholder="IMEI (optional)" />
+                <input class="field-input" type="text" [(ngModel)]="line.macAddress" [name]="'frMac_' + i" [disabled]="recoverySaving" placeholder="MAC (optional)" />
+                <button class="field-usage-line__remove" type="button" (click)="removeRecoveryLine(i)" [disabled]="recoverySaving" *ngIf="recoveryLines.length > 1">Remove</button>
+              </div>
+              <button class="field-usage-add" type="button" (click)="addRecoveryLine()" [disabled]="recoverySaving">+ Add recovered item</button>
+            </div>
+
+            <label class="field-label">
+              Comment
+              <textarea class="field-textarea" name="recoveryComment" [(ngModel)]="recoveryComment" [disabled]="recoverySaving" placeholder="Optional note about the recovered material"></textarea>
+            </label>
+
+            <div class="field-button-row">
+              <button class="field-button field-button--success" type="button" (click)="submitRecovery()" [disabled]="recoverySaving || !hasAnyRecoveryLine">
+                <svg cIcon name="cilReload"></svg>
+                {{ recoverySaving ? 'Declaring...' : 'Declare recovered material' }}
+              </button>
+            </div>
+          </ng-container>
+
+          <div class="field-button-row" style="margin-top: 1rem">
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : 'rdv'">Back</button>
+            <button class="field-button field-button--primary" type="button" (click)="activeStep = 'work'">Next: Work</button>
+          </div>
+        </section>
+
         <section class="field-card field-form-grid" *ngIf="activeStep === 'work'">
           <div class="field-section-title">
             <h2>Work step</h2>
@@ -459,7 +559,7 @@ interface OverLimitLine {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? 'stock' : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? (isResCase ? 'recovery' : 'stock') : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = 'metrics'">Next</button>
           </div>
         </section>
@@ -492,16 +592,32 @@ interface OverLimitLine {
 
             <ng-container *ngIf="!techStockLoading && techStockItems.length > 0">
               <div class="field-usage-picker">
-                <div class="field-usage-line" *ngFor="let line of usageLines; let i = index">
-                  <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" [name]="'fuEq_' + i" [disabled]="actionBusy">
-                    <option value="">Item...</option>
-                    <option *ngFor="let item of techStockItems" [value]="item.equipmentId">
-                      {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
-                    </option>
-                  </select>
-                  <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fuQty_' + i" [disabled]="actionBusy" placeholder="Qty" />
-                  <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="actionBusy" *ngIf="usageLines.length > 1">Remove</button>
-                </div>
+                <ng-container *ngFor="let line of usageLines; let i = index">
+                  <div class="field-usage-line">
+                    <select class="field-input field-usage-line__select" [(ngModel)]="line.equipmentId" (ngModelChange)="onUsageEquipmentChange(line)" [name]="'fuEq_' + i" [disabled]="actionBusy">
+                      <option value="">Item...</option>
+                      <option *ngFor="let item of techStockItems" [value]="item.equipmentId">
+                        {{ item.equipmentName }} — {{ stockQuantityLabel(item.remainingQuantity, item.unit) }} left
+                      </option>
+                    </select>
+                    <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'fuQty_' + i" [disabled]="actionBusy || isTrackedEquipment(line.equipmentId)" placeholder="Qty" />
+                    <button class="field-usage-line__remove" type="button" (click)="removeUsageLine(i)" [disabled]="actionBusy" *ngIf="usageLines.length > 1">Remove</button>
+                  </div>
+                  <div class="field-units" *ngIf="line.equipmentId && isTrackedEquipment(line.equipmentId)">
+                    <div class="field-units__head">Select the exact unit(s) by IMEI / Serial</div>
+                    <div class="field-units__list" *ngIf="unitsForEquipment(line.equipmentId).length > 0; else fuNoUnits">
+                      <button type="button" class="field-unit-chip"
+                              *ngFor="let u of unitsForEquipment(line.equipmentId)"
+                              [class.field-unit-chip--selected]="isUsageUnitSelected(line, u.id)"
+                              (click)="toggleUsageUnit(line, u.id)" [disabled]="actionBusy">
+                        {{ unitOptionLabel(u) }}
+                      </button>
+                    </div>
+                    <ng-template #fuNoUnits>
+                      <div class="field-units__empty">No tracked units in your stock for this item.</div>
+                    </ng-template>
+                  </div>
+                </ng-container>
                 <button class="field-usage-add" type="button" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
               </div>
 
@@ -872,6 +988,38 @@ interface OverLimitLine {
     </section>
   `,
   styles: [`
+    .field-units {
+      margin: -0.25rem 0 0.6rem;
+      padding: 0.6rem 0.75rem;
+      border: 1px dashed rgba(99, 102, 241, 0.35);
+      border-radius: 0.6rem;
+      background: rgba(99, 102, 241, 0.04);
+    }
+    .field-units__head {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #4338ca;
+      margin-bottom: 0.45rem;
+    }
+    .field-units__list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .field-unit-chip {
+      border: 1px solid #d1d5db;
+      background: #fff;
+      border-radius: 8px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+    }
+    .field-unit-chip:hover { border-color: #818cf8; }
+    .field-unit-chip--selected {
+      border-color: #4f46e5;
+      background: rgba(99, 102, 241, 0.12);
+      color: #4338ca;
+    }
+    .field-units__empty { font-size: 0.78rem; color: #9ca3af; }
+
     .field-permission-card {
       border: 1px solid rgba(229, 165, 10, 0.28);
       border-radius: 1rem;
@@ -1073,6 +1221,20 @@ interface OverLimitLine {
       line-height: 1.45;
     }
 
+    .field-recovery-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) 0.7fr 1fr 1fr 1fr auto;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .field-recovery-line {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
     @media (max-width: 640px) {
       .field-permission-card__header {
         flex-direction: column;
@@ -1150,6 +1312,28 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   workForm: FieldWorkForm = this.emptyWorkForm();
   usageLines: EquipmentUsageLine[] = [];
 
+  // Equipment catalogue (with business-usage flags) used to filter the stock picker
+  // per case context (ACT/PLT) and to drive the RES recovery declaration.
+  equipmentCatalog: Equipment[] = [];
+  private equipmentById = new Map<string, Equipment>();
+  catalogLoaded = false;
+
+  // Tracked units (IMEI/Serial) available in my stock, grouped by equipmentId, for the usage picker.
+  private instancesByEquipment = new Map<string, EquipmentInstance[]>();
+
+  // RES client material recovery declaration
+  recoveryLines: RecoveryLine[] = [{ equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '', condition: 'GOOD' }];
+  recoveryComment = '';
+  recoverySaving = false;
+  readonly recoveryConditionOptions: { value: string; label: string }[] = [
+    { value: 'GOOD', label: 'Good' },
+    { value: 'RECONDITIONABLE', label: 'Reconditionable' },
+    { value: 'DAMAGED', label: 'Damaged' },
+    { value: 'BROKEN', label: 'Broken' },
+    { value: 'LOST', label: 'Lost' },
+    { value: 'UNKNOWN', label: 'Unknown' }
+  ];
+
   get steps(): FieldExecutionStepItem[] {
     const steps: FieldExecutionStepItem[] = [
       { key: 'rdv', label: 'RDV', icon: 'cilCalendar' }
@@ -1160,7 +1344,12 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     }
 
     if (this.isTechRole || this.isSttSelfExecutionComplaint) {
-      steps.push({ key: 'stock', label: 'Stock', icon: 'cilStorage' });
+      if (this.isResCase) {
+        // RES has no stock consumption — the executor declares recovered client material instead.
+        steps.push({ key: 'recovery', label: 'Recovery', icon: 'cilReload' });
+      } else {
+        steps.push({ key: 'stock', label: 'Stock', icon: 'cilStorage' });
+      }
     }
 
     steps.push(
@@ -1197,6 +1386,150 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     return this.caseItem?.type === 'PLAINTE'
       && this.caseItem?.executionMode === 'STT_SELF_EXECUTION'
       && !this.isTechRole;
+  }
+
+  /** ACT / PLT / RES business context of the current case (drives equipment filtering). */
+  get caseUsageContext(): CaseUsageContext {
+    const item = this.caseItem;
+    if (!item) {
+      return 'ACT';
+    }
+    if (item.type === 'PLAINTE') {
+      const isRes = (item.caseModule ?? '').toUpperCase() === 'RES'
+        || (item.source ?? '') === 'RES_TODO_IMPORT';
+      return isRes ? 'RES' : 'PLT';
+    }
+    return 'ACT';
+  }
+
+  get isResCase(): boolean {
+    return this.caseUsageContext === 'RES';
+  }
+
+  get usageContextLabel(): string {
+    switch (this.caseUsageContext) {
+      case 'ACT': return 'activation (ACT)';
+      case 'PLT': return 'complaint (PLT)';
+      case 'RES': return 'résiliation (RES)';
+    }
+  }
+
+  /** Stock picker options filtered by the case context using the equipment classification flags. */
+  get pickerStockItems(): TechStockItem[] {
+    if (this.isResCase) {
+      return [];
+    }
+    return this.techStockItems.filter((item) => this.isItemAllowedForContext(item.equipmentId));
+  }
+
+  private isItemAllowedForContext(equipmentId: string): boolean {
+    // Until the catalogue is loaded, don't hide anything (avoids an empty-picker flash).
+    if (!this.catalogLoaded) {
+      return true;
+    }
+    const eq = this.equipmentById.get(equipmentId);
+    if (!eq) {
+      // Not in the active catalogue (e.g. deactivated). Hide to stay aligned with backend enforcement.
+      return false;
+    }
+    if (this.caseUsageContext === 'ACT') {
+      return !!eq.usableInAct && !eq.packItem;
+    }
+    if (this.caseUsageContext === 'PLT') {
+      return !!eq.usableInPlt;
+    }
+    return false;
+  }
+
+  // ── Per-unit tracking (IMEI / Serial) for usage ─────────────────────────────
+
+  /** True when the equipment is tracked per-unit (requires picking exact IMEI/Serial units). */
+  isTrackedEquipment(equipmentId: string): boolean {
+    const mode = this.equipmentById.get(equipmentId)?.trackingMode;
+    return !!mode && mode !== 'NONE';
+  }
+
+  /** Tracked units available in my stock for a given equipment. */
+  unitsForEquipment(equipmentId: string): EquipmentInstance[] {
+    if (!equipmentId) return [];
+    return this.instancesByEquipment.get(equipmentId) ?? [];
+  }
+
+  unitOptionLabel(inst: EquipmentInstance): string {
+    const parts: string[] = [];
+    if (inst.serialNumber) parts.push(`SN ${inst.serialNumber}`);
+    if (inst.imei) parts.push(`IMEI ${inst.imei}`);
+    return parts.join(' · ') || inst.id;
+  }
+
+  isUsageUnitSelected(line: EquipmentUsageLine, instanceId: string): boolean {
+    return (line.instanceIds ?? []).includes(instanceId);
+  }
+
+  /** Select / deselect a tracked unit on a usage line; quantity follows the selection count. */
+  toggleUsageUnit(line: EquipmentUsageLine, instanceId: string): void {
+    const ids = line.instanceIds ? [...line.instanceIds] : [];
+    const idx = ids.indexOf(instanceId);
+    if (idx >= 0) ids.splice(idx, 1);
+    else ids.push(instanceId);
+    line.instanceIds = ids;
+    line.quantity = ids.length ? String(ids.length) : '';
+  }
+
+  /** Reset the tracked-unit selection when the equipment on a line changes. */
+  onUsageEquipmentChange(line: EquipmentUsageLine): void {
+    line.instanceIds = [];
+    if (this.isTrackedEquipment(line.equipmentId)) {
+      line.quantity = '';
+    }
+  }
+
+  /**
+   * For tracked items the quantity must come from the unit selection. A line pre-filled from a
+   * previously saved case carries a typed quantity but no selectable instanceIds (the exact units
+   * can't be restored from the stored case), so clear it and require the executor to re-pick.
+   * Safe no-op until the catalogue is loaded (isTrackedEquipment is then false).
+   */
+  private reconcileTrackedUsageLines(): void {
+    for (const line of this.usageLines) {
+      if (this.isTrackedEquipment(line.equipmentId) && !(line.instanceIds && line.instanceIds.length)) {
+        line.quantity = '';
+      }
+    }
+  }
+
+  /** Catalogue items that may be recovered from the client during a RES intervention. */
+  get recoverableCatalogItems(): Equipment[] {
+    return this.equipmentCatalog
+      .filter((eq) => eq.active && eq.recoverableFromClient)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  get hasRecoverableCatalog(): boolean {
+    return this.recoverableCatalogItems.length > 0;
+  }
+
+  get currentCaseRecoveredEquipment(): CaseUsedEquipmentItem[] {
+    if (!this.caseItem) {
+      return [];
+    }
+    const recovered = extractWork(this.caseItem).recoveredEquipment ?? [];
+    return recovered.map((item) => ({
+      equipmentId: item.equipmentId,
+      equipmentName: item.equipmentName,
+      unit: item.unit,
+      quantity: item.quantity
+    }));
+  }
+
+  recoveryEquipmentLabel(equipmentId: string): string {
+    const eq = this.equipmentById.get(equipmentId);
+    return eq?.name ?? equipmentId;
+  }
+
+  recoveryUnitLabel(equipmentId: string): string {
+    const eq = this.equipmentById.get(equipmentId);
+    return this.stockUnitLabel(eq?.unit ?? null);
   }
 
   get techStockItems(): TechStockItem[] {
@@ -1419,9 +1752,110 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     return 'Ask your STT for permission before finishing this case.';
   }
 
+  private loadEquipmentCatalog(): void {
+    this.stockService.getEquipment().subscribe({
+      next: (items) => {
+        this.equipmentCatalog = items ?? [];
+        this.equipmentById = new Map(this.equipmentCatalog.map((eq) => [eq.id, eq]));
+        this.catalogLoaded = true;
+        this.reconcileTrackedUsageLines();
+        this.render();
+      },
+      error: (err) => {
+        // Non-fatal: without the catalogue the picker simply isn't filtered client-side
+        // (the backend still enforces the rules on submit).
+        console.error('Failed to load equipment catalogue for field execution', err);
+        this.catalogLoaded = true;
+        this.render();
+      }
+    });
+  }
+
   addUsageLine(): void {
     this.usageLines = [...this.usageLines, { equipmentId: '', quantity: '' }];
     this.render();
+  }
+
+  // ── RES client material recovery ──────────────────────────────────────────
+
+  addRecoveryLine(): void {
+    this.recoveryLines = [...this.recoveryLines, { equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '', condition: 'GOOD' }];
+    this.render();
+  }
+
+  removeRecoveryLine(index: number): void {
+    this.recoveryLines = this.recoveryLines.filter((_, i) => i !== index);
+    if (this.recoveryLines.length === 0) {
+      this.addRecoveryLine();
+    }
+    this.render();
+  }
+
+  get hasAnyRecoveryLine(): boolean {
+    return this.recoveryLines.some((line) => !!line.equipmentId && Number(line.quantity) > 0);
+  }
+
+  submitRecovery(): void {
+    const target = this.caseItem;
+    if (!target || !this.isResCase) {
+      return;
+    }
+
+    const items: RecoveredEquipmentRequestItem[] = [];
+    for (const line of this.recoveryLines) {
+      const equipmentId = (line.equipmentId ?? '').trim();
+      const quantity = Number(String(line.quantity ?? '').trim());
+      if (!equipmentId) {
+        continue;
+      }
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        this.showBanner('Enter a valid quantity for each recovered item.', 'danger');
+        return;
+      }
+      const eq = this.equipmentById.get(equipmentId);
+      items.push({
+        equipmentId,
+        equipmentName: eq?.name,
+        unit: eq?.unit,
+        quantity,
+        serialNumber: line.serialNumber.trim() || undefined,
+        macAddress: line.macAddress.trim() || undefined,
+        imei: line.imei.trim() || undefined,
+        condition: line.condition || 'GOOD'
+      });
+    }
+
+    if (items.length === 0) {
+      this.showBanner('Select at least one recovered item before declaring.', 'danger');
+      return;
+    }
+
+    const payload: DeclareClientRecoveryRequest = {
+      items,
+      comment: this.recoveryComment.trim() || undefined
+    };
+
+    this.recoverySaving = true;
+    this.showBanner('Declaring recovered material...', 'info');
+
+    this.casesService.declareClientRecovery(target.id, payload)
+      .pipe(finalize(() => {
+        this.recoverySaving = false;
+        this.render();
+      }))
+      .subscribe({
+        next: (updated) => {
+          this.caseItem = updated;
+          this.recoveryLines = [{ equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '', condition: 'GOOD' }];
+          this.recoveryComment = '';
+          this.showBanner('Recovered material declared and linked to a return for ZM/depot handover.', 'success');
+          this.activeStep = 'work';
+        },
+        error: (err) => {
+          console.error('Failed to declare client recovery', err);
+          this.showBanner(err?.error?.message ?? 'Unable to declare recovered material.', 'danger');
+        }
+      });
   }
 
   removeUsageLine(index: number): void {
@@ -1431,6 +1865,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.activeStep = this.stepFromQuery();
+    this.loadEquipmentCatalog();
     if (this.isTechRole) {
       this.wsPermissionSub = this.notificationWsService.notifications$.subscribe((notification) => {
         this.handlePermissionNotification(notification);
@@ -2125,12 +2560,34 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         next: (stock) => {
           this.techStock = stock;
           this.syncUsageSelection(this.caseItem);
+          this.loadMyTrackedInstances('TECH');
         },
         error: (err) => {
           console.error('Failed to load TECH stock for field execution', err);
           this.techStockError = err?.error?.message ?? 'Stock helper is unavailable right now.';
         }
       });
+  }
+
+  /** Loads the caller's tracked units (IMEI/Serial), grouped by equipment, for the usage picker. */
+  private loadMyTrackedInstances(role: 'TECH' | 'STT'): void {
+    const obs = role === 'TECH'
+      ? this.stockService.getMyTechInstances()
+      : this.stockService.getMySttInstances();
+    obs.subscribe({
+      next: (instances) => {
+        const map = new Map<string, EquipmentInstance[]>();
+        for (const inst of instances ?? []) {
+          const list = map.get(inst.equipmentId) ?? [];
+          list.push(inst);
+          map.set(inst.equipmentId, list);
+        }
+        this.instancesByEquipment = map;
+        this.reconcileTrackedUsageLines();
+        this.render();
+      },
+      error: () => { /* non-fatal: tracked-unit picker simply shows no options */ }
+    });
   }
 
   private loadSttSelfStock(): void {
@@ -2148,6 +2605,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         next: (stock) => {
           this.techStock = stock;
           this.syncUsageSelection(this.caseItem);
+          this.loadMyTrackedInstances('STT');
         },
         error: (err) => {
           console.error('Failed to load STT self-execution stock', err);
@@ -2314,10 +2772,10 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   private stepFromQuery(): FieldExecutionStep {
     const value = this.route.snapshot.queryParamMap.get('step');
     if (value === 'work' && this.isTechRole) {
-      return 'stock';
+      return this.isResCase ? 'recovery' : 'stock';
     }
 
-    return value === 'stock' || value === 'work' || value === 'metrics' || value === 'completion' || value === 'rdv' || value === 'diagnosis'
+    return value === 'stock' || value === 'recovery' || value === 'work' || value === 'metrics' || value === 'completion' || value === 'rdv' || value === 'diagnosis'
       ? value
       : 'rdv';
   }
@@ -2452,7 +2910,10 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   }
 
   get firstExecutionStep(): FieldExecutionStep {
-    return (this.isTechRole || this.isSttSelfExecutionComplaint) ? 'stock' : 'work';
+    if (this.isTechRole || this.isSttSelfExecutionComplaint) {
+      return this.isResCase ? 'recovery' : 'stock';
+    }
+    return 'work';
   }
 
   private getItemLimit(item: TechStockItem): number | null {

@@ -21,8 +21,7 @@ import { AuthStore } from '../../../core/auth/auth.store';
 import { CoverageService } from '../../../core/coverage/coverage.service';
 import { CoverageAnalysisService } from '../../../core/coverage/coverage-analysis.service';
 import {
-  CoverageAnalysisResult,
-  CoverageAnalysisSummary,
+  CoverageAnalyticsPoint,
   CoverageLayerDetail,
   CoverageLayerSummary,
   CoverageTechnology,
@@ -45,12 +44,15 @@ function ensureRtl(): void {
 const TUNISIA_CENTER: [number, number] = [9.5375, 33.8869];
 const COVERAGE_MAP_ZOOM = 6;
 
+/** Marker color for activation (SOURCE = MES) points — matches the toggle dot. */
+const ACTIVATION_MARKER_COLOR = '#2196F3';
+
 interface LayerVisibility {
   coverage4G: boolean;
   coverage5G: boolean;
   ws4G: boolean;
   ws5G: boolean;
-  cases: boolean;
+  points: boolean;
 }
 
 @Component({
@@ -78,26 +80,32 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
     (this.role() === 'ROLE_ZM' && this.canImportCoverage())
   );
 
-  // ── Coverage state ────────────────────────────────────────────────────────────
+  // ── Coverage layer state ───────────────────────────────────────────────────────
   readonly layers          = signal<CoverageLayerSummary[]>([]);
-  readonly analysisResults = signal<CoverageAnalysisResult[]>([]);
-  readonly summary         = signal<CoverageAnalysisSummary | null>(null);
-  readonly selectedResult  = signal<CoverageAnalysisResult | null>(null);
 
   readonly loadingLayers   = signal(false);
   readonly loadingUpload   = signal(false);
-  readonly loadingAnalysis = signal(false);
   readonly mapError        = signal<string | null>(null);
   readonly uploadError     = signal<string | null>(null);
   readonly uploadSuccess   = signal<string | null>(null);
-  readonly analysisError   = signal<string | null>(null);
+
+  // ── Activation (merged-analytics) marker state ──────────────────────────────────
+  readonly points        = signal<CoverageAnalyticsPoint[]>([]);
+  readonly selectedPoint = signal<CoverageAnalyticsPoint | null>(null);
+  readonly totalPoints   = signal(0);
+  readonly capped        = signal(false);
+  readonly hasStudy      = signal(true);
+
+  readonly loadingPoints = signal(false);
+  readonly pointsError   = signal<string | null>(null);
+  readonly pointsLoaded  = signal(false);
 
   readonly visibility = signal<LayerVisibility>({
     coverage4G: true,
     coverage5G: true,
     ws4G: true,
     ws5G: true,
-    cases: true
+    points: true
   });
 
   // ── Coordinate lookup ─────────────────────────────────────────────────────────
@@ -118,6 +126,7 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
   // ── MapLibre ──────────────────────────────────────────────────────────────────
   private map: MapLibreMap | null = null;
   private addedLayerIds = new Set<string>();
+  private pointHandlersBound = false;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -148,6 +157,7 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
         this.map?.resize();
         this.initOverlaySources();
         this.loadLayers();
+        this.loadActivationPoints();
       });
     } catch (err) {
       console.error('[NetworkCoverage] Map init failed:', err);
@@ -160,7 +170,7 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
    *  - selected-case-source / selected-case-layer  (gold ring — updated on row click)
    *  - locate-source / locate-layer               (magenta dot — updated on coord locate)
    *
-   * Coverage polygon layers and cases-layer are added BEFORE these via beforeId so
+   * Coverage polygon layers and points-layer are added BEFORE these via beforeId so
    * these overlays always render on top.
    */
   private initOverlaySources(): void {
@@ -286,8 +296,8 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
     this.visibility.update(v => ({ ...v, [key]: !v[key] }));
     this.layers().filter(l => l.status === 'ACTIVE').forEach(l => this.applyVisibility(l));
 
-    if (key === 'cases' && this.map?.getLayer('cases-layer')) {
-      this.map.setLayoutProperty('cases-layer', 'visibility', this.visibility().cases ? 'visible' : 'none');
+    if (key === 'points' && this.map?.getLayer('points-layer')) {
+      this.map.setLayoutProperty('points-layer', 'visibility', this.visibility().points ? 'visible' : 'none');
     }
   }
 
@@ -355,122 +365,124 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  // ── Analysis ──────────────────────────────────────────────────────────────────
+  // ── Activation (merged-analytics) markers ───────────────────────────────────────
 
-  runAnalysis(): void {
-    this.analysisError.set(null);
-    this.loadingAnalysis.set(true);
+  /**
+   * Loads activation markers from the latest imported Merged Operations file
+   * (merged-analytics rows where SOURCE = MES) and plots them on the map.
+   * Replaces the old case-entity coverage analysis as the marker source.
+   */
+  loadActivationPoints(): void {
+    this.pointsError.set(null);
+    this.loadingPoints.set(true);
+    this.clearSelection();
 
-    this.analysisSvc.runAnalysis().subscribe({
-      next: sum => {
-        this.summary.set(sum);
-        this.loadingAnalysis.set(false);
-        this.fetchResults();
+    this.analysisSvc.getAnalyticsPoints('MES').subscribe({
+      next: res => {
+        this.loadingPoints.set(false);
+        this.pointsLoaded.set(true);
+        this.hasStudy.set(res.studyId != null);
+        this.totalPoints.set(res.totalMatching);
+        this.capped.set(res.capped);
+        this.points.set(res.points);
+        this.plotPointMarkers(res.points);
       },
       error: err => {
-        this.loadingAnalysis.set(false);
-        this.analysisError.set(err?.error?.message ?? 'Analysis failed.');
+        this.loadingPoints.set(false);
+        this.pointsLoaded.set(true);
+        this.pointsError.set(err?.error?.message ?? 'Failed to load activation coverage data.');
       }
     });
   }
 
-  private fetchResults(): void {
-    this.analysisSvc.getAllResults().subscribe({
-      next: results => {
-        this.analysisResults.set(results);
-        this.plotCaseMarkers(results);
-      }
-    });
-  }
-
-  private plotCaseMarkers(results: CoverageAnalysisResult[]): void {
+  private plotPointMarkers(points: CoverageAnalyticsPoint[]): void {
     if (!this.map) return;
 
-    if (this.map.getLayer('cases-layer')) this.map.removeLayer('cases-layer');
-    if (this.map.getSource('cases-src'))  this.map.removeSource('cases-src');
-
-    const features = results
-      .filter(r => r.latitude != null && r.longitude != null)
-      .map(r => ({
+    const features = points
+      .filter(p => p.latitude != null && p.longitude != null)
+      .map(p => ({
         type: 'Feature' as const,
-        properties: {
-          id: r.id,
-          crmCase: r.crmCase,
-          caseType: r.caseType,
-          decision: r.decision,
-          color: r.inside4G || r.inside5G ? '#4CAF50' : '#F44336'
-        },
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [r.longitude, r.latitude]
-        }
+        properties: { id: p.id },
+        geometry: { type: 'Point' as const, coordinates: [p.longitude, p.latitude] }
       }));
 
-    this.map.addSource('cases-src', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features }
+    const data = { type: 'FeatureCollection' as const, features };
+    const existing = this.map.getSource('points-src') as any;
+
+    if (existing) {
+      existing.setData(data);
+    } else {
+      this.map.addSource('points-src', { type: 'geojson', data });
+
+      // Insert below selected-case-layer so the selection marker stays on top
+      this.map.addLayer({
+        id: 'points-layer',
+        type: 'circle',
+        source: 'points-src',
+        paint: {
+          'circle-radius': 5,
+          'circle-color': ACTIVATION_MARKER_COLOR,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#fff',
+          'circle-opacity': 0.85
+        }
+      }, 'selected-case-layer');
+
+      this.bindPointHandlers();
+    }
+
+    if (!this.visibility().points && this.map.getLayer('points-layer')) {
+      this.map.setLayoutProperty('points-layer', 'visibility', 'none');
+    }
+  }
+
+  /** Binds click/hover handlers once — the source data is swapped in place on reload. */
+  private bindPointHandlers(): void {
+    if (!this.map || this.pointHandlersBound) return;
+    this.pointHandlersBound = true;
+
+    this.map.on('click', 'points-layer', (e: any) => {
+      const id = e.features?.[0]?.properties?.['id'];
+      if (id == null) return;
+      const match = this.points().find(p => p.id === id);
+      if (match) this.selectPoint(match);
     });
 
-    // Insert below selected-case-layer so selection marker stays on top
-    this.map.addLayer({
-      id: 'cases-layer',
-      type: 'circle',
-      source: 'cases-src',
-      paint: {
-        'circle-radius': 5,
-        'circle-color': ['get', 'color'],
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': '#fff',
-        'circle-opacity': 0.85
-      }
-    }, 'selected-case-layer');
-
-    this.map.on('click', 'cases-layer', (e: any) => {
-      const props = e.features?.[0]?.properties;
-      if (!props) return;
-      const match = this.analysisResults().find(r => r.id === props['id']);
-      if (match) this.selectResult(match);
-    });
-
-    this.map.on('mouseenter', 'cases-layer', () => {
+    this.map.on('mouseenter', 'points-layer', () => {
       if (this.map) this.map.getCanvas().style.cursor = 'pointer';
     });
-    this.map.on('mouseleave', 'cases-layer', () => {
+    this.map.on('mouseleave', 'points-layer', () => {
       if (this.map) this.map.getCanvas().style.cursor = '';
     });
-
-    if (!this.visibility().cases) {
-      this.map.setLayoutProperty('cases-layer', 'visibility', 'none');
-    }
   }
 
   // ── Selection ─────────────────────────────────────────────────────────────────
 
   /**
-   * Selects a case from the results table or map click:
+   * Selects a point from the results table or map click:
    * - Updates the right-panel detail view
-   * - Flies the map to the case coordinates at zoom 14
-   * - Moves the gold selected-case-layer marker to the case position
+   * - Flies the map to the point coordinates at zoom 14
+   * - Moves the gold selected-case-layer marker to the point position
    */
-  selectResult(result: CoverageAnalysisResult): void {
-    this.selectedResult.set(result);
+  selectPoint(point: CoverageAnalyticsPoint): void {
+    this.selectedPoint.set(point);
 
-    if (this.map && result.longitude != null && result.latitude != null) {
-      this.map.flyTo({ center: [result.longitude, result.latitude], zoom: 14 });
+    if (this.map && point.longitude != null && point.latitude != null) {
+      this.map.flyTo({ center: [point.longitude, point.latitude], zoom: 14 });
 
       (this.map.getSource('selected-case-source') as any)?.setData({
         type: 'FeatureCollection',
         features: [{
           type: 'Feature',
-          properties: { crmCase: result.crmCase },
-          geometry: { type: 'Point', coordinates: [result.longitude, result.latitude] }
+          properties: { crmCase: point.caseCrm },
+          geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] }
         }]
       });
     }
   }
 
   clearSelection(): void {
-    this.selectedResult.set(null);
+    this.selectedPoint.set(null);
     (this.map?.getSource('selected-case-source') as any)?.setData({
       type: 'FeatureCollection', features: []
     });

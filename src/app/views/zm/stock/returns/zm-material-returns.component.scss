@@ -40,9 +40,31 @@
 
 .page-header {
   padding: 1.5rem 1.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
   background:
     radial-gradient(circle at top right, rgba(229, 36, 59, 0.14), transparent 34%),
     linear-gradient(135deg, #fff5f6 0%, #ffe8eb 100%);
+}
+
+.page-header__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.btn-refresh {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+
+  svg {
+    height: 1rem;
+    width: 1rem;
+  }
 }
 
 .page-header h1,

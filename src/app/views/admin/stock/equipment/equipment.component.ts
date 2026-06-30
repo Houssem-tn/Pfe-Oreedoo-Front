@@ -6,7 +6,7 @@ import { IconDirective } from '@coreui/icons-angular';
 import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { Equipment, CreateEquipmentRequest, StockUnit } from '../../../../core/stock/stock.model';
+import { Equipment, CreateEquipmentRequest, StockUnit, TrackingMode } from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
 
 @Component({
@@ -34,11 +34,39 @@ export class EquipmentComponent implements OnInit {
     { value: 'PIECES', label: 'Pieces' }
   ];
 
-  form: CreateEquipmentRequest = { name: '', articleCode: '', description: '', unit: undefined };
+  readonly trackingModeOptions: { value: TrackingMode; label: string; hint: string }[] = [
+    { value: 'NONE', label: 'No tracking', hint: 'Quantity-based only (e.g. cable, connecteur, fixation).' },
+    { value: 'SERIAL_ONLY', label: 'Serial number only', hint: 'Each unit must declare a Serial Number.' },
+    { value: 'IMEI_ONLY', label: 'IMEI only', hint: 'Each unit must declare an IMEI.' },
+    { value: 'SERIAL_AND_IMEI', label: 'Serial number + IMEI', hint: 'Each unit must declare both a Serial Number and an IMEI.' },
+    { value: 'SERIAL_OR_IMEI', label: 'Serial number or IMEI', hint: 'Each unit must declare at least one of Serial Number or IMEI.' }
+  ];
+
+  trackingHint(mode?: TrackingMode): string {
+    return this.trackingModeOptions.find(o => o.value === (mode ?? 'NONE'))?.hint ?? '';
+  }
+
+  form: CreateEquipmentRequest = this.emptyForm();
   selectedImage: File | null = null;
   imagePreview: string | null = null;
 
   searchTerm = '';
+
+  private emptyForm(): CreateEquipmentRequest {
+    // Defaults preserve previous behaviour: usable in ACT and PLT, not a pack item, not recoverable.
+    return {
+      name: '', articleCode: '', description: '', unit: undefined,
+      packItem: false, usableInAct: true, usableInPlt: true, recoverableFromClient: false,
+      trackingMode: 'NONE'
+    };
+  }
+
+  /** Pack items can never be consumed in ACT — keep the toggle states coherent in the form. */
+  onPackItemChange(): void {
+    if (this.form.packItem) {
+      this.form.usableInAct = false;
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -57,7 +85,7 @@ export class EquipmentComponent implements OnInit {
 
   openCreate(): void {
     this.editingId = null;
-    this.form = { name: '', articleCode: '', description: '', unit: undefined };
+    this.form = this.emptyForm();
     this.selectedImage = null;
     this.imagePreview = null;
     this.modalVisible = true;
@@ -65,7 +93,17 @@ export class EquipmentComponent implements OnInit {
 
   openEdit(eq: Equipment): void {
     this.editingId = eq.id;
-    this.form = { name: eq.name, articleCode: eq.articleCode ?? '', description: eq.description ?? '', unit: eq.unit };
+    this.form = {
+      name: eq.name,
+      articleCode: eq.articleCode ?? '',
+      description: eq.description ?? '',
+      unit: eq.unit,
+      packItem: eq.packItem ?? false,
+      usableInAct: eq.usableInAct ?? true,
+      usableInPlt: eq.usableInPlt ?? true,
+      recoverableFromClient: eq.recoverableFromClient ?? false,
+      trackingMode: eq.trackingMode ?? 'NONE'
+    };
     this.selectedImage = null;
     this.imagePreview = eq.imageUrl ?? null;
     this.modalVisible = true;
@@ -122,5 +160,15 @@ export class EquipmentComponent implements OnInit {
     if (unit === 'METERS') return 'Meters';
     if (unit === 'PIECES') return 'Pieces';
     return '—';
+  }
+
+  usageBadges(eq: Equipment): { label: string; cls: string }[] {
+    const badges: { label: string; cls: string }[] = [];
+    if (eq.packItem) badges.push({ label: 'Pack', cls: 'equip-usage--pack' });
+    if (eq.usableInAct) badges.push({ label: 'ACT', cls: 'equip-usage--act' });
+    if (eq.usableInPlt) badges.push({ label: 'PLT', cls: 'equip-usage--plt' });
+    if (eq.recoverableFromClient) badges.push({ label: 'RES', cls: 'equip-usage--res' });
+    if (eq.trackingMode && eq.trackingMode !== 'NONE') badges.push({ label: 'Tracked', cls: 'equip-usage--tracked' });
+    return badges;
   }
 }

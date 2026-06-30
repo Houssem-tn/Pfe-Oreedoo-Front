@@ -7,7 +7,7 @@ import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
-import { DpmRequest, SttStock, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
+import { DpmRequest, SttStock, SttStockItem, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -33,7 +33,10 @@ export class ZmTeamStockComponent implements OnInit {
 
   loading = false;
   error: string | null = null;
-  expandedSttIds = new Set<string>();
+  /** Accordion: only one STT card is expanded at a time. null = all collapsed (default). */
+  expandedSttId: string | null = null;
+  /** Per-STT active detail tab: 'warehouse' (stock table) or 'techs' (tech grid). */
+  private activeTabMap = new Map<string, 'warehouse' | 'techs'>();
 
   page = 1;
   pageSize = 10;
@@ -41,16 +44,6 @@ export class ZmTeamStockComponent implements OnInit {
   private _searchFilter = '';
   get searchFilter(): string { return this._searchFilter; }
   set searchFilter(v: string) { this._searchFilter = v; this.page = 1; }
-
-  private readonly AVATAR_COLORS = [
-    'linear-gradient(135deg,#3b82f6,#1d4ed8)',
-    'linear-gradient(135deg,#8b5cf6,#6d28d9)',
-    'linear-gradient(135deg,#f59e0b,#b45309)',
-    'linear-gradient(135deg,#10b981,#065f46)',
-    'linear-gradient(135deg,#ec4899,#be185d)',
-    'linear-gradient(135deg,#06b6d4,#0891b2)',
-    'linear-gradient(135deg,#ef4444,#b91c1c)',
-  ];
 
   ngOnInit(): void { this.load(); }
 
@@ -100,7 +93,7 @@ export class ZmTeamStockComponent implements OnInit {
         this.techStocks = techStocks;
         this.techUsages = techUsages;
         this.techUsageMap = this.groupTechUsages(techUsages);
-        this.expandedSttIds = new Set(sttStocks.map(s => s.sttId));
+        this.expandedSttId = null;
       },
       error: e => this.error = e.message
     });
@@ -164,12 +157,6 @@ export class ZmTeamStockComponent implements OnInit {
     this.page = 1;
   }
 
-  sttAvatarColor(sttId: string): string {
-    let hash = 0;
-    for (let i = 0; i < sttId.length; i++) hash = (hash * 31 + sttId.charCodeAt(i)) | 0;
-    return this.AVATAR_COLORS[Math.abs(hash) % this.AVATAR_COLORS.length];
-  }
-
   techStocksForStt(sttId: string): TechStock[] {
     return this.techStocks.filter(t => t.sttId === sttId);
   }
@@ -193,11 +180,36 @@ export class ZmTeamStockComponent implements OnInit {
   }
 
   toggleStt(sttId: string): void {
-    if (this.expandedSttIds.has(sttId)) {
-      this.expandedSttIds.delete(sttId);
-    } else {
-      this.expandedSttIds.add(sttId);
-    }
+    this.expandedSttId = this.expandedSttId === sttId ? null : sttId;
+  }
+
+  /** Short display code derived from the digits in the STT name, e.g. "STT2" → "STT-002". */
+  sttCode(sttId: string): string {
+    const name = this.sttMap.get(sttId)?.fullName ?? '';
+    const digits = name.match(/\d+/)?.[0];
+    return digits ? `STT-${digits.padStart(3, '0')}` : '';
+  }
+
+  tabFor(sttId: string): 'warehouse' | 'techs' {
+    return this.activeTabMap.get(sttId) ?? 'warehouse';
+  }
+
+  setTab(sttId: string, tab: 'warehouse' | 'techs', event?: Event): void {
+    event?.stopPropagation();
+    this.activeTabMap.set(sttId, tab);
+  }
+
+  /** Share of received stock that has been distributed to TECHs (0–100), for the row progress bar. */
+  distributedPct(item: SttStockItem): number {
+    if (!item.totalReceived || item.totalReceived <= 0) return 0;
+    return Math.min(100, Math.round((item.totalDistributedToTechs / item.totalReceived) * 100));
+  }
+
+  /** Availability tone for the row badge dot: 'zero' / 'low' (<50% of received) / 'ok'. */
+  availLevel(item: SttStockItem): 'zero' | 'low' | 'ok' {
+    if (item.availableQuantity <= 0) return 'zero';
+    const ratio = item.totalReceived > 0 ? item.availableQuantity / item.totalReceived : 1;
+    return ratio < 0.5 ? 'low' : 'ok';
   }
 
   private stockLabel(meters: number, pieces: number): string {

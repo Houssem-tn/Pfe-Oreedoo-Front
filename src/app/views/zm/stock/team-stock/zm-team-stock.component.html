@@ -3,79 +3,51 @@
   <!-- Hero -->
   <div class="ts-hero">
     <div class="ts-hero__left">
-      <div class="ts-hero__title">Team Stock Overview</div>
-      <div class="ts-hero__sub">Live view of STT warehouses and TECH inventories under your zone</div>
+      <div class="ts-hero__heading">
+        <span class="ts-hero__accent"></span>
+        <div>
+          <div class="ts-hero__title">Team Stock Overview</div>
+          <div class="ts-hero__sub">Live view of STT warehouses and TECH inventories under your zone.</div>
+        </div>
+      </div>
     </div>
+
     <div class="ts-stats">
-
       <div class="ts-stat">
-        <div class="ts-stat__icon ts-stat__icon--stt">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="7" width="20" height="14" rx="2"></rect>
-            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
-          </svg>
+        <div class="ts-stat__top">
+          <span class="ts-stat__dot ts-stat__dot--neutral"></span>
+          <span class="ts-stat__lbl">STTS</span>
         </div>
-        <div>
-          <div class="ts-stat__val">{{ sttStocks.length }}</div>
-          <div class="ts-stat__lbl">STTS</div>
-        </div>
+        <div class="ts-stat__val">{{ sttStocks.length }}</div>
       </div>
-
       <div class="ts-stat">
-        <div class="ts-stat__icon ts-stat__icon--tech">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
-          </svg>
+        <div class="ts-stat__top">
+          <span class="ts-stat__dot ts-stat__dot--neutral"></span>
+          <span class="ts-stat__lbl">TECHS</span>
         </div>
-        <div>
-          <div class="ts-stat__val">{{ techStocks.length }}</div>
-          <div class="ts-stat__lbl">TECHS</div>
-        </div>
+        <div class="ts-stat__val">{{ techStocks.length }}</div>
       </div>
-
       <div class="ts-stat">
-        <div class="ts-stat__icon ts-stat__icon--avail">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path>
-          </svg>
+        <div class="ts-stat__top">
+          <span class="ts-stat__dot ts-stat__dot--green"></span>
+          <span class="ts-stat__lbl">STT Avail.</span>
         </div>
-        <div>
-          <div class="ts-stat__val">{{ totalSttUnitsLabel }}</div>
-          <div class="ts-stat__lbl">STT AVAIL.</div>
-        </div>
+        <div class="ts-stat__val">{{ totalSttUnitsLabel }}</div>
       </div>
-
       <div class="ts-stat">
-        <div class="ts-stat__icon ts-stat__icon--rem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 12V22H4V12"></path>
-            <path d="M22 7H2v5h20V7z"></path>
-            <path d="M12 22V7"></path>
-            <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"></path>
-            <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"></path>
-          </svg>
+        <div class="ts-stat__top">
+          <span class="ts-stat__dot ts-stat__dot--amber"></span>
+          <span class="ts-stat__lbl">TECH Rem.</span>
         </div>
-        <div>
-          <div class="ts-stat__val">{{ totalTechUnitsLabel }}</div>
-          <div class="ts-stat__lbl">TECH REM.</div>
-        </div>
+        <div class="ts-stat__val">{{ totalTechUnitsLabel }}</div>
       </div>
-
       <div class="ts-stat">
-        <div class="ts-stat__icon ts-stat__icon--used">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
+        <div class="ts-stat__top">
+          <span class="ts-stat__dot ts-stat__dot--red"></span>
+          <span class="ts-stat__lbl">TECH Used</span>
         </div>
-        <div>
-          <div class="ts-stat__val">{{ totalTechUsedUnitsLabel }}</div>
-          <div class="ts-stat__lbl">TECH USED</div>
-        </div>
+        <div class="ts-stat__val">{{ totalTechUsedUnitsLabel }}</div>
       </div>
-
     </div>
   </div>
 
@@ -90,7 +62,7 @@
         <circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path>
       </svg>
       <input class="ts-search__input" type="text" [(ngModel)]="searchFilter"
-             placeholder="Search by STT name…" />
+             placeholder="Search by STT name, equipment or tech…" />
     </div>
     <button class="ts-filter-btn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -120,16 +92,19 @@
   } @else {
     <div class="ts-list">
       @for (ss of pagedSttStocks; track ss.sttId) {
-        <div class="ts-stt-card" [class.ts-stt-card--expanded]="expandedSttIds.has(ss.sttId)">
+        <div class="ts-stt-card" [class.ts-stt-card--expanded]="expandedSttId === ss.sttId">
 
           <!-- STT header -->
           <div class="ts-stt-header" (click)="toggleStt(ss.sttId)">
             <div class="ts-stt-header__left">
-              <span class="ts-avatar" [style.background]="sttAvatarColor(ss.sttId)">
-                {{ sttInitials(ss.sttId) }}
-              </span>
-              <div>
-                <div class="ts-stt-name">{{ sttName(ss.sttId) }}</div>
+              <span class="ts-avatar ts-avatar--square">{{ sttInitials(ss.sttId) }}</span>
+              <div class="ts-stt-id">
+                <div class="ts-stt-name-row">
+                  <span class="ts-stt-name">{{ sttName(ss.sttId) }}</span>
+                  @if (sttCode(ss.sttId)) {
+                    <span class="ts-stt-code">{{ sttCode(ss.sttId) }}</span>
+                  }
+                </div>
                 <div class="ts-stt-sub">
                   {{ ss.items.length }} equipment type{{ ss.items.length !== 1 ? 's' : '' }} ·
                   {{ sttAvailableLabel(ss) }} available
@@ -139,10 +114,9 @@
             <div class="ts-stt-header__right">
               <div class="ts-stt-summary">
                 @for (item of ss.items; track item.equipmentId) {
-                  <span class="ts-mini-chip"
-                        [class.ts-mini-chip--avail]="item.availableQuantity > 0"
-                        [class.ts-mini-chip--zero]="item.availableQuantity === 0">
-                    {{ item.equipmentName }}: <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                  <span class="ts-mini-chip">
+                    <span class="ts-mini-chip__name">{{ item.equipmentName }}</span>
+                    <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
                   </span>
                 }
                 @if (ss.items.length === 0) {
@@ -155,162 +129,152 @@
             </div>
           </div>
 
-          @if (expandedSttIds.has(ss.sttId)) {
+          @if (expandedSttId === ss.sttId) {
             <div class="ts-stt-body">
 
-              <!-- STT Warehouse section row -->
-              <div class="ts-section-row">
-                <div class="ts-section-row__icon ts-section-row__icon--stt">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="7" width="20" height="14" rx="2"></rect>
-                    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"></path>
-                  </svg>
-                </div>
-                <div class="ts-section-row__content">
-                  <div class="ts-section-row__title">STT WAREHOUSE</div>
-                  <div class="ts-section-row__sub">
-                    @if (ss.items.length === 0) { No stock received yet. }
-                    @else { Click to view stock details }
-                  </div>
-                </div>
-                <svg class="ts-section-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
+              <!-- Tabs -->
+              <div class="ts-tabs">
+                <button type="button" class="ts-tab"
+                        [class.ts-tab--active]="tabFor(ss.sttId) === 'warehouse'"
+                        (click)="setTab(ss.sttId, 'warehouse', $event)">
+                  Warehouse stock
+                  <span class="ts-tab__count">{{ ss.items.length }}</span>
+                </button>
+                <button type="button" class="ts-tab"
+                        [class.ts-tab--active]="tabFor(ss.sttId) === 'techs'"
+                        (click)="setTab(ss.sttId, 'techs', $event)">
+                  Techs
+                  <span class="ts-tab__count">{{ techStocksForStt(ss.sttId).length }}</span>
+                </button>
               </div>
 
-              @if (ss.items.length > 0) {
-                <div class="ts-section-detail">
+              <!-- Warehouse panel -->
+              @if (tabFor(ss.sttId) === 'warehouse') {
+                <div class="ts-tab-panel">
                   @if (distributorZmsFor(ss.sttId).length > 0) {
                     <div class="ts-distributor-row">
-                      <span class="ts-distributor-label">Stock distributed by:</span>
+                      <span class="ts-distributor-label">Distributed by</span>
                       @for (zmName of distributorZmsFor(ss.sttId); track zmName) {
                         <span class="ts-distributor-badge">{{ zmName }}</span>
                       }
                     </div>
                   }
-                  <div class="ts-table-wrap">
-                    <table class="ts-table">
-                      <thead>
-                        <tr>
-                          <th>Equipment</th>
-                          <th>Unit</th>
-                          <th>Received</th>
-                          <th>Distributed</th>
-                          <th>Available</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (item of ss.items; track item.equipmentId) {
+
+                  @if (ss.items.length === 0) {
+                    <div class="ts-sub-empty">No stock received yet.</div>
+                  } @else {
+                    <div class="ts-table-wrap">
+                      <table class="ts-table">
+                        <thead>
                           <tr>
-                            <td><strong>{{ item.equipmentName }}</strong></td>
-                            <td><small>{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
-                            <td>{{ item.totalReceived }}</td>
-                            <td>{{ item.totalDistributedToTechs }}</td>
-                            <td>
-                              <span class="ts-qty-badge"
-                                    [class.ts-qty-badge--avail]="item.availableQuantity > 0"
-                                    [class.ts-qty-badge--zero]="item.availableQuantity === 0">
-                                {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
-                              </span>
-                            </td>
+                            <th>Equipment</th>
+                            <th>Unit</th>
+                            <th class="ts-num">Received</th>
+                            <th class="ts-num">Distributed</th>
+                            <th class="ts-num">Available</th>
                           </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          @for (item of ss.items; track item.equipmentId) {
+                            <tr>
+                              <td class="ts-equip-cell">
+                                <div class="ts-equip-name">{{ item.equipmentName }}</div>
+                                <div class="ts-progress" [attr.title]="distributedPct(item) + '% distributed'">
+                                  <span class="ts-progress__fill" [style.width.%]="distributedPct(item)"></span>
+                                </div>
+                              </td>
+                              <td><small class="ts-unit">{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
+                              <td class="ts-num">{{ item.totalReceived }}</td>
+                              <td class="ts-num">{{ item.totalDistributedToTechs }}</td>
+                              <td class="ts-num">
+                                <span class="ts-avail"
+                                      [class.ts-avail--ok]="availLevel(item) === 'ok'"
+                                      [class.ts-avail--low]="availLevel(item) === 'low'"
+                                      [class.ts-avail--zero]="availLevel(item) === 'zero'">
+                                  <span class="ts-avail__dot"></span>
+                                  {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
+                                </span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
                 </div>
               }
 
-              <!-- TECHs section row -->
-              <div class="ts-section-row">
-                <div class="ts-section-row__icon ts-section-row__icon--tech">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
-                  </svg>
-                </div>
-                <div class="ts-section-row__content">
-                  <div class="ts-section-row__title">TECHS ({{ techStocksForStt(ss.sttId).length }})</div>
-                  <div class="ts-section-row__sub">
-                    @if (techStocksForStt(ss.sttId).length === 0) {
-                      No TECHs have received stock from this STT yet.
-                    } @else {
-                      {{ techStocksForStt(ss.sttId).length }} tech{{ techStocksForStt(ss.sttId).length !== 1 ? 's' : '' }} with active inventory
-                    }
-                  </div>
-                </div>
-                <svg class="ts-section-row__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </div>
-
-              @if (techStocksForStt(ss.sttId).length > 0) {
-                <div class="ts-section-detail">
-                  <div class="ts-tech-grid">
-                    @for (ts of techStocksForStt(ss.sttId); track ts.techId) {
-                      <div class="ts-tech-card">
-                        <div class="ts-tech-card__head">
-                          <span class="ts-avatar ts-avatar--sm"
-                                [style.background]="isSelfExecutor(ts) ? 'linear-gradient(135deg,#f59e0b,#b45309)' : 'linear-gradient(135deg,#10b981,#065f46)'">
-                            {{ techInitials(ts.techId) }}
-                          </span>
-                          <span class="ts-tech-card__name">{{ techName(ts.techId) }}</span>
-                          @if (isSelfExecutor(ts)) {
-                            <span class="ts-self-badge">SELF</span>
-                          }
-                        </div>
-                        <div class="ts-tech-card__items">
-                          @for (ti of ts.items; track ti.equipmentId) {
-                            <div class="ts-tech-balance">
-                              <div class="ts-tech-balance__name">
-                                {{ ti.equipmentName }}
-                                @if (ti.unit) {
-                                  <small>{{ ti.unit }}</small>
-                                }
-                              </div>
-                              <div class="ts-tech-balance__stats">
-                                <span>Recv <strong>{{ ti.receivedQuantity }}</strong></span>
-                                <span>Used <strong>{{ ti.usedQuantity }}</strong></span>
-                                <span>Rem <strong>{{ ti.remainingQuantity }}</strong></span>
-                              </div>
-                            </div>
-                          }
-                          @if (ts.items.length === 0) {
-                            <span class="ts-tech-chip ts-tech-chip--empty">Empty</span>
-                          }
-                        </div>
-
-                        <div class="ts-tech-usage">
-                          <div class="ts-tech-usage__title">Usage by case</div>
-                          @if (techUsagesForTech(ts.techId).length === 0) {
-                            <div class="ts-sub-empty">No usage declarations yet.</div>
-                          } @else {
-                            <div class="ts-tech-usage__list">
-                              @for (usage of techUsagesForTech(ts.techId); track usage.id) {
-                                <div class="ts-tech-usage__card">
-                                  <div class="ts-tech-usage__head">
-                                    <strong>Case {{ usage.caseReference }}</strong>
-                                    <span>{{ usage.declaredAt | date:'dd/MM/yy HH:mm' }}</span>
-                                  </div>
-                                  <div class="ts-tech-usage__items">
-                                    @for (item of usage.items; track item.equipmentId) {
-                                      <span class="ts-tech-chip">
-                                        {{ item.equipmentName }} <strong>x{{ item.quantity }}</strong>
-                                      </span>
-                                    }
-                                  </div>
-                                  @if (usage.notes) {
-                                    <div class="ts-tech-usage__note">{{ usage.notes }}</div>
+              <!-- Techs panel -->
+              @if (tabFor(ss.sttId) === 'techs') {
+                <div class="ts-tab-panel">
+                  @if (techStocksForStt(ss.sttId).length === 0) {
+                    <div class="ts-sub-empty">No TECHs have received stock from this STT yet.</div>
+                  } @else {
+                    <div class="ts-tech-grid">
+                      @for (ts of techStocksForStt(ss.sttId); track ts.techId) {
+                        <div class="ts-tech-card">
+                          <div class="ts-tech-card__head">
+                            <span class="ts-avatar ts-avatar--sm"
+                                  [style.background]="isSelfExecutor(ts) ? 'linear-gradient(135deg,#f59e0b,#b45309)' : 'linear-gradient(135deg,#10b981,#065f46)'">
+                              {{ techInitials(ts.techId) }}
+                            </span>
+                            <span class="ts-tech-card__name">{{ techName(ts.techId) }}</span>
+                            @if (isSelfExecutor(ts)) {
+                              <span class="ts-self-badge">SELF</span>
+                            }
+                          </div>
+                          <div class="ts-tech-card__items">
+                            @for (ti of ts.items; track ti.equipmentId) {
+                              <div class="ts-tech-balance">
+                                <div class="ts-tech-balance__name">
+                                  {{ ti.equipmentName }}
+                                  @if (ti.unit) {
+                                    <small>{{ ti.unit }}</small>
                                   }
                                 </div>
-                              }
-                            </div>
-                          }
+                                <div class="ts-tech-balance__stats">
+                                  <span>Recv <strong>{{ ti.receivedQuantity }}</strong></span>
+                                  <span>Used <strong>{{ ti.usedQuantity }}</strong></span>
+                                  <span>Rem <strong>{{ ti.remainingQuantity }}</strong></span>
+                                </div>
+                              </div>
+                            }
+                            @if (ts.items.length === 0) {
+                              <span class="ts-tech-chip ts-tech-chip--empty">Empty</span>
+                            }
+                          </div>
+
+                          <div class="ts-tech-usage">
+                            <div class="ts-tech-usage__title">Usage by case</div>
+                            @if (techUsagesForTech(ts.techId).length === 0) {
+                              <div class="ts-sub-empty">No usage declarations yet.</div>
+                            } @else {
+                              <div class="ts-tech-usage__list">
+                                @for (usage of techUsagesForTech(ts.techId); track usage.id) {
+                                  <div class="ts-tech-usage__card">
+                                    <div class="ts-tech-usage__head">
+                                      <strong>Case {{ usage.caseReference }}</strong>
+                                      <span>{{ usage.declaredAt | date:'dd/MM/yy HH:mm' }}</span>
+                                    </div>
+                                    <div class="ts-tech-usage__items">
+                                      @for (item of usage.items; track item.equipmentId) {
+                                        <span class="ts-tech-chip">
+                                          {{ item.equipmentName }} <strong>x{{ item.quantity }}</strong>
+                                        </span>
+                                      }
+                                    </div>
+                                    @if (usage.notes) {
+                                      <div class="ts-tech-usage__note">{{ usage.notes }}</div>
+                                    }
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
                         </div>
-                      </div>
-                    }
-                  </div>
+                      }
+                    </div>
+                  }
                 </div>
               }
 
