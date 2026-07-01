@@ -11,10 +11,15 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
+  FullscreenControl,
+  GeoJSONSource,
   Map as MapLibreMap,
   NavigationControl,
+  Popup,
   setRTLTextPlugin
 } from 'maplibre-gl';
+import { Subscription } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 import { MAP_STYLE_URL } from '../../../core/map/map.config';
 import { AuthStore } from '../../../core/auth/auth.store';
@@ -24,6 +29,7 @@ import {
   CoverageAnalyticsPoint,
   CoverageLayerDetail,
   CoverageLayerSummary,
+  CoveragePointFeature,
   CoverageTechnology,
   CoverageLayerType,
   LAYER_COLORS,
@@ -46,6 +52,22 @@ const COVERAGE_MAP_ZOOM = 6;
 
 /** Marker color for activation (SOURCE = MES) points — matches the toggle dot. */
 const ACTIVATION_MARKER_COLOR = '#2196F3';
+
+/** Clustering configuration for the activation points source. */
+const CLUSTER_RADIUS = 50;
+const CLUSTER_MAX_ZOOM = 14;
+
+/** Rows rendered per page in the results table — keeps the DOM light with 50K+ points. */
+const TABLE_PAGE_SIZE = 50;
+
+/** Zoom used when focusing a single point (search / row click) — above CLUSTER_MAX_ZOOM so it is unclustered. */
+const FOCUS_ZOOM = 15;
+
+/** MapLibre source + layer ids for the clustered activation points. */
+const SRC_POINTS      = 'activation-mes-points';
+const LAYER_CLUSTERS  = 'clusters';
+const LAYER_CLUSTER_COUNT = 'cluster-count';
+const LAYER_POINTS    = 'unclustered-point';
 
 interface LayerVisibility {
   coverage4G: boolean;
@@ -90,6 +112,7 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
   readonly uploadSuccess   = signal<string | null>(null);
 
   // ── Activation (merged-analytics) marker state ──────────────────────────────────
+  /** All MES points, loaded once and kept in memory; MapLibre clusters them client-side. */
   readonly points        = signal<CoverageAnalyticsPoint[]>([]);
   readonly selectedPoint = signal<CoverageAnalyticsPoint | null>(null);
   readonly totalPoints   = signal(0);
@@ -99,6 +122,21 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
   readonly loadingPoints = signal(false);
   readonly pointsError   = signal<string | null>(null);
   readonly pointsLoaded  = signal(false);
+
+  // ── Results table pagination (never renders all 50K+ rows at once) ──────────────
+  readonly tablePage  = signal(0);
+  readonly pageSize   = TABLE_PAGE_SIZE;
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.points().length / this.pageSize)));
+  readonly pagedPoints = computed(() => {
+    const start = this.tablePage() * this.pageSize;
+    return this.points().slice(start, start + this.pageSize);
+  });
+
+  // ── MSISDN search ───────────────────────────────────────────────────────────────
+  msisdnInput = '';
+  readonly loadingSearch = signal(false);
+  readonly searchError   = signal<string | null>(null);
+  readonly searchResults = signal<CoverageAnalyticsPoint[]>([]);
 
   readonly visibility = signal<LayerVisibility>({
     coverage4G: true,
@@ -126,7 +164,15 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
   // ── MapLibre ──────────────────────────────────────────────────────────────────
   private map: MapLibreMap | null = null;
   private addedLayerIds = new Set<string>();
-  private pointHandlersBound = false;
+  private pointsLayersReady = false;
+  private popup: Popup | null = null;
+
+  /** One-time resize after the summary/table appear and shrink the map area. */
+  private firstPointsLoaded = false;
+
+  /** Active point-load / search subscriptions — cancelled before a new one starts. */
+  private pointsSub?: Subscription;
+  private searchSub?: Subscription;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -135,6 +181,9 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.pointsSub?.unsubscribe();
+    this.searchSub?.unsubscribe();
+    this.popup?.remove();
     this.map?.remove();
     this.map = null;
   }
@@ -152,10 +201,12 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
       });
 
       this.map.addControl(new NavigationControl(), 'top-right');
+      this.map.addControl(new FullscreenControl(), 'top-right');
 
       this.map.on('load', () => {
         this.map?.resize();
         this.initOverlaySources();
+        this.initPointsLayers();
         this.loadLayers();
         this.loadActivationPoints();
       });
@@ -167,11 +218,11 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
 
   /**
    * Adds two dedicated GeoJSON sources + layers that persist for the session:
-   *  - selected-case-source / selected-case-layer  (gold ring — updated on row click)
+   *  - selected-case-source / selected-case-layer  (gold ring — updated on row/point click)
    *  - locate-source / locate-layer               (magenta dot — updated on coord locate)
    *
-   * Coverage polygon layers and points-layer are added BEFORE these via beforeId so
-   * these overlays always render on top.
+   * Coverage polygon layers and the clustered points layers are added BEFORE these via
+   * beforeId so these overlays always render on top.
    */
   private initOverlaySources(): void {
     if (!this.map) return;
@@ -296,8 +347,16 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
     this.visibility.update(v => ({ ...v, [key]: !v[key] }));
     this.layers().filter(l => l.status === 'ACTIVE').forEach(l => this.applyVisibility(l));
 
-    if (key === 'points' && this.map?.getLayer('points-layer')) {
-      this.map.setLayoutProperty('points-layer', 'visibility', this.visibility().points ? 'visible' : 'none');
+    if (key === 'points') {
+      this.setPointsVisibility(this.visibility().points);
+    }
+  }
+
+  private setPointsVisibility(visible: boolean): void {
+    if (!this.map) return;
+    const value = visible ? 'visible' : 'none';
+    for (const id of [LAYER_CLUSTERS, LAYER_CLUSTER_COUNT, LAYER_POINTS]) {
+      if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', value);
     }
   }
 
@@ -368,121 +427,292 @@ export class NetworkCoverageComponent implements AfterViewInit, OnDestroy {
   // ── Activation (merged-analytics) markers ───────────────────────────────────────
 
   /**
-   * Loads activation markers from the latest imported Merged Operations file
-   * (merged-analytics rows where SOURCE = MES) and plots them on the map.
-   * Replaces the old case-entity coverage analysis as the marker source.
+   * Adds the clustered activation-points source + its three layers (cluster circles,
+   * cluster count labels, individual points) once, and binds the click/hover handlers.
+   * The source starts empty; {@link loadActivationPoints} fills it once with all MES points.
+   */
+  private initPointsLayers(): void {
+    if (!this.map || this.pointsLayersReady) return;
+
+    this.map.addSource(SRC_POINTS, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+      cluster: true,
+      clusterRadius: CLUSTER_RADIUS,
+      clusterMaxZoom: CLUSTER_MAX_ZOOM
+    });
+
+    // Cluster circles — size + color step up with the number of points.
+    this.map.addLayer({
+      id: LAYER_CLUSTERS,
+      type: 'circle',
+      source: SRC_POINTS,
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': ['step', ['get', 'point_count'], '#42A5F5', 100, '#1E88E5', 750, '#1565C0'],
+        'circle-radius': ['step', ['get', 'point_count'], 15, 100, 20, 750, 28],
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.9
+      }
+    }, 'selected-case-layer');
+
+    // Cluster count labels.
+    this.map.addLayer({
+      id: LAYER_CLUSTER_COUNT,
+      type: 'symbol',
+      source: SRC_POINTS,
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': ['get', 'point_count_abbreviated'],
+        'text-font': ['Noto Sans Bold', 'Noto Sans Regular'],
+        'text-size': 12
+      },
+      paint: { 'text-color': '#ffffff' }
+    }, 'selected-case-layer');
+
+    // Individual (unclustered) points.
+    this.map.addLayer({
+      id: LAYER_POINTS,
+      type: 'circle',
+      source: SRC_POINTS,
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-radius': 6,
+        'circle-color': ACTIVATION_MARKER_COLOR,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': '#fff',
+        'circle-opacity': 0.9
+      }
+    }, 'selected-case-layer');
+
+    this.bindPointHandlers();
+    this.setPointsVisibility(this.visibility().points);
+    this.pointsLayersReady = true;
+  }
+
+  /**
+   * Loads ALL activation (SOURCE = MES) markers ONCE and hands them to the clustered
+   * MapLibre source. There is no per-move / per-zoom backend call: clustering and
+   * unclustering happen entirely client-side, so panning/zooming never reloads data and
+   * the map cannot get stuck in a refresh loop. Called on first map load and by the manual
+   * "Reload Activation (MES)" button.
    */
   loadActivationPoints(): void {
     this.pointsError.set(null);
-    this.loadingPoints.set(true);
     this.clearSelection();
 
-    this.analysisSvc.getAnalyticsPoints('MES').subscribe({
-      next: res => {
-        this.loadingPoints.set(false);
-        this.pointsLoaded.set(true);
-        this.hasStudy.set(res.studyId != null);
-        this.totalPoints.set(res.totalMatching);
-        this.capped.set(res.capped);
-        this.points.set(res.points);
-        this.plotPointMarkers(res.points);
-      },
+    // Cancel any in-flight load so we never run duplicate concurrent requests.
+    this.pointsSub?.unsubscribe();
+    this.loadingPoints.set(true);
+
+    this.pointsSub = this.analysisSvc.getAllAnalyticsPoints('MES').pipe(
+      finalize(() => this.loadingPoints.set(false))   // loading always stops, success or fail
+    ).subscribe({
+      next: res => this.applyPointsResponse(res.features, res.studyId, res.totalMatching, res.capped),
       error: err => {
-        this.loadingPoints.set(false);
         this.pointsLoaded.set(true);
         this.pointsError.set(err?.error?.message ?? 'Failed to load activation coverage data.');
       }
     });
   }
 
-  private plotPointMarkers(points: CoverageAnalyticsPoint[]): void {
-    if (!this.map) return;
+  private applyPointsResponse(
+    features: CoveragePointFeature[],
+    studyId: string | null,
+    totalMatching: number,
+    capped: boolean
+  ): void {
+    this.pointsLoaded.set(true);
+    this.pointsError.set(null);
+    this.hasStudy.set(studyId != null);
+    this.totalPoints.set(totalMatching);
+    this.capped.set(capped);
+    this.points.set(features.map(f => f.properties));
+    this.tablePage.set(0);
 
-    const features = points
-      .filter(p => p.latitude != null && p.longitude != null)
-      .map(p => ({
-        type: 'Feature' as const,
-        properties: { id: p.id },
-        geometry: { type: 'Point' as const, coordinates: [p.longitude, p.latitude] }
-      }));
+    // Update ONLY the existing source's data — the source is never removed/re-added, and
+    // setData does not move the camera, so it triggers no reload.
+    const src = this.map?.getSource(SRC_POINTS) as GeoJSONSource | undefined;
+    src?.setData({ type: 'FeatureCollection', features: features as any });
 
-    const data = { type: 'FeatureCollection' as const, features };
-    const existing = this.map.getSource('points-src') as any;
-
-    if (existing) {
-      existing.setData(data);
-    } else {
-      this.map.addSource('points-src', { type: 'geojson', data });
-
-      // Insert below selected-case-layer so the selection marker stays on top
-      this.map.addLayer({
-        id: 'points-layer',
-        type: 'circle',
-        source: 'points-src',
-        paint: {
-          'circle-radius': 5,
-          'circle-color': ACTIVATION_MARKER_COLOR,
-          'circle-stroke-width': 1.5,
-          'circle-stroke-color': '#fff',
-          'circle-opacity': 0.85
-        }
-      }, 'selected-case-layer');
-
-      this.bindPointHandlers();
-    }
-
-    if (!this.visibility().points && this.map.getLayer('points-layer')) {
-      this.map.setLayoutProperty('points-layer', 'visibility', 'none');
+    // The first load reveals the summary bar + table, which shrink the map area; fix the
+    // canvas size once after the DOM has re-rendered. No moveend listener exists, so this
+    // resize cannot cause a reload.
+    if (!this.firstPointsLoaded) {
+      this.firstPointsLoaded = true;
+      setTimeout(() => this.map?.resize(), 0);
     }
   }
 
-  /** Binds click/hover handlers once — the source data is swapped in place on reload. */
+  // ── Results table pagination ────────────────────────────────────────────────────
+
+  prevPage(): void {
+    if (this.tablePage() > 0) this.tablePage.update(p => p - 1);
+  }
+
+  nextPage(): void {
+    if (this.tablePage() < this.totalPages() - 1) this.tablePage.update(p => p + 1);
+  }
+
+  // ── MSISDN search ─────────────────────────────────────────────────────────────
+
+  /**
+   * Searches MES analytics rows by MSISDN via the backend and locates the match on the map.
+   * Does NOT reload the MES point set. 0 matches → message; 1 → focus it; many → a small
+   * chooser list (see {@link focusSearchResult}).
+   */
+  searchByMsisdn(): void {
+    const msisdn = this.msisdnInput.trim();
+    this.searchError.set(null);
+    this.searchResults.set([]);
+    if (!msisdn) {
+      this.searchError.set('Enter an MSISDN to search.');
+      return;
+    }
+
+    this.searchSub?.unsubscribe();
+    this.loadingSearch.set(true);
+    this.searchSub = this.analysisSvc.searchByMsisdn('MES', msisdn).pipe(
+      finalize(() => this.loadingSearch.set(false))
+    ).subscribe({
+      next: results => {
+        if (results.length === 0) {
+          this.searchError.set('No MES point found for this MSISDN.');
+        } else if (results.length === 1) {
+          this.focusSearchResult(results[0]);
+        } else {
+          this.searchResults.set(results);   // multiple rows → let the user pick one
+        }
+      },
+      error: err => this.searchError.set(err?.error?.message ?? 'MSISDN search failed.')
+    });
+  }
+
+  /** Focuses a search result: flies to it (zoom 15, unclustered), highlights it, opens details + popup. */
+  focusSearchResult(p: CoverageAnalyticsPoint): void {
+    this.searchResults.set([]);
+    this.searchError.set(null);
+    this.selectPoint(p, true, FOCUS_ZOOM);
+    if (this.map && p.longitude != null && p.latitude != null) {
+      this.showPointPopup([p.longitude, p.latitude], p);
+    }
+  }
+
+  clearSearch(): void {
+    this.msisdnInput = '';
+    this.searchError.set(null);
+    this.searchResults.set([]);
+  }
+
+  /**
+   * Binds cluster + point interactions once — the source data is swapped in place on reload:
+   *  - click a cluster → zoom to its expansion level
+   *  - click a point   → popup with the technical fields + right-panel detail
+   */
   private bindPointHandlers(): void {
-    if (!this.map || this.pointHandlersBound) return;
-    this.pointHandlersBound = true;
+    if (!this.map) return;
 
-    this.map.on('click', 'points-layer', (e: any) => {
-      const id = e.features?.[0]?.properties?.['id'];
-      if (id == null) return;
-      const match = this.points().find(p => p.id === id);
-      if (match) this.selectPoint(match);
+    // Cluster click → expand.
+    this.map.on('click', LAYER_CLUSTERS, (e: any) => {
+      if (!this.map) return;
+      const feats = this.map.queryRenderedFeatures(e.point, { layers: [LAYER_CLUSTERS] });
+      const clusterId = feats[0]?.properties?.['cluster_id'];
+      if (clusterId == null) return;
+      const src = this.map.getSource(SRC_POINTS) as GeoJSONSource;
+      src.getClusterExpansionZoom(clusterId).then(zoom => {
+        const coords = (feats[0].geometry as any).coordinates;
+        this.map?.easeTo({ center: coords, zoom });
+      }).catch(() => { /* ignore expansion errors */ });
     });
 
-    this.map.on('mouseenter', 'points-layer', () => {
-      if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+    // Individual point click → popup + selection (no fly; the user clicked what they see).
+    this.map.on('click', LAYER_POINTS, (e: any) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const point = feature.properties as CoverageAnalyticsPoint;
+      const coords = (feature.geometry as any).coordinates as [number, number];
+      this.showPointPopup(coords, point);
+      this.selectPoint(point, false);
     });
-    this.map.on('mouseleave', 'points-layer', () => {
-      if (this.map) this.map.getCanvas().style.cursor = '';
-    });
+
+    // Pointer cursor over interactive layers.
+    for (const id of [LAYER_CLUSTERS, LAYER_POINTS]) {
+      this.map.on('mouseenter', id, () => {
+        if (this.map) this.map.getCanvas().style.cursor = 'pointer';
+      });
+      this.map.on('mouseleave', id, () => {
+        if (this.map) this.map.getCanvas().style.cursor = '';
+      });
+    }
+  }
+
+  private showPointPopup(coords: [number, number], p: CoverageAnalyticsPoint): void {
+    if (!this.map) return;
+    if (!this.popup) {
+      this.popup = new Popup({ closeButton: true, closeOnClick: true, maxWidth: '280px' });
+    }
+    this.popup.setLngLat(coords).setHTML(this.buildPopupHtml(p)).addTo(this.map);
+  }
+
+  private buildPopupHtml(p: CoverageAnalyticsPoint): string {
+    const esc = (v: unknown) =>
+      (v == null || v === '')
+        ? '—'
+        : String(v).replace(/[&<>"']/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c]);
+    const num = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(2));
+    const row = (label: string, value: string) =>
+      `<div class="mc-popup__row"><span>${label}</span><b>${value}</b></div>`;
+
+    return `<div class="mc-popup">
+      <div class="mc-popup__title">${esc(p.caseCrm)}</div>
+      ${row('MSISDN', esc(p.msisdn))}
+      ${row('Governorate', esc(p.governorate))}
+      ${row('Delegation', esc(p.delegation))}
+      ${row('Locality', esc(p.locality))}
+      ${row('DEBIT_DL', num(p.debitDl))}
+      ${row('DEBIT_UL', num(p.debitUl))}
+      ${row('RSRP', num(p.rsrp))}
+      ${row('RSRQ', num(p.rsrq))}
+      ${row('SINR', num(p.sinr))}
+    </div>`;
   }
 
   // ── Selection ─────────────────────────────────────────────────────────────────
 
   /**
-   * Selects a point from the results table or map click:
+   * Selects a point from the results table, a map click, or an MSISDN search:
    * - Updates the right-panel detail view
-   * - Flies the map to the point coordinates at zoom 14
-   * - Moves the gold selected-case-layer marker to the point position
+   * - Moves the gold selected-case-layer marker to the point (highlight, renders above clusters)
+   * - Optionally flies the map to the point (table/search fly; map clicks stay put)
    */
-  selectPoint(point: CoverageAnalyticsPoint): void {
+  selectPoint(point: CoverageAnalyticsPoint, fly = true, zoom = 14): void {
     this.selectedPoint.set(point);
+    this.setSelectedMarker(point);
 
-    if (this.map && point.longitude != null && point.latitude != null) {
-      this.map.flyTo({ center: [point.longitude, point.latitude], zoom: 14 });
+    if (fly && this.map && point.longitude != null && point.latitude != null) {
+      this.map.flyTo({ center: [point.longitude, point.latitude], zoom });
+    }
+  }
 
-      (this.map.getSource('selected-case-source') as any)?.setData({
-        type: 'FeatureCollection',
-        features: [{
+  /** Highlights the point with the gold selected-case marker (empty features clears it). */
+  private setSelectedMarker(point: CoverageAnalyticsPoint | null): void {
+    const features = (point && point.longitude != null && point.latitude != null)
+      ? [{
           type: 'Feature',
           properties: { crmCase: point.caseCrm },
           geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] }
         }]
-      });
-    }
+      : [];
+    (this.map?.getSource('selected-case-source') as any)?.setData({
+      type: 'FeatureCollection', features
+    });
   }
 
   clearSelection(): void {
     this.selectedPoint.set(null);
+    this.popup?.remove();
     (this.map?.getSource('selected-case-source') as any)?.setData({
       type: 'FeatureCollection', features: []
     });

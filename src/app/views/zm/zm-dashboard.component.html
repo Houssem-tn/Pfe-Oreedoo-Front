@@ -1,0 +1,370 @@
+<div class="zm-dash">
+
+  <!-- Header -->
+  <div class="zm-dash__header">
+    <div>
+      <h1 class="zm-dash__title">Zone Manager Control Center</h1>
+      <p class="zm-dash__subtitle">Everything in your zone — cases, team, stock and imports at a glance.</p>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()" [disabled]="loading()">
+      <svg cIcon name="cilReload" class="me-1"></svg> Refresh
+    </button>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="zm-dash__state">
+      <c-spinner color="danger"></c-spinner>
+      <p class="mt-3 text-body-secondary">Loading your dashboard…</p>
+    </div>
+  }
+
+  <!-- Error -->
+  @else if (error()) {
+    <div class="zm-dash__state">
+      <svg cIcon name="cilWarning" class="zm-dash__state-icon text-danger"></svg>
+      <h5 class="mt-2">Couldn’t load the dashboard</h5>
+      <p class="text-body-secondary">{{ error() }}</p>
+      <button type="button" class="btn btn-danger btn-sm" (click)="load()">Try again</button>
+    </div>
+  }
+
+  <!-- Empty -->
+  @else if (isEmpty) {
+    <div class="zm-dash__state">
+      <svg cIcon name="cilInbox" class="zm-dash__state-icon text-body-secondary"></svg>
+      <h5 class="mt-2">Nothing here yet</h5>
+      <p class="text-body-secondary">Once you import todos or receive cases, your operational overview will appear here.</p>
+      <a routerLink="/zm/inject-todos" class="btn btn-danger btn-sm">Import todos</a>
+    </div>
+  }
+
+  <!-- Content -->
+  @else if (data(); as d) {
+
+    <!-- 1. KPI cards -->
+    <section class="zm-dash__kpis">
+      @for (card of kpiCards; track card.label) {
+        <div class="zm-kpi" [class.zm-kpi--clickable]="card.link" [ngClass]="'zm-kpi--' + card.tone"
+             (click)="openKpi(card)">
+          <div class="zm-kpi__icon"><svg cIcon [name]="card.icon"></svg></div>
+          <div class="zm-kpi__body">
+            <div class="zm-kpi__value">{{ card.value | number }}</div>
+            <div class="zm-kpi__label">{{ card.label }}</div>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- 2. Charts row: status donut + completion trend -->
+    <div class="row g-3">
+      <div class="col-12 col-xl-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-header bg-transparent border-0 fw-semibold">Cases by status</div>
+          <div class="card-body">
+            @if (statusDonut) {
+              <div class="zm-chart"><c-chart [type]="statusDonut.type" [data]="statusDonut.data" [options]="statusDonut.options"></c-chart></div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-8">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-header bg-transparent border-0 fw-semibold">Completed cases over time (last 90 days)</div>
+          <div class="card-body">
+            @if (completionLine && completionLine.data.labels?.length) {
+              <div class="zm-chart"><c-chart [type]="completionLine.type" [data]="completionLine.data" [options]="completionLine.options"></c-chart></div>
+            } @else {
+              <p class="text-body-secondary small mb-0">No completed cases in this period.</p>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Needs your action -->
+    <section class="mt-4">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="zm-dash__section-title">Needs your action</h2>
+        <span class="badge text-bg-danger">{{ totalActionCount | number }}</span>
+      </div>
+      <div class="row g-3">
+        @for (card of actionCards; track card.key) {
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 border-0 shadow-sm zm-action" [ngClass]="'zm-action--' + card.tone">
+              <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="zm-action__icon"><svg cIcon [name]="card.icon"></svg></span>
+                    <span class="fw-semibold">{{ card.title }}</span>
+                  </div>
+                  <span class="zm-action__count">{{ card.group.count | number }}</span>
+                </div>
+
+                @if (card.group.preview.length) {
+                  <ul class="zm-action__list">
+                    @for (item of card.group.preview; track item.id) {
+                      <li>
+                        <span class="zm-action__ref">{{ item.reference || item.label || '—' }}</span>
+                        @if (item.meta) { <span class="zm-action__meta">{{ item.meta }}</span> }
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="text-body-secondary small mb-0 mt-2">All clear.</p>
+                }
+
+                <a class="zm-action__link" [routerLink]="card.link"
+                   [queryParams]="card.query || {}">View all →</a>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- 4. Cases by module -->
+    <section class="mt-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 fw-semibold">Cases by module</div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0 zm-table">
+            <thead>
+              <tr>
+                <th>Module</th><th class="text-end">Total</th><th class="text-end">Pending</th>
+                <th class="text-end">To STT</th><th class="text-end">To TECH</th><th class="text-end">In progress</th>
+                <th class="text-end">Work done</th><th class="text-end">Waiting val.</th>
+                <th class="text-end">Closed</th><th class="text-end">Overdue</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of d.casesByModule; track m.module) {
+                <tr>
+                  <td><span class="badge text-bg-light">{{ m.module }}</span></td>
+                  <td class="text-end fw-semibold">{{ m.total | number }}</td>
+                  <td class="text-end">{{ m.pending | number }}</td>
+                  <td class="text-end">{{ m.assignedStt | number }}</td>
+                  <td class="text-end">{{ m.assignedTech | number }}</td>
+                  <td class="text-end">{{ m.inProgress | number }}</td>
+                  <td class="text-end">{{ m.workDone | number }}</td>
+                  <td class="text-end">{{ m.waitingValidation | number }}</td>
+                  <td class="text-end">{{ m.closed | number }}</td>
+                  <td class="text-end" [class.text-danger]="m.overdue > 0">{{ m.overdue | number }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. STT performance -->
+    <section class="mt-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">STT performance</span>
+          <a routerLink="/zm/my-team" class="small">Open My Team →</a>
+        </div>
+        @if (d.sttPerformance.length) {
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 zm-table">
+              <thead>
+                <tr>
+                  <th>STT</th><th class="text-end">Assigned</th><th class="text-end">Completed</th>
+                  <th class="text-end">Pending</th><th class="text-end">Late</th>
+                  <th class="text-end">Avg (min)</th><th class="text-end">SLA %</th>
+                  <th class="text-end">Received</th><th class="text-end">Distributed</th>
+                  <th class="text-end">Returned</th><th class="text-end">Damaged/Missing</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of d.sttPerformance; track trackByStt($index, s)) {
+                  <tr class="zm-table__row" (click)="openStt()">
+                    <td>
+                      <div class="fw-semibold">{{ s.sttName || s.sttEmail || 'Unknown STT' }}</div>
+                      @if (s.sttEmail) { <div class="text-body-secondary small">{{ s.sttEmail }}</div> }
+                    </td>
+                    <td class="text-end fw-semibold">{{ s.assigned | number }}</td>
+                    <td class="text-end text-success">{{ s.completed | number }}</td>
+                    <td class="text-end">{{ s.pending | number }}</td>
+                    <td class="text-end" [class.text-danger]="s.late > 0">{{ s.late | number }}</td>
+                    <td class="text-end">{{ s.avgResolutionMinutes | number:'1.0-0' }}</td>
+                    <td class="text-end">
+                      <span class="badge" [ngClass]="'text-bg-' + slaTone(s.slaRespectPercent)">
+                        {{ s.slaRespectPercent | number:'1.0-0' }}%
+                      </span>
+                    </td>
+                    <td class="text-end">{{ s.materialReceived | number }}</td>
+                    <td class="text-end">{{ s.materialDistributed | number }}</td>
+                    <td class="text-end">{{ s.materialReturned | number }}</td>
+                    <td class="text-end" [class.text-danger]="s.materialDamagedMissing > 0">{{ s.materialDamagedMissing | number }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="card-body text-body-secondary small">No STTs cover your territory yet.</div>
+        }
+      </div>
+    </section>
+
+    <!-- 6. STT charts -->
+    <div class="row g-3 mt-1">
+      <div class="col-12 col-xl-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-header bg-transparent border-0 fw-semibold">Cases by STT</div>
+          <div class="card-body">
+            @if (sttBar && sttBar.data.labels?.length) {
+              <div class="zm-chart"><c-chart [type]="sttBar.type" [data]="sttBar.data" [options]="sttBar.options"></c-chart></div>
+            } @else { <p class="text-body-secondary small mb-0">No STT case data.</p> }
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-6">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-header bg-transparent border-0 fw-semibold">Overdue cases by STT</div>
+          <div class="card-body">
+            @if (overdueBar && overdueBar.data.labels?.length) {
+              <div class="zm-chart"><c-chart [type]="overdueBar.type" [data]="overdueBar.data" [options]="overdueBar.options"></c-chart></div>
+            } @else { <p class="text-body-secondary small mb-0">No overdue cases. 🎉</p> }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Stock & material overview -->
+    <section class="mt-4">
+      <h2 class="zm-dash__section-title mb-2">Stock &amp; material overview</h2>
+      <div class="row g-3">
+        <div class="col-12 col-xl-5">
+          <div class="zm-stock-grid">
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.dpmCreated | number }}</div><div class="zm-stat__l">DPMs created</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.dpmConfirmed | number }}</div><div class="zm-stat__l">DPMs confirmed</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialReceivedByStt | number }}</div><div class="zm-stat__l">Received by STT</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialDistributed | number }}</div><div class="zm-stat__l">Distributed to TECH</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialConsumed | number }}</div><div class="zm-stat__l">Consumed on cases</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialReturned | number }}</div><div class="zm-stat__l">Returned</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.recoverable | number }}</div><div class="zm-stat__l">Recoverable</div></div>
+            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.trackedUnits | number }}</div><div class="zm-stat__l">Tracked units</div></div>
+            <div class="zm-stat" [class.zm-stat--alert]="d.stockOverview.missingImeiSerial > 0">
+              <div class="zm-stat__v">{{ d.stockOverview.missingImeiSerial | number }}</div><div class="zm-stat__l">Missing IMEI/Serial</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-7">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 fw-semibold">Material movement</div>
+            <div class="card-body">
+              @if (stockBar) {
+                <div class="zm-chart"><c-chart [type]="stockBar.type" [data]="stockBar.data" [options]="stockBar.options"></c-chart></div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Zone: governorate bar + mini map -->
+    <section class="mt-4">
+      <h2 class="zm-dash__section-title mb-2">Workload by zone</h2>
+      <div class="row g-3">
+        <div class="col-12 col-xl-5">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">Cases by governorate</span>
+              <a routerLink="/zm/network-coverage" class="small">Coverage map →</a>
+            </div>
+            <div class="card-body">
+              @if (governorateBar && governorateBar.data.labels?.length) {
+                <div class="zm-chart"><c-chart [type]="governorateBar.type" [data]="governorateBar.data" [options]="governorateBar.options"></c-chart></div>
+              } @else { <p class="text-body-secondary small mb-0">No location data yet.</p> }
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-7">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 fw-semibold">Zone concentration</div>
+            <div class="card-body">
+              <div class="zm-map"><app-zm-zone-map [governorates]="d.governorateStats"></app-zm-zone-map></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. TODO imports + recent alerts -->
+    <div class="row g-3 mt-1">
+      <div class="col-12 col-xl-8">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Recent imports</span>
+            <a routerLink="/zm/imported-todos" class="small">All imports →</a>
+          </div>
+          @if (d.todoImportStats.length) {
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0 zm-table">
+                <thead>
+                  <tr>
+                    <th>Module</th><th>File</th><th>Date</th>
+                    <th class="text-end">Rows</th><th class="text-end">Created</th>
+                    <th class="text-end">Dupes</th><th class="text-end">Invalid</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (imp of d.todoImportStats; track $index) {
+                    <tr>
+                      <td><span class="badge text-bg-light">{{ imp.module }}</span></td>
+                      <td class="text-truncate" style="max-width: 220px;" [title]="imp.fileName">{{ imp.fileName || '—' }}</td>
+                      <td class="text-nowrap small">{{ imp.importDate ? (imp.importDate | date:'dd/MM/yy HH:mm') : '—' }}</td>
+                      <td class="text-end">{{ imp.totalRows | number }}</td>
+                      <td class="text-end text-success">{{ imp.createdCases | number }}</td>
+                      <td class="text-end">{{ imp.duplicateRows | number }}</td>
+                      <td class="text-end" [class.text-danger]="imp.invalidRows > 0">{{ imp.invalidRows | number }}</td>
+                      <td>
+                        <span class="badge" [ngClass]="imp.status === 'COMPLETED' ? 'text-bg-success' : 'text-bg-warning'">
+                          {{ imp.status === 'COMPLETED' ? 'OK' : 'Errors' }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="card-body text-body-secondary small">You haven’t imported any todos yet.</div>
+          }
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">Recent alerts</span>
+            <a routerLink="/alerts" class="small">Alert Center →</a>
+          </div>
+          @if (d.recentAlerts.length) {
+            <ul class="list-group list-group-flush zm-alerts">
+              @for (alert of d.recentAlerts; track $index) {
+                <li class="list-group-item">
+                  <div class="d-flex align-items-start gap-2">
+                    <span class="zm-alert-dot" [ngClass]="'zm-alert-dot--' + alertTone(alert.level)"></span>
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold small">{{ alert.title || 'Notification' }}</div>
+                      <div class="text-body-secondary small">{{ alert.message }}</div>
+                      <div class="text-body-secondary" style="font-size:.72rem">{{ alert.createdAt ? (alert.createdAt | date:'dd/MM HH:mm') : '' }}</div>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="card-body text-body-secondary small">No recent alerts.</div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <p class="zm-dash__footer text-body-secondary">Updated {{ d.generatedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+  }
+</div>

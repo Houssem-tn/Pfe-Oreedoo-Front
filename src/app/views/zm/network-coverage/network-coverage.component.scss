@@ -723,3 +723,141 @@
     box-shadow: 0 0 0 1.5px #E91E63;
   }
 }
+
+// ── Viewport loading indicator ─────────────────────────────────────────────────
+.map-loading {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(33, 33, 33, 0.85);
+  color: #fff;
+  font-size: 0.78rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+// ── Summary hint + table hint ──────────────────────────────────────────────────
+.summary-card.summary-hint {
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+  background: #e3f2fd;
+  text-align: left;
+
+  .card-label {
+    color: #1565c0;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    margin-top: 0;
+  }
+}
+
+// ── Results table toolbar + pagination ─────────────────────────────────────────
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 16px;
+  background: #fafafa;
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.table-hint {
+  font-size: 0.72rem;
+  color: #666;
+}
+
+.table-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .pager-info {
+    font-size: 0.72rem;
+    color: #666;
+    min-width: 92px;
+    text-align: center;
+  }
+
+  .pager-btn {
+    padding: 3px 10px;
+    font-size: 0.74rem;
+    border: 1px solid #cfd8dc;
+    border-radius: 4px;
+    background: #fff;
+    color: #37474f;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { background: #eceff1; }
+    &:disabled { opacity: 0.45; cursor: default; }
+  }
+}
+
+// ── MSISDN multi-match chooser ─────────────────────────────────────────────────
+.search-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 2px;
+
+  &__title {
+    width: 100%;
+    font-size: 0.72rem;
+    color: #666;
+    margin-bottom: 2px;
+  }
+}
+
+.search-result-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 10px;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover { background: #e3f2fd; border-color: #90caf9; }
+
+  strong { font-size: 0.76rem; color: #1565c0; }
+  span   { font-size: 0.68rem; color: #777; }
+}
+
+// ── Point popup (MapLibre popup lives outside Angular view encapsulation) ────────
+:host ::ng-deep .mc-popup {
+  font-size: 0.75rem;
+  min-width: 180px;
+
+  .mc-popup__title {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #1565c0;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .mc-popup__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 1px 0;
+
+    span { color: #888; }
+    b { color: #333; font-weight: 600; }
+  }
+}

@@ -5,9 +5,13 @@ import { API_BASE_URL } from '../http/api.config';
 import {
   CoverageAnalysisResult,
   CoverageAnalysisSummary,
-  CoverageAnalyticsPointsResponse,
+  CoverageAnalyticsPoint,
+  CoverageFeatureCollection,
   PointCheckResponse
 } from './coverage.models';
+
+/** High cap for the "load all MES points once" request (comfortably above the ~65K dataset). */
+const ALL_POINTS_LIMIT = 200_000;
 
 /** Optional viewport restriction for {@link CoverageAnalysisService.getAnalyticsPoints}. */
 export interface CoverageBoundingBox {
@@ -17,6 +21,12 @@ export interface CoverageBoundingBox {
   maxLng: number;
 }
 
+/** Optional attribute filters for {@link CoverageAnalysisService.getAnalyticsPoints}. */
+export interface CoveragePointFilters {
+  governorate?: string;
+  delegation?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CoverageAnalysisService {
   private readonly http = inject(HttpClient);
@@ -24,24 +34,44 @@ export class CoverageAnalysisService {
   private readonly url = `${this.baseUrl}/api/v1/coverage-analysis`;
 
   /**
-   * Coverage markers sourced from the latest imported Merged Operations file.
-   * `source` defaults to MES (activation). Pass a bounding box to restrict to a viewport.
+   * Coverage markers sourced from the latest imported Merged Operations file, returned as a
+   * GeoJSON FeatureCollection for the clustered MapLibre map. `source` defaults to MES
+   * (activation). Pass a bounding box to load only the points inside the current viewport;
+   * `zoom` and attribute `filters` are optional narrowing hints.
    */
   getAnalyticsPoints(
     source = 'MES',
     bbox?: CoverageBoundingBox,
-    limit?: number
-  ): Observable<CoverageAnalyticsPointsResponse> {
+    zoom?: number,
+    filters?: CoveragePointFilters
+  ): Observable<CoverageFeatureCollection> {
     let params = new HttpParams().set('source', source);
     if (bbox) {
-      params = params
-        .set('minLat', bbox.minLat)
-        .set('minLng', bbox.minLng)
-        .set('maxLat', bbox.maxLat)
-        .set('maxLng', bbox.maxLng);
+      // MapLibre bounds order: minLng,minLat,maxLng,maxLat (west,south,east,north).
+      params = params.set('bbox', `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat}`);
     }
-    if (limit != null) params = params.set('limit', limit);
-    return this.http.get<CoverageAnalyticsPointsResponse>(`${this.url}/analytics-points`, { params });
+    if (zoom != null) params = params.set('zoom', Math.round(zoom));
+    if (filters?.governorate) params = params.set('governorate', filters.governorate);
+    if (filters?.delegation) params = params.set('delegation', filters.delegation);
+    return this.http.get<CoverageFeatureCollection>(`${this.url}/analytics-points`, { params });
+  }
+
+  /**
+   * Loads ALL MES points once (no bounding box, high cap) as a GeoJSON FeatureCollection.
+   * The map keeps them in memory and clusters them client-side — no per-zoom backend calls.
+   */
+  getAllAnalyticsPoints(source = 'MES'): Observable<CoverageFeatureCollection> {
+    const params = new HttpParams().set('source', source).set('limit', ALL_POINTS_LIMIT);
+    return this.http.get<CoverageFeatureCollection>(`${this.url}/analytics-points`, { params });
+  }
+
+  /**
+   * Searches MES analytics rows by MSISDN (exact match) and returns the matching points so the
+   * map can locate/highlight them. Does not touch the loaded MES point set.
+   */
+  searchByMsisdn(source = 'MES', msisdn: string): Observable<CoverageAnalyticsPoint[]> {
+    const params = new HttpParams().set('source', source).set('msisdn', msisdn);
+    return this.http.get<CoverageAnalyticsPoint[]>(`${this.url}/analytics-points/search`, { params });
   }
 
   runAnalysis(governorate?: string): Observable<CoverageAnalysisSummary> {
