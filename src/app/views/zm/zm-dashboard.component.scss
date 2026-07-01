@@ -1,0 +1,233 @@
+:host {
+  --oo-red: #E30613;
+  --oo-red-deep: #B00020;
+  display: block;
+}
+
+.zm-dash {
+  padding: 0.25rem;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  &__subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--cui-secondary-color, #6b7280);
+    font-size: 0.9rem;
+  }
+
+  &__section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  &__state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+
+  &__state-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  &__footer {
+    text-align: right;
+    font-size: 0.75rem;
+    margin: 1.25rem 0 0.5rem;
+  }
+}
+
+/* ── KPI cards ─────────────────────────────────────────────── */
+.zm-dash__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.zm-kpi {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--cui-card-bg, #fff);
+  border-radius: 0.65rem;
+  border: 1px solid var(--cui-border-color-translucent, #e5e7eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-left: 4px solid var(--kpi-accent, #9ca3af);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &--clickable {
+    cursor: pointer;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 0.5rem;
+    background: var(--kpi-soft, #f3f4f6);
+    color: var(--kpi-accent, #6b7280);
+    flex-shrink: 0;
+    svg { width: 20px; height: 20px; }
+  }
+
+  &__value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+  &__label { font-size: 0.78rem; color: var(--cui-secondary-color, #6b7280); margin-top: 0.15rem; }
+
+  &--primary { --kpi-accent: #E30613; --kpi-soft: #FFF1F2; }
+  &--danger  { --kpi-accent: #DC2626; --kpi-soft: #FEF2F2; }
+  &--warning { --kpi-accent: #F59E0B; --kpi-soft: #FFFBEB; }
+  &--info    { --kpi-accent: #2563EB; --kpi-soft: #EFF6FF; }
+  &--success { --kpi-accent: #16A34A; --kpi-soft: #F0FDF4; }
+  &--neutral { --kpi-accent: #6B7280; --kpi-soft: #F3F4F6; }
+}
+
+/* ── Charts ────────────────────────────────────────────────── */
+.zm-chart { position: relative; height: 260px; }
+.zm-map { position: relative; height: 340px; border-radius: 0.5rem; overflow: hidden; }
+
+/* ── Action cards ──────────────────────────────────────────── */
+.zm-action {
+  border-top: 3px solid var(--act-accent, #9ca3af) !important;
+
+  &--primary { --act-accent: #E30613; }
+  &--danger  { --act-accent: #DC2626; }
+  &--warning { --act-accent: #F59E0B; }
+  &--info    { --act-accent: #2563EB; }
+  &--success { --act-accent: #16A34A; }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 0.45rem;
+    background: var(--cui-tertiary-bg, #f3f4f6);
+    color: var(--act-accent, #6b7280);
+    svg { width: 16px; height: 16px; }
+  }
+
+  &__count {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--act-accent, #111827);
+  }
+
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0.6rem 0 0.4rem;
+    font-size: 0.8rem;
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.2rem 0;
+      border-bottom: 1px dashed var(--cui-border-color-translucent, #eee);
+      &:last-child { border-bottom: none; }
+    }
+  }
+
+  &__ref { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &__meta { color: var(--cui-secondary-color, #6b7280); flex-shrink: 0; }
+
+  &__link {
+    display: inline-block;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--act-accent, #E30613);
+  }
+}
+
+/* ── Tables ────────────────────────────────────────────────── */
+.zm-table {
+  thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--cui-secondary-color, #6b7280);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &__row {
+    cursor: pointer;
+    &:hover { background: var(--cui-tertiary-bg, #f8fafc); }
+  }
+}
+
+/* ── Stock stat grid ───────────────────────────────────────── */
+.zm-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  height: 100%;
+}
+
+.zm-stat {
+  background: var(--cui-card-bg, #fff);
+  border: 1px solid var(--cui-border-color-translucent, #e5e7eb);
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  text-align: center;
+
+  &__v { font-size: 1.25rem; font-weight: 700; line-height: 1; }
+  &__l { font-size: 0.72rem; color: var(--cui-secondary-color, #6b7280); margin-top: 0.25rem; }
+
+  &--alert {
+    border-color: #FCA5A5;
+    background: #FEF2F2;
+    .zm-stat__v { color: #DC2626; }
+  }
+}
+
+/* ── Alerts list ───────────────────────────────────────────── */
+.zm-alerts {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.zm-alert-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+
+  &--danger  { background: #DC2626; }
+  &--warning { background: #F59E0B; }
+  &--success { background: #16A34A; }
+  &--info    { background: #2563EB; }
+}
+
+@media (max-width: 575.98px) {
+  .zm-stock-grid { grid-template-columns: repeat(2, 1fr); }
+}

@@ -133,6 +133,13 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private readonly warningThresholdPercent = 50;
 
   ngOnInit(): void {
+    // Optional deep-link from the ZM dashboard: pre-select a status filter (e.g. ?status=WORK_DONE).
+    // Non-breaking — absent param leaves the board unfiltered as before.
+    const initialStatus = this.route.snapshot.queryParamMap.get('status');
+    if (initialStatus) {
+      this.selectedStatus = initialStatus;
+    }
+
     // Filter changes (search typing + dropdowns) are debounced, reset to page 1, and reload from the server.
     this.filterSub = this.filterChange$.pipe(debounceTime(300)).subscribe(() => {
       this.currentPage = 1;

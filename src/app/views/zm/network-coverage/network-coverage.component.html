@@ -80,6 +80,44 @@
       }
     </div>
 
+    <!-- MSISDN search -->
+    <div class="coord-bar__fields">
+      <span class="coord-bar__label">🔎 Search MSISDN</span>
+      <input
+        class="coord-input"
+        type="text"
+        [(ngModel)]="msisdnInput"
+        placeholder="e.g. 21650123456"
+        (keydown.enter)="searchByMsisdn()"
+      />
+      <button class="btn-locate" [disabled]="loadingSearch()" (click)="searchByMsisdn()">
+        @if (loadingSearch()) {
+          <span class="spinner-sm spinner-sm--light"></span> Searching…
+        } @else {
+          Search
+        }
+      </button>
+      @if (msisdnInput || searchError() || searchResults().length) {
+        <button class="btn-close" (click)="clearSearch()" title="Clear search">✕</button>
+      }
+      @if (searchError()) {
+        <span class="coord-error">⚠ {{ searchError() }}</span>
+      }
+    </div>
+
+    <!-- MSISDN multi-match chooser -->
+    @if (searchResults().length > 1) {
+      <div class="search-results">
+        <span class="search-results__title">{{ searchResults().length }} matches — choose one:</span>
+        @for (r of searchResults(); track r.id) {
+          <button class="search-result-item" (click)="focusSearchResult(r)">
+            <strong>{{ r.caseCrm || '—' }}</strong>
+            <span>{{ r.governorate || '—' }} · {{ r.delegation || '—' }} · {{ r.locality || '—' }}</span>
+          </button>
+        }
+      </div>
+    }
+
     <!-- Point check result inline card -->
     @if (pointCheckResult()) {
       <div class="point-check-result" [ngClass]="decisionBadgeClass(pointCheckResult()!.decision)">
@@ -214,6 +252,13 @@
       }
       <div #mapContainer class="map-container"></div>
 
+      <!-- Loading indicator while (re)loading the MES point set -->
+      @if (loadingPoints()) {
+        <div class="map-loading" aria-live="polite">
+          <span class="spinner-sm spinner-sm--light"></span> Loading MES points…
+        </div>
+      }
+
       <!-- Map legend: marker types -->
       <div class="map-legend">
         <div class="legend-item"><span class="legend-dot" style="background:#2196F3"></span>Activation (MES) point</div>
@@ -262,12 +307,17 @@
       </div>
       <div class="summary-card card-4g">
         <div class="card-value">{{ points().length }}</div>
-        <div class="card-label">Plotted on map</div>
+        <div class="card-label">Loaded &amp; clustered</div>
+      </div>
+      <div class="summary-card summary-hint">
+        <div class="card-label">
+          Showing MES points with clustering. Zoom, move, or search MSISDN to explore all points.
+        </div>
       </div>
       @if (capped()) {
         <div class="summary-card card-invalid">
           <div class="card-value">⚠</div>
-          <div class="card-label">Showing first {{ points().length }} — zoom/filter for more</div>
+          <div class="card-label">Sampled to {{ points().length }} — dataset exceeds the load cap</div>
         </div>
       }
     </div>
@@ -286,9 +336,20 @@
     </div>
   } @else if (pointsLoaded() && points().length === 0) {
     <div class="empty-state" style="margin:16px">
-      No activation (SOURCE = MES) rows with valid coordinates in the latest import.
+      No activation (SOURCE = MES) points with valid coordinates in the latest import.
     </div>
   } @else if (points().length > 0) {
+    <div class="table-toolbar">
+      <span class="table-hint">
+        Showing {{ tablePage() * pageSize + 1 }}–{{ tablePage() * pageSize + pagedPoints().length }}
+        of {{ points().length }} MES points
+      </span>
+      <div class="table-pager">
+        <button class="pager-btn" [disabled]="tablePage() === 0" (click)="prevPage()">‹ Prev</button>
+        <span class="pager-info">Page {{ tablePage() + 1 }} / {{ totalPages() }}</span>
+        <button class="pager-btn" [disabled]="tablePage() >= totalPages() - 1" (click)="nextPage()">Next ›</button>
+      </div>
+    </div>
     <div class="results-table-wrapper">
       <table class="results-table">
         <thead>
@@ -307,7 +368,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (p of points(); track p.id) {
+          @for (p of pagedPoints(); track p.id) {
             <tr class="result-row"
                 [class.selected]="selectedPoint()?.id === p.id"
                 (click)="selectPoint(p)"

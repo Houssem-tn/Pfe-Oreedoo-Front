@@ -94,11 +94,28 @@ export interface CoverageAnalyticsPoint {
   sinr?: number;
 }
 
-export interface CoverageAnalyticsPointsResponse {
+/**
+ * GeoJSON feature returned by the coverage `analytics-points` endpoint. Each feature's
+ * `properties` are a {@link CoverageAnalyticsPoint} (id + technical fields) and its geometry
+ * carries `[longitude, latitude]`. Fed straight into a MapLibre clustered `geojson` source.
+ */
+export interface CoveragePointFeature {
+  type: 'Feature';
+  geometry: { type: 'Point'; coordinates: [number, number] };
+  properties: CoverageAnalyticsPoint;
+}
+
+/**
+ * GeoJSON FeatureCollection for the Network Coverage map. The non-standard members
+ * (`studyId`, `totalMatching`, `returned`, `capped`) are foreign members ignored by MapLibre
+ * but used by the UI for its summary/loading state.
+ */
+export interface CoverageFeatureCollection {
+  type: 'FeatureCollection';
   studyId: string | null;
   source: string;
   totalMatching: number;
   returned: number;
   capped: boolean;
-  points: CoverageAnalyticsPoint[];
+  features: CoveragePointFeature[];
 }
