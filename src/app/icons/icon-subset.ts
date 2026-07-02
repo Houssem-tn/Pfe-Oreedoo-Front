@@ -25,6 +25,7 @@ import {
   cilArrowBottom,
   cilArrowRight,
   cilArrowTop,
+  cilBadge,
   cilBasket,
   cilBell,
   cilBold,
@@ -38,6 +39,7 @@ import {
   cilChevronRight,
   cilCloudDownload,
   cilCode,
+  cilImagePlus,
   cilCommentSquare,
   cilContrast,
   cilClock,
@@ -84,6 +86,7 @@ import {
   cilReportSlash,
   cilSave,
   cilSearch,
+  cilSend,
   cilSettings,
   cilShare,
   cilShareAll,
@@ -108,7 +111,8 @@ import {
   cilXCircle,
   cilCheckCircle,
   cilStorage,
-  cilFolder
+  cilFolder,
+  cilImage
 } from '@coreui/icons';
 
 import { signet } from './signet';
@@ -141,6 +145,7 @@ export const iconSubset = {
   cilArrowBottom,
   cilArrowRight,
   cilArrowTop,
+  cilBadge,
   cilBasket,
   cilBell,
   cilBold,
@@ -154,6 +159,7 @@ export const iconSubset = {
   cilChevronRight,
   cilCloudDownload,
   cilCode,
+  cilImagePlus,
   cilCommentSquare,
   cilContrast,
   cilClock,
@@ -200,6 +206,7 @@ export const iconSubset = {
   cilReportSlash,
   cilSave,
   cilSearch,
+  cilSend,
   cilSettings,
   cilShare,
   cilShareAll,
@@ -227,6 +234,7 @@ export const iconSubset = {
   cilCheckCircle,
   cilStorage,
   cilFolder,
+  cilImage,
 };
 
 export enum IconSubset {
@@ -315,6 +323,8 @@ export enum IconSubset {
   cilReportSlash = 'cilReportSlash',
   cilSave = 'cilSave',
   cilSearch = 'cilSearch',
+  cilSend = 'cilSend',
+  cilImage = 'cilImage',
   cilSettings = 'cilSettings',
   cilShare = 'cilShare',
   cilShareAll = 'cilShareAll',

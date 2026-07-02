@@ -198,7 +198,7 @@
 
   <ng-container *ngIf="!error && !(loading && cases.length === 0)">
     <div class="tech-mobile-board d-lg-none" *ngIf="currentRole === 'ROLE_TECH'">
-      <div class="tech-mobile-card" *ngFor="let item of techMobileCases; trackBy: trackById">
+      <div class="tech-mobile-card" [class.case-row--focus]="highlightedCaseId === item.id" *ngFor="let item of techMobileCases; trackBy: trackById">
         <div class="tech-mobile-card__top">
           <div>
             <div class="tech-mobile-card__crm">
@@ -242,7 +242,7 @@
     </div>
 
     <div class="stt-mobile-board d-lg-none" *ngIf="currentRole === 'ROLE_STT'">
-      <article class="stt-mobile-card" [class.stt-mobile-card--executor]="isSttExecutor(item)" *ngFor="let item of sttMobileCases; trackBy: trackById">
+      <article class="stt-mobile-card" [class.stt-mobile-card--executor]="isSttExecutor(item)" [class.case-row--focus]="highlightedCaseId === item.id" *ngFor="let item of sttMobileCases; trackBy: trackById">
         <div class="stt-mobile-card__top">
           <div>
             <div class="stt-mobile-card__crm">{{ item.crmCase }}</div>
@@ -325,7 +325,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of paginatedCases; trackBy: trackById">
+            <tr *ngFor="let item of paginatedCases; trackBy: trackById" [class.case-row--focus]="highlightedCaseId === item.id">
               <td>
                 <div class="case-ref__title">{{ item.crmCase }}</div>
                 <div class="case-ref__meta">{{ item.createdAt ? (item.createdAt | date:'dd/MM HH:mm') : '-' }}</div>

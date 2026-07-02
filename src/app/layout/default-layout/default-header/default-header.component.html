@@ -24,20 +24,21 @@
       </c-nav-item>
     </c-header-nav>
 
-    <c-header-nav class="d-none d-md-flex ms-auto">
+    <c-header-nav class="d-none d-md-flex ms-auto app-header-actions">
       <ng-container *ngTemplateOutlet="notificationDropdown" />
+      <ng-container *ngTemplateOutlet="messagesDropdown" />
 
       <a cNavLink>
         <svg cIcon class="my-1" name="cilList" size="lg"></svg>
       </a>
-      <a cNavLink>
-        <svg cIcon class="my-1" name="cilEnvelopeOpen" size="lg"></svg>
-      </a>
     </c-header-nav>
 
-    <c-header-nav class="ms-auto ms-md-0 align-items-center">
+    <c-header-nav class="ms-auto ms-md-0 align-items-center app-header-actions">
       <div class="d-md-none">
         <ng-container *ngTemplateOutlet="notificationDropdown" />
+      </div>
+      <div class="d-md-none">
+        <ng-container *ngTemplateOutlet="messagesDropdown" />
       </div>
       <div class="nav-item py-1">
         <div class="vr h-100 mx-2 text-body text-opacity-75 d-none d-md-block"></div>
@@ -129,13 +130,79 @@
   </c-dropdown>
 </ng-template>
 
+<ng-template #messagesDropdown>
+  @if (caseMessagesStore.enabled()) {
+    <c-dropdown alignment="end" variant="nav-item">
+      <button
+        [caret]="false"
+        cDropdownToggle
+        class="header-notification-toggle position-relative"
+        aria-label="Open case messages"
+      >
+        <svg cIcon class="my-1" name="cilEnvelopeOpen" size="lg"></svg>
+
+        @if (unreadMessagesCount() > 0) {
+          <c-badge
+            class="header-notification-badge position-absolute top-0 start-100 translate-middle rounded-pill"
+            color="danger"
+          >
+            {{ unreadMessagesCount() }}
+          </c-badge>
+        }
+      </button>
+
+      <div cDropdownMenu class="header-notification-menu pt-0">
+        <div class="notif-header">
+          <div class="notif-header__left">
+            <span class="notif-header__title">Case messages</span>
+            <span class="notif-header__count">{{ unreadMessagesCount() }} unread</span>
+          </div>
+        </div>
+
+        @if (unreadMessageCases().length === 0) {
+          <div class="notif-empty">No unread case messages.</div>
+        } @else {
+          <div class="header-notification-menu__list">
+            @for (entry of unreadMessageCases(); track entry.caseId) {
+              <button
+                type="button"
+                class="notif-item notif-item--unread"
+                (click)="openMessagesCase(entry, $event)"
+              >
+                <span class="notif-icon">
+                  <c-badge color="info" shape="rounded-pill">
+                    <svg cIcon name="cilSpeech"></svg>
+                  </c-badge>
+                </span>
+                <span class="notif-body">
+                  <span class="notif-title-row">
+                    <span class="notif-title">Case {{ entry.caseReference }}</span>
+                    <c-badge color="danger" class="notif-new-badge">{{ entry.unreadCount }}</c-badge>
+                  </span>
+                  <span class="notif-msg">
+                    {{ entry.unreadCount }} unread message{{ entry.unreadCount > 1 ? 's' : '' }}
+                  </span>
+                  @if (entry.lastMessageAt) {
+                    <span class="notif-time">{{ entry.lastMessageAt | date:'MMM d · h:mm a' }}</span>
+                  }
+                </span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </c-dropdown>
+  }
+</ng-template>
+
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="py-0 pe-0 position-relative" aria-label="Open user menu">
+    <button [caret]="false" cDropdownToggle class="header-user-toggle py-0 pe-0 position-relative" aria-label="Open user menu">
       <c-avatar
+        class="header-user-avatar"
         shape="rounded-1"
         size="md"
-        [src]="currentUserAvatarUrl || defaultAvatarUrl"
+        [src]="currentUserAvatarUrl()"
         status="success"
         textColor="primary"
         alt="User avatar"
@@ -152,79 +219,19 @@
         </h6>
       </li>
       <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilBell"></svg>
-          Updates
-          <c-badge class="ms-2 float-end" color="info">42</c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="/apps/email/inbox">
-          <svg cIcon class="me-2" name="cilEnvelopeOpen"></svg>
-          Messages
-          <c-badge class="ms-2 float-end" color="success">42</c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilTask"></svg>
-          Tasks
-          <c-badge class="ms-2 float-end" color="danger">{{ activeTasksCount }}</c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilCommentSquare"></svg>
-          Comments
-          <c-badge class="ms-auto" color="warning">42</c-badge>
-        </a>
-      </li>
-      <li>
-        <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2">
-          Settings
-        </h6>
-      </li>
-      <li></li>
-      <li>
-        <a cDropdownItem routerLink="">
+        <a cDropdownItem routerLink="/profile" routerLinkActive="active">
           <svg cIcon class="me-2" name="cilUser"></svg>
           Profile
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilSettings"></svg>
-          Settings
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilCreditCard"></svg>
-          Payments
-          <c-badge class="ms-2 float-end" color="secondary">42</c-badge>
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilFile"></svg>
-          Projects
-          <c-badge class="ms-2 float-end" color="primary">42</c-badge>
         </a>
       </li>
       <li>
         <hr cDropdownDivider />
       </li>
       <li>
-        <a cDropdownItem routerLink="">
-          <svg cIcon class="me-2" name="cilLockLocked"></svg>
-          Lock Account
-        </a>
-      </li>
-      <li>
-        <a cDropdownItem routerLink="">
+        <button type="button" cDropdownItem (click)="logout()">
           <svg cIcon class="me-2" name="cilAccountLogout"></svg>
           Logout
-        </a>
+        </button>
       </li>
     </ul>
   </c-dropdown>

@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 
 import { NotificationApiService } from './notification-api.service';
 import { NotificationWsService } from './notification-ws.service';
@@ -22,6 +22,11 @@ export class NotificationStoreService {
   private readonly _ephemeralAlerts = signal<NotificationItem[]>([]);
   private readonly _loading = signal(false);
   private readonly _initialized = signal(false);
+
+  // Fires once for every realtime notification pushed over the WebSocket, so
+  // features like the case-discussion chat can react instantly instead of polling.
+  private readonly _realtime = new Subject<NotificationItem>();
+  readonly realtime$: Observable<NotificationItem> = this._realtime.asObservable();
 
   readonly items = this._items.asReadonly();
   readonly ephemeralAlerts = this._ephemeralAlerts.asReadonly();
@@ -191,6 +196,9 @@ export class NotificationStoreService {
           this.pushEphemeralAlert(incoming);
           return this.sortByDateDesc([incoming, ...items]);
         });
+
+        // Let realtime consumers (e.g. the case-discussion chat) react immediately.
+        this._realtime.next(incoming);
       },
       error: (error) => {
         console.error('[Notification Store] Realtime stream error', error);

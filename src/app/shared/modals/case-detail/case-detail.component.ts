@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, EventEmitter, inject, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import {
   BadgeComponent,
   ButtonCloseDirective,
@@ -22,12 +24,18 @@ import {
 import { StockService } from '../../../core/stock/stock.service';
 import { StockUsagePermission, PermissionStatus } from '../../../core/stock/stock.model';
 import { LocationActionsComponent } from '../../components/location-actions/location-actions.component';
+import { AuthStore } from '../../../core/auth/auth.store';
+import { CaseMessage, CaseMessagesService } from '../../../core/cases/case-messages.service';
+import { CaseMessagesStore } from '../../../core/cases/case-messages.store';
+import { NotificationStoreService } from '../../../core/notifications/notification-store.service';
+import { NotificationItem } from '../../../core/notifications/models/notification.model';
 
 @Component({
   selector: 'app-case-detail',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ModalComponent,
     ModalHeaderComponent,
     ModalTitleDirective,
@@ -42,14 +50,34 @@ import { LocationActionsComponent } from '../../components/location-actions/loca
   templateUrl: './case-detail.component.html',
   styleUrl: './case-detail.component.scss'
 })
-export class CaseDetailComponent implements OnChanges {
+export class CaseDetailComponent implements OnChanges, OnDestroy {
+  /** Safety-net poll cadence while the modal is open; realtime WS push is the primary path. */
+  private static readonly MESSAGES_POLL_MS = 15_000;
+
   private readonly stockService = inject(StockService);
+  private readonly authStore = inject(AuthStore);
+  private readonly caseMessagesService = inject(CaseMessagesService);
+  private readonly caseMessagesStore = inject(CaseMessagesStore);
+  private readonly notificationStore = inject(NotificationStoreService);
 
   @Input() visible = false;
   @Input() caseData: CaseResponse | null = null;
 
   casePermissions: StockUsagePermission[] = [];
   permissionsLoading = false;
+
+  // ── Discussion (ZM ↔ STT case chat) state ─────────────────────────────────
+  messages: CaseMessage[] = [];
+  messagesLoading = false;
+  messagesError: string | null = null;
+  messagesForbidden = false;
+  sendingMessage = false;
+  messageDraft = '';
+  messageAttachment: File | null = null;
+  private messagesPollTimer: ReturnType<typeof setInterval> | null = null;
+  private messagesRealtimeSub: Subscription | null = null;
+
+  @ViewChild('chatScroll') private chatScroll?: ElementRef<HTMLDivElement>;
 
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() close = new EventEmitter<void>();
@@ -58,10 +86,16 @@ export class CaseDetailComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if ((changes['visible']?.currentValue === true || changes['caseData']) && this.visible && this.caseData?.id) {
       this.loadPermissions(this.caseData.id);
+      this.startDiscussion(this.caseData.id);
     }
     if (changes['visible']?.currentValue === false) {
       this.casePermissions = [];
+      this.stopDiscussion();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.stopMessagesPolling();
   }
 
   private loadPermissions(caseId: string): void {
@@ -74,6 +108,198 @@ export class CaseDetailComponent implements OnChanges {
       },
       error: () => { this.permissionsLoading = false; }
     });
+  }
+
+  // ── Discussion (ZM ↔ STT case chat) ────────────────────────────────────────
+
+  /** Discussion is shown to the case participants (ZM/STT) and to admins for audit. */
+  get discussionVisible(): boolean {
+    const role = this.authStore.role();
+    return !this.messagesForbidden
+      && (role === 'ROLE_ADMIN' || role === 'ROLE_ZM' || role === 'ROLE_STT');
+  }
+
+  /** Admin is read-only; only ZM and STT can write. */
+  get canWriteMessages(): boolean {
+    const role = this.authStore.role();
+    return role === 'ROLE_ZM' || role === 'ROLE_STT';
+  }
+
+  /** A ZM cannot start the discussion before an STT is assigned to the case. */
+  get discussionBlockedReason(): string | null {
+    if (!this.canWriteMessages || !this.caseData) {
+      return null;
+    }
+    if (this.authStore.role() === 'ROLE_ZM' && !this.caseData.sttId && !this.caseData.sttEmail) {
+      return 'Assign an STT to this case to start the discussion.';
+    }
+    return null;
+  }
+
+  get canSendNow(): boolean {
+    return !this.sendingMessage
+      && !this.discussionBlockedReason
+      && (this.messageDraft.trim().length > 0 || !!this.messageAttachment);
+  }
+
+  private startDiscussion(caseId: string): void {
+    this.messagesForbidden = false;
+    this.messagesError = null;
+    this.messageDraft = '';
+    this.messageAttachment = null;
+    this.loadMessages(caseId, true);
+    this.stopMessagesPolling();
+
+    // Instant delivery: reload the thread the moment a message push for THIS case
+    // arrives over the WebSocket. The poll below is only a safety net.
+    this.messagesRealtimeSub = this.notificationStore.realtime$.subscribe((incoming) => {
+      if (incoming?.eventType === 'CASE_MESSAGE_RECEIVED' && this.matchesCase(incoming, caseId)) {
+        this.loadMessages(caseId, false);
+      }
+    });
+
+    this.messagesPollTimer = setInterval(
+      () => this.loadMessages(caseId, false),
+      CaseDetailComponent.MESSAGES_POLL_MS
+    );
+  }
+
+  /** True when a realtime notification refers to the given case. */
+  private matchesCase(notification: NotificationItem, caseId: string): boolean {
+    return notification.relatedCaseId === caseId
+      || notification.entityId === caseId
+      || notification.data?.['caseId'] === caseId;
+  }
+
+  private stopDiscussion(): void {
+    this.stopMessagesPolling();
+    this.messages = [];
+    this.messageDraft = '';
+    this.messageAttachment = null;
+    this.messagesError = null;
+    this.messagesForbidden = false;
+  }
+
+  private stopMessagesPolling(): void {
+    if (this.messagesPollTimer) {
+      clearInterval(this.messagesPollTimer);
+      this.messagesPollTimer = null;
+    }
+    this.messagesRealtimeSub?.unsubscribe();
+    this.messagesRealtimeSub = null;
+  }
+
+  private loadMessages(caseId: string, showSpinner: boolean): void {
+    if (!this.discussionVisible) {
+      return;
+    }
+    if (showSpinner) {
+      this.messagesLoading = true;
+    }
+    this.caseMessagesService.getMessages(caseId).subscribe({
+      next: (list) => {
+        const grew = list.length > this.messages.length;
+        this.messages = list;
+        this.messagesLoading = false;
+        this.messagesError = null;
+        if (showSpinner || grew) {
+          this.scrollChatToBottom();
+        }
+        this.markThreadRead(caseId, list);
+      },
+      error: (err) => {
+        this.messagesLoading = false;
+        if (err?.status === 403) {
+          // TECH or a non-participant: hide the section instead of erroring.
+          this.messagesForbidden = true;
+          this.stopMessagesPolling();
+          return;
+        }
+        this.messagesError = err?.error?.message ?? 'Failed to load the discussion';
+      }
+    });
+  }
+
+  private markThreadRead(caseId: string, list: CaseMessage[]): void {
+    const hasUnreadForMe = list.some(m => !m.mine && !m.read);
+    if (!hasUnreadForMe || !this.canWriteMessages) {
+      return;
+    }
+    this.caseMessagesService.markThreadRead(caseId).subscribe({
+      next: () => {
+        this.messages = this.messages.map(m => m.mine ? m : { ...m, read: true });
+        this.caseMessagesStore.refresh();
+      },
+      error: () => { /* badge poll will self-correct */ }
+    });
+  }
+
+  sendMessage(): void {
+    const caseId = this.caseData?.id;
+    if (!caseId || !this.canSendNow) {
+      return;
+    }
+
+    this.sendingMessage = true;
+    this.messagesError = null;
+    this.caseMessagesService.sendMessage(caseId, this.messageDraft, this.messageAttachment).subscribe({
+      next: () => {
+        this.messageDraft = '';
+        this.messageAttachment = null;
+        this.sendingMessage = false;
+        this.loadMessages(caseId, false);
+      },
+      error: (err) => {
+        this.sendingMessage = false;
+        this.messagesError = err?.error?.message ?? 'Failed to send the message';
+      }
+    });
+  }
+
+  private scrollChatToBottom(): void {
+    setTimeout(() => {
+      const el = this.chatScroll?.nativeElement;
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
+  }
+
+  onMessageAttachmentSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (file && !file.type.startsWith('image/')) {
+      this.messagesError = 'Only image files can be attached';
+      input.value = '';
+      return;
+    }
+    this.messagesError = null;
+    this.messageAttachment = file;
+    input.value = '';
+  }
+
+  clearMessageAttachment(): void {
+    this.messageAttachment = null;
+  }
+
+  onMessageKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  messageRoleLabel(role: string): string {
+    switch (role) {
+      case 'ROLE_ZM': return 'ZM';
+      case 'ROLE_STT': return 'STT';
+      case 'ROLE_ADMIN': return 'Admin';
+      default: return role?.replace('ROLE_', '') ?? '';
+    }
+  }
+
+  trackByMessageId(_: number, item: CaseMessage): string {
+    return item.id;
   }
 
   permissionStatusLabel(status: PermissionStatus): string {

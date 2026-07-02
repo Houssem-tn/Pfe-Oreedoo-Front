@@ -89,6 +89,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   caseDetailVisible = false;
   caseDetailData: CaseResponse | null = null;
 
+  // Deep-link target (e.g. from a message notification). The matching row shows a
+  // green highlight until its details are opened.
+  highlightedCaseId: string | null = null;
+
   // Assign user modal state
   assignModalVisible = false;
   assignModalTitle = '';
@@ -125,6 +129,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   // Debounced filter pipeline (search typing + dropdown changes).
   private readonly filterChange$ = new Subject<void>();
   private filterSub?: Subscription;
+  private focusSub?: Subscription;
   private loadSeq = 0;
 
   private nowEpochMs = Date.now();
@@ -147,6 +152,25 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       this.loadSummary();
     });
 
+    // Deep-link from a message notification: open the target case directly (or
+    // highlight it if it can't be opened). Reacts to repeated clicks because we
+    // strip the param after handling it, so a fresh navigation always emits.
+    this.focusSub = this.route.queryParamMap.subscribe((params) => {
+      const focusCaseId = params.get('focusCaseId');
+      if (!focusCaseId) {
+        return;
+      }
+
+      this.focusDeepLinkedCase(focusCaseId);
+
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { focusCaseId: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true
+      });
+    });
+
     this.loadCases();
     this.loadSummary();
     this.loadPerformance();
@@ -156,6 +180,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.filterSub?.unsubscribe();
+    this.focusSub?.unsubscribe();
     this.stopLiveTicker();
     this.stopBackendResync();
   }
@@ -1595,7 +1620,52 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     await this.runAction(item.id, () => this.casesService.closeCase(item.id), 'Case closed');
   }
 
+  /**
+   * Opens a deep-linked case (e.g. from a message notification) directly in the
+   * details modal. The row is highlighted green in the meantime; the highlight is
+   * cleared once the details open, and left in place if the direct open fails so
+   * the user can still spot the case in the list.
+   */
+  private focusDeepLinkedCase(caseId: string): void {
+    if (!caseId) {
+      return;
+    }
+
+    this.highlightedCaseId = caseId;
+    this.zone.run(() => this.cdr.detectChanges());
+
+    const cached = this.detailCache.get(caseId);
+    if (cached) {
+      this.caseDetailData = cached;
+      this.caseDetailVisible = true;
+      this.highlightedCaseId = null;
+      this.zone.run(() => this.cdr.detectChanges());
+      return;
+    }
+
+    this.casesService.getCaseById(caseId).subscribe({
+      next: (fullCase) => {
+        this.detailCache.set(caseId, fullCase);
+        this.caseDetailData = fullCase;
+        this.caseDetailVisible = true;
+        // Details are open now — the green highlight has served its purpose.
+        this.highlightedCaseId = null;
+        this.zone.run(() => this.cdr.detectChanges());
+      },
+      error: (err) => {
+        // Couldn't open directly — keep the highlight so the case is easy to find in the list.
+        console.error('Failed to open case from message notification:', err);
+        this.zone.run(() => this.cdr.detectChanges());
+      }
+    });
+  }
+
   async openDetails(item: CaseResponse): Promise<void> {
+    // Opening the details satisfies the "highlight until opened" contract.
+    if (this.highlightedCaseId === item.id) {
+      this.highlightedCaseId = null;
+    }
+
     // Serve from cache instantly; only hit the network the first time a case is expanded.
     const cached = this.detailCache.get(item.id);
     if (cached) {

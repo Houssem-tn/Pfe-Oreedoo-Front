@@ -23,6 +23,11 @@ export interface AssignGovernoratesToZmRequest {
   assignedGovernorates: string[];
 }
 
+export interface UpdateMyProfileRequest {
+  fullName: string;
+  phone?: string | null;
+}
+
 export type CaseModuleType = 'ACT' | 'RES' | 'PLT';
 
 @Injectable({
@@ -49,6 +54,10 @@ export class UserService {
 
   getMe(): Observable<AppUser> {
     return this.http.get<AppUser>(`${this.usersUrl}/me`);
+  }
+
+  updateMe(payload: UpdateMyProfileRequest): Observable<AppUser> {
+    return this.http.put<AppUser>(`${this.usersUrl}/me`, payload);
   }
 
   create(payload: any): Observable<AppUser> {

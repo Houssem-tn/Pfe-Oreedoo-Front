@@ -1,0 +1,144 @@
+<div class="profile-shell">
+  <section class="profile-hero">
+    <div>
+      <div class="profile-hero__eyebrow">My account</div>
+      <h1>Profile</h1>
+      <p>Review your account information{{ isAdmin ? '.' : ' and keep your name, phone number and picture up to date.' }}</p>
+    </div>
+
+    <div class="profile-hero__actions">
+      <button class="profile-btn profile-btn--ghost" type="button" (click)="loadProfile()" [disabled]="loading">
+        <svg cIcon name="cilReload"></svg>
+        {{ loading ? 'Refreshing...' : 'Refresh' }}
+      </button>
+
+      <button
+        *ngIf="!isAdmin && !editMode"
+        class="profile-btn profile-btn--primary"
+        type="button"
+        (click)="enterEditMode()"
+        [disabled]="loading || !user"
+      >
+        <svg cIcon name="cilPencil"></svg>
+        Edit profile
+      </button>
+    </div>
+  </section>
+
+  <div *ngIf="loading && !user" class="profile-state">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Loading your profile...</span>
+  </div>
+
+  <section class="profile-layout" *ngIf="user">
+    <!-- Identity / avatar card -->
+    <article class="profile-panel profile-panel--identity">
+      <div class="profile-avatar">
+        <img [src]="avatarUrl" alt="Profile picture" />
+        <div *ngIf="uploadingImage" class="profile-avatar__overlay">
+          <div class="spinner-border spinner-border-sm" role="status"></div>
+        </div>
+      </div>
+
+      <h2 class="profile-name">{{ user.fullName || '-' }}</h2>
+      <span class="profile-role-badge">{{ roleLabel(user.role) }}</span>
+
+      <div class="profile-identity-meta">
+        <span class="badge" [ngClass]="statusBadgeClass(user.status)">{{ statusLabel(user.status) }}</span>
+      </div>
+
+      <ng-container *ngIf="!isAdmin">
+        <label class="profile-btn profile-btn--soft profile-upload">
+          <svg cIcon name="cilImagePlus"></svg>
+          {{ uploadingImage ? 'Uploading...' : 'Change photo' }}
+          <input type="file" accept="image/*" hidden (change)="onImageSelected($event)" [disabled]="uploadingImage" />
+        </label>
+        <p class="profile-hint">PNG, JPG, WEBP or GIF · up to 5 MB</p>
+      </ng-container>
+
+      <div *ngIf="isAdmin" class="profile-readonly-note">
+        <svg cIcon name="cilLockLocked"></svg>
+        <span>Administrator profiles are read-only.</span>
+      </div>
+    </article>
+
+    <!-- Information / edit form -->
+    <article class="profile-panel profile-panel--details">
+      <div class="profile-panel__header">
+        <div class="profile-panel__eyebrow">Account information</div>
+        <h2>{{ editMode ? 'Edit your details' : 'Your details' }}</h2>
+      </div>
+
+      <!-- Read-only view -->
+      <dl class="profile-info-grid" *ngIf="!editMode">
+        <div class="profile-info">
+          <dt><svg cIcon name="cilUser"></svg>Full name</dt>
+          <dd>{{ user.fullName || '-' }}</dd>
+        </div>
+        <div class="profile-info">
+          <dt><svg cIcon name="cilEnvelopeClosed"></svg>Email / username</dt>
+          <dd>{{ user.email || '-' }}</dd>
+        </div>
+        <div class="profile-info">
+          <dt><svg cIcon name="cilPhone"></svg>Phone</dt>
+          <dd>{{ user.phone || '-' }}</dd>
+        </div>
+        <div class="profile-info">
+          <dt><svg cIcon name="cilBadge"></svg>Role</dt>
+          <dd>{{ roleLabel(user.role) }}</dd>
+        </div>
+        <div class="profile-info">
+          <dt><svg cIcon name="cilClock"></svg>Member since</dt>
+          <dd>{{ user.createdAt ? (user.createdAt | date:'dd/MM/yyyy') : '-' }}</dd>
+        </div>
+        <div class="profile-info">
+          <dt><svg cIcon name="cilAccountLogout"></svg>Last login</dt>
+          <dd>{{ user.lastLoginAt ? (user.lastLoginAt | date:'dd/MM/yyyy HH:mm') : '-' }}</dd>
+        </div>
+      </dl>
+
+      <!-- Edit form (never rendered for admins) -->
+      <form *ngIf="editMode && !isAdmin" [formGroup]="form" (ngSubmit)="save()" class="profile-form">
+        <label class="profile-field">
+          <span><svg cIcon name="cilUser"></svg>Full name</span>
+          <input type="text" formControlName="fullName" placeholder="Your full name" autocomplete="name" />
+          <small class="profile-field__error"
+            *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid">
+            Full name is required (3–120 characters).
+          </small>
+        </label>
+
+        <label class="profile-field">
+          <span><svg cIcon name="cilPhone"></svg>Phone</span>
+          <input type="tel" formControlName="phone" placeholder="e.g. +216 20 123 456" autocomplete="tel" />
+          <small class="profile-field__error"
+            *ngIf="form.controls.phone.touched && form.controls.phone.invalid">
+            Please enter a valid phone number.
+          </small>
+        </label>
+
+        <!-- Locked fields, shown for context but not editable -->
+        <label class="profile-field profile-field--locked">
+          <span><svg cIcon name="cilEnvelopeClosed"></svg>Email / username</span>
+          <input type="text" [value]="user.email || ''" disabled />
+        </label>
+        <label class="profile-field profile-field--locked">
+          <span><svg cIcon name="cilBadge"></svg>Role</span>
+          <input type="text" [value]="roleLabel(user.role)" disabled />
+        </label>
+
+        <p class="profile-hint">Email, username and role are managed by administrators and cannot be changed here.</p>
+
+        <div class="profile-form__actions">
+          <button type="button" class="profile-btn profile-btn--ghost" (click)="cancelEdit()" [disabled]="saving">
+            Cancel
+          </button>
+          <button type="submit" class="profile-btn profile-btn--primary" [disabled]="saving">
+            <svg cIcon name="cilSave"></svg>
+            {{ saving ? 'Saving...' : 'Save changes' }}
+          </button>
+        </div>
+      </form>
+    </article>
+  </section>
+</div>

@@ -89,6 +89,13 @@ export const routes: Routes = [
         data: { title: 'Alert Center' }
       },
 
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./views/profile/profile.component').then(m => m.ProfileComponent),
+        data: { title: 'My Profile' }
+      },
+
       { path: '**', redirectTo: 'dashboard' },
     ],
   },

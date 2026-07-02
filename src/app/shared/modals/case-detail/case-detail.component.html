@@ -516,6 +516,122 @@
       </div>
     </div>
 
+    <!-- ── Section: Discussion (ZM ↔ STT) ─────────────────────────── -->
+    <div class="cd-section cd-section--discussion" *ngIf="discussionVisible">
+      <div class="cd-section__header">
+        <svg cIcon name="cilSpeech" class="cd-section__icon"></svg>
+        <span>Discussion (ZM ↔ STT)</span>
+      </div>
+
+      <div *ngIf="messagesLoading" class="cd-empty">Loading discussion…</div>
+
+      <div *ngIf="!messagesLoading && messages.length === 0" class="cd-empty">
+        No messages yet. {{ canWriteMessages ? 'Start the conversation below.' : '' }}
+      </div>
+
+      <div class="cd-chat" #chatScroll *ngIf="messages.length > 0">
+        <div
+          *ngFor="let msg of messages; trackBy: trackByMessageId"
+          class="cd-chat__row"
+          [class.cd-chat__row--mine]="msg.mine"
+        >
+          <div class="cd-chat__bubble" [class.cd-chat__bubble--mine]="msg.mine">
+            <div class="cd-chat__meta">
+              <span class="cd-chat__sender">{{ msg.senderName }}</span>
+              <span class="cd-chat__role" [class.cd-chat__role--zm]="msg.senderRole === 'ROLE_ZM'">
+                {{ messageRoleLabel(msg.senderRole) }}
+              </span>
+            </div>
+
+            <div class="cd-chat__content" *ngIf="msg.content">{{ msg.content }}</div>
+
+            <a
+              *ngIf="msg.attachmentViewUrl"
+              class="cd-chat__attachment"
+              [href]="msg.attachmentViewUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                *ngIf="msg.attachmentContentType?.startsWith('image/')"
+                [src]="msg.attachmentViewUrl"
+                [alt]="msg.attachmentFilename || 'Attachment'"
+              />
+              <span class="cd-chat__attachment-name">
+                <svg cIcon name="cilImage" size="sm"></svg>
+                {{ msg.attachmentFilename || 'Attachment' }}
+              </span>
+            </a>
+
+            <div class="cd-chat__footer">
+              <span class="cd-chat__time">{{ dateVal(msg.createdAt) }}</span>
+              <span *ngIf="msg.mine" class="cd-chat__status" [class.cd-chat__status--read]="msg.read">
+                {{ msg.read ? 'Seen' : 'Sent' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="messagesError" class="cd-chat__error">{{ messagesError }}</div>
+
+      <div *ngIf="canWriteMessages" class="cd-chat-composer">
+        <div *ngIf="discussionBlockedReason" class="cd-chat-composer__hint">
+          {{ discussionBlockedReason }}
+        </div>
+
+        <div *ngIf="messageAttachment" class="cd-chat-composer__attachment">
+          <svg cIcon name="cilImage" size="sm"></svg>
+          <span class="cd-chat-composer__attachment-name">{{ messageAttachment.name }}</span>
+          <button
+            type="button"
+            class="cd-chat-composer__attachment-remove"
+            (click)="clearMessageAttachment()"
+            aria-label="Remove attachment"
+          >
+            <svg cIcon name="cilX" size="sm"></svg>
+          </button>
+        </div>
+
+        <div class="cd-chat-composer__row">
+          <textarea
+            class="form-control cd-chat-composer__input"
+            rows="2"
+            placeholder="Write a message…"
+            [(ngModel)]="messageDraft"
+            [disabled]="sendingMessage || !!discussionBlockedReason"
+            (keydown)="onMessageKeydown($event)"
+          ></textarea>
+
+          <label
+            class="btn btn-ghost-secondary cd-chat-composer__attach"
+            [class.disabled]="sendingMessage || !!discussionBlockedReason"
+            title="Attach a photo"
+          >
+            <svg cIcon name="cilPaperclip"></svg>
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              [disabled]="sendingMessage || !!discussionBlockedReason"
+              (change)="onMessageAttachmentSelected($event)"
+            />
+          </label>
+
+          <button
+            cButton
+            color="primary"
+            class="cd-chat-composer__send"
+            [disabled]="!canSendNow"
+            (click)="sendMessage()"
+          >
+            <svg cIcon name="cilSend" *ngIf="!sendingMessage"></svg>
+            <span *ngIf="sendingMessage" class="spinner-border spinner-border-sm" role="status"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Section: Timeline ──────────────────────────────────────── -->
     <div class="cd-section cd-section--timeline" *ngIf="sortedTimeline.length > 0">
       <div class="cd-section__header">

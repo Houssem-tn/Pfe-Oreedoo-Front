@@ -1,3 +1,36 @@
+// ── Header action groups (bell / messages / theme) ───────────────────────────
+// Breathing room between the notification and message icons so the cluster
+// never feels crowded, while staying aligned with the rest of the header.
+
+:host .app-header-actions {
+	align-items: center;
+	gap: 0.6rem;
+}
+
+// ── User avatar toggle ────────────────────────────────────────────────────────
+// Keep the avatar a clean, balanced square. Uploaded profile images can have any
+// aspect ratio, so force `object-fit: cover` to prevent a stretched/deformed logo
+// and keep it vertically centered with the other header icons.
+
+:host .header-user-toggle {
+	display: inline-flex;
+	align-items: center;
+	background: transparent;
+	border: 0;
+}
+
+:host ::ng-deep .header-user-avatar {
+	width: 2.5rem;
+	height: 2.5rem;
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center;
+	}
+}
+
 // ── Bell toggle button ────────────────────────────────────────────────────────
 
 .avatar-task-badge {

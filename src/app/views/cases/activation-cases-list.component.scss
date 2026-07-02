@@ -1940,3 +1940,40 @@
     width: 100%;
   }
 }
+
+// ── Deep-link focus highlight (green) ─────────────────────────────────────────
+// Applied when a message notification deep-links to a case. Draws attention to
+// the related row and stays visible until the user opens the case details.
+@keyframes case-focus-flash {
+  0%, 100% { background-color: rgba(25, 135, 84, 0.14); }
+  50%      { background-color: rgba(25, 135, 84, 0.30); }
+}
+
+@keyframes case-focus-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.45), 0 18px 38px rgba(16, 83, 45, 0.14); }
+  70%  { box-shadow: 0 0 0 10px rgba(25, 135, 84, 0), 0 18px 38px rgba(16, 83, 45, 0.14); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0), 0 18px 38px rgba(16, 83, 45, 0.14); }
+}
+
+// Desktop table row
+.cases-table tbody tr.case-row--focus > td {
+  background-color: rgba(25, 135, 84, 0.14);
+  animation: case-focus-flash 1.2s ease-in-out 2;
+}
+
+.cases-table tbody tr.case-row--focus > td:first-child {
+  box-shadow: inset 4px 0 0 0 #198754;
+}
+
+.cases-table tbody tr.case-row--focus:hover > td {
+  background-color: rgba(25, 135, 84, 0.22);
+}
+
+// Mobile cards (STT / TECH)
+.tech-mobile-card.case-row--focus,
+.stt-mobile-card.case-row--focus {
+  background: linear-gradient(135deg, rgba(233, 250, 240, 1), rgba(210, 243, 224, 1)) !important;
+  border-color: #198754 !important;
+  box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.4), 0 18px 38px rgba(16, 83, 45, 0.16);
+  animation: case-focus-pulse 1.6s ease-out 2;
+}

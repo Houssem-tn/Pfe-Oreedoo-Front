@@ -3,7 +3,9 @@ import { Component, computed, inject, input, OnInit, OnDestroy, ChangeDetectorRe
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { AuthService } from '../../../core/auth/auth.service';
 import { UserService } from '../../../core/users/user.service';
+import { CurrentUserStore } from '../../../core/users/current-user.store';
 import { CasesService } from '../../../core/cases/cases.service';
 
 import {
@@ -29,6 +31,8 @@ import {
 import { IconDirective } from '@coreui/icons-angular';
 import { NotificationStoreService } from '../../../core/notifications/notification-store.service';
 import { NotificationItem } from '../../../core/notifications/models/notification.model';
+import { CaseMessagesStore } from '../../../core/cases/case-messages.store';
+import { CaseMessageUnread } from '../../../core/cases/case-messages.service';
 
 @Component({
   selector: 'app-default-header',
@@ -62,12 +66,20 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   readonly notificationStore = inject(NotificationStoreService);
   readonly router = inject(Router);
   readonly authStore = inject(AuthStore);
+  private readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
+  private readonly currentUserStore = inject(CurrentUserStore);
   private readonly casesService = inject(CasesService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  currentUserAvatarUrl: string | null = null;
   readonly defaultAvatarUrl = 'assets/images/avatars/1.jpg';
+
+  // Reactive avatar: reflects the shared current-user profile so it updates
+  // instantly when the user edits their profile on the Profile page.
+  readonly currentUserAvatarUrl = computed<string>(
+    () => this.currentUserStore.avatarUrl() ?? this.defaultAvatarUrl
+  );
+
   activeTasksCount = 0;
 
   readonly colorMode = this.#colorModeService.colorMode;
@@ -86,18 +98,24 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   readonly unreadCount = this.notificationStore.unreadCount;
   readonly notifications = this.notificationStore.latestFirst;
 
+  readonly caseMessagesStore = inject(CaseMessagesStore);
+  readonly unreadMessagesCount = this.caseMessagesStore.totalUnread;
+  readonly unreadMessageCases = this.caseMessagesStore.caseUnreads;
+
   constructor() {
     super();
   }
 
   ngOnInit(): void {
     this.notificationStore.init();
+    this.caseMessagesStore.init();
     this.loadCurrentUserProfile();
     this.loadPerformanceSnapshot();
   }
 
   ngOnDestroy(): void {
     this.notificationStore.destroy();
+    this.caseMessagesStore.destroy();
   }
 
   sidebarId = input('sidebar1');
@@ -105,27 +123,21 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   private loadCurrentUserProfile(): void {
     this.userService.getMe().subscribe({
       next: (user) => {
-        const nextAvatarUrl =
-          user.profileThumbnailUrl ||
-          user.profileImageUrl ||
-          this.defaultAvatarUrl;
-
         this.authStore.patchCanCreateDpm(user.canCreateDpm ?? false);
-
-        queueMicrotask(() => {
-          this.currentUserAvatarUrl = nextAvatarUrl;
-          this.cdr.detectChanges();
-        });
+        // Publish to the shared store; the avatar (a computed signal) reacts.
+        this.currentUserStore.set(user);
       },
       error: (err) => {
         console.error('Failed to load current user profile', err);
-
-        queueMicrotask(() => {
-          this.currentUserAvatarUrl = this.defaultAvatarUrl;
-          this.cdr.detectChanges();
-        });
+        this.currentUserStore.set(null);
       }
     });
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.currentUserStore.clear();
+    this.router.navigate(['/login']);
   }
 
   trackByNotificationId(_: number, item: NotificationItem): string {
@@ -207,6 +219,8 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
         return 'cilTask';
+      case 'CASE_MESSAGE_RECEIVED':
+        return 'cilSpeech';
       case 'SLA_WARNING':
         return 'cilWarning';
       case 'SLA_BREACHED':
@@ -245,6 +259,8 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       case 'CASE_ASSIGNED_TO_STT':
       case 'CASE_ASSIGNED_TO_TECH':
         return 'primary';
+      case 'CASE_MESSAGE_RECEIVED':
+        return 'info';
       case 'SLA_WARNING':
         return 'warning';
       case 'SLA_BREACHED':
@@ -290,11 +306,43 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     });
   }
 
+  /**
+   * Routes an unread-messages badge entry straight to its case. The board reads
+   * the `focusCaseId` query param and opens that case's details directly (falling
+   * back to a green highlight on the row) — so the user never has to hunt for it.
+   */
+  openMessagesCase(entry: CaseMessageUnread, event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+
+    const role = this.authStore.role();
+    const prefix = role === 'ROLE_ZM' ? '/zm'
+      : role === 'ROLE_STT' ? '/stt'
+      : role === 'ROLE_ADMIN' ? '/admin'
+      : null;
+    if (!prefix) {
+      return;
+    }
+
+    const extras = { queryParams: { focusCaseId: entry.caseId } };
+
+    if (entry.caseType === 'PLAINTE' && entry.caseModule === 'RES') {
+      this.router.navigate([role === 'ROLE_STT' ? `${prefix}/res-execution` : `${prefix}/cases/resiliation`], extras);
+      return;
+    }
+    if (entry.caseType === 'PLAINTE') {
+      this.router.navigate([`${prefix}/cases/complaint`], extras);
+      return;
+    }
+    this.router.navigate([`${prefix}/cases/activation`], extras);
+  }
+
   private isCaseEvent(eventType?: string): boolean {
     if (!eventType) return false;
     return eventType === 'CASE_ASSIGNED_TO_ZM'
       || eventType === 'CASE_ASSIGNED_TO_STT'
       || eventType === 'CASE_ASSIGNED_TO_TECH'
+      || eventType === 'CASE_MESSAGE_RECEIVED'
       || eventType === 'SLA_WARNING'
       || eventType === 'SLA_BREACHED'
       || eventType === 'SLA_ESCALATED';
