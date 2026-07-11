@@ -57,6 +57,19 @@ RUN npx ng build --configuration production
 # privileged port as root.
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
+# The 1.27-alpine tag is a moving tag — it isn't rebuilt every time an
+# upstream Alpine package gets a security patch, so a freshly-pulled image
+# can still contain an already-fixed CVE (confirmed in practice: the first
+# real Trivy scan on GitHub Actions failed on CVE-2026-31789, an OpenSSL
+# heap overflow fixed in libssl3/libcrypto3 3.3.7-r0, while this base image
+# still shipped 3.3.3-r0). `apk upgrade` at build time pulls whatever's
+# actually current at build time regardless of how stale the base image
+# itself is. Must run as root (apk needs it) before switching back to the
+# base image's own non-root nginx user.
+USER root
+RUN apk update && apk upgrade --no-cache
+USER nginx
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /build/dist/coreui-free-angular-admin-template/browser /usr/share/nginx/html
 
