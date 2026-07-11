@@ -1,0 +1,44 @@
+title = "Pfe-Oreedoo-Front secret scanning"
+
+# Extends Gitleaks' built-in default ruleset. See the backend repo's
+# .gitleaks.toml for the full rationale — this file mirrors it, scoped to
+# what's actually relevant on the frontend.
+[extend]
+useDefault = true
+
+# ── MapTiler API key ─────────────────────────────────────────────────────
+# This exact key leaked into src/app/core/map/map.config.ts before being
+# externalized to src/environments/environment.*.ts (git-ignored) — see
+# project history. Public/client-visible key by nature (ships in the JS
+# bundle regardless), but should still never be hardcoded in a tracked
+# source file — the real protection is the MapTiler dashboard's domain
+# allow-list, not git-secrecy, but git-secrecy is still the first line of
+# defense against casual scraping.
+[[rules]]
+id = "maptiler-api-key"
+description = "MapTiler API key embedded in a tile/style URL or source literal"
+regex = '''(?:api\.maptiler\.com/[^\s"'?]+\?key=|mapTilerKey\s*[:=]\s*['"])([A-Za-z0-9]{16,})'''
+secretGroup = 1
+tags = ["secret", "maptiler"]
+
+# ── Generic backend connection string with an embedded password, in case
+#    any frontend config/doc ever references one directly ───────────────
+[[rules]]
+id = "mongodb-uri-with-credentials"
+description = "MongoDB connection string with an embedded username:password"
+regex = '''mongodb(\+srv)?://[^:/\s"']+:[^@/\s"']+@[^\s"']+'''
+tags = ["secret", "mongodb", "connection-string"]
+
+# ── Allowlist: known-safe placeholders ───────────────────────────────────
+[allowlist]
+paths = [
+  '''(.*?)(jpg|jpeg|png|gif|svg|ico|woff2?|ttf)$''',
+  '''(.*?)/(dist|node_modules|coverage|\.angular)/(.*?)''',
+  # Tracked, secret-free example/template environment files (real values
+  # live only in the git-ignored environment.development.ts /
+  # environment.production.ts, which this scanner also won't see since
+  # they're untracked).
+  '''src/environments/environment\.example\.ts$''',
+  '''src/environments/environment\.development\.example\.ts$''',
+  '''src/environments/environment\.production\.example\.ts$''',
+]

@@ -1,0 +1,364 @@
+name: Frontend CI
+
+# Replaces this repo's original CoreUI-template `build-check.yml` /
+# `stale.yml` (generic OSS-template scaffolding — 3-OS build matrix with no
+# lint/test/coverage/security steps, PR target `v5.*` from the upstream
+# template, and an issue/PR stale-bot irrelevant to a private application
+# repo). See CI.md at the Pfe/ repo root for the full rationale.
+#
+# Branch behavior:
+#   feature/*, fix/*, PRs into develop  -> validation only (no image push)
+#   push to develop                     -> validation + image build + push (develop/sha tags)
+#   push to main                        -> validation + image build + push (latest/version/sha tags)
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: "22.12.0"
+  IMAGE_NAME: ooredoo-frontend
+  REGISTRY: ghcr.io
+
+jobs:
+  # ===========================================================================
+  env-validate:
+    name: Environment validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required files exist
+        run: |
+          set -euo pipefail
+          for f in package.json package-lock.json angular.json Dockerfile .dockerignore nginx.conf \
+                   src/environments/environment.ts \
+                   src/environments/environment.production.example.ts \
+                   src/environments/environment.development.example.ts; do
+            if [ ! -e "$f" ]; then
+              echo "::error::Required file missing: $f"
+              exit 1
+            fi
+          done
+
+      - name: No .env / real environment files tracked
+        run: |
+          set -euo pipefail
+          bad=$(git ls-files | grep -E '(^|/)\.env(\.[A-Za-z0-9_.-]+)?$' | grep -v '\.env\.example$' || true)
+          bad="$bad
+          $(git ls-files | grep -E 'src/environments/environment\.(development|production)\.ts$' || true)"
+          bad=$(echo "$bad" | sed '/^\s*$/d')
+          if [ -n "$bad" ]; then
+            echo "::error::Tracked real env file(s) found (should be git-ignored):"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: No unresolved merge-conflict markers
+        run: |
+          set -euo pipefail
+          hits=$(git grep -nE '^(<{7}|={7}|>{7})( |$)' -- . ':!*.md' || true)
+          if [ -n "$hits" ]; then
+            echo "::error::Unresolved merge-conflict markers found:"
+            echo "$hits"
+            exit 1
+          fi
+
+  # ===========================================================================
+  validate:
+    name: Lint, test, build
+    needs: [env-validate]
+    runs-on: ubuntu-latest
+    outputs:
+      lcov-exists: ${{ steps.lcov-check.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: ESLint (full report; legacy debt is non-blocking — see below)
+        # Always runs and always visible in logs/artifacts. Does not itself
+        # fail the job — the baseline-diff step immediately after is the
+        # actual gate, so a genuinely new error fails CI while the 162
+        # pre-existing ones stay visible-but-non-blocking. See
+        # scripts/eslint-baseline.js and CI.md "ESLint legacy baseline".
+        run: npx ng lint --format json --output-file eslint-report.json || true
+
+      - name: ESLint baseline gate (fails only on NEW violations)
+        run: npm run lint:baseline:check
+
+      - name: Unit tests (headless Chrome)
+        run: npm run test:ci
+
+      - id: lcov-check
+        name: Verify LCOV coverage was produced
+        run: |
+          f=coverage/coreui-free-angular-admin-template/lcov.info
+          if [ -f "$f" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::$f was not produced — SonarQube coverage import will be skipped."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Production build
+        run: |
+          set -euo pipefail
+          if [ ! -f src/environments/environment.production.ts ]; then
+            cp src/environments/environment.production.example.ts src/environments/environment.production.ts
+            echo "::notice::environment.production.ts is git-ignored and wasn't present — used the tracked .example.ts as-is for this CI build validation. A real MapTiler key is injected at Docker build time (see the docker job below), not needed here."
+          fi
+          npx ng build --configuration production
+
+      - name: SonarQube analysis
+        if: |
+          always() && !cancelled() &&
+          github.event_name == 'push' &&
+          (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONTEND }}
+        run: |
+          if [ -z "${SONAR_HOST_URL:-}" ] || [ -z "${SONAR_TOKEN:-}" ]; then
+            echo "::warning::SONAR_HOST_URL / SONAR_TOKEN_FRONTEND not configured — skipping SonarQube analysis (not reporting success)."
+            exit 0
+          fi
+          npx --yes @sonar/scan \
+            -Dsonar.host.url="$SONAR_HOST_URL" \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.qualitygate.wait=false
+
+      - name: Upload test report (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-report
+          path: coverage/coreui-free-angular-admin-template/junit.xml
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload coverage (LCOV + HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: coverage/coreui-free-angular-admin-template/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload ESLint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-eslint-report
+          path: eslint-report.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: dist/coreui-free-angular-admin-template/browser/
+          retention-days: 7
+
+  # ===========================================================================
+  npm-audit:
+    name: npm audit (production dependencies)
+    needs: [env-validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+
+      # Known baseline (see CI.md "npm audit baseline"): 12 production
+      # vulnerabilities as of this pipeline's authoring, all Angular-core /
+      # Angular-transitive, 0 Critical, all only fixable via `npm audit fix
+      # --force` (a major/breaking Angular bump) — never run automatically.
+      # This step never silently forces that; it only fails on a NEW
+      # Critical finding, which a baseline can't have hidden by definition.
+      - name: Run npm audit and check for new Critical vulnerabilities
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --json > npm-audit-report.json || true
+          node -e "
+            const d = require('./npm-audit-report.json');
+            const v = (d.metadata && d.metadata.vulnerabilities) || {};
+            console.log('Vulnerabilities (production deps):', JSON.stringify(v));
+            const critical = v.critical || 0;
+            if (critical > 0) {
+              console.error('::error::' + critical + ' Critical production vulnerabilities found — see npm-audit-report.json.');
+              process.exit(1);
+            }
+            console.log('No Critical production vulnerabilities. High/Moderate/Low are tracked as a known baseline (see CI.md) — not blocking yet.');
+          "
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-npm-audit-report
+          path: npm-audit-report.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  gitleaks:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'schedule' && 0 || 2 }}
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+        # .gitleaksignore narrowly allowlists one already-rotated historical
+        # MapTiler-key finding by exact commit+file+line fingerprint — see
+        # that file's own comments. Any new secret still fails this job.
+
+  # ===========================================================================
+  docker:
+    name: Docker build, scan, (push)
+    needs: [validate, npm-audit, gitleaks]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure environment.production.ts exists for the build
+        run: |
+          if [ ! -f src/environments/environment.production.ts ]; then
+            cp src/environments/environment.production.example.ts src/environments/environment.production.ts
+          fi
+
+      # Registry image references must be lowercase; github.repository_owner
+      # is not guaranteed to be (e.g. "Houssem-tn") — compute it explicitly
+      # rather than relying only on docker/metadata-action's own normalization.
+      - name: Compute lowercase image owner
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Derive image metadata (tags + labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # MAPTILER_KEY is the one build-time value passed as a build arg —
+          # it's browser-visible regardless of how it reaches the bundle
+          # (see environment.production.ts's own comments), so this is the
+          # explicitly-allowed exception to "no secrets via build args". No
+          # backend secret is ever passed here.
+          build-args: |
+            MAPTILER_KEY=${{ secrets.MAPTILER_KEY }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: cyclonedx-json
+          output-file: sbom-frontend.cyclonedx.json
+          upload-artifact: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-sbom
+          path: sbom-frontend.cyclonedx.json
+          retention-days: 30
+
+      - name: Trivy scan — fail on Critical
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          severity: CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Trivy scan — report High (non-blocking, SARIF upload)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-frontend.sarif
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+        continue-on-error: true
+
+      - name: Log in to ${{ env.REGISTRY }}
+        if: |
+          github.event_name != 'pull_request' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: |
+          github.event_name != 'pull_request' &&
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            MAPTILER_KEY=${{ secrets.MAPTILER_KEY }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

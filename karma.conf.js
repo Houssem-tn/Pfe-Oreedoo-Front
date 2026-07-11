@@ -10,6 +10,7 @@ module.exports = function(config) {
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
       require('karma-coverage'),
+      require('karma-junit-reporter'),
     ],
     client: {
       jasmine: {
@@ -28,10 +29,19 @@ module.exports = function(config) {
       subdir: '.',
       reporters: [
         { type: 'html' },
-        { type: 'text-summary' }
+        { type: 'text-summary' },
+        // lcov.info is what sonar.javascript.lcov.reportPaths (sonar-project.properties) consumes.
+        { type: 'lcovonly' }
       ]
     },
-    reporters: ['progress', 'kjhtml'],
+    junitReporter: {
+      // Consumed by CI as a machine-readable test report (e.g. GitHub's
+      // test-summary actions) — not used locally.
+      outputDir: require('path').join(__dirname, './coverage/coreui-free-angular-admin-template'),
+      outputFile: 'junit.xml',
+      useBrowserName: false
+    },
+    reporters: ['progress', 'kjhtml', 'junit'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
@@ -41,6 +51,14 @@ module.exports = function(config) {
       Chrome_Custom: {
         base: 'Chrome',
         flags: ['--disable-search-engine-choice-screen']
+      },
+      // CI: no display server, and CI runners commonly can't use Chrome's
+      // sandbox (containerized/root execution) — --no-sandbox is safe here
+      // specifically because CI only ever runs this project's own tests,
+      // never arbitrary/untrusted web content.
+      ChromeHeadlessCI: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
       }
     },
     singleRun: false,

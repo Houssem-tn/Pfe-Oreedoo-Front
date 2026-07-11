@@ -1,0 +1,8 @@
+# Shell scripts run on Linux CI runners (GitHub Actions) — must stay LF
+# regardless of a contributor's local core.autocrlf setting, or the runner
+# sees "$'\r': command not found" / bad-interpreter failures.
+*.sh text eol=lf
+# PowerShell scripts are Windows-first tooling — CRLF is the natural
+# convention there, and Windows PowerShell tolerates LF fine either way,
+# but CRLF keeps diffs clean for anyone editing them in a Windows editor.
+*.ps1 text eol=crlf

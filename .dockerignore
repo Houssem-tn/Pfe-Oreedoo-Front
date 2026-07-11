@@ -1,0 +1,52 @@
+# Git metadata
+.git
+.gitignore
+.gitattributes
+.gitleaks.toml
+.github
+
+# Rebuilt inside the image — never trust a host copy
+node_modules
+dist
+.angular
+
+# NOTE: deliberately NOT excluding src/environments/environment*.ts here
+# (unlike .gitignore). environment.production.ts is git-ignored but must
+# be present in the build context — angular.json's fileReplacements swaps
+# it in during `ng build --configuration production`. See the Dockerfile's
+# explicit existence check and DOCKER.md for the prerequisite.
+
+# IDE / editor
+.vscode
+.idea
+*.iml
+
+# Test / coverage / lint reports
+coverage/
+reports/
+gitleaks-report.json
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log
+testem.log
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# Docs (not needed at build time)
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+DOCKER.md
+
+# Local dev helper scripts unrelated to the container build
+scripts/generate-local-https.ps1
+
+# Unrelated sibling projects if this context is ever built from a parent dir
+APPSTOCK/
+EacyOCR/
