@@ -6,6 +6,12 @@ import { finalize } from 'rxjs/operators';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { CaseConsumption, CaseConsumptionSummary } from '../../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  formatMaterialQuantity,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 
 @Component({
   standalone: true,
@@ -48,17 +54,13 @@ export class ZmCaseAuditComponent implements OnInit {
   }
 
   private buildSummary(list: CaseConsumption[]): void {
-    const totalQty = list.reduce((s, c) => s + (c.totalQuantityUsed ?? 0), 0);
-
-    const cableMeter = list.reduce((s, c) =>
-      s + (c.consumedItems ?? [])
-        .filter(i => i.unit === 'METERS')
-        .reduce((q, i) => q + i.quantityUsed, 0), 0);
-
-    const boxes = list.reduce((s, c) =>
-      s + (c.consumedItems ?? [])
-        .filter(i => i.unit !== 'METERS')
-        .reduce((q, i) => q + i.quantityUsed, 0), 0);
+    const breakdown = groupMaterialQuantities(list.flatMap(c => c.consumedItems ?? []), {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity: item => item.quantityUsed
+    });
+    const totalQty = breakdown.reduce((sum, item) => sum + item.quantity, 0);
 
     const techMap = new Map<string, { name: string; count: number }>();
     for (const c of list) {
@@ -78,8 +80,9 @@ export class ZmCaseAuditComponent implements OnInit {
       totalConsumptions: list.length,
       totalItemTypes: list.reduce((s, c) => s + (c.totalItemTypes ?? 0), 0),
       totalQuantityConsumed: totalQty,
-      cableTotalMeters: cableMeter,
-      totalBoxesUsed: boxes,
+      cableTotalMeters: 0,
+      totalBoxesUsed: 0,
+      quantityBreakdown: breakdown,
       topTechnicianId: topTechId,
       topTechnicianName: topTechName,
       topTechnicianConsumptions: topCount,
@@ -121,19 +124,11 @@ export class ZmCaseAuditComponent implements OnInit {
   }
 
   unitLabel(unit?: string | null): string {
-    if (unit === 'METERS') return 'm';
-    if (unit === 'PIECES') return 'pcs';
-    return unit?.trim() || 'unit';
+    return materialUnitShort(unit);
   }
 
   consumptionQtyLabel(c: CaseConsumption): string {
-    const items = c.consumedItems ?? [];
-    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.quantityUsed, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.quantityUsed, 0);
-    const parts: string[] = [];
-    if (m > 0) parts.push(`${m} m`);
-    if (p > 0) parts.push(`${p} pcs`);
-    return parts.join(' / ') || '0';
+    return formatMaterialGroups(this.consumptionGroups(c));
   }
 
   nameInitials(name?: string | null): string {
@@ -144,7 +139,20 @@ export class ZmCaseAuditComponent implements OnInit {
   itemsSummary(c: CaseConsumption): string {
     if (!c.consumedItems?.length) return 'No items';
     return c.consumedItems.map(i =>
-      `${i.equipmentName ?? i.equipmentId} ×${i.quantityUsed}`
+      `${i.equipmentName ?? i.equipmentId} ${formatMaterialQuantity(i.quantityUsed, i.unit)}`
     ).join(', ');
+  }
+
+  get summaryBreakdownLabel(): string {
+    return formatMaterialGroups(this.summary?.quantityBreakdown ?? [], { separator: '\n' });
+  }
+
+  private consumptionGroups(consumption: Pick<CaseConsumption, 'consumedItems'>) {
+    return groupMaterialQuantities(consumption.consumedItems ?? [], {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity: item => item.quantityUsed
+    });
   }
 }

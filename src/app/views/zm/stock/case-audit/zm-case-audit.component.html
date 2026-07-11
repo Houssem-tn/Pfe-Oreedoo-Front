@@ -20,12 +20,12 @@
           <span class="zca-chip__lbl">Cases</span>
         </div>
         <div class="zca-chip zca-chip--cable">
-          <span class="zca-chip__val">{{ summary.cableTotalMeters }} m</span>
-          <span class="zca-chip__lbl">Cable</span>
+          <span class="zca-chip__val" style="white-space: pre-line;">{{ summaryBreakdownLabel }}</span>
+          <span class="zca-chip__lbl">Consumed materials</span>
         </div>
         <div class="zca-chip zca-chip--box">
-          <span class="zca-chip__val">{{ summary.totalBoxesUsed }}</span>
-          <span class="zca-chip__lbl">Boxes / Pcs</span>
+          <span class="zca-chip__val">{{ summary.totalItemTypes }}</span>
+          <span class="zca-chip__lbl">Declared material lines</span>
         </div>
         @if (summary.topTechnicianName) {
           <div class="zca-chip zca-chip--top">

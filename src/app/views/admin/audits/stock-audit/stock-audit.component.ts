@@ -19,6 +19,12 @@ import {
   SttDistribution,
   ZmStockAudit
 } from '../../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  formatMaterialQuantity,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 
 interface ZmCard {
   id: string;
@@ -200,7 +206,7 @@ export class StockAuditComponent implements OnInit {
   }
 
   unitShort(unit?: string): string {
-    return unit === 'METERS' ? 'm' : 'pcs';
+    return materialUnitShort(unit);
   }
 
   openItemPanel(row: ItemAuditRow): void {
@@ -276,23 +282,11 @@ export class StockAuditComponent implements OnInit {
   }
 
   totalItemsRequestedLabel(): string {
-    const rows = this.itemAuditRows;
-    const m = rows.filter(r => r.unit === 'METERS').reduce((s, r) => s + r.totalRequested, 0);
-    const p = rows.filter(r => r.unit !== 'METERS').reduce((s, r) => s + r.totalRequested, 0);
-    const parts: string[] = [];
-    if (m > 0) parts.push(`${m} m`);
-    if (p > 0) parts.push(`${p} pcs`);
-    return parts.join(' / ') || '0';
+    return formatMaterialGroups(this.itemRowGroups(this.itemAuditRows, row => row.totalRequested));
   }
 
   consumptionQtyLabel(c: CaseConsumption): string {
-    const items = c.consumedItems ?? [];
-    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.quantityUsed, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.quantityUsed, 0);
-    const parts: string[] = [];
-    if (m > 0) parts.push(`${m} m`);
-    if (p > 0) parts.push(`${p} pcs`);
-    return parts.join(' / ') || '0';
+    return formatMaterialGroups(this.consumptionGroups(c));
   }
 
   // ── Case Consumption tab methods ─────────────────────────────────────────
@@ -360,9 +354,7 @@ export class StockAuditComponent implements OnInit {
   }
 
   unitLabel(unit?: string | null): string {
-    if (unit === 'METERS') return 'm';
-    if (unit === 'PIECES') return 'pcs';
-    return unit?.trim() || 'units';
+    return materialUnitShort(unit);
   }
 
   nameInitials(name: string): string {
@@ -370,7 +362,15 @@ export class StockAuditComponent implements OnInit {
   }
 
   formatQty(qty: number, unit?: string): string {
-    return unit === 'METERS' ? `${qty} m` : `×${qty}`;
+    return formatMaterialQuantity(qty, unit);
+  }
+
+  rollupUsageSummary(roll: DpmTechRollup): string {
+    return [
+      `distributed ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.distributedQuantity))}`,
+      `used ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.usedQuantity))}`,
+      `remaining ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.remainingQuantity))}`
+    ].join(' · ');
   }
 
   // ── Unified Audit Feed tab methods ───────────────────────────────────────
@@ -477,13 +477,7 @@ export class StockAuditComponent implements OnInit {
   }
 
   feedItemsQtyLabel(entry: StockAuditEntry): string {
-    const items = entry.items ?? [];
-    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.quantity, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.quantity, 0);
-    const parts: string[] = [];
-    if (m > 0) parts.push(`${m} m`);
-    if (p > 0) parts.push(`${p} pcs`);
-    return parts.join(' / ') || '0';
+    return formatMaterialGroups(this.feedGroups(entry));
   }
 
   reasonLabel(reason?: string | null): string {
@@ -517,5 +511,59 @@ export class StockAuditComponent implements OnInit {
 
   countByStatus(s: DpmStatus): number {
     return this.dpms.filter(d => d.status === s).length;
+  }
+
+  get consumptionBreakdownLabel(): string {
+    const groups = this.consumptionSummary?.quantityBreakdown?.length
+      ? this.consumptionSummary.quantityBreakdown
+      : groupMaterialQuantities(this.consumptions.flatMap(c => c.consumedItems ?? []), {
+          equipmentId: item => item.equipmentId,
+          equipmentName: item => item.equipmentName,
+          unit: item => item.unit,
+          quantity: item => item.quantityUsed
+        });
+    return formatMaterialGroups(groups, { separator: '\n' });
+  }
+
+  private itemRowGroups(
+    rows: readonly ItemAuditRow[],
+    quantity: (row: ItemAuditRow) => number
+  ) {
+    return groupMaterialQuantities(rows, {
+      equipmentId: row => row.equipmentId,
+      equipmentName: row => row.equipmentName,
+      unit: row => row.unit,
+      quantity
+    });
+  }
+
+  private consumptionGroups(consumption: CaseConsumption) {
+    return groupMaterialQuantities(consumption.consumedItems ?? [], {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity: item => item.quantityUsed
+    });
+  }
+
+  private feedGroups(entry: StockAuditEntry) {
+    return groupMaterialQuantities(entry.items ?? [], {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity: item => item.quantity
+    });
+  }
+
+  private rollupGroups(
+    items: readonly DpmTechRollup['items'][number][],
+    quantity: (item: DpmTechRollup['items'][number]) => number
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 }

@@ -8,6 +8,12 @@ import { SpinnerComponent } from '@coreui/angular';
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
 import { DpmRequest, SttStock, SttStockItem, TechStock, TechStockUsage } from '../../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  formatMaterialQuantity,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -212,32 +218,16 @@ export class ZmTeamStockComponent implements OnInit {
     return ratio < 0.5 ? 'low' : 'ok';
   }
 
-  private stockLabel(meters: number, pieces: number): string {
-    const parts: string[] = [];
-    if (meters > 0) parts.push(`${meters} m`);
-    if (pieces > 0) parts.push(`${pieces} pcs`);
-    return parts.join(' / ') || '0';
-  }
-
   get totalSttUnitsLabel(): string {
-    const items = this.sttStocks.flatMap(s => s.items);
-    const m = items.filter(i => i.unit === 'METERS').reduce((a, i) => a + i.availableQuantity, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((a, i) => a + i.availableQuantity, 0);
-    return this.stockLabel(m, p);
+    return formatMaterialGroups(this.sttMaterialGroups(item => item.availableQuantity));
   }
 
   get totalTechUnitsLabel(): string {
-    const items = this.techStocks.flatMap(t => t.items);
-    const m = items.filter(i => i.unit === 'METERS').reduce((a, i) => a + i.remainingQuantity, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((a, i) => a + i.remainingQuantity, 0);
-    return this.stockLabel(m, p);
+    return formatMaterialGroups(this.techMaterialGroups(item => item.remainingQuantity));
   }
 
   get totalTechUsedUnitsLabel(): string {
-    const items = this.techStocks.flatMap(t => t.items);
-    const m = items.filter(i => i.unit === 'METERS').reduce((a, i) => a + i.usedQuantity, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((a, i) => a + i.usedQuantity, 0);
-    return this.stockLabel(m, p);
+    return formatMaterialGroups(this.techMaterialGroups(item => item.usedQuantity));
   }
 
   isSelfExecutor(ts: TechStock): boolean {
@@ -245,9 +235,7 @@ export class ZmTeamStockComponent implements OnInit {
   }
 
   sttAvailableLabel(ss: SttStock): string {
-    const m = ss.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
-    const p = ss.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
-    return this.stockLabel(m, p);
+    return formatMaterialGroups(this.sttMaterialGroups(item => item.availableQuantity, ss.items));
   }
 
   techUsagesForTech(techId: string): TechStockUsage[] {
@@ -264,5 +252,37 @@ export class ZmTeamStockComponent implements OnInit {
     }
 
     return grouped;
+  }
+
+  unitShort(unit?: string | null): string {
+    return materialUnitShort(unit);
+  }
+
+  quantityLabel(quantity: number, unit?: string | null): string {
+    return formatMaterialQuantity(quantity, unit);
+  }
+
+  private sttMaterialGroups(
+    quantity: (item: SttStock['items'][number]) => number,
+    items: ReadonlyArray<SttStock['items'][number]> = this.sttStocks.flatMap(stock => stock.items)
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
+  }
+
+  private techMaterialGroups(
+    quantity: (item: TechStock['items'][number]) => number,
+    items: ReadonlyArray<TechStock['items'][number]> = this.techStocks.flatMap(stock => stock.items)
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 }

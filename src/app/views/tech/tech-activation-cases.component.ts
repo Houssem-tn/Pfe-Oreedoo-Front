@@ -25,6 +25,7 @@ import { NotificationStoreService } from '../../core/notifications/notification-
 import { NotificationWsService } from '../../core/notifications/notification-ws.service';
 import { StockService } from '../../core/stock/stock.service';
 import { CaseLimitItem, TechStock, TechStockItem, StockUsagePermission, CreatePermissionRequest } from '../../core/stock/stock.model';
+import { formatMaterialGroups, groupMaterialQuantities } from '../../core/stock/material-quantity.util';
 import {
   buildUsedEquipmentPayload,
   EquipmentUsageLine,
@@ -454,12 +455,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     return this.caseUsedEquipmentItems(this.selectedCase);
   }
 
-  get techStockRemainingTotal(): number {
-    return this.techStockItems.reduce((sum, item) => sum + item.remainingQuantity, 0);
+  get techStockRemainingLabel(): string {
+    return formatMaterialGroups(this.techStockGroups(item => item.remainingQuantity), { separator: '\n' });
   }
 
-  get techStockUsedTotal(): number {
-    return this.techStockItems.reduce((sum, item) => sum + item.usedQuantity, 0);
+  get techStockUsedLabel(): string {
+    return formatMaterialGroups(this.techStockGroups(item => item.usedQuantity), { separator: '\n' });
   }
 
   get overLimitLines(): OverLimitLine[] {
@@ -1407,13 +1408,12 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
     }
 
     const cableItems = lines.filter(l => l.unit === 'METERS');
-    const equipmentItems = lines.filter(l => l.unit !== 'METERS');
 
     const payload: CreatePermissionRequest = {
       caseId,
       reason: this.permissionReason.trim() || undefined,
       requestedCableMeters: cableItems.reduce((sum, l) => sum + l.quantity, 0),
-      requestedItems: equipmentItems.map(l => ({
+      requestedItems: lines.map(l => ({
         itemId: l.equipmentId,
         itemName: l.equipmentName,
         requestedQuantity: l.quantity,
@@ -2171,6 +2171,15 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
 
   private caseUsedEquipmentItems(item?: CaseResponse | null): CaseUsedEquipmentItem[] {
     return item ? (extractWork(item).usedEquipment ?? []) : [];
+  }
+
+  private techStockGroups(quantity: (item: TechStockItem) => number) {
+    return groupMaterialQuantities(this.techStockItems, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 
   private setUsageLinesFromCase(item?: CaseResponse | null): void {

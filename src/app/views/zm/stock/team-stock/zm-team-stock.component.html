@@ -116,7 +116,7 @@
                 @for (item of ss.items; track item.equipmentId) {
                   <span class="ts-mini-chip">
                     <span class="ts-mini-chip__name">{{ item.equipmentName }}</span>
-                    <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                    <strong>{{ quantityLabel(item.availableQuantity, item.unit) }}</strong>
                   </span>
                 }
                 @if (ss.items.length === 0) {
@@ -183,7 +183,7 @@
                                   <span class="ts-progress__fill" [style.width.%]="distributedPct(item)"></span>
                                 </div>
                               </td>
-                              <td><small class="ts-unit">{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
+                              <td><small class="ts-unit">{{ unitShort(item.unit) }}</small></td>
                               <td class="ts-num">{{ item.totalReceived }}</td>
                               <td class="ts-num">{{ item.totalDistributedToTechs }}</td>
                               <td class="ts-num">
@@ -192,7 +192,7 @@
                                       [class.ts-avail--low]="availLevel(item) === 'low'"
                                       [class.ts-avail--zero]="availLevel(item) === 'zero'">
                                   <span class="ts-avail__dot"></span>
-                                  {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
+                                  {{ quantityLabel(item.availableQuantity, item.unit) }}
                                 </span>
                               </td>
                             </tr>
@@ -229,13 +229,13 @@
                                 <div class="ts-tech-balance__name">
                                   {{ ti.equipmentName }}
                                   @if (ti.unit) {
-                                    <small>{{ ti.unit }}</small>
+                                    <small>{{ unitShort(ti.unit) }}</small>
                                   }
                                 </div>
                                 <div class="ts-tech-balance__stats">
-                                  <span>Recv <strong>{{ ti.receivedQuantity }}</strong></span>
-                                  <span>Used <strong>{{ ti.usedQuantity }}</strong></span>
-                                  <span>Rem <strong>{{ ti.remainingQuantity }}</strong></span>
+                                  <span>Recv <strong>{{ quantityLabel(ti.receivedQuantity, ti.unit) }}</strong></span>
+                                  <span>Used <strong>{{ quantityLabel(ti.usedQuantity, ti.unit) }}</strong></span>
+                                  <span>Rem <strong>{{ quantityLabel(ti.remainingQuantity, ti.unit) }}</strong></span>
                                 </div>
                               </div>
                             }
@@ -259,7 +259,7 @@
                                     <div class="ts-tech-usage__items">
                                       @for (item of usage.items; track item.equipmentId) {
                                         <span class="ts-tech-chip">
-                                          {{ item.equipmentName }} <strong>x{{ item.quantity }}</strong>
+                                          {{ item.equipmentName }} <strong>{{ quantityLabel(item.quantity, item.unit) }}</strong>
                                         </span>
                                       }
                                     </div>

@@ -13,7 +13,7 @@ export type DpmStatus =
   | 'REJECTED'
   | 'CANCELLED';
 
-export type StockUnit = 'METERS' | 'PIECES';
+export type StockUnit = 'METERS' | 'PIECES' | (string & {});
 
 export type StockMovementType =
   | 'DPM_CREATED'
@@ -168,6 +168,13 @@ export interface TechStockUsageItem {
   equipmentId: string;
   equipmentName: string;
   unit?: string;
+  quantity: number;
+}
+
+export interface MaterialQuantityBreakdown {
+  equipmentId?: string | null;
+  equipmentName?: string | null;
+  unit?: string | null;
   quantity: number;
 }
 
@@ -439,6 +446,7 @@ export interface CaseConsumptionSummary {
   totalQuantityConsumed: number;
   cableTotalMeters: number;
   totalBoxesUsed: number;
+  quantityBreakdown?: MaterialQuantityBreakdown[];
   topTechnicianId?: string | null;
   topTechnicianName?: string | null;
   topTechnicianConsumptions: number;

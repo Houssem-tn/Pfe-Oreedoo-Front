@@ -7,6 +7,7 @@ import { AuthStore } from '../auth/auth.store';
 import { TokenService } from '../auth/token.service';
 import { Role } from '../auth/models/roles.type';
 import { NotificationItem } from './models/notification.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationWsService {
@@ -36,7 +37,7 @@ export class NotificationWsService {
       return;
     }
 
-    const brokerURL = this.buildWsUrl('/ws-notifications');
+    const brokerURL = this.buildWsUrl(environment.wsEndpoint);
     console.log('[Notification WS] Connecting to:', brokerURL);
     console.log('[Notification WS] Role topic:', this.buildRoleTopic(role));
     console.log('[Notification WS] User topic:', this.buildUserTopic(email));

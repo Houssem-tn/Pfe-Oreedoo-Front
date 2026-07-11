@@ -194,10 +194,10 @@
                         {{ s.slaRespectPercent | number:'1.0-0' }}%
                       </span>
                     </td>
-                    <td class="text-end">{{ s.materialReceived | number }}</td>
-                    <td class="text-end">{{ s.materialDistributed | number }}</td>
-                    <td class="text-end">{{ s.materialReturned | number }}</td>
-                    <td class="text-end" [class.text-danger]="s.materialDamagedMissing > 0">{{ s.materialDamagedMissing | number }}</td>
+                    <td class="text-end zm-table__material">{{ materialSummary(s.materialReceivedBreakdown, s.materialReceived) }}</td>
+                    <td class="text-end zm-table__material">{{ materialSummary(s.materialDistributedBreakdown, s.materialDistributed) }}</td>
+                    <td class="text-end zm-table__material">{{ materialSummary(s.materialReturnedBreakdown, s.materialReturned) }}</td>
+                    <td class="text-end zm-table__material" [class.text-danger]="s.materialDamagedMissing > 0">{{ materialSummary(s.materialDamagedMissingBreakdown, s.materialDamagedMissing) }}</td>
                   </tr>
                 }
               </tbody>
@@ -241,11 +241,11 @@
           <div class="zm-stock-grid">
             <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.dpmCreated | number }}</div><div class="zm-stat__l">DPMs created</div></div>
             <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.dpmConfirmed | number }}</div><div class="zm-stat__l">DPMs confirmed</div></div>
-            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialReceivedByStt | number }}</div><div class="zm-stat__l">Received by STT</div></div>
-            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialDistributed | number }}</div><div class="zm-stat__l">Distributed to TECH</div></div>
-            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialConsumed | number }}</div><div class="zm-stat__l">Consumed on cases</div></div>
-            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.materialReturned | number }}</div><div class="zm-stat__l">Returned</div></div>
-            <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.recoverable | number }}</div><div class="zm-stat__l">Recoverable</div></div>
+            <div class="zm-stat"><div class="zm-stat__v zm-stat__v--grouped">{{ materialSummary(d.stockOverview.materialReceivedBySttBreakdown, d.stockOverview.materialReceivedByStt) }}</div><div class="zm-stat__l">Received by STT</div></div>
+            <div class="zm-stat"><div class="zm-stat__v zm-stat__v--grouped">{{ materialSummary(d.stockOverview.materialDistributedBreakdown, d.stockOverview.materialDistributed) }}</div><div class="zm-stat__l">Distributed to TECH</div></div>
+            <div class="zm-stat"><div class="zm-stat__v zm-stat__v--grouped">{{ materialSummary(d.stockOverview.materialConsumedBreakdown, d.stockOverview.materialConsumed) }}</div><div class="zm-stat__l">Consumed on cases</div></div>
+            <div class="zm-stat"><div class="zm-stat__v zm-stat__v--grouped">{{ materialSummary(d.stockOverview.materialReturnedBreakdown, d.stockOverview.materialReturned) }}</div><div class="zm-stat__l">Returned</div></div>
+            <div class="zm-stat"><div class="zm-stat__v zm-stat__v--grouped">{{ materialSummary(d.stockOverview.recoverableBreakdown, d.stockOverview.recoverable) }}</div><div class="zm-stat__l">Recoverable</div></div>
             <div class="zm-stat"><div class="zm-stat__v">{{ d.stockOverview.trackedUnits | number }}</div><div class="zm-stat__l">Tracked units</div></div>
             <div class="zm-stat" [class.zm-stat--alert]="d.stockOverview.missingImeiSerial > 0">
               <div class="zm-stat__v">{{ d.stockOverview.missingImeiSerial | number }}</div><div class="zm-stat__l">Missing IMEI/Serial</div>
@@ -253,15 +253,17 @@
           </div>
         </div>
         <div class="col-12 col-xl-7">
-          <div class="card h-100 border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 fw-semibold">Material movement</div>
-            <div class="card-body">
-              @if (stockBar) {
-                <div class="zm-chart"><c-chart [type]="stockBar.type" [data]="stockBar.data" [options]="stockBar.options"></c-chart></div>
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0 fw-semibold">Material movement</div>
+              <div class="card-body">
+              @if (stockBar && stockBar.data.labels?.length) {
+                <div class="zm-chart" [style.height.px]="stockChartHeight"><c-chart [type]="stockBar.type" [data]="stockBar.data" [options]="stockBar.options"></c-chart></div>
+              } @else {
+                <p class="text-body-secondary small mb-0">No material movement recorded yet.</p>
               }
+              </div>
             </div>
           </div>
-        </div>
       </div>
     </section>
 

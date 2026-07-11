@@ -55,7 +55,7 @@
       </div>
       <div class="td-stat__body">
         <div class="td-stat__label">Distributed</div>
-        <div class="td-stat__value td-stat__value--red">{{ totalDistributed }}</div>
+        <div class="td-stat__value td-stat__value--red" style="white-space: pre-line;">{{ totalDistributedLabel }}</div>
       </div>
       <svg class="td-spark td-spark--red" viewBox="0 0 120 36" preserveAspectRatio="none">
         <path d="M0 24 L15 26 L30 20 L45 23 L60 16 L75 22 L90 14 L105 18 L120 12" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -71,7 +71,7 @@
       </div>
       <div class="td-stat__body">
         <div class="td-stat__label">Used on cases</div>
-        <div class="td-stat__value td-stat__value--blue">{{ totalUsed }}</div>
+        <div class="td-stat__value td-stat__value--blue" style="white-space: pre-line;">{{ totalUsedLabel }}</div>
       </div>
       <svg class="td-spark td-spark--blue" viewBox="0 0 120 36" preserveAspectRatio="none">
         <path d="M0 28 L15 24 L30 26 L45 22 L60 25 L75 20 L90 23 L105 19 L120 22" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -88,7 +88,7 @@
       </div>
       <div class="td-stat__body">
         <div class="td-stat__label">Remaining with TECH</div>
-        <div class="td-stat__value td-stat__value--green">{{ totalRemaining }}</div>
+        <div class="td-stat__value td-stat__value--green" style="white-space: pre-line;">{{ totalRemainingLabel }}</div>
       </div>
       <svg class="td-spark td-spark--green" viewBox="0 0 120 36" preserveAspectRatio="none">
         <path d="M0 22 L15 18 L30 24 L45 14 L60 20 L75 12 L90 18 L105 10 L120 14" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -245,9 +245,9 @@
                 </span>
               </div>
             </td>
-            <td class="td-num td-num--dark">{{ r.totalDistributed }}</td>
-            <td class="td-num td-num--blue">{{ r.totalUsed }}</td>
-            <td class="td-num td-num--green">{{ r.totalRemaining }}</td>
+            <td class="td-num td-num--dark">{{ distributedLabel(r) }}</td>
+            <td class="td-num td-num--blue">{{ usedLabel(r) }}</td>
+            <td class="td-num td-num--green">{{ remainingLabel(r) }}</td>
             <td>
               <span class="td-badge" [ngClass]="'td-badge--' + r.derivedStatus.toLowerCase()">
                 <ng-container [ngSwitch]="r.derivedStatus">
@@ -339,11 +339,11 @@
           <div class="dp-item__head">
             <span class="dp-item__name">{{ it.equipmentName ?? it.equipmentId }}</span>
             <span class="td-muted dp-item__nums">
-              dist {{ it.distributedQuantity }} · used {{ it.usedQuantity }} · rem {{ it.remainingQuantity }} {{ unitLabel(it.unit) }}
+              dist {{ qty(it.distributedQuantity, it.unit) }} · used {{ qty(it.usedQuantity, it.unit) }} · rem {{ qty(it.remainingQuantity, it.unit) }}
             </span>
           </div>
           <div class="dp-src" *ngIf="it.sources.length > 0">
-            <span class="td-source-dpm" *ngFor="let s of it.sources">{{ s.dpmNumber ?? s.dpmId }} : {{ s.allocatedQuantity }}</span>
+            <span class="td-source-dpm" *ngFor="let s of it.sources">{{ s.dpmNumber ?? s.dpmId }} : {{ qty(s.allocatedQuantity, it.unit) }}</span>
           </div>
           <div class="td-muted dp-src-empty" *ngIf="it.sources.length === 0">
             No DPM source allocated{{ selected.historical ? '' : ' (pooled / legacy stock)' }}.

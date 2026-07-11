@@ -68,7 +68,7 @@
                     </span>
                     <span class="dist-stock-card__name">{{ item.equipmentName }}</span>
                     <span class="dist-stock-card__avail">
-                      {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }} available
+                      {{ quantityLabel(item.availableQuantity, item.unit) }} available
                     </span>
                   </button>
                 }
@@ -103,7 +103,7 @@
                                  [(ngModel)]="line.quantity" />
                           <button class="dist-qty-btn" type="button"
                                   (click)="incrementQuantity(line)" [disabled]="line.quantity >= line.available">+</button>
-                          <span class="dist-qty-max">/ {{ line.available }}{{ line.unit === 'METERS' ? ' m' : ' pcs' }} avail.</span>
+                          <span class="dist-qty-max">/ {{ quantityLabel(line.available, line.unit) }} avail.</span>
                         </div>
                       } @else {
                         <span class="dist-qty-max">{{ line.selectedInstanceIds.length }} / {{ line.available }} unit(s) selected</span>
@@ -200,7 +200,7 @@
                   </td>
                   <td>
                     @for (i of d.items; track i.equipmentId) {
-                      <span class="dist-item-chip">{{ i.equipmentName }}: {{ i.quantity }}{{ i.unit === 'METERS' ? ' m' : ' pcs' }}</span>
+                      <span class="dist-item-chip">{{ i.equipmentName }}: {{ quantityLabel(i.quantity, i.unit) }}</span>
                       @if (i.trackedUnits && i.trackedUnits.length) {
                         <span class="dist-units-inline">
                           @for (u of i.trackedUnits; track u.instanceId) {

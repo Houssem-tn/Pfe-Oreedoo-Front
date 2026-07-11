@@ -1,10 +1,8 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { finalize } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
   BadgeComponent, SpinnerComponent, TableDirective,
@@ -13,7 +11,12 @@ import {
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { UserService } from '../../../../core/users/user.service';
-import { DpmRequest, DpmStatus, SttStock, TechStock, TechStockItem } from '../../../../core/stock/stock.model';
+import { DpmRequest, DpmStatus, SttStock, TechStock } from '../../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -77,29 +80,16 @@ export class SttMyStockComponent implements OnInit {
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
-  private stockLabel(meters: number, pieces: number): string {
-    const parts: string[] = [];
-    if (meters > 0) parts.push(`${meters} m`);
-    if (pieces > 0) parts.push(`${pieces} pcs`);
-    return parts.join(' / ') || '0';
-  }
-
   get totalAvailableLabel(): string {
-    const items = this.stock?.items ?? [];
-    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.availableQuantity, 0);
-    return this.stockLabel(m, p);
+    return formatMaterialGroups(this.materialGroups(item => item.availableQuantity));
   }
 
   get totalReceivedLabel(): string {
-    const items = this.stock?.items ?? [];
-    const m = items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.totalReceived, 0);
-    const p = items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.totalReceived, 0);
-    return this.stockLabel(m, p);
+    return formatMaterialGroups(this.materialGroups(item => item.totalReceived));
   }
 
-  unitSuffix(item: TechStockItem): string {
-    return item.unit === 'METERS' ? ' m' : ' pcs';
+  unitSuffix(item: Pick<SttStock['items'][number], 'unit'>): string {
+    return ` ${materialUnitShort(item.unit)}`;
   }
 
   statusColor(s: DpmStatus): string {
@@ -111,5 +101,14 @@ export class SttMyStockComponent implements OnInit {
       FULLY_CONFIRMED: 'success', REJECTED: 'danger', CANCELLED: 'secondary'
     };
     return m[s] ?? 'secondary';
+  }
+
+  private materialGroups(quantity: (item: SttStock['items'][number]) => number) {
+    return groupMaterialQuantities(this.stock?.items ?? [], {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 }

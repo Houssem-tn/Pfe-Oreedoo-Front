@@ -482,7 +482,7 @@
                         <div>
                           <div class="zt-dist-name">{{ roll.technicianName || '—' }}</div>
                           <div class="zt-dist-email">
-                            distributed {{ roll.totalDistributed }} · used {{ roll.totalUsed }} · remaining {{ roll.totalRemaining }}
+                          {{ rollupUsageSummary(roll) }}
                           </div>
                         </div>
                       </div>
@@ -490,8 +490,8 @@
                     <div class="zt-dist-chips">
                       @for (item of roll.items; track item.equipmentId) {
                         <span class="zt-dist-chip">
-                          {{ item.equipmentName }} <strong>{{ item.distributedQuantity }}{{ unitShort(item.unit) === 'm' ? ' m' : ' pcs' }}</strong>
-                          <span style="color:var(--zt-muted)"> · used {{ item.usedQuantity }} · rem {{ item.remainingQuantity }}</span>
+                          {{ item.equipmentName }} <strong>{{ quantityLabel(item.distributedQuantity, item.unit) }}</strong>
+                          <span style="color:var(--zt-muted)"> · used {{ quantityLabel(item.usedQuantity, item.unit) }} · rem {{ quantityLabel(item.remainingQuantity, item.unit) }}</span>
                         </span>
                       }
                     </div>
@@ -524,7 +524,7 @@
                     <div class="zt-dist-chips">
                       @for (item of dist.items; track item.equipmentId) {
                         <span class="zt-dist-chip">
-                          {{ item.equipmentName }} <strong>×{{ item.quantity }}</strong>
+                          {{ item.equipmentName }} <strong>{{ quantityLabel(item.quantity, item.unit) }}</strong>
                         </span>
                       }
                     </div>

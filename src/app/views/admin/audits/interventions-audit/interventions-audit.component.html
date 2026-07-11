@@ -93,7 +93,7 @@
         </svg>
       </div>
       <div class="ia-sum-body">
-        <span class="ia-sum-value">{{ summary?.materialsConsumed ?? 0 }}</span>
+        <span class="ia-sum-value" style="white-space: pre-line;">{{ summaryMaterialBreakdownLabel }}</span>
         <span class="ia-sum-label">Materials consumed</span>
       </div>
     </div>
@@ -382,7 +382,7 @@
           <!-- Materials consumed -->
           <div class="ia-section-title">
             Materials Consumed
-            @if (selected.totalMaterialQuantity) { <span class="ia-section-tag">{{ selected.totalMaterialQuantity }} units</span> }
+            @if (selected.consumedMaterials.length > 0) { <span class="ia-section-tag" style="white-space: pre-line;">{{ selectedMaterialBreakdownLabel(selected) }}</span> }
           </div>
           @if (selected.consumedMaterials.length > 0) {
             <div class="ia-mat-table">

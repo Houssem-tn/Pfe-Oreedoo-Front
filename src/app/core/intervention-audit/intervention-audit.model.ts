@@ -1,3 +1,5 @@
+import { MaterialQuantityBreakdown } from '../stock/stock.model';
+
 export type InterventionModule = 'ACT' | 'PLT' | 'RES';
 
 export interface ConsumedMaterial {
@@ -143,6 +145,7 @@ export interface InterventionAuditSummary {
   pendingValidation: number;
   proofMissing: number;
   materialsConsumed: number;
+  materialsConsumedBreakdown?: MaterialQuantityBreakdown[];
 }
 
 export interface InterventionAuditFilters {

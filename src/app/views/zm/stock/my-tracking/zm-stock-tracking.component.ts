@@ -16,6 +16,12 @@ import {
 } from '../../../../core/stock/stock.model';
 import { SwalService } from '../../../../core/ui/swal.service';
 import { DpmPdfService } from '../../../../core/pdf/dpm-pdf.service';
+import {
+  formatMaterialGroups,
+  formatMaterialQuantity,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 
 @Component({
   standalone: true,
@@ -96,7 +102,7 @@ export class ZmStockTrackingComponent implements OnInit {
   }
 
   unitShort(unit?: string): string {
-    return unit === 'METERS' ? 'm' : 'pcs';
+    return materialUnitShort(unit);
   }
 
   // ── RDV modal ──────────────────────────────────────────────────────────────
@@ -233,6 +239,30 @@ export class ZmStockTrackingComponent implements OnInit {
   nameInitials(name?: string): string {
     if (!name) return '?';
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  rollupUsageSummary(roll: DpmTechRollup): string {
+    return [
+      `distributed ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.distributedQuantity))}`,
+      `used ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.usedQuantity))}`,
+      `remaining ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.remainingQuantity))}`
+    ].join(' · ');
+  }
+
+  quantityLabel(quantity: number, unit?: string | null): string {
+    return formatMaterialQuantity(quantity, unit);
+  }
+
+  private rollupGroups(
+    items: readonly DpmTechRollup['items'][number][],
+    quantity: (item: DpmTechRollup['items'][number]) => number
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 
   private emptyRdvForm(): RecordExternalApprovalRequest {

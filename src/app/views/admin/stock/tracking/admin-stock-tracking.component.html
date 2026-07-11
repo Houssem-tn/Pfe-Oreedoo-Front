@@ -155,11 +155,11 @@
                     @for (item of d.items; track item.equipmentId) {
                       <span class="track-item-chip">
                         {{ item.equipmentName }}
-                        &nbsp;req <strong>{{ item.requestedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                        &nbsp;req <strong>{{ quantityLabel(item.requestedQuantity, item.unit) }}</strong>
                         @if (item.confirmedQuantity != null) {
-                          &nbsp;/ conf <strong>{{ item.confirmedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                          &nbsp;/ conf <strong>{{ quantityLabel(item.confirmedQuantity, item.unit) }}</strong>
                           @if (item.shortageQuantity && item.shortageQuantity > 0) {
-                            <span class="track-shortage">&minus;{{ item.shortageQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</span>
+                            <span class="track-shortage">&minus;{{ quantityLabel(item.shortageQuantity, item.unit) }}</span>
                           }
                         }
                       </span>
@@ -238,8 +238,8 @@
                 @for (item of s.items; track item.equipmentId) {
                   <span class="track-card-chip">
                     {{ item.equipmentName }}:
-                    <strong>{{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong> avail
-                    / {{ item.totalReceived }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }} recv
+                    <strong>{{ quantityLabel(item.availableQuantity, item.unit) }}</strong> avail
+                    / {{ quantityLabel(item.totalReceived, item.unit) }} recv
                   </span>
                 } @empty {
                   <span style="color:var(--t-muted);font-size:0.82rem">No items.</span>
@@ -317,13 +317,13 @@
                     <div class="track-tech-item__name">
                       {{ item.equipmentName }}
                       @if (item.unit) {
-                        <small>{{ item.unit }}</small>
+                        <small>{{ unitShort(item.unit) }}</small>
                       }
                     </div>
                     <div class="track-tech-item__stats">
-                      <span>Recv <strong>{{ item.receivedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong></span>
-                      <span>Used <strong>{{ item.usedQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong></span>
-                      <span>Rem <strong>{{ item.remainingQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong></span>
+                      <span>Recv <strong>{{ quantityLabel(item.receivedQuantity, item.unit) }}</strong></span>
+                      <span>Used <strong>{{ quantityLabel(item.usedQuantity, item.unit) }}</strong></span>
+                      <span>Rem <strong>{{ quantityLabel(item.remainingQuantity, item.unit) }}</strong></span>
                     </div>
                   </div>
                 } @empty {
@@ -457,7 +457,7 @@
                     }
                     {{ item.equipmentName }}
                   </td>
-                  <td><small>{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
+                  <td><small>{{ unitShort(item.unit) }}</small></td>
                   <td>{{ item.requestedQuantity }}</td>
                   <td>
                     @if (item.confirmedQuantity != null) {
@@ -508,7 +508,7 @@
                       <div>
                         <div class="track-dist-name">{{ roll.technicianName || '—' }}</div>
                         <div class="track-dist-email">
-                          distributed {{ roll.totalDistributed }} · used {{ roll.totalUsed }} · remaining {{ roll.totalRemaining }}
+                          {{ rollupUsageSummary(roll) }}
                         </div>
                       </div>
                     </div>
@@ -517,9 +517,9 @@
                     @for (item of roll.items; track item.equipmentId) {
                       <span class="track-dist-chip">
                         {{ item.equipmentName }}
-                        <strong>{{ item.distributedQuantity }}{{ unitShort(item.unit) === 'm' ? ' m' : ' pcs' }}</strong>
+                        <strong>{{ quantityLabel(item.distributedQuantity, item.unit) }}</strong>
                         <span style="color:var(--t-muted)">
-                          · used {{ item.usedQuantity }} · rem {{ item.remainingQuantity }}
+                          · used {{ quantityLabel(item.usedQuantity, item.unit) }} · rem {{ quantityLabel(item.remainingQuantity, item.unit) }}
                         </span>
                       </span>
                     }
@@ -553,7 +553,7 @@
                   <div class="track-dist-chips">
                     @for (item of dist.items; track item.equipmentId) {
                       <span class="track-dist-chip">
-                        {{ item.equipmentName }} <strong>×{{ item.quantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}</strong>
+                        {{ item.equipmentName }} <strong>{{ quantityLabel(item.quantity, item.unit) }}</strong>
                       </span>
                     }
                   </div>

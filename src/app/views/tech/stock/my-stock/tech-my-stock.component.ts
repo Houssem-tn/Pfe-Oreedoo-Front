@@ -12,6 +12,12 @@ import Swal from 'sweetalert2';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { PendingDistribution, TechStock, TechStockItem } from '../../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  groupMaterialQuantities,
+  materialUnitLabel,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 
 @Component({
   standalone: true,
@@ -53,7 +59,7 @@ export class TechMyStockComponent implements OnInit {
 
   confirmReception(dist: PendingDistribution): void {
     const itemLines = dist.items
-      .map(i => `<li><strong>${i.equipmentName}</strong> — ${i.quantity}${i.unit === 'METERS' ? ' m' : ' pcs'}</li>`)
+      .map(i => `<li><strong>${i.equipmentName}</strong> — ${this.quantityLabel(i.quantity, i.unit)}</li>`)
       .join('');
 
     Swal.fire({
@@ -98,47 +104,42 @@ export class TechMyStockComponent implements OnInit {
   }
 
   itemsLabel(dist: PendingDistribution): string {
-    const meters = dist.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.quantity, 0);
-    const pieces = dist.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.quantity, 0);
-    return this.stockLabel(meters, pieces);
-  }
-
-  private stockLabel(meters: number, pieces: number): string {
-    const parts: string[] = [];
-    if (meters > 0) parts.push(`${meters} m`);
-    if (pieces > 0) parts.push(`${pieces} pcs`);
-    return parts.join(' / ') || '0';
+    return formatMaterialGroups(this.materialGroups(dist.items, item => item.quantity));
   }
 
   get totalReceivedLabel(): string {
-    const items = this.stock?.items ?? [];
-    return this.stockLabel(
-      items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.receivedQuantity, 0),
-      items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.receivedQuantity, 0)
-    );
+    return formatMaterialGroups(this.materialGroups(this.stock?.items ?? [], item => item.receivedQuantity));
   }
 
   get totalUsedLabel(): string {
-    const items = this.stock?.items ?? [];
-    return this.stockLabel(
-      items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.usedQuantity, 0),
-      items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.usedQuantity, 0)
-    );
+    return formatMaterialGroups(this.materialGroups(this.stock?.items ?? [], item => item.usedQuantity));
   }
 
   get totalRemainingLabel(): string {
-    const items = this.stock?.items ?? [];
-    return this.stockLabel(
-      items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.remainingQuantity, 0),
-      items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.remainingQuantity, 0)
-    );
+    return formatMaterialGroups(this.materialGroups(this.stock?.items ?? [], item => item.remainingQuantity));
   }
 
   unitLabel(item: TechStockItem): string {
-    return item.unit === 'METERS' ? 'm' : 'pcs';
+    return materialUnitShort(item.unit);
   }
 
   unitName(item: TechStockItem): string {
-    return item.unit === 'METERS' ? 'Meters' : 'Pieces';
+    return materialUnitLabel(item.unit);
+  }
+
+  quantityLabel(quantity: number, unit?: string | null): string {
+    return `${quantity} ${materialUnitShort(unit)}`;
+  }
+
+  private materialGroups<T extends { equipmentId: string; equipmentName?: string; unit?: string }>(
+    items: readonly T[],
+    quantity: (item: T) => number
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 }

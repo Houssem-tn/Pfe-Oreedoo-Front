@@ -10,6 +10,12 @@ import { UserService } from '../../../../core/users/user.service';
 import {
   DpmAllocation, DpmRequest, DpmStatus, DpmTechRollup, SttDistribution, SttStock, TechStock, TechStockUsage
 } from '../../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  formatMaterialQuantity,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../../core/stock/material-quantity.util';
 import { AppUser } from '../../../../core/users/user.model';
 
 @Component({
@@ -102,7 +108,7 @@ export class AdminStockTrackingComponent implements OnInit {
   }
 
   unitShort(unit?: string): string {
-    return unit === 'METERS' ? 'm' : 'pcs';
+    return materialUnitShort(unit);
   }
 
   nameInitials(name?: string): string {
@@ -135,32 +141,16 @@ export class AdminStockTrackingComponent implements OnInit {
     });
   }
 
-  private stockLabel(meters: number, pieces: number): string {
-    const parts: string[] = [];
-    if (meters > 0) parts.push(`${meters} m`);
-    if (pieces > 0) parts.push(`${pieces} pcs`);
-    return parts.join(' / ') || '0';
-  }
-
   sttTotalReceivedLabel(s: SttStock): string {
-    return this.stockLabel(
-      s.items.filter(i => i.unit === 'METERS').reduce((t, i) => t + i.totalReceived, 0),
-      s.items.filter(i => i.unit !== 'METERS').reduce((t, i) => t + i.totalReceived, 0)
-    );
+    return formatMaterialGroups(this.sttGroups(s.items, item => item.totalReceived));
   }
 
   sttTotalDistributedLabel(s: SttStock): string {
-    return this.stockLabel(
-      s.items.filter(i => i.unit === 'METERS').reduce((t, i) => t + i.totalDistributedToTechs, 0),
-      s.items.filter(i => i.unit !== 'METERS').reduce((t, i) => t + i.totalDistributedToTechs, 0)
-    );
+    return formatMaterialGroups(this.sttGroups(s.items, item => item.totalDistributedToTechs));
   }
 
   sttTotalAvailableLabel(s: SttStock): string {
-    return this.stockLabel(
-      s.items.filter(i => i.unit === 'METERS').reduce((t, i) => t + i.availableQuantity, 0),
-      s.items.filter(i => i.unit !== 'METERS').reduce((t, i) => t + i.availableQuantity, 0)
-    );
+    return formatMaterialGroups(this.sttGroups(s.items, item => item.availableQuantity));
   }
 
   sttAvailPct(s: SttStock): number {
@@ -170,24 +160,15 @@ export class AdminStockTrackingComponent implements OnInit {
   }
 
   techTotalReceivedLabel(t: TechStock): string {
-    return this.stockLabel(
-      t.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.receivedQuantity, 0),
-      t.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.receivedQuantity, 0)
-    );
+    return formatMaterialGroups(this.techGroups(t.items, item => item.receivedQuantity));
   }
 
   techTotalUsedLabel(t: TechStock): string {
-    return this.stockLabel(
-      t.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.usedQuantity, 0),
-      t.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.usedQuantity, 0)
-    );
+    return formatMaterialGroups(this.techGroups(t.items, item => item.usedQuantity));
   }
 
   techTotalRemainingLabel(t: TechStock): string {
-    return this.stockLabel(
-      t.items.filter(i => i.unit === 'METERS').reduce((s, i) => s + i.remainingQuantity, 0),
-      t.items.filter(i => i.unit !== 'METERS').reduce((s, i) => s + i.remainingQuantity, 0)
-    );
+    return formatMaterialGroups(this.techGroups(t.items, item => item.remainingQuantity));
   }
   techUsagesFor(techId: string): TechStockUsage[] { return this.techUsageMap.get(techId) ?? []; }
 
@@ -212,6 +193,58 @@ export class AdminStockTrackingComponent implements OnInit {
     }
 
     return grouped;
+  }
+
+  rollupSummary(roll: DpmTechRollup): string {
+    return formatMaterialGroups(this.rollupGroups(roll.items, item => item.distributedQuantity));
+  }
+
+  rollupUsageSummary(roll: DpmTechRollup): string {
+    return [
+      `distributed ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.distributedQuantity))}`,
+      `used ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.usedQuantity))}`,
+      `remaining ${formatMaterialGroups(this.rollupGroups(roll.items, item => item.remainingQuantity))}`
+    ].join(' · ');
+  }
+
+  quantityLabel(quantity: number, unit?: string | null): string {
+    return formatMaterialQuantity(quantity, unit);
+  }
+
+  private sttGroups(
+    items: ReadonlyArray<SttStock['items'][number]>,
+    quantity: (item: SttStock['items'][number]) => number
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
+  }
+
+  private techGroups(
+    items: ReadonlyArray<TechStock['items'][number]>,
+    quantity: (item: TechStock['items'][number]) => number
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
+  }
+
+  private rollupGroups(
+    items: ReadonlyArray<DpmTechRollup['items'][number]>,
+    quantity: (item: DpmTechRollup['items'][number]) => number
+  ) {
+    return groupMaterialQuantities(items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 
 }

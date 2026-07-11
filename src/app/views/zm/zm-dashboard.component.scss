@@ -182,6 +182,12 @@
     cursor: pointer;
     &:hover { background: var(--cui-tertiary-bg, #f8fafc); }
   }
+
+  &__material {
+    font-size: 0.77rem;
+    line-height: 1.45;
+    white-space: pre-line;
+  }
 }
 
 /* ── Stock stat grid ───────────────────────────────────────── */
@@ -199,7 +205,11 @@
   padding: 0.7rem 0.75rem;
   text-align: center;
 
-  &__v { font-size: 1.25rem; font-weight: 700; line-height: 1; }
+  &__v { font-size: 1.25rem; font-weight: 700; line-height: 1; white-space: pre-line; }
+  &__v--grouped {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
   &__l { font-size: 0.72rem; color: var(--cui-secondary-color, #6b7280); margin-top: 0.25rem; }
 
   &--alert {

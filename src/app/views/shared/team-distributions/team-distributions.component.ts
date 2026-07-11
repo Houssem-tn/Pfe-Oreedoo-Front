@@ -7,6 +7,12 @@ import { SpinnerComponent } from '@coreui/angular';
 import { StockService } from '../../../core/stock/stock.service';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { TeamDistribution, TeamDistributionStatus } from '../../../core/stock/stock.model';
+import {
+  formatMaterialGroups,
+  formatMaterialQuantity,
+  groupMaterialQuantities,
+  materialUnitShort
+} from '../../../core/stock/material-quantity.util';
 
 interface Option { id: string; name: string; }
 
@@ -134,9 +140,18 @@ export class TeamDistributionsComponent implements OnInit {
   }
 
   // ── Summary metrics (over filtered set) ───────────────────────────────────
-  get totalDistributed(): number { return this.filtered.reduce((s, r) => s + r.totalDistributed, 0); }
-  get totalUsed(): number { return this.filtered.reduce((s, r) => s + r.totalUsed, 0); }
-  get totalRemaining(): number { return this.filtered.reduce((s, r) => s + r.totalRemaining, 0); }
+  get totalDistributedLabel(): string {
+    return formatMaterialGroups(this.filteredGroups(item => item.distributedQuantity), { separator: '\n' });
+  }
+
+  get totalUsedLabel(): string {
+    return formatMaterialGroups(this.filteredGroups(item => item.usedQuantity), { separator: '\n' });
+  }
+
+  get totalRemainingLabel(): string {
+    return formatMaterialGroups(this.filteredGroups(item => item.remainingQuantity), { separator: '\n' });
+  }
+
   get historicalCount(): number { return this.filtered.filter(r => r.historical).length; }
 
   // ── Detail panel ──────────────────────────────────────────────────────────
@@ -163,17 +178,27 @@ export class TeamDistributionsComponent implements OnInit {
   }
 
   unitLabel(unit?: string): string {
-    if (unit === 'METERS') return 'm';
-    if (unit === 'PIECES') return 'pcs';
-    return unit?.trim() || 'units';
+    return materialUnitShort(unit);
   }
 
   qty(n: number, unit?: string): string {
-    return unit === 'METERS' ? `${n} m` : `×${n}`;
+    return formatMaterialQuantity(n, unit);
   }
 
   itemsSummary(r: TeamDistribution): string {
     return r.items.map(i => `${i.equipmentName ?? i.equipmentId} ${this.qty(i.distributedQuantity, i.unit)}`).join(', ');
+  }
+
+  distributedLabel(row: TeamDistribution): string {
+    return formatMaterialGroups(this.rowGroups(row, item => item.distributedQuantity));
+  }
+
+  usedLabel(row: TeamDistribution): string {
+    return formatMaterialGroups(this.rowGroups(row, item => item.usedQuantity));
+  }
+
+  remainingLabel(row: TeamDistribution): string {
+    return formatMaterialGroups(this.rowGroups(row, item => item.remainingQuantity));
   }
 
   /** Source label for the row: DPM chips, or a clear historical/stock label. */
@@ -194,5 +219,26 @@ export class TeamDistributionsComponent implements OnInit {
   nameInitials(name?: string): string {
     if (!name) return '?';
     return name.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  private filteredGroups(quantity: (item: TeamDistribution['items'][number]) => number) {
+    return groupMaterialQuantities(this.filtered.flatMap(row => row.items), {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
+  }
+
+  private rowGroups(
+    row: TeamDistribution,
+    quantity: (item: TeamDistribution['items'][number]) => number
+  ) {
+    return groupMaterialQuantities(row.items, {
+      equipmentId: item => item.equipmentId,
+      equipmentName: item => item.equipmentName,
+      unit: item => item.unit,
+      quantity
+    });
   }
 }

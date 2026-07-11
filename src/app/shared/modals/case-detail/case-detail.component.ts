@@ -22,7 +22,8 @@ import {
   CaseTimelineEvent
 } from '../../../core/cases/models/case.model';
 import { StockService } from '../../../core/stock/stock.service';
-import { StockUsagePermission, PermissionStatus } from '../../../core/stock/stock.model';
+import { PermissionItemDetail, StockUsagePermission, PermissionStatus } from '../../../core/stock/stock.model';
+import { formatMaterialQuantity } from '../../../core/stock/material-quantity.util';
 import { LocationActionsComponent } from '../../components/location-actions/location-actions.component';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { CaseMessage, CaseMessagesService } from '../../../core/cases/case-messages.service';
@@ -320,6 +321,10 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
       case 'REJECTED': return 'danger';
       default: return 'secondary';
     }
+  }
+
+  permissionItemLabel(item: PermissionItemDetail): string {
+    return `${formatMaterialQuantity(item.requestedQuantity, item.unit)} ${item.itemName}`;
   }
 
   onClose(): void {

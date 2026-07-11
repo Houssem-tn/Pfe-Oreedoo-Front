@@ -1,0 +1,19 @@
+# Dependencies / build output
+node_modules/
+dist/
+.angular/
+
+# Coverage / reports
+coverage/
+reports/
+
+# Generated / vendor
+src/assets/
+*.min.js
+*.min.css
+
+# Local-only environment files (may not exist, harmless if absent)
+src/environments/environment.development.ts
+src/environments/environment.production.ts
+
+package-lock.json

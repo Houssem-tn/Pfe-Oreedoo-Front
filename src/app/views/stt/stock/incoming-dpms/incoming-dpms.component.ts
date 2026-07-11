@@ -17,6 +17,7 @@ import {
   ConfirmDpmRequest, DpmItem, DpmItemConfirmation,
   DpmRequest, DpmStatus, Equipment, TrackingMode, UnitTrackingInput
 } from '../../../../core/stock/stock.model';
+import { formatMaterialGroups, groupMaterialQuantities, materialUnitShort } from '../../../../core/stock/material-quantity.util';
 
 interface ConfirmUnit {
   imei: string;
@@ -259,19 +260,15 @@ export class IncomingDpmsComponent implements OnInit {
   }
 
   get shortageLabel(): string {
-    const mShort = this.confirmLines
-      .filter(l => l.unit === 'METERS')
-      .reduce((s, l) => s + Math.max(0, l.requestedQuantity - l.confirmedQty), 0);
-    const pShort = this.confirmLines
-      .filter(l => l.unit !== 'METERS')
-      .reduce((s, l) => s + Math.max(0, l.requestedQuantity - l.confirmedQty), 0);
-    const parts: string[] = [];
-    if (mShort > 0) parts.push(`${mShort} m`);
-    if (pShort > 0) parts.push(`${pShort} pcs`);
-    return parts.join(' / ') || '0';
+    return formatMaterialGroups(groupMaterialQuantities(this.confirmLines, {
+      equipmentId: line => line.equipmentId,
+      equipmentName: line => line.equipmentName,
+      unit: line => line.unit,
+      quantity: line => Math.max(0, line.requestedQuantity - line.confirmedQty)
+    }));
   }
 
   unitSuffix(unit?: string | null): string {
-    return unit === 'METERS' ? ' m' : ' pcs';
+    return ` ${materialUnitShort(unit)}`;
   }
 }

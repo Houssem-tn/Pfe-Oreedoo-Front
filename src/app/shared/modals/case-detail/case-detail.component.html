@@ -486,15 +486,15 @@
 
         <dl class="cd-grid" style="font-size:.85rem">
           <dt>Requested cable</dt>
-          <dd>{{ perm.requestedCableMeters > 0 ? (perm.requestedCableMeters + ' m') : '—' }}</dd>
+          <dd>{{ perm.requestedCableMeters > 0 && !perm.requestedItems?.length ? (perm.requestedCableMeters + ' m') : '—' }}</dd>
 
           <dt>Approved cable</dt>
-          <dd>{{ perm.approvedCableMeters > 0 ? (perm.approvedCableMeters + ' m') : '—' }}</dd>
+          <dd>{{ perm.approvedCableMeters > 0 && !perm.approvedItems?.length ? (perm.approvedCableMeters + ' m') : '—' }}</dd>
 
           <dt *ngIf="perm.requestedItems?.length">Requested items</dt>
           <dd *ngIf="perm.requestedItems?.length">
             <span *ngFor="let item of perm.requestedItems; let last = last">
-              {{ item.requestedQuantity }}x {{ item.itemName }}<span *ngIf="!last">, </span>
+              {{ permissionItemLabel(item) }}<span *ngIf="!last">, </span>
             </span>
           </dd>
 

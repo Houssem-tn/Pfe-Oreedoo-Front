@@ -10,6 +10,7 @@ import {
   RejectPermissionRequest,
   StockUsagePermission
 } from '../../../../core/stock/stock.model';
+import { formatMaterialQuantity, normalizeMaterialUnit } from '../../../../core/stock/material-quantity.util';
 
 @Component({
   selector: 'app-stt-usage-approvals',
@@ -109,5 +110,14 @@ export class SttUsageApprovalsComponent implements OnInit {
         alert(err?.error?.message ?? 'Failed to reject request.');
       }
     });
+  }
+
+  quantityLabel(quantity: number, unit?: string | null): string {
+    return formatMaterialQuantity(quantity, unit);
+  }
+
+  showLegacyRequestedCable(req: StockUsagePermission): boolean {
+    return req.requestedCableMeters > 0
+      && !(req.requestedItems ?? []).some(item => normalizeMaterialUnit(item.unit) === 'METERS');
   }
 }

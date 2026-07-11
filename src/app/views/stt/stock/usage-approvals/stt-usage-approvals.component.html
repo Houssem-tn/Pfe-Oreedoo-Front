@@ -92,7 +92,7 @@
         <div>
           <div class="ua-usage-label">Requested usage</div>
           <div class="ua-usage-row">
-            @if (req.requestedCableMeters > 0) {
+            @if (showLegacyRequestedCable(req)) {
               <span class="ua-chip ua-chip--cable">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                      style="width:11px;height:11px">
@@ -103,9 +103,9 @@
               </span>
             }
             @for (item of req.requestedItems; track item.itemId) {
-              <span class="ua-chip">{{ item.requestedQuantity }}× {{ item.itemName }}</span>
+              <span class="ua-chip">{{ quantityLabel(item.requestedQuantity, item.unit) }} {{ item.itemName }}</span>
             }
-            @if (!req.requestedCableMeters && !req.requestedItems?.length) {
+            @if (!showLegacyRequestedCable(req) && !req.requestedItems?.length) {
               <span style="color:var(--ua-muted);font-size:.84rem">No items specified</span>
             }
           </div>
@@ -174,7 +174,7 @@
           </div>
 
           <!-- Cable approval -->
-          @if (req.requestedCableMeters > 0) {
+          @if (showLegacyRequestedCable(req)) {
             <div class="ua-field">
               <label>Cable approved <span style="color:var(--ua-muted);font-weight:400">(metres)</span></label>
               <input type="number" min="0" [max]="req.requestedCableMeters"
@@ -189,7 +189,7 @@
               <label>{{ item.itemName }} — approved qty</label>
               <input type="number" min="0" [max]="item.requestedQuantity"
                      [(ngModel)]="approveDraft.approvedItems![i].approvedQuantity" />
-              <span class="ua-field-hint">Requested: {{ item.requestedQuantity }}</span>
+              <span class="ua-field-hint">Requested: {{ quantityLabel(item.requestedQuantity, item.unit) }}</span>
             </div>
           }
 

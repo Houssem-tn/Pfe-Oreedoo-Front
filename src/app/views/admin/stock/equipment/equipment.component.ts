@@ -7,6 +7,7 @@ import { SpinnerComponent } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { Equipment, CreateEquipmentRequest, StockUnit, TrackingMode } from '../../../../core/stock/stock.model';
+import { materialUnitLabel } from '../../../../core/stock/material-quantity.util';
 import { SwalService } from '../../../../core/ui/swal.service';
 
 @Component({
@@ -157,9 +158,7 @@ export class EquipmentComponent implements OnInit {
   }
 
   unitLabel(unit?: StockUnit): string {
-    if (unit === 'METERS') return 'Meters';
-    if (unit === 'PIECES') return 'Pieces';
-    return '—';
+    return unit ? materialUnitLabel(unit) : '—';
   }
 
   usageBadges(eq: Equipment): { label: string; cls: string }[] {

@@ -43,7 +43,7 @@ src/environments/environment.production.ts
 
 # Miscellaneous
 .npmrc
-/.angular/cache
+/.angular/
 .sass-cache/
 /connect.lock
 /coverage
@@ -51,6 +51,16 @@ src/environments/environment.production.ts
 testem.log
 /typings
 
+# Logs
+*.log
+logs/
+
 # System files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Quality / security scan reports
+/reports/
+gitleaks-report.json
+*.tsbuildinfo

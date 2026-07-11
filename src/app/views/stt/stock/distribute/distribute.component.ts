@@ -16,6 +16,7 @@ import {
   SttStockItem,
   TrackingMode
 } from '../../../../core/stock/stock.model';
+import { formatMaterialQuantity, materialUnitShort } from '../../../../core/stock/material-quantity.util';
 import { AppUser } from '../../../../core/users/user.model';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/searchable-select/searchable-select.component';
 
@@ -215,6 +216,14 @@ export class DistributeComponent implements OnInit {
   /** History rows are now stock-based; legacy rows may still carry a DPM ref. */
   sourceLabel(d: SttDistribution): string {
     return d.dpmId ? `DPM ${d.dpmId.slice(-6)}` : 'Stock';
+  }
+
+  quantityLabel(quantity: number, unit?: string | null): string {
+    return formatMaterialQuantity(quantity, unit);
+  }
+
+  unitShort(unit?: string | null): string {
+    return materialUnitShort(unit);
   }
 
   submit(): void {

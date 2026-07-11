@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 
 import { StockService } from '../../../../core/stock/stock.service';
 import { Equipment, StockThreshold, StockThresholdRequest } from '../../../../core/stock/stock.model';
+import { materialUnitShort } from '../../../../core/stock/material-quantity.util';
 
 interface ThresholdRow {
   threshold?: StockThreshold;
@@ -1208,7 +1209,7 @@ export class ZmStockThresholdsComponent implements OnInit {
   }
 
   unitLabel(equipment: Equipment): string {
-    return equipment.unit === 'METERS' ? 'm' : 'pcs';
+    return materialUnitShort(equipment.unit);
   }
 
   private emptyDraft(): ThresholdDraft {

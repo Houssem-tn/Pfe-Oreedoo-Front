@@ -104,13 +104,13 @@
           <span class="sa-stat__dot sa-stat__dot--confirmed"></span>
         </div>
         <div class="sa-stat">
-          <span class="sa-stat__value">{{ consumptionSummary?.cableTotalMeters ?? 0 }} m</span>
-          <span class="sa-stat__label">Cable</span>
+          <span class="sa-stat__value" style="white-space: pre-line;">{{ consumptionBreakdownLabel }}</span>
+          <span class="sa-stat__label">Consumed materials</span>
           <span class="sa-stat__dot sa-stat__dot--pending"></span>
         </div>
         <div class="sa-stat">
-          <span class="sa-stat__value">{{ consumptionSummary?.totalBoxesUsed ?? 0 }}</span>
-          <span class="sa-stat__label">Boxes</span>
+          <span class="sa-stat__value">{{ consumptionSummary?.topTechnicianConsumptions ?? 0 }}</span>
+          <span class="sa-stat__label">Top technician cases</span>
           <span class="sa-stat__dot sa-stat__dot--total"></span>
         </div>
       }
@@ -295,7 +295,7 @@
                   <span class="sa-audit-item-chip">
                     {{ item.equipmentName ?? item.equipmentId }}
                     <span class="sa-audit-item-chip__req">
-                      {{ item.unit === 'METERS' ? item.quantity + ' m' : '×' + item.quantity }}
+                      {{ formatQty(item.quantity, item.unit) }}
                     </span>
                   </span>
                 }
@@ -448,7 +448,7 @@
                 @for (item of selectedReturn.items; track $index) {
                   <div class="sa-usage-row">
                     <span class="sa-usage-name">{{ item.equipmentName ?? item.equipmentId }}</span>
-                    <span class="sa-usage-qty">{{ item.unit === 'METERS' ? item.quantity + ' m' : item.quantity }}</span>
+                    <span class="sa-usage-qty">{{ formatQty(item.quantity, item.unit) }}</span>
                     <span class="sa-usage-unit">{{ item.condition ? prettyEnum(item.condition) : '—' }}</span>
                   </div>
                 }
@@ -646,7 +646,7 @@
             <div class="sa-item-row__name">
               <span class="sa-item-eq-name">{{ row.equipmentName }}</span>
               @if (row.unit) {
-                <span class="sa-item-unit-pill">{{ row.unit === 'METERS' ? 'm' : 'pcs' }}</span>
+                <span class="sa-item-unit-pill">{{ unitLabel(row.unit) }}</span>
               }
             </div>
 
@@ -659,14 +659,14 @@
 
             <div class="sa-item-row__cell">
               <span class="sa-item-num sa-item-num--req">
-                {{ row.unit === 'METERS' ? row.totalRequested + ' m' : '×' + row.totalRequested }}
+                {{ formatQty(row.totalRequested, row.unit) }}
               </span>
             </div>
 
             <div class="sa-item-row__cell">
               @if (row.confirmedCount > 0 || row.totalConfirmed > 0) {
                 <span class="sa-item-num sa-item-num--conf">
-                  {{ row.unit === 'METERS' ? row.totalConfirmed + ' m' : '×' + row.totalConfirmed }}
+                  {{ formatQty(row.totalConfirmed, row.unit) }}
                 </span>
               } @else {
                 <span class="sa-item-num sa-item-num--muted">—</span>
@@ -676,7 +676,7 @@
             <div class="sa-item-row__cell">
               @if (row.totalShortage > 0) {
                 <span class="sa-item-num sa-item-num--short">
-                  −{{ row.unit === 'METERS' ? row.totalShortage + ' m' : row.totalShortage }}
+                  −{{ formatQty(row.totalShortage, row.unit) }}
                 </span>
               } @else {
                 <span class="sa-item-num sa-item-num--muted">—</span>
@@ -840,7 +840,7 @@
             <div class="sa-panel-head__left">
               <span class="sa-panel-dpm">{{ selectedItemRow.equipmentName }}</span>
               @if (selectedItemRow.unit) {
-                <span class="sa-item-unit-pill">{{ selectedItemRow.unit === 'METERS' ? 'meters' : 'pieces' }}</span>
+                <span class="sa-item-unit-pill">{{ unitLabel(selectedItemRow.unit) }}</span>
               }
             </div>
             <button class="sa-panel-close" type="button" (click)="itemPanelVisible = false">
@@ -858,20 +858,20 @@
             </div>
             <div class="sa-zm-sc">
               <span class="sa-zm-sc__val">
-                {{ selectedItemRow.unit === 'METERS' ? selectedItemRow.totalRequested + ' m' : '×' + selectedItemRow.totalRequested }}
+                {{ formatQty(selectedItemRow.totalRequested, selectedItemRow.unit) }}
               </span>
               <span class="sa-zm-sc__lbl">Requested</span>
             </div>
             <div class="sa-zm-sc">
               <span class="sa-zm-sc__val sa-zm-sc__val--ok">
-                {{ selectedItemRow.unit === 'METERS' ? selectedItemRow.totalConfirmed + ' m' : '×' + selectedItemRow.totalConfirmed }}
+                {{ formatQty(selectedItemRow.totalConfirmed, selectedItemRow.unit) }}
               </span>
               <span class="sa-zm-sc__lbl">Confirmed</span>
             </div>
             @if (selectedItemRow.totalShortage > 0) {
               <div class="sa-zm-sc sa-zm-sc--warn">
                 <span class="sa-zm-sc__val sa-zm-sc__val--reject">
-                  −{{ selectedItemRow.unit === 'METERS' ? selectedItemRow.totalShortage + ' m' : selectedItemRow.totalShortage }}
+                  −{{ formatQty(selectedItemRow.totalShortage, selectedItemRow.unit) }}
                 </span>
                 <span class="sa-zm-sc__lbl">Shortage</span>
               </div>
@@ -929,7 +929,7 @@
                       <div class="sa-item-qty-block">
                         <span class="sa-item-qty-lbl">Requested</span>
                         <span class="sa-item-qty-val">
-                          {{ selectedItemRow.unit === 'METERS' ? entry.requestedQty + ' m' : '×' + entry.requestedQty }}
+                          {{ formatQty(entry.requestedQty, selectedItemRow.unit) }}
                         </span>
                       </div>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--sa-muted);flex-shrink:0">
@@ -942,7 +942,7 @@
                                 [class.sa-item-qty-val--ok]="entry.confirmedQty >= entry.requestedQty"
                                 [class.sa-item-qty-val--short]="entry.confirmedQty < entry.requestedQty && entry.confirmedQty > 0"
                                 [class.sa-item-qty-val--zero]="entry.confirmedQty === 0">
-                            {{ selectedItemRow.unit === 'METERS' ? entry.confirmedQty + ' m' : '×' + entry.confirmedQty }}
+                            {{ formatQty(entry.confirmedQty, selectedItemRow.unit) }}
                           </span>
                         } @else {
                           <span class="sa-item-qty-val sa-item-qty-val--pending">Pending</span>
@@ -952,7 +952,7 @@
                         <div class="sa-item-qty-block">
                           <span class="sa-item-qty-lbl">Shortage</span>
                           <span class="sa-item-qty-val sa-item-qty-val--short">
-                            −{{ selectedItemRow.unit === 'METERS' ? entry.shortageQty + ' m' : entry.shortageQty }}
+                            −{{ formatQty(entry.shortageQty, selectedItemRow.unit) }}
                           </span>
                         </div>
                       }
@@ -1191,9 +1191,9 @@
                           <div class="sa-actor-av sa-actor-av--tech">{{ nameInitials(roll.technicianName || '?') }}</div>
                           <div class="sa-actor-info">
                             <span class="sa-actor-name">{{ roll.technicianName || '—' }}</span>
-                            <span class="sa-actor-email">
+                            <span class="sa-actor-email">{{ rollupUsageSummary(roll) }}</span><!--
                               distributed {{ roll.totalDistributed }} · used {{ roll.totalUsed }} · remaining {{ roll.totalRemaining }}
-                            </span>
+                            -->
                             <span class="sa-role-badge sa-role-badge--tech">TECH</span>
                           </div>
                         </div>
@@ -1206,7 +1206,7 @@
                               </svg>
                               <span>{{ item.equipmentName }}</span>
                               <strong>{{ formatQty(item.distributedQuantity, item.unit) }}</strong>
-                              <span class="sa-dist-date">used {{ item.usedQuantity }} · rem {{ item.remainingQuantity }}</span>
+                              <span class="sa-dist-date">used {{ formatQty(item.usedQuantity, item.unit) }} · rem {{ formatQty(item.remainingQuantity, item.unit) }}</span>
                             </div>
                           }
                         </div>
@@ -1288,8 +1288,8 @@
             </svg>
           </div>
           <div class="sa-cons-card__body">
-            <span class="sa-cons-card__val">{{ consumptionSummary.cableTotalMeters }} m</span>
-            <span class="sa-cons-card__lbl">Total cable consumed</span>
+            <span class="sa-cons-card__val" style="white-space: pre-line;">{{ consumptionBreakdownLabel }}</span>
+            <span class="sa-cons-card__lbl">Consumed materials</span>
           </div>
         </div>
 
@@ -1301,8 +1301,8 @@
             </svg>
           </div>
           <div class="sa-cons-card__body">
-            <span class="sa-cons-card__val">{{ consumptionSummary.totalBoxesUsed }}</span>
-            <span class="sa-cons-card__lbl">Total boxes / pieces used</span>
+            <span class="sa-cons-card__val">{{ consumptionSummary.totalItemTypes }}</span>
+            <span class="sa-cons-card__lbl">Declared material lines</span>
           </div>
         </div>
 
@@ -1559,7 +1559,7 @@
                   <div class="sa-usage-row">
                     <span class="sa-usage-name">{{ item.equipmentName ?? item.equipmentId }}</span>
                     <span class="sa-usage-qty">{{ item.quantityUsed }}</span>
-                    <span class="sa-usage-unit">{{ item.unit === 'METERS' ? 'm' : item.unit === 'PIECES' ? 'pcs' : (item.unit ?? 'unit') }}</span>
+                    <span class="sa-usage-unit">{{ unitLabel(item.unit) }}</span>
                   </div>
                 }
                 <div class="sa-usage-row sa-usage-row--total">

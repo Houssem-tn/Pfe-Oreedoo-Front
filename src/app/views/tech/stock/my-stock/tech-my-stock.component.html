@@ -37,7 +37,7 @@
               <div class="d-flex flex-wrap gap-2 mb-3">
                 @for (item of dist.items; track item.equipmentId) {
                   <span class="badge text-bg-secondary fw-normal">
-                    {{ item.equipmentName }} — {{ item.quantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
+                    {{ item.equipmentName }} — {{ quantityLabel(item.quantity, item.unit) }}
                   </span>
                 }
               </div>
@@ -116,22 +116,21 @@
                     <small class="text-muted">{{ unitName(item) }}</small>
                   </div>
                   <c-badge [color]="item.remainingQuantity > 0 ? 'success' : 'danger'">
-                    {{ item.remainingQuantity }} left
+                    {{ quantityLabel(item.remainingQuantity, item.unit) }} left
                   </c-badge>
                 </div>
 
                 <div class="fs-3 fw-bold text-primary mb-3">
-                  {{ item.remainingQuantity }}
-                  <small class="fs-6 text-muted">{{ unitLabel(item) }}</small>
+                  {{ quantityLabel(item.remainingQuantity, item.unit) }}
                 </div>
 
                 <div class="d-flex justify-content-between small mb-1">
                   <span class="text-muted">Received</span>
-                  <strong>{{ item.receivedQuantity }} {{ unitLabel(item) }}</strong>
+                  <strong>{{ quantityLabel(item.receivedQuantity, item.unit) }}</strong>
                 </div>
                 <div class="d-flex justify-content-between small mb-2">
                   <span class="text-muted">Used</span>
-                  <strong class="text-danger">{{ item.usedQuantity }} {{ unitLabel(item) }}</strong>
+                  <strong class="text-danger">{{ quantityLabel(item.usedQuantity, item.unit) }}</strong>
                 </div>
 
                 @if (item.lastReceivedAt) {

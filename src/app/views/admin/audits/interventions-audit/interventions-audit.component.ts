@@ -13,6 +13,7 @@ import {
   InterventionAuditFilters,
   InterventionAuditSummary
 } from '../../../../core/intervention-audit/intervention-audit.model';
+import { formatMaterialGroups, groupMaterialQuantities } from '../../../../core/stock/material-quantity.util';
 
 @Component({
   standalone: true,
@@ -278,5 +279,18 @@ export class InterventionsAuditComponent implements OnInit {
 
   trackByEventId(_: number, ev: InterventionAuditEvent): string {
     return ev.id ?? String(_);
+  }
+
+  get summaryMaterialBreakdownLabel(): string {
+    return formatMaterialGroups(this.summary?.materialsConsumedBreakdown ?? [], { separator: '\n' });
+  }
+
+  selectedMaterialBreakdownLabel(item: InterventionAudit): string {
+    return formatMaterialGroups(groupMaterialQuantities(item.consumedMaterials ?? [], {
+      equipmentId: material => material.equipmentId,
+      equipmentName: material => material.equipmentName,
+      unit: material => material.unit,
+      quantity: material => material.quantity
+    }), { separator: '\n' });
   }
 }

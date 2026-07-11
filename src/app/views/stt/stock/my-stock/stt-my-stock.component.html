@@ -94,14 +94,14 @@
               @for (item of stock!.items; track item.equipmentId) {
                 <tr>
                   <td><strong>{{ item.equipmentName }}</strong></td>
-                  <td><small class="text-muted">{{ item.unit === 'METERS' ? 'm' : 'pcs' }}</small></td>
+                  <td><small class="text-muted">{{ unitSuffix(item).trim() }}</small></td>
                   <td>{{ item.totalReceived }}</td>
                   <td>{{ item.totalDistributedToTechs }}</td>
                   <td>
                     <span class="dash-qty-badge"
                           [class.dash-qty-badge--avail]="item.availableQuantity > 0"
                           [class.dash-qty-badge--zero]="item.availableQuantity === 0">
-                      {{ item.availableQuantity }}{{ item.unit === 'METERS' ? ' m' : ' pcs' }}
+                      {{ item.availableQuantity }}{{ unitSuffix(item) }}
                     </span>
                   </td>
                   <td><small>{{ item.lastReceivedAt | date:'dd/MM/yy' }}</small></td>

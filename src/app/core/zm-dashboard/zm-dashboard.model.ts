@@ -1,5 +1,7 @@
 /** Response shape of GET /api/v1/zm/dashboard — mirrors ZmDashboardResponse (backend). */
 
+import { MaterialQuantityBreakdown } from '../stock/stock.model';
+
 export interface ZmDashboardKpis {
   totalCases: number;
   pending: number;
@@ -44,9 +46,13 @@ export interface ZmSttPerformance {
   avgResolutionMinutes: number;
   slaRespectPercent: number;
   materialReceived: number;
+  materialReceivedBreakdown?: MaterialQuantityBreakdown[];
   materialDistributed: number;
+  materialDistributedBreakdown?: MaterialQuantityBreakdown[];
   materialReturned: number;
+  materialReturnedBreakdown?: MaterialQuantityBreakdown[];
   materialDamagedMissing: number;
+  materialDamagedMissingBreakdown?: MaterialQuantityBreakdown[];
 }
 
 export interface ZmActionPreview {
@@ -75,10 +81,15 @@ export interface ZmStockOverview {
   dpmCreated: number;
   dpmConfirmed: number;
   materialReceivedByStt: number;
+  materialReceivedBySttBreakdown?: MaterialQuantityBreakdown[];
   materialDistributed: number;
+  materialDistributedBreakdown?: MaterialQuantityBreakdown[];
   materialConsumed: number;
+  materialConsumedBreakdown?: MaterialQuantityBreakdown[];
   materialReturned: number;
+  materialReturnedBreakdown?: MaterialQuantityBreakdown[];
   recoverable: number;
+  recoverableBreakdown?: MaterialQuantityBreakdown[];
   trackedUnits: number;
   missingImeiSerial: number;
 }

@@ -12,7 +12,8 @@ import {
 } from '@coreui/angular';
 
 import { StockService } from '../../../../core/stock/stock.service';
-import { StockUsagePermission, PermissionStatus } from '../../../../core/stock/stock.model';
+import { PermissionItemDetail, StockUsagePermission, PermissionStatus } from '../../../../core/stock/stock.model';
+import { formatMaterialQuantity } from '../../../../core/stock/material-quantity.util';
 
 @Component({
   selector: 'app-tech-my-permissions',
@@ -68,16 +69,17 @@ import { StockUsagePermission, PermissionStatus } from '../../../../core/stock/s
                   <c-badge [color]="statusColor(req.status)">{{ statusLabel(req.status) }}</c-badge>
                 </div>
 
-                <div *ngIf="req.requestedCableMeters > 0" style="font-size:.875rem" class="mb-1">
+                <div *ngIf="req.requestedCableMeters > 0 && !req.requestedItems?.length" style="font-size:.875rem" class="mb-1">
                   <strong>Cable:</strong> {{ req.requestedCableMeters }}m requested
                   <span *ngIf="req.approvedCableMeters > 0"> — {{ req.approvedCableMeters }}m approved</span>
                 </div>
 
-                <div *ngIf="req.requestedItems?.length" style="font-size:.875rem" class="mb-1">
-                  <strong>Equipment:</strong>
-                  <span *ngFor="let item of req.requestedItems; let last = last">
-                    {{ item.requestedQuantity }}x {{ item.itemName }}<span *ngIf="!last">, </span>
-                  </span>
+                <div *ngIf="requestedPermissionSummary(req)" style="font-size:.875rem" class="mb-1">
+                  <strong>Requested:</strong> {{ requestedPermissionSummary(req) }}
+                </div>
+
+                <div *ngIf="approvedPermissionSummary(req)" style="font-size:.875rem" class="mb-1">
+                  <strong>Approved:</strong> {{ approvedPermissionSummary(req) }}
                 </div>
 
                 <div *ngIf="req.reason" class="text-body-secondary mt-1" style="font-size:.82rem">
@@ -145,5 +147,34 @@ export class TechMyPermissionsComponent implements OnInit {
       case 'REJECTED': return 'danger';
       default: return 'secondary';
     }
+  }
+
+  requestedPermissionSummary(req: StockUsagePermission): string {
+    return this.permissionSummary(req.requestedItems, 'requestedQuantity', req.requestedCableMeters);
+  }
+
+  approvedPermissionSummary(req: StockUsagePermission): string {
+    return this.permissionSummary(req.approvedItems, 'approvedQuantity', req.approvedCableMeters);
+  }
+
+  private permissionSummary(
+    items: PermissionItemDetail[] | undefined,
+    quantityKey: 'requestedQuantity' | 'approvedQuantity',
+    legacyCableMeters: number
+  ): string {
+    const parts = (items ?? [])
+      .map(item => ({
+        name: item.itemName,
+        quantity: Number(item[quantityKey] ?? 0),
+        unit: item.unit
+      }))
+      .filter(item => Number.isFinite(item.quantity) && item.quantity > 0)
+      .map(item => `${formatMaterialQuantity(item.quantity, item.unit)} ${item.name}`);
+
+    if (!parts.length && legacyCableMeters > 0) {
+      parts.push(`${formatMaterialQuantity(legacyCableMeters, 'METERS')} cable`);
+    }
+
+    return parts.join(', ');
   }
 }

@@ -13,6 +13,8 @@ import {
   ZmDashboardResponse,
   ZmSttPerformance
 } from '../../core/zm-dashboard/zm-dashboard.model';
+import { MaterialQuantityBreakdown } from '../../core/stock/stock.model';
+import { formatMaterialGroups, materialUnitShort } from '../../core/stock/material-quantity.util';
 import {
   OOREDDOO_CHART_COLORS,
   buildBarChartOptions,
@@ -69,6 +71,7 @@ export class ZmDashboardComponent implements OnInit {
   overdueBar: ChartVM | null = null;
   completionLine: ChartVM | null = null;
   stockBar: ChartVM | null = null;
+  stockChartHeight = 260;
   governorateBar: ChartVM | null = null;
 
   ngOnInit(): void {
@@ -176,6 +179,17 @@ export class ZmDashboardComponent implements OnInit {
 
   trackByStt(_: number, row: ZmSttPerformance): string {
     return row.sttId;
+  }
+
+  materialSummary(
+    groups: MaterialQuantityBreakdown[] | null | undefined,
+    fallbackTotal = 0,
+    separator = '\n'
+  ): string {
+    if (groups?.length) {
+      return formatMaterialGroups(groups, { separator });
+    }
+    return fallbackTotal > 0 ? fallbackTotal.toLocaleString('en-US') : '0';
   }
 
   // ── Charts ───────────────────────────────────────────────────────────────────
@@ -294,18 +308,77 @@ export class ZmDashboardComponent implements OnInit {
   private buildStockBar(d: ZmDashboardResponse): ChartVM {
     const s = d.stockOverview;
     const c = OOREDDOO_CHART_COLORS;
+    const keys = this.materialChartKeys(s);
+    const labels = keys.map(key => this.materialChartLabel(key));
+    const receivedMap = this.breakdownMap(s.materialReceivedBySttBreakdown);
+    const distributedMap = this.breakdownMap(s.materialDistributedBreakdown);
+    const consumedMap = this.breakdownMap(s.materialConsumedBreakdown);
+    const returnedMap = this.breakdownMap(s.materialReturnedBreakdown);
+    const recoverableMap = this.breakdownMap(s.recoverableBreakdown);
+
+    this.stockChartHeight = Math.max(260, labels.length * 42);
+
+    const options = buildBarChartOptions({
+      horizontal: true,
+      maxTicksLimit: 8
+    });
+    options.plugins = {
+      ...options.plugins,
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          boxHeight: 10,
+          boxWidth: 10,
+          padding: 14,
+          useBorderRadius: true
+        }
+      }
+    };
+
     return {
       type: 'bar',
       data: {
-        labels: ['Received', 'Distributed', 'Consumed', 'Returned', 'Recoverable'],
-        datasets: [{
-          data: [s.materialReceivedByStt, s.materialDistributed, s.materialConsumed, s.materialReturned, s.recoverable],
-          backgroundColor: [c.infoBlue, c.purple, c.warningOrange, c.primaryRed, c.successGreen],
-          borderRadius: 6,
-          maxBarThickness: 48
-        }]
+        labels,
+        datasets: [
+          {
+            label: 'Received by STT',
+            data: keys.map(key => receivedMap.get(key) ?? 0),
+            backgroundColor: c.infoBlue,
+            borderRadius: 6,
+            maxBarThickness: 16
+          },
+          {
+            label: 'Distributed to TECH',
+            data: keys.map(key => distributedMap.get(key) ?? 0),
+            backgroundColor: c.purple,
+            borderRadius: 6,
+            maxBarThickness: 16
+          },
+          {
+            label: 'Consumed on cases',
+            data: keys.map(key => consumedMap.get(key) ?? 0),
+            backgroundColor: c.warningOrange,
+            borderRadius: 6,
+            maxBarThickness: 16
+          },
+          {
+            label: 'Returned',
+            data: keys.map(key => returnedMap.get(key) ?? 0),
+            backgroundColor: c.primaryRed,
+            borderRadius: 6,
+            maxBarThickness: 16
+          },
+          {
+            label: 'Recoverable',
+            data: keys.map(key => recoverableMap.get(key) ?? 0),
+            backgroundColor: c.successGreen,
+            borderRadius: 6,
+            maxBarThickness: 16
+          }
+        ]
       },
-      options: buildBarChartOptions({})
+      options
     };
   }
 
@@ -324,5 +397,37 @@ export class ZmDashboardComponent implements OnInit {
       },
       options: buildBarChartOptions({ horizontal: true, maxTicksLimit: 6 })
     };
+  }
+
+  private breakdownMap(groups: MaterialQuantityBreakdown[] | null | undefined): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const group of groups ?? []) {
+      map.set(this.materialBreakdownKey(group), group.quantity ?? 0);
+    }
+    return map;
+  }
+
+  private materialChartKeys(stockOverview: ZmDashboardResponse['stockOverview']): string[] {
+    const ordered = new Map<string, MaterialQuantityBreakdown>();
+    [
+      ...(stockOverview.materialReceivedBySttBreakdown ?? []),
+      ...(stockOverview.materialDistributedBreakdown ?? []),
+      ...(stockOverview.materialConsumedBreakdown ?? []),
+      ...(stockOverview.materialReturnedBreakdown ?? []),
+      ...(stockOverview.recoverableBreakdown ?? [])
+    ].forEach(group => {
+      ordered.set(this.materialBreakdownKey(group), group);
+    });
+    return [...ordered.keys()];
+  }
+
+  private materialChartLabel(key: string): string {
+    const [equipmentName, unit] = key.split('::');
+    return `${equipmentName} (${materialUnitShort(unit)})`;
+  }
+
+  private materialBreakdownKey(group: MaterialQuantityBreakdown): string {
+    const equipmentName = group.equipmentName?.trim() || group.equipmentId?.trim() || 'Material';
+    return `${equipmentName}::${group.unit ?? 'UNITS'}`;
   }
 }

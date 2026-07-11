@@ -424,9 +424,8 @@ interface RecoveryLine {
             <div class="field-permission-card__meta">
               <div class="field-permission-card__meta-item">
                 <span>Requested usage</span>
-                <p *ngIf="permissionRequestCableMeters > 0">Cable: {{ permissionRequestCableMeters }}m</p>
-                <ul class="field-permission-list field-permission-list--compact" *ngIf="permissionRequestEquipmentItems.length > 0">
-                  <li *ngFor="let line of permissionRequestEquipmentItems">
+                <ul class="field-permission-list field-permission-list--compact" *ngIf="permissionUsageLines.length > 0">
+                  <li *ngFor="let line of permissionUsageLines">
                     <span>{{ line.equipmentName }}</span>
                     <strong>{{ line.quantity }} {{ stockUnitLabel(line.unit) }}</strong>
                   </li>
@@ -435,7 +434,7 @@ interface RecoveryLine {
 
               <div class="field-permission-card__meta-item" *ngIf="activeCasePermission && showApprovedPermissionSummary">
                 <span>Approved usage</span>
-                <p *ngIf="activeCasePermission.approvedCableMeters > 0">Cable: {{ activeCasePermission.approvedCableMeters }}m</p>
+                <p *ngIf="activeCasePermission.approvedCableMeters > 0 && !activeCasePermission.approvedItems?.length">Cable: {{ activeCasePermission.approvedCableMeters }}m</p>
                 <ul class="field-permission-list field-permission-list--compact" *ngIf="activeCasePermission.approvedItems?.length">
                   <li *ngFor="let permissionItem of activeCasePermission.approvedItems">
                     <span>{{ permissionItem.itemName }}</span>
@@ -840,21 +839,20 @@ interface RecoveryLine {
             <div class="field-permission-card__meta">
               <div class="field-permission-card__meta-item">
                 <span>Requested usage</span>
-                <p *ngIf="permissionRequestCableMeters > 0">Cable: {{ permissionRequestCableMeters }}m</p>
-                <ul class="field-permission-list field-permission-list--compact" *ngIf="permissionRequestEquipmentItems.length > 0">
-                  <li *ngFor="let line of permissionRequestEquipmentItems">
+                <ul class="field-permission-list field-permission-list--compact" *ngIf="permissionUsageLines.length > 0">
+                  <li *ngFor="let line of permissionUsageLines">
                     <span>{{ line.equipmentName }}</span>
                     <strong>{{ line.quantity }} {{ stockUnitLabel(line.unit) }}</strong>
                   </li>
                 </ul>
-                <p *ngIf="permissionRequestCableMeters <= 0 && permissionRequestEquipmentItems.length === 0">
+                <p *ngIf="permissionUsageLines.length === 0">
                   No over-limit stock selected right now.
                 </p>
               </div>
 
               <div class="field-permission-card__meta-item" *ngIf="activeCasePermission && showApprovedPermissionSummary">
                 <span>Approved usage</span>
-                <p *ngIf="activeCasePermission.approvedCableMeters > 0">Cable: {{ activeCasePermission.approvedCableMeters }}m</p>
+                <p *ngIf="activeCasePermission.approvedCableMeters > 0 && !activeCasePermission.approvedItems?.length">Cable: {{ activeCasePermission.approvedCableMeters }}m</p>
                 <ul class="field-permission-list field-permission-list--compact" *ngIf="activeCasePermission.approvedItems?.length">
                   <li *ngFor="let item of activeCasePermission.approvedItems">
                     <span>{{ item.itemName }}</span>
@@ -942,15 +940,10 @@ interface RecoveryLine {
             </div>
           </div>
 
-          <div class="field-modal__summary" *ngIf="permissionRequestCableMeters > 0">
-            <strong>Cable requested:</strong>
-            <span>{{ permissionRequestCableMeters }}m</span>
-          </div>
-
-          <div class="field-modal__summary" *ngIf="permissionRequestEquipmentItems.length > 0">
+          <div class="field-modal__summary" *ngIf="permissionUsageLines.length > 0">
             <strong>Requested equipment</strong>
             <ul class="field-permission-list">
-              <li *ngFor="let line of permissionRequestEquipmentItems">
+              <li *ngFor="let line of permissionUsageLines">
                 <span>{{ line.equipmentName }}</span>
                 <strong>{{ line.quantity }} {{ stockUnitLabel(line.unit) }}</strong>
               </li>
@@ -2696,7 +2689,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       caseId,
       reason,
       requestedCableMeters: this.permissionRequestCableMeters,
-      requestedItems: this.permissionRequestEquipmentItems.map((line) => ({
+      requestedItems: this.permissionUsageLines.map((line) => ({
         itemId: line.equipmentId,
         itemName: line.equipmentName,
         requestedQuantity: line.quantity,
@@ -2892,16 +2885,22 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       return false;
     }
 
-    if (this.permissionRequestCableMeters > permission.approvedCableMeters) {
-      return false;
-    }
-
     const approvedItems = new Map(
       (permission.approvedItems ?? []).map((item) => [item.itemId, Number(item.approvedQuantity ?? 0)])
     );
 
-    for (const line of this.permissionRequestEquipmentItems) {
-      if (line.quantity > 1 && line.quantity > (approvedItems.get(line.equipmentId) ?? 0)) {
+    const hasDetailedMeterApprovals = (permission.approvedItems ?? permission.requestedItems ?? [])
+      .some((item) => item.unit === 'METERS');
+
+    if (!hasDetailedMeterApprovals && this.permissionRequestCableMeters > permission.approvedCableMeters) {
+      return false;
+    }
+
+    for (const line of this.permissionUsageLines) {
+      if (line.unit === 'METERS' && !hasDetailedMeterApprovals) {
+        continue;
+      }
+      if (line.quantity > (approvedItems.get(line.equipmentId) ?? 0)) {
         return false;
       }
     }

@@ -511,9 +511,10 @@
                   <div class="tech-stock-helper__actions">
                     @if (techStockItems.length > 0) {
                       <div class="tech-stock-helper__summary">
-                        <strong>{{ techStockRemainingTotal }}</strong>
+                        <strong style="white-space: pre-line;">{{ techStockRemainingLabel }}</strong>
                         <span>remaining</span>
-                        <small>{{ techStockUsedTotal }} used</small>
+                        <small>used</small>
+                        <small style="white-space: pre-line;">{{ techStockUsedLabel }}</small>
                       </div>
                     }
                     <button type="button" class="btn-tech btn-tech--ghost btn-tech--sm"
@@ -782,10 +783,10 @@
                       <tr style="border-bottom:1px solid #f9e0e0">
                         <td style="padding:.35rem .5rem;font-weight:500">{{ ol.equipmentName }}</td>
                         <td style="text-align:right;padding:.35rem .5rem;color:#c0102a;font-weight:600">
-                          {{ ol.quantity }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+                          {{ ol.quantity }} {{ stockUnitLabel(ol.unit) }}
                         </td>
                         <td style="text-align:right;padding:.35rem .5rem;color:#888">
-                          {{ ol.limit }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+                          {{ ol.limit }} {{ stockUnitLabel(ol.unit) }}
                         </td>
                         <td style="text-align:center;padding:.35rem .5rem">
                           @if (activeCasePermission?.status === 'APPROVED') {
@@ -1183,10 +1184,10 @@
             <tr style="border-bottom:1px solid #f3f4f6">
               <td style="padding:.35rem .5rem;font-weight:500">{{ ol.equipmentName }}</td>
               <td style="text-align:right;padding:.35rem .5rem;color:#c0102a;font-weight:600">
-                {{ ol.quantity }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+                {{ ol.quantity }} {{ stockUnitLabel(ol.unit) }}
               </td>
               <td style="text-align:right;padding:.35rem .5rem;color:#888">
-                {{ ol.limit }} {{ ol.unit === 'METERS' ? 'm' : 'pcs' }}
+                {{ ol.limit }} {{ stockUnitLabel(ol.unit) }}
               </td>
             </tr>
           }

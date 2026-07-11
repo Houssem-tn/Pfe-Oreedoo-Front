@@ -1,6 +1,15 @@
 import { InjectionToken } from '@angular/core';
 
+import { environment } from '../../../environments/environment';
+
 export function resolveApiBaseUrl(): string {
+  // Explicit override wins (e.g. API served from a different origin than
+  // the frontend). Left '' in all three environment files by default to
+  // preserve the dynamic same-origin/proxy behavior below.
+  if (environment.apiBaseUrl) {
+    return environment.apiBaseUrl;
+  }
+
   if (typeof window === 'undefined' || !window.location?.origin) {
     return '';
   }
