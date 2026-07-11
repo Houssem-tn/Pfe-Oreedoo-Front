@@ -31,6 +31,16 @@ chrome-profiler-events*.json
 !.vscode/extensions.json
 .history/*
 
+# Environment / secrets
+# environment.ts itself is tracked (safe, secret-free default — see the file
+# for why). The per-build files that hold real local/prod values are not.
+.env
+.env.*
+!.env.example
+src/environments/environment.development.ts
+src/environments/environment.production.ts
+!src/environments/*.example.ts
+
 # Miscellaneous
 .npmrc
 /.angular/cache
