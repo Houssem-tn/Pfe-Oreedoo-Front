@@ -16,8 +16,10 @@ import {
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { LanguageSelectorComponent } from '../../../shared/language-selector/language-selector.component';
 
 @Component({
   selector: 'app-login',
@@ -38,7 +40,9 @@ import { AuthStore } from '../../../core/auth/auth.store';
     IconDirective,
     FormControlDirective,
     ButtonDirective,
-    FormsModule
+    FormsModule,
+    TranslocoModule,
+    LanguageSelectorComponent
   ]
 })
 export class LoginComponent implements OnInit {
@@ -46,6 +50,7 @@ export class LoginComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly transloco = inject(TranslocoService);
 
   form = {
     identifier: '',
@@ -95,7 +100,7 @@ export class LoginComponent implements OnInit {
             e?.error?.message ??
             e?.error?.error ??
             (typeof e?.error === 'string' ? e.error : null) ??
-            'Login failed';
+            null;
 
           this.error = this.normalizeErrorMessage(msg);
           this.cdr.detectChanges();
@@ -103,14 +108,16 @@ export class LoginComponent implements OnInit {
       });
   }
 
-  private normalizeErrorMessage(message: string): string {
+  private normalizeErrorMessage(message: string | null): string {
     const normalized = (message ?? '').trim();
 
+    // The backend does not yet return stable error codes for this case, so we
+    // match its known raw message and route it through the errors.* keys.
     if (normalized === 'Account disabled') {
-      return 'Unfortunately you are banned! Contact admin';
+      return this.transloco.translate('errors.accountDisabled');
     }
 
-    return normalized || 'Login failed';
+    return normalized || this.transloco.translate('errors.loginFailed');
   }
 
   private landingRoute(): string {

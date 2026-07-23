@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule } from '@jsverse/transloco';
 import { finalize, firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
-import { CaseResponse } from '../../core/cases/models/case.model';
+import { CaseResponse, caseSupportsMetrics } from '../../core/cases/models/case.model';
 import { SwalService } from '../../core/ui/swal.service';
 import { extractRdv, extractWork } from '../tech/tech-case.helpers';
 import {
@@ -32,7 +33,7 @@ interface FieldGeoSnapshot {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, IconDirective],
+  imports: [CommonModule, RouterLink, IconDirective, TranslocoModule],
   template: `
     <section class="field-page">
       <a class="field-button field-button--ghost" [routerLink]="basePath + '/tasks'">
@@ -53,7 +54,7 @@ interface FieldGeoSnapshot {
           <div class="field-page__eyebrow">CRM {{ item.crmCase }}</div>
           <h1 class="field-page__title">{{ item.clientName }}</h1>
           <p class="field-page__subtitle">{{ location(item) }}</p>
-          <span [class]="statusClass(item)">{{ statusLabel(item) }}</span>
+          <span [class]="statusClass(item)">{{ statusLabel(item) | transloco }}</span>
         </div>
 
         <section class="field-action-grid">
@@ -174,7 +175,8 @@ interface FieldGeoSnapshot {
           </div>
         </section>
 
-        <section class="field-card">
+        <!-- Technical metrics: Activation + Complaint only, never Résiliation. -->
+        <section class="field-card" *ngIf="showMetrics(item)">
           <div class="field-section-title">
             <h2>Technical data</h2>
             <span>{{ workLabel(item) }}</span>
@@ -296,6 +298,11 @@ export class FieldCaseDetailComponent implements OnInit {
 
   metrics(item: CaseResponse): ReturnType<typeof fieldMetricEntries> {
     return fieldMetricEntries(item);
+  }
+
+  /** Metrics section: Activation + Complaint only (never Résiliation). */
+  showMetrics(item: CaseResponse): boolean {
+    return caseSupportsMetrics(item);
   }
 
   rdvComment(item: CaseResponse): string {

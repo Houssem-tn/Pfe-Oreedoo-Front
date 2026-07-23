@@ -1097,3 +1097,87 @@
   min-height: 2.4rem;
   padding: 0.4rem 0.75rem;
 }
+
+/* ── Résiliation plain case attachments ──────────────────────────────── */
+.field-attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.field-attachment {
+  align-items: center;
+  background: var(--field-surface);
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  width: 100%;
+}
+
+.field-attachment__icon {
+  color: var(--field-text-soft, #6b7280);
+  flex-shrink: 0;
+  height: 1.15rem;
+  width: 1.15rem;
+}
+
+.field-attachment__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1 1 auto;
+  min-width: 0; /* allow the filename to ellipsize instead of stretching the row */
+}
+
+.field-attachment__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-attachment__size {
+  color: var(--field-text-soft, #6b7280);
+  font-size: 0.75rem;
+}
+
+/* Compact red X — consistent size, clear hover, never shifts the card width. */
+.field-attachment__remove {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--cui-danger, #e55353);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 1.9rem;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  width: 1.9rem;
+}
+
+.field-attachment__remove svg {
+  height: 1rem;
+  width: 1rem;
+}
+
+.field-attachment__remove:hover:not(:disabled),
+.field-attachment__remove:focus-visible {
+  background: rgba(229, 83, 83, 0.14);
+  color: var(--cui-danger, #d33);
+  outline: none;
+}
+
+.field-attachment__remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

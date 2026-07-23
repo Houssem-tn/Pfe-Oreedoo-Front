@@ -1,0 +1,27 @@
+{
+  "shell": {
+    "ribbon": "Choose the dataset type first, then import and analyze it in its own dedicated workflow.",
+    "heroEyebrow": "Ooredoo admin import workspace",
+    "heroBrandcopy": "Multi-context import",
+    "heroTitle": "Import TODO, Activation, Plainte, and Merged files without mixing their workflows",
+    "heroDescription": "The admin chooses the import context first. TODO files continue through the TODO study pipeline, Activation CSV stays in the activation analytics flow, Plainte CSV goes into the complaint workflow, and Merged files go into the analytics-only pipeline without triggering any case distribution.",
+    "chipSeparateContexts": "Separate file contexts",
+    "chipTodoStudyPreserved": "TODO study preserved",
+    "chipActivationIsolated": "Activation analytics isolated",
+    "chipComplaintIsolated": "Complaint workflow isolated",
+    "chipMergedAnalyticsOnly": "Merged — analytics only",
+    "panelEyebrow": "File type selection",
+    "panelTitle": "Choose the exact workflow the uploaded file belongs to",
+    "importTodo": "Import TODO Files",
+    "importActivation": "Import Activation CSV",
+    "importComplaint": "Import Plainte CSV",
+    "importMerged": "Import Merged Operations File",
+    "pipelineNote": "`Todos` uses the TODO study pipeline. `Activation` uses the activation analytics endpoint. `Plaintes` uses the complaint import endpoint. `Merged` uses a dedicated analytics-only pipeline — no case distribution, no notifications.",
+    "importTypeLabel": {
+      "activation": "Activation CSV import and analytics workspace",
+      "complaint": "Plainte CSV import and complaint workflow workspace",
+      "merged": "Merged Operations analytics — no case distribution",
+      "todos": "TODO import and study workspace"
+    }
+  }
+}

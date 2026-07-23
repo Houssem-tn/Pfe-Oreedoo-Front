@@ -12,7 +12,7 @@
       <svg cIcon name="cilDescription" class="cd-sticky-header__icon"></svg>
       <div>
         <span cModalTitle class="cd-sticky-header__title">{{ caseData.crmCase }}</span>
-        <span class="cd-type-pill">{{ caseData.type === 'ACTIVATION' ? 'Activation' : 'Complaint' }}</span>
+        <span class="cd-type-pill">{{ typeLabel(caseData.type) }}</span>
       </div>
     </div>
     <div class="cd-sticky-header__right">
@@ -29,38 +29,38 @@
     <div class="cd-section">
       <div class="cd-section__header">
         <svg cIcon name="cilDescription" class="cd-section__icon"></svg>
-        <span>Case Identity</span>
+        <span>{{ 'caseDetail.sections.caseIdentity' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>CRM Case #</dt>
+        <dt>{{ 'caseDetail.fields.crmCase' | transloco }}</dt>
         <dd>{{ val(caseData.crmCase) }}</dd>
 
-        <dt>Type</dt>
-        <dd>{{ caseData.type === 'ACTIVATION' ? 'Activation' : 'Complaint' }}</dd>
+        <dt>{{ 'caseDetail.fields.type' | transloco }}</dt>
+        <dd>{{ typeLabel(caseData.type) }}</dd>
 
-        <dt>Status</dt>
+        <dt>{{ 'common.status' | transloco }}</dt>
         <dd>
           <span class="badge rounded-pill" [ngClass]="statusBadgeClass(caseData.status)">
             {{ statusLabel(caseData.status) }}
           </span>
         </dd>
 
-        <dt>Created at</dt>
+        <dt>{{ 'caseDetail.fields.createdAt' | transloco }}</dt>
         <dd>{{ dateVal(caseData.createdAt) }}</dd>
 
-        <dt>CRM creation date</dt>
+        <dt>{{ 'caseDetail.fields.crmCreationDate' | transloco }}</dt>
         <dd>{{ dateVal(caseData.dateCreationCrm) }}</dd>
 
-        <dt>Opening date (TIMOS)</dt>
+        <dt>{{ 'caseDetail.fields.openingDateTimos' | transloco }}</dt>
         <dd>{{ dateVal(caseData.openingDateTimos) }}</dd>
 
         <ng-container *ngIf="caseData.openDateActivation">
-          <dt>Open date activation</dt>
+          <dt>{{ 'caseDetail.fields.openDateActivation' | transloco }}</dt>
           <dd>{{ dateVal(caseData.openDateActivation) }}</dd>
         </ng-container>
 
         <ng-container *ngIf="caseData.commentaire">
-          <dt>Comment</dt>
+          <dt>{{ 'common.description' | transloco }}</dt>
           <dd class="cd-multiline">{{ caseData.commentaire }}</dd>
         </ng-container>
       </dl>
@@ -70,21 +70,21 @@
     <div class="cd-section">
       <div class="cd-section__header">
         <svg cIcon name="cilUser" class="cd-section__icon"></svg>
-        <span>Client Information</span>
+        <span>{{ 'caseDetail.sections.clientInformation' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Full name</dt>
+        <dt>{{ 'caseDetail.fields.fullName' | transloco }}</dt>
         <dd>{{ val(caseData.clientName) }}</dd>
 
-        <dt>Phone</dt>
+        <dt>{{ 'caseDetail.fields.phone' | transloco }}</dt>
         <dd>{{ val(caseData.clientPhone) }}</dd>
 
         <ng-container *ngIf="caseData.contactCl2">
-          <dt>Contact CL2</dt>
+          <dt>{{ 'caseDetail.fields.contactCl2' | transloco }}</dt>
           <dd>{{ val(caseData.contactCl2) }}</dd>
         </ng-container>
 
-        <dt>MSISDN</dt>
+        <dt>{{ 'caseDetail.fields.msisdn' | transloco }}</dt>
         <dd>{{ val(caseData.msisdn) }}</dd>
       </dl>
     </div>
@@ -93,29 +93,29 @@
     <div class="cd-section">
       <div class="cd-section__header">
         <svg cIcon name="cilLocationPin" class="cd-section__icon"></svg>
-        <span>Location</span>
+        <span>{{ 'shared.location.title' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Governorate</dt>
+        <dt>{{ 'caseDetail.fields.governorate' | transloco }}</dt>
         <dd>{{ val(caseData.gouvernorat) }}</dd>
 
-        <dt>Delegation</dt>
+        <dt>{{ 'caseDetail.fields.delegation' | transloco }}</dt>
         <dd>{{ val(caseData.delegation) }}</dd>
 
-        <dt>Locality</dt>
+        <dt>{{ 'caseDetail.fields.locality' | transloco }}</dt>
         <dd>{{ val(caseData.localite) }}</dd>
 
         <ng-container *ngIf="caseData.siteSecteur">
-          <dt>Site / Sector</dt>
+          <dt>{{ 'caseDetail.fields.siteSector' | transloco }}</dt>
           <dd>{{ val(caseData.siteSecteur) }}</dd>
         </ng-container>
 
-        <dt>GPS coordinates</dt>
+        <dt>{{ 'caseDetail.fields.gpsCoordinates' | transloco }}</dt>
         <dd>
           <app-location-actions
             [lat]="caseData.latitude"
             [lng]="caseData.longitude"
-            label="Case site">
+            [label]="'caseDetail.labels.caseSite' | transloco">
           </app-location-actions>
         </dd>
       </dl>
@@ -125,25 +125,25 @@
     <div class="cd-section" *ngIf="caseData.offre || caseData.desPack || caseData.typeClient || caseData.source || caseData.typeOffreSpeed">
       <div class="cd-section__header">
         <svg cIcon name="cilSpeedometer" class="cd-section__icon"></svg>
-        <span>Offer Details</span>
+        <span>{{ 'caseDetail.sections.offerDetails' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Offer</dt>
+        <dt>{{ 'caseDetail.fields.offer' | transloco }}</dt>
         <dd>{{ val(caseData.offre) }}</dd>
 
-        <dt>Pack</dt>
+        <dt>{{ 'caseDetail.fields.pack' | transloco }}</dt>
         <dd>{{ val(caseData.desPack) }}</dd>
 
         <ng-container *ngIf="caseData.typeOffreSpeed">
-          <dt>Offer speed type</dt>
+          <dt>{{ 'caseDetail.fields.offerSpeedType' | transloco }}</dt>
           <dd>{{ val(caseData.typeOffreSpeed) }}</dd>
         </ng-container>
 
-        <dt>Client type</dt>
+        <dt>{{ 'caseDetail.fields.clientType' | transloco }}</dt>
         <dd>{{ val(caseData.typeClient) }}</dd>
 
         <ng-container *ngIf="caseData.source">
-          <dt>Source</dt>
+          <dt>{{ 'caseDetail.fields.source' | transloco }}</dt>
           <dd>{{ val(caseData.source) }}</dd>
         </ng-container>
       </dl>
@@ -153,15 +153,15 @@
     <div class="cd-section" *ngIf="caseData.type === 'PLAINTE' && (caseData.complaintDetail || caseData.complaintDescription)">
       <div class="cd-section__header">
         <svg cIcon name="cilNotes" class="cd-section__icon"></svg>
-        <span>Complaint Details</span>
+        <span>{{ 'caseDetail.sections.complaintDetails' | transloco }}</span>
       </div>
       <dl class="cd-grid">
         <ng-container *ngIf="caseData.complaintDetail">
-          <dt>Detail</dt>
+          <dt>{{ 'common.details' | transloco }}</dt>
           <dd class="cd-multiline">{{ caseData.complaintDetail }}</dd>
         </ng-container>
         <ng-container *ngIf="caseData.complaintDescription">
-          <dt>Description</dt>
+          <dt>{{ 'common.description' | transloco }}</dt>
           <dd class="cd-multiline">{{ caseData.complaintDescription }}</dd>
         </ng-container>
       </dl>
@@ -171,19 +171,19 @@
     <div class="cd-section">
       <div class="cd-section__header">
         <svg cIcon name="cilPeople" class="cd-section__icon"></svg>
-        <span>Assignment Chain</span>
+        <span>{{ 'caseDetail.sections.assignmentChain' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Owner ZM</dt>
+        <dt>{{ 'caseDetail.fields.ownerZm' | transloco }}</dt>
         <dd>{{ val(caseData.ownerZmName ?? caseData.zmName) }}</dd>
 
-        <dt>STT Supervisor</dt>
+        <dt>{{ 'caseDetail.fields.sttSupervisor' | transloco }}</dt>
         <dd>{{ val(caseData.sttName) }}</dd>
 
-        <dt>Technician</dt>
+        <dt>{{ 'caseDetail.fields.technician' | transloco }}</dt>
         <dd>{{ val(caseData.techName) }}</dd>
 
-        <dt>Execution mode</dt>
+        <dt>{{ 'caseDetail.fields.executionMode' | transloco }}</dt>
         <dd>{{ humanizeStatus(caseData.executionMode) }}</dd>
       </dl>
     </div>
@@ -192,32 +192,32 @@
     <div class="cd-section">
       <div class="cd-section__header">
         <svg cIcon name="cilCalendar" class="cd-section__icon"></svg>
-        <span>Rendez-vous (RDV)</span>
+        <span>{{ 'caseDetail.sections.rdv' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Reachable (joignable)</dt>
+        <dt>{{ 'caseDetail.fields.reachable' | transloco }}</dt>
         <dd [class.cd-value--yes]="caseData.rdv?.joignable === true" [class.cd-value--no]="caseData.rdv?.joignable === false">
           {{ boolVal(caseData.rdv?.joignable) }}
         </dd>
 
-        <dt>RDV date</dt>
+        <dt>{{ 'caseDetail.fields.rdvDate' | transloco }}</dt>
         <dd>{{ dateVal(caseData.rdv?.datePriseRdv ?? caseData.datePriseRdv) }}</dd>
 
-        <dt>Cause injoignabilite</dt>
+        <dt>{{ 'caseDetail.fields.causeInjoignabilite' | transloco }}</dt>
         <dd>{{ val(caseData.rdv?.causeInjoignabilite ?? caseData.causeInjoignabilite) }}</dd>
 
-        <dt>Detail</dt>
+        <dt>{{ 'common.details' | transloco }}</dt>
         <dd class="cd-multiline">{{ val(caseData.rdv?.detail ?? caseData.detail) }}</dd>
 
-        <dt>Comment</dt>
+        <dt>{{ 'common.description' | transloco }}</dt>
         <dd class="cd-multiline">{{ val(caseData.rdv?.cmtRdv ?? caseData.cmtRdv) }}</dd>
 
-        <dt>Abandoned</dt>
+        <dt>{{ 'caseDetail.fields.abandoned' | transloco }}</dt>
         <dd [class.cd-value--no]="caseData.rdv?.abandon === false">
           {{ boolVal(caseData.rdv?.abandon ?? caseData.abandon) }}
         </dd>
 
-        <dt>Cause abandon</dt>
+        <dt>{{ 'caseDetail.fields.causeAbandon' | transloco }}</dt>
         <dd>{{ val(caseData.rdv?.causeAbandon ?? caseData.causeAbandon) }}</dd>
       </dl>
     </div>
@@ -226,38 +226,38 @@
     <div class="cd-section" *ngIf="caseData.type === 'PLAINTE'">
       <div class="cd-section__header">
         <svg cIcon name="cilMedicalCross" class="cd-section__icon"></svg>
-        <span>Diagnosis</span>
+        <span>{{ 'caseDetail.sections.diagnosis' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Category</dt>
+        <dt>{{ 'caseDetail.fields.category' | transloco }}</dt>
         <dd>{{ humanizeStatus(caseData.diagnosis?.complaintCategory) }}</dd>
 
-        <dt>Root cause</dt>
+        <dt>{{ 'caseDetail.fields.rootCause' | transloco }}</dt>
         <dd>{{ val(caseData.diagnosis?.rootCause) }}</dd>
 
-        <dt>Requires field work</dt>
+        <dt>{{ 'caseDetail.fields.requiresFieldWork' | transloco }}</dt>
         <dd [class.cd-value--yes]="caseData.diagnosis?.requiresFieldWork">
           {{ boolVal(caseData.diagnosis?.requiresFieldWork) }}
         </dd>
 
-        <dt>Requires TECH</dt>
+        <dt>{{ 'caseDetail.fields.requiresTech' | transloco }}</dt>
         <dd [class.cd-value--yes]="caseData.diagnosis?.requiresTechIntervention">
           {{ boolVal(caseData.diagnosis?.requiresTechIntervention) }}
         </dd>
 
-        <dt>Requires escalation</dt>
+        <dt>{{ 'caseDetail.fields.requiresEscalation' | transloco }}</dt>
         <dd [class.cd-value--yes]="caseData.diagnosis?.requiresEscalation">
           {{ boolVal(caseData.diagnosis?.requiresEscalation) }}
         </dd>
 
-        <dt>Diagnosed at</dt>
+        <dt>{{ 'caseDetail.fields.diagnosedAt' | transloco }}</dt>
         <dd>{{ dateVal(caseData.diagnosis?.diagnosedAt) }}</dd>
 
-        <dt>Diagnosed by</dt>
+        <dt>{{ 'caseDetail.fields.diagnosedBy' | transloco }}</dt>
         <dd>{{ val(caseData.diagnosis?.diagnosedBy) }}</dd>
 
         <ng-container *ngIf="caseData.diagnosis?.diagnosisComment">
-          <dt>Comment</dt>
+          <dt>{{ 'common.description' | transloco }}</dt>
           <dd class="cd-multiline">{{ caseData.diagnosis?.diagnosisComment }}</dd>
         </ng-container>
       </dl>
@@ -267,31 +267,31 @@
     <div class="cd-section">
       <div class="cd-section__header">
         <svg cIcon name="cilTask" class="cd-section__icon"></svg>
-        <span>Work Execution</span>
+        <span>{{ 'caseDetail.sections.workExecution' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Result</dt>
+        <dt>{{ 'caseDetail.fields.result' | transloco }}</dt>
         <dd>{{ val(caseData.work?.repTravauxStt ?? caseData.repTravauxStt) }}</dd>
 
-        <dt>Completion date</dt>
+        <dt>{{ 'caseDetail.fields.completionDate' | transloco }}</dt>
         <dd>{{ dateVal(caseData.work?.dateFinTrv ?? caseData.dateFinTrv) }}</dd>
 
-        <dt>Comment</dt>
+        <dt>{{ 'common.description' | transloco }}</dt>
         <dd class="cd-multiline">{{ val(caseData.work?.cmtTrvStt ?? caseData.cmtTrvStt) }}</dd>
 
-        <dt>Work submission GPS</dt>
+        <dt>{{ 'caseDetail.fields.workSubmissionGps' | transloco }}</dt>
         <dd>
           <app-location-actions
             [lat]="caseData.work?.locationLatitude"
             [lng]="caseData.work?.locationLongitude"
-            label="Work submission location">
+            [label]="'caseDetail.labels.workSubmissionLocation' | transloco">
           </app-location-actions>
         </dd>
 
-        <dt>GPS captured at</dt>
+        <dt>{{ 'caseDetail.fields.gpsCapturedAt' | transloco }}</dt>
         <dd>{{ dateVal(caseData.work?.locationCapturedAt) }}</dd>
 
-        <dt>GPS accuracy</dt>
+        <dt>{{ 'caseDetail.fields.gpsAccuracy' | transloco }}</dt>
         <dd>{{ accuracyLabel(caseData.work?.locationAccuracyMeters) }}</dd>
       </dl>
     </div>
@@ -300,7 +300,7 @@
     <div class="cd-section" *ngIf="hasProofs">
       <div class="cd-section__header">
         <svg cIcon name="cilCamera" class="cd-section__icon"></svg>
-        <span>Attached Photos</span>
+        <span>{{ 'caseDetail.sections.attachedPhotos' | transloco }}</span>
       </div>
 
       <div class="cd-proof-list">
@@ -320,7 +320,7 @@
             <ng-template #proofFileFallback>
               <div class="cd-proof-card__placeholder">
                 <svg cIcon name="cilDescription"></svg>
-                <span>Open attachment</span>
+                <span>{{ 'caseDetail.actions.openAttachment' | transloco }}</span>
               </div>
             </ng-template>
           </a>
@@ -328,7 +328,7 @@
             <div class="cd-proof-card__media cd-proof-card__media--empty">
               <div class="cd-proof-card__placeholder">
                 <svg cIcon name="cilDescription"></svg>
-                <span>No preview available</span>
+                <span>{{ 'caseDetail.states.noPreviewAvailable' | transloco }}</span>
               </div>
             </div>
           </ng-template>
@@ -337,7 +337,7 @@
             <div class="cd-proof-card__eyebrow">{{ proofSourceLabel(proof.captureSource) }}</div>
             <div class="cd-proof-card__title">{{ proofTitle(proof, i) }}</div>
             <div class="cd-proof-card__meta">
-              Uploaded {{ dateVal(proof.createdAt) }} by {{ val(proof.uploadedBy) }}
+              {{ 'caseDetail.proof.uploadedMeta' | transloco: { date: dateVal(proof.createdAt), user: val(proof.uploadedBy) } }}
             </div>
 
             <div class="cd-proof-card__actions">
@@ -349,27 +349,27 @@
                 class="cd-proof-action"
               >
                 <svg cIcon name="cilExternalLink" size="sm"></svg>
-                Open photo
+                {{ 'caseDetail.actions.openPhoto' | transloco }}
               </a>
             </div>
 
             <dl class="cd-grid cd-grid--compact">
-              <dt>GPS coordinates</dt>
+              <dt>{{ 'caseDetail.fields.gpsCoordinates' | transloco }}</dt>
               <dd>
                 <app-location-actions
                   [lat]="proof.locationLatitude"
                   [lng]="proof.locationLongitude"
-                  label="Proof photo location">
+                  [label]="'caseDetail.labels.proofPhotoLocation' | transloco">
                 </app-location-actions>
               </dd>
 
-              <dt>Captured at</dt>
+              <dt>{{ 'caseDetail.fields.capturedAt' | transloco }}</dt>
               <dd>{{ dateVal(proof.locationCapturedAt) }}</dd>
 
-              <dt>Accuracy</dt>
+              <dt>{{ 'caseDetail.fields.accuracy' | transloco }}</dt>
               <dd>{{ accuracyLabel(proof.locationAccuracyMeters) }}</dd>
 
-              <dt>Source</dt>
+              <dt>{{ 'caseDetail.fields.source' | transloco }}</dt>
               <dd>{{ proofSourceLabel(proof.captureSource) }}</dd>
             </dl>
           </div>
@@ -377,22 +377,22 @@
       </div>
     </div>
 
-    <div class="cd-section cd-section--metrics" *ngIf="caseData.type === 'ACTIVATION' && hasMetrics">
+    <div class="cd-section cd-section--metrics" *ngIf="showMetricsSection">
       <div class="cd-section__header">
         <svg cIcon name="cilSpeedometer" class="cd-section__icon"></svg>
-        <span>Technical Metrics</span>
+        <span>{{ 'caseDetail.sections.technicalMetrics' | transloco }}</span>
       </div>
       <div class="cd-metrics-grid">
         <div class="cd-metric">
-          <span class="cd-metric__label">PV count</span>
+          <span class="cd-metric__label">{{ 'caseDetail.fields.pvCount' | transloco }}</span>
           <span class="cd-metric__value">{{ numVal(caseData.metrics?.nombrePv ?? caseData.nombrePv) }}</span>
         </div>
         <div class="cd-metric">
-          <span class="cd-metric__label">Download (Mbps)</span>
+          <span class="cd-metric__label">{{ 'caseDetail.fields.downloadMbps' | transloco }}</span>
           <span class="cd-metric__value">{{ numVal(caseData.metrics?.debitDl ?? caseData.debitDl) }}</span>
         </div>
         <div class="cd-metric">
-          <span class="cd-metric__label">Upload (Mbps)</span>
+          <span class="cd-metric__label">{{ 'caseDetail.fields.uploadMbps' | transloco }}</span>
           <span class="cd-metric__value">{{ numVal(caseData.metrics?.debitUl ?? caseData.debitUl) }}</span>
         </div>
         <div class="cd-metric">
@@ -414,26 +414,26 @@
     <div class="cd-section" *ngIf="caseData.type === 'PLAINTE' && caseData.resolution">
       <div class="cd-section__header">
         <svg cIcon name="cilCheckCircle" class="cd-section__icon"></svg>
-        <span>Resolution</span>
+        <span>{{ 'caseDetail.sections.resolution' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Resolution type</dt>
+        <dt>{{ 'caseDetail.fields.resolutionType' | transloco }}</dt>
         <dd>{{ val(caseData.resolution.resolutionType) }}</dd>
 
-        <dt>Validation status</dt>
+        <dt>{{ 'caseDetail.fields.validationStatus' | transloco }}</dt>
         <dd>{{ humanizeStatus(caseData.resolution.validationStatus) }}</dd>
 
-        <dt>Submitted at</dt>
+        <dt>{{ 'caseDetail.fields.submittedAt' | transloco }}</dt>
         <dd>{{ dateVal(caseData.resolution.submittedAt) }}</dd>
 
-        <dt>Submitted by</dt>
+        <dt>{{ 'caseDetail.fields.submittedBy' | transloco }}</dt>
         <dd>{{ val(caseData.resolution.submittedBy) }}</dd>
 
-        <dt>Validated at</dt>
+        <dt>{{ 'caseDetail.fields.validatedAt' | transloco }}</dt>
         <dd>{{ dateVal(caseData.resolution.validatedAt) }}</dd>
 
         <ng-container *ngIf="caseData.resolution.resolutionComment">
-          <dt>Comment</dt>
+          <dt>{{ 'common.description' | transloco }}</dt>
           <dd class="cd-multiline">{{ caseData.resolution.resolutionComment }}</dd>
         </ng-container>
       </dl>
@@ -443,10 +443,10 @@
     <div class="cd-section" *ngIf="caseData.zmValidation || caseData.repZm">
       <div class="cd-section__header">
         <svg cIcon name="cilBadge" class="cd-section__icon"></svg>
-        <span>ZM Validation</span>
+        <span>{{ 'caseDetail.sections.zmValidation' | transloco }}</span>
       </div>
       <dl class="cd-grid">
-        <dt>Approved</dt>
+        <dt>{{ 'caseDetail.fields.approved' | transloco }}</dt>
         <dd
           [class.cd-value--yes]="caseData.zmValidation?.approved === true"
           [class.cd-value--no]="caseData.zmValidation?.approved === false"
@@ -454,10 +454,10 @@
           {{ boolVal(caseData.zmValidation?.approved) }}
         </dd>
 
-        <dt>ZM response</dt>
+        <dt>{{ 'caseDetail.fields.zmResponse' | transloco }}</dt>
         <dd>{{ val(caseData.repZm) }}</dd>
 
-        <dt>Comment</dt>
+        <dt>{{ 'common.description' | transloco }}</dt>
         <dd class="cd-multiline">{{ val(caseData.zmValidation?.comment ?? caseData.commentZm) }}</dd>
       </dl>
     </div>
@@ -466,51 +466,51 @@
     <div class="cd-section" *ngIf="casePermissions.length > 0 || permissionsLoading">
       <div class="cd-section__header">
         <svg cIcon name="cilStorage" class="cd-section__icon"></svg>
-        <span>Over-Limit Stock Permissions</span>
+        <span>{{ 'caseDetail.sections.stockPermissions' | transloco }}</span>
       </div>
 
-      <div *ngIf="permissionsLoading" class="cd-empty">Loading permission requests…</div>
+      <div *ngIf="permissionsLoading" class="cd-empty">{{ 'caseDetail.states.loadingPermissions' | transloco }}</div>
 
       <div *ngIf="!permissionsLoading && casePermissions.length === 0" class="cd-empty">
-        No over-limit permission requests for this case.
+        {{ 'caseDetail.states.noOverLimitPermissions' | transloco }}
       </div>
 
       <div *ngFor="let perm of casePermissions" style="border:1px solid #dee2e6;border-radius:.5rem;padding:.875rem;margin-bottom:.75rem">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
           <div class="d-flex align-items-center gap-2">
             <span class="fw-semibold" style="font-size:.9rem">{{ perm.techName }}</span>
-            <span class="text-body-secondary" style="font-size:.85rem">requested over-limit usage</span>
+            <span class="text-body-secondary" style="font-size:.85rem">{{ 'caseDetail.labels.requestedOverLimitUsage' | transloco }}</span>
           </div>
           <c-badge [color]="permissionStatusColor(perm.status)">{{ permissionStatusLabel(perm.status) }}</c-badge>
         </div>
 
         <dl class="cd-grid" style="font-size:.85rem">
-          <dt>Requested cable</dt>
+          <dt>{{ 'caseDetail.fields.requestedCable' | transloco }}</dt>
           <dd>{{ perm.requestedCableMeters > 0 && !perm.requestedItems?.length ? (perm.requestedCableMeters + ' m') : '—' }}</dd>
 
-          <dt>Approved cable</dt>
+          <dt>{{ 'caseDetail.fields.approvedCable' | transloco }}</dt>
           <dd>{{ perm.approvedCableMeters > 0 && !perm.approvedItems?.length ? (perm.approvedCableMeters + ' m') : '—' }}</dd>
 
-          <dt *ngIf="perm.requestedItems?.length">Requested items</dt>
+          <dt *ngIf="perm.requestedItems?.length">{{ 'caseDetail.fields.requestedItems' | transloco }}</dt>
           <dd *ngIf="perm.requestedItems?.length">
             <span *ngFor="let item of perm.requestedItems; let last = last">
               {{ permissionItemLabel(item) }}<span *ngIf="!last">, </span>
             </span>
           </dd>
 
-          <dt>STT reviewer</dt>
+          <dt>{{ 'caseDetail.fields.sttReviewer' | transloco }}</dt>
           <dd>{{ perm.sttName || '—' }}</dd>
 
-          <dt>Submitted</dt>
+          <dt>{{ 'caseDetail.fields.submitted' | transloco }}</dt>
           <dd>{{ dateVal(perm.createdAt) }}</dd>
 
-          <dt *ngIf="perm.reviewedAt">Reviewed</dt>
+          <dt *ngIf="perm.reviewedAt">{{ 'caseDetail.fields.reviewed' | transloco }}</dt>
           <dd *ngIf="perm.reviewedAt">{{ dateVal(perm.reviewedAt) }}</dd>
 
-          <dt *ngIf="perm.reason">Reason</dt>
+          <dt *ngIf="perm.reason">{{ 'caseDetail.fields.reason' | transloco }}</dt>
           <dd *ngIf="perm.reason"><em>{{ perm.reason }}</em></dd>
 
-          <dt *ngIf="perm.reviewComment">STT note</dt>
+          <dt *ngIf="perm.reviewComment">{{ 'caseDetail.fields.sttNote' | transloco }}</dt>
           <dd *ngIf="perm.reviewComment">{{ perm.reviewComment }}</dd>
         </dl>
       </div>
@@ -520,13 +520,14 @@
     <div class="cd-section cd-section--discussion" *ngIf="discussionVisible">
       <div class="cd-section__header">
         <svg cIcon name="cilSpeech" class="cd-section__icon"></svg>
-        <span>Discussion (ZM ↔ STT)</span>
+        <span>{{ 'caseDetail.sections.discussion' | transloco }}</span>
       </div>
 
-      <div *ngIf="messagesLoading" class="cd-empty">Loading discussion…</div>
+      <div *ngIf="messagesLoading" class="cd-empty">{{ 'caseDetail.discussion.loading' | transloco }}</div>
 
       <div *ngIf="!messagesLoading && messages.length === 0" class="cd-empty">
-        No messages yet. {{ canWriteMessages ? 'Start the conversation below.' : '' }}
+        {{ 'caseDetail.discussion.noMessages' | transloco }}
+        <span *ngIf="canWriteMessages"> {{ 'caseDetail.discussion.startConversation' | transloco }}</span>
       </div>
 
       <div class="cd-chat" #chatScroll *ngIf="messages.length > 0">
@@ -555,18 +556,18 @@
               <img
                 *ngIf="msg.attachmentContentType?.startsWith('image/')"
                 [src]="msg.attachmentViewUrl"
-                [alt]="msg.attachmentFilename || 'Attachment'"
+                [alt]="msg.attachmentFilename || ('caseDetail.proofSource.attachment' | transloco)"
               />
               <span class="cd-chat__attachment-name">
                 <svg cIcon name="cilImage" size="sm"></svg>
-                {{ msg.attachmentFilename || 'Attachment' }}
+                {{ msg.attachmentFilename || ('caseDetail.proofSource.attachment' | transloco) }}
               </span>
             </a>
 
             <div class="cd-chat__footer">
               <span class="cd-chat__time">{{ dateVal(msg.createdAt) }}</span>
               <span *ngIf="msg.mine" class="cd-chat__status" [class.cd-chat__status--read]="msg.read">
-                {{ msg.read ? 'Seen' : 'Sent' }}
+                {{ msg.read ? ('caseDetail.discussion.seen' | transloco) : ('caseDetail.discussion.sent' | transloco) }}
               </span>
             </div>
           </div>
@@ -587,7 +588,7 @@
             type="button"
             class="cd-chat-composer__attachment-remove"
             (click)="clearMessageAttachment()"
-            aria-label="Remove attachment"
+            [attr.aria-label]="'caseDetail.actions.removeAttachment' | transloco"
           >
             <svg cIcon name="cilX" size="sm"></svg>
           </button>
@@ -597,7 +598,7 @@
           <textarea
             class="form-control cd-chat-composer__input"
             rows="2"
-            placeholder="Write a message…"
+            [placeholder]="'caseDetail.discussion.writeMessage' | transloco"
             [(ngModel)]="messageDraft"
             [disabled]="sendingMessage || !!discussionBlockedReason"
             (keydown)="onMessageKeydown($event)"
@@ -606,7 +607,7 @@
           <label
             class="btn btn-ghost-secondary cd-chat-composer__attach"
             [class.disabled]="sendingMessage || !!discussionBlockedReason"
-            title="Attach a photo"
+            [title]="'caseDetail.actions.attachPhoto' | transloco"
           >
             <svg cIcon name="cilPaperclip"></svg>
             <input
@@ -636,7 +637,7 @@
     <div class="cd-section cd-section--timeline" *ngIf="sortedTimeline.length > 0">
       <div class="cd-section__header">
         <svg cIcon name="cilHistory" class="cd-section__icon"></svg>
-        <span>Timeline</span>
+        <span>{{ 'caseDetail.sections.timeline' | transloco }}</span>
       </div>
       <ol class="cd-timeline">
         <li *ngFor="let event of sortedTimeline; let last = last" class="cd-timeline__item" [class.cd-timeline__item--last]="last">
@@ -661,10 +662,10 @@
   </c-modal-body>
 
   <c-modal-footer class="cd-footer">
-    <button cButton color="secondary" variant="ghost" (click)="onClose()">Close</button>
+    <button cButton color="secondary" variant="ghost" (click)="onClose()">{{ 'common.close' | transloco }}</button>
     <button cButton color="info" variant="outline" (click)="onDownload()">
       <svg cIcon name="cilCloudDownload" class="me-1"></svg>
-      Download PDF
+      {{ 'caseDetail.actions.downloadPdf' | transloco }}
     </button>
   </c-modal-footer>
   </ng-container>

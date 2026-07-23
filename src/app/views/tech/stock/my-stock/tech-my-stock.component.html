@@ -61,7 +61,25 @@
     </c-card>
   }
 
-  <!-- ── My Equipment Stock ──────────────────────────────────────────────── -->
+  <!-- ── Available Stock / Retrieved Stock tabs ─────────────────────────── -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'available'" (click)="switchTab('available')">
+        Available Stock
+      </button>
+    </li>
+    <li class="nav-item">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'retrieved'" (click)="switchTab('retrieved')">
+        Retrieved Stock
+        @if (retrievedItems.length > 0) {
+          <c-badge color="info" class="ms-1">{{ retrievedItems.length }}</c-badge>
+        }
+      </button>
+    </li>
+  </ul>
+
+  <!-- ── My Equipment Stock (Available) ───────────────────────────────────── -->
+  @if (activeTab === 'available') {
   <c-card>
     <c-card-header class="d-flex align-items-center justify-content-between">
       <strong>My Equipment Stock</strong>
@@ -149,5 +167,68 @@
       }
     </c-card-body>
   </c-card>
+  }
+
+  <!-- ── Retrieved Stock (awaiting ZM collection) ─────────────────────────── -->
+  @if (activeTab === 'retrieved') {
+  <c-card>
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <strong>Retrieved Stock — awaiting ZM collection</strong>
+      <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
+        <svg cIcon name="cilReload"></svg>
+      </button>
+    </c-card-header>
+    <c-card-body>
+      <div class="alert alert-info small mb-3">
+        Equipment retrieved from customers during Complaint or Résiliation interventions. This stock
+        is read-only here: it can never be consumed, installed, or moved back into Available Stock —
+        it stays linked to its original customer and case until a Zone Manager physically collects it.
+      </div>
+
+      @if (loading) {
+        <div class="text-center py-4">
+          <c-spinner size="sm"></c-spinner>
+          Loading your retrieved stock...
+        </div>
+      } @else if (retrievedItems.length === 0) {
+        <div class="text-center text-muted py-4">
+          <svg cIcon name="cilStorage" size="3xl" class="mb-2 text-secondary"></svg>
+          <p>No retrieved equipment waiting for collection.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Equipment</th>
+                <th>Qty</th>
+                <th>Serial / IMEI</th>
+                <th>Condition</th>
+                <th>Case</th>
+                <th>Customer</th>
+                <th>Retrieved</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of retrievedItems; track item.id) {
+                <tr>
+                  <td>{{ item.equipmentName }}</td>
+                  <td>{{ quantityLabel(item.quantity, item.unit) }}</td>
+                  <td>{{ retrievedItemIdentifier(item) }}</td>
+                  <td>{{ item.condition ?? '-' }}</td>
+                  <td>{{ item.crmCase ?? '-' }}</td>
+                  <td>{{ item.clientName ?? '-' }}</td>
+                  <td>{{ item.retrievedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><c-badge color="warning">Pending collection</c-badge></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+  }
 
 </div>

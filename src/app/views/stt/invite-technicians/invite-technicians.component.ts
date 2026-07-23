@@ -3,14 +3,16 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/c
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs/operators';
 import { TechInvitation, TechInvitationService } from '../../../core/invitations/tech-invitation.service';
 import { SwalService } from '../../../core/ui/swal.service';
+import { getValidationMessage } from '../../../shared/validation/validation-message.util';
 
 @Component({
   selector: 'app-invite-technicians',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconDirective],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, IconDirective, TranslocoModule],
   templateUrl: './invite-technicians.component.html',
   styleUrl: './invite-technicians.component.scss'
 })
@@ -20,6 +22,7 @@ export class InviteTechniciansComponent implements OnInit {
   private readonly swal = inject(SwalService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
+  private readonly transloco = inject(TranslocoService);
 
   protected loading = false;
   protected submitting = false;
@@ -34,30 +37,34 @@ export class InviteTechniciansComponent implements OnInit {
   protected get summaryCards(): Array<{ label: string; value: number; icon: string; tone: string }> {
     return [
       {
-        label: 'Total invitations',
+        label: 'invitations.totalInvitations',
         value: this.invitations.length,
         icon: 'cilEnvelopeOpen',
         tone: 'brand'
       },
       {
-        label: 'Pending registration',
+        label: 'statuses.invitation.pendingRegistration',
         value: this.invitations.filter((item) => item.status === 'PENDING_REGISTRATION').length,
         icon: 'cilAlarm',
         tone: 'warning'
       },
       {
-        label: 'Waiting ZM approval',
+        label: 'statuses.invitation.registeredPendingZmApproval',
         value: this.invitations.filter((item) => item.status === 'REGISTERED_PENDING_ZM_APPROVAL').length,
         icon: 'cilClock',
         tone: 'soft'
       },
       {
-        label: 'Approved',
+        label: 'statuses.invitation.approvedByZm',
         value: this.invitations.filter((item) => item.status === 'APPROVED_BY_ZM').length,
         icon: 'cilCheckCircle',
         tone: 'success'
       }
     ];
+  }
+
+  protected get emailErrorMessage(): string {
+    return getValidationMessage(this.transloco, this.form.controls.email.errors);
   }
 
   protected get sortedInvitations(): TechInvitation[] {
@@ -88,7 +95,7 @@ export class InviteTechniciansComponent implements OnInit {
         },
         error: (err) => {
           console.error('Failed to load invitations:', err);
-          this.errorMessage = this.extractErrorMessage(err, 'Failed to load invitations');
+          this.errorMessage = this.extractErrorMessage(err, this.transloco.translate('invitations.loadFailedFallback'));
           this.zone.run(() => this.cdr.detectChanges());
         }
       });
@@ -100,23 +107,23 @@ export class InviteTechniciansComponent implements OnInit {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      void this.swal.error('Invalid form', 'Please enter a valid technician email.');
+      void this.swal.error(this.transloco.translate('invitations.invalidFormTitle'), this.transloco.translate('invitations.invalidFormText'));
       this.zone.run(() => this.cdr.detectChanges());
       return;
     }
 
     const email = this.form.value.email?.trim() ?? '';
     if (!email) {
-      this.errorMessage = 'Please enter a valid email.';
-      void this.swal.error('Invalid email', this.errorMessage);
+      this.errorMessage = this.transloco.translate('validation.email');
+      void this.swal.error(this.transloco.translate('invitations.invalidEmailTitle'), this.errorMessage);
       this.zone.run(() => this.cdr.detectChanges());
       return;
     }
 
     const confirm = await this.swal.confirmAction(
-      'Send invitation?',
-      `An invitation will be sent to ${email}.`,
-      'Send'
+      this.transloco.translate('invitations.sendConfirmTitle'),
+      this.transloco.translate('invitations.sendConfirmText', { email }),
+      this.transloco.translate('invitations.sendConfirmButton')
     );
 
     if (!confirm.isConfirmed) {
@@ -136,8 +143,8 @@ export class InviteTechniciansComponent implements OnInit {
         next: (message) => {
           this.successMessage = typeof message === 'string'
             ? message
-            : 'Invitation sent successfully';
-          void this.swal.success('Invitation sent', this.successMessage);
+            : this.transloco.translate('invitations.invitationSentDefault');
+          void this.swal.success(this.transloco.translate('invitations.invitationSentTitle'), this.successMessage);
 
           this.form.reset();
 
@@ -156,17 +163,17 @@ export class InviteTechniciansComponent implements OnInit {
                 console.error('Failed to reload invitations after send:', err);
                 this.errorMessage = this.extractErrorMessage(
                   err,
-                  'Invitation sent, but failed to refresh list'
+                  this.transloco.translate('invitations.refreshFailedFallback')
                 );
-                void this.swal.error('Refresh failed', this.errorMessage);
+                void this.swal.error(this.transloco.translate('invitations.refreshFailedTitle'), this.errorMessage);
                 this.zone.run(() => this.cdr.detectChanges());
               }
             });
         },
         error: (err) => {
           console.error('Failed to send invitation:', err);
-          this.errorMessage = this.extractErrorMessage(err, 'Failed to send invitation');
-          void this.swal.error('Send failed', this.errorMessage);
+          this.errorMessage = this.extractErrorMessage(err, this.transloco.translate('invitations.sendFailedFallback'));
+          void this.swal.error(this.transloco.translate('invitations.sendFailedTitle'), this.errorMessage);
           this.zone.run(() => this.cdr.detectChanges());
         }
       });
@@ -193,17 +200,22 @@ export class InviteTechniciansComponent implements OnInit {
     return item.id ?? item.email ?? index.toString();
   }
 
+  private static readonly STATUS_KEYS: Record<string, string> = {
+    PENDING_REGISTRATION: 'statuses.invitation.pendingRegistration',
+    REGISTERED_PENDING_ZM_APPROVAL: 'statuses.invitation.registeredPendingZmApproval',
+    APPROVED_BY_ZM: 'statuses.invitation.approvedByZm',
+    REJECTED_BY_ZM: 'statuses.invitation.rejectedByZm',
+    EXPIRED: 'statuses.invitation.expired',
+    CANCELLED: 'statuses.invitation.cancelled'
+  };
+
   protected statusLabel(status?: string | null): string {
     if (!status?.trim()) {
       return '-';
     }
 
-    return status
-      .trim()
-      .toLowerCase()
-      .split('_')
-      .map((part) => part ? part[0].toUpperCase() + part.slice(1) : '')
-      .join(' ');
+    const key = InviteTechniciansComponent.STATUS_KEYS[status.trim().toUpperCase()];
+    return key ? this.transloco.translate(key) : status;
   }
 
   private extractErrorMessage(err: any, fallback: string): string {

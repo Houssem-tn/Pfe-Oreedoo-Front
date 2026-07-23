@@ -114,10 +114,11 @@ export function canSttReviewSchedule(value: MaterialReturn | MaterialReturnStatu
   return hasReturnStatus(value, STT_ACTION_REQUIRED_STATUSES);
 }
 
+/** Returns a translation KEY (statuses.materialReturn.* or common.unknown) — pipe through `transloco`. */
 export function statusLabelForReturn(value: MaterialReturn | MaterialReturnStatus | undefined | null): string {
   const status = typeof value === 'string' ? value : value?.status;
   if (!status) {
-    return 'Unknown';
+    return 'common.unknown';
   }
   return RETURN_STATUS_LABELS[status] ?? status.replace(/_/g, ' ');
 }

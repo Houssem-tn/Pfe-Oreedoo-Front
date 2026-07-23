@@ -2,34 +2,34 @@ import { INavData } from '@coreui/angular';
 
 export const navTech: INavData[] = [
   {
-    name: 'Field Dashboard',
+    name: 'nav.fieldDashboard',
     url: '/tech/dashboard',
     iconComponent: { name: 'cilSpeedometer' }
   },
   {
-    name: 'My Field Tasks',
+    name: 'nav.myFieldTasks',
     url: '/tech/cases/activation',
     iconComponent: { name: 'cilFolder' }
   },
   {
-    name: 'Complaint Tasks',
+    name: 'nav.complaintTasks',
     url: '/tech/cases/complaint',
     iconComponent: { name: 'cilNotes' }
   },
 
   {
     title: true,
-    name: 'Stock'
+    name: 'nav.sectionStock'
   },
 
   {
-    name: 'My Equipment',
+    name: 'nav.myEquipment',
     url: '/tech/stock/my-stock',
     iconComponent: { name: 'cilStorage' }
   },
 
   {
-    name: 'My Permissions',
+    name: 'nav.myPermissions',
     url: '/tech/stock/my-permissions',
     iconComponent: { name: 'cilTask' }
   }

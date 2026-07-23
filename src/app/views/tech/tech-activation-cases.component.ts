@@ -3,6 +3,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { Subscription, finalize, firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth.store';
@@ -114,7 +115,7 @@ interface TechProofDraft {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective, TranslocoModule],
   templateUrl: './tech-activation-cases.component.html',
   styleUrl: './tech-activation-cases.component.scss'
 })
@@ -130,6 +131,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   private readonly notificationWsService = inject(NotificationWsService);
   private readonly stockService = inject(StockService);
   private readonly route = inject(ActivatedRoute);
+  private readonly transloco = inject(TranslocoService);
 
   loading = false;
   performanceLoading = false;
@@ -648,7 +650,7 @@ export class TechActivationCasesComponent implements OnInit, OnDestroy {
   trackByAlert = (_index: number, item: NotificationItem) => item.id;
 
   statusLabel(status: CaseStatus): string {
-    return CASE_STATUS_UI[status]?.label ?? status;
+    return this.transloco.translate(CASE_STATUS_UI[status]?.label ?? status);
   }
 
   statusBadgeClass(status: CaseStatus): string {

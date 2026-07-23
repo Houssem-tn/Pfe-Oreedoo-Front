@@ -49,7 +49,7 @@ export class ApprovalsComponent implements OnInit {
     { value: '', label: 'All roles' },
     { value: 'ROLE_STT', label: 'STT' },
     { value: 'ROLE_TECH', label: 'TECH' },
-    { value: 'ROLE_CRM_BOUTIQUE', label: 'CRM Boutique' },
+   
     { value: 'ROLE_ZM', label: 'ZM' }
   ];
 

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { finalize } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth.store';
@@ -21,7 +22,7 @@ interface TechDashboardCard {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, IconDirective],
+  imports: [CommonModule, RouterLink, IconDirective, TranslocoModule],
   templateUrl: './tech-dashboard.component.html',
   styleUrl: './tech-dashboard.component.scss'
 })
@@ -29,6 +30,7 @@ export class TechDashboardComponent implements OnInit, OnDestroy {
   private readonly casesService = inject(CasesService);
   private readonly notificationsStore = inject(NotificationStoreService);
   private readonly authStore = inject(AuthStore);
+  private readonly transloco = inject(TranslocoService);
 
   loading = false;
   error: string | null = null;
@@ -159,7 +161,7 @@ export class TechDashboardComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(item: CaseResponse): string {
-    return CASE_STATUS_UI[item.status]?.label ?? item.status;
+    return this.transloco.translate(CASE_STATUS_UI[item.status]?.label ?? item.status);
   }
 
   statusClass(item: CaseResponse): string {

@@ -483,6 +483,17 @@ export interface StockAuditItem {
   quantity: number;
   /** Returned-item condition (GOOD / DAMAGED / ...). Absent for DPM items. */
   condition?: string;
+  serialNumber?: string;
+  imei?: string;
+  retrievedStockItemId?: string;
+  technicianName?: string;
+  originalCaseReference?: string;
+  originalCaseType?: string;
+  originalCustomerName?: string;
+  originalRecoveryDate?: string;
+  sttCollectedAt?: string;
+  currentReturnStatus?: string;
+  proofViewUrl?: string;
 }
 
 export interface StockAuditEvent {

@@ -10,53 +10,53 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./views/pages/login/login.component').then((m) => m.LoginComponent),
-    data: { title: 'Login Page' },
+    data: { titleKey: 'routes.loginPage' },
   },
   {
     path: 'register',
     loadComponent: () =>
       import('./views/pages/register/register.component').then((m) => m.RegisterComponent),
-    data: { title: 'Register Page' },
+    data: { titleKey: 'routes.registerPage' },
   },
   {
     path: 'register-tech',
     loadComponent: () =>
       import('./views/pages/register-tech-invitation/register-tech-invitation.component')
         .then((m) => m.RegisterTechInvitationComponent),
-    data: { title: 'Technician Invitation Registration' },
+    data: { titleKey: 'routes.technicianInvitationRegistration' },
   },
   {
     path: '404',
     loadComponent: () =>
       import('./views/pages/page404/page404.component').then((m) => m.Page404Component),
-    data: { title: 'Page 404' },
+    data: { titleKey: 'routes.page404' },
   },
   {
     path: '500',
     loadComponent: () =>
       import('./views/pages/page500/page500.component').then((m) => m.Page500Component),
-    data: { title: 'Page 500' },
+    data: { titleKey: 'routes.page500' },
   },
 
   {
     path: 'tech',
     canActivate: [authGuard, approvedGuard],
     canActivateChild: [roleChildGuard],
-    data: { roles: ['ROLE_TECH'], title: 'Field TECH' },
+    data: { roles: ['ROLE_TECH'], titleKey: 'routes.fieldTech' },
     loadChildren: () => import('./views/field/routes').then((m) => m.routes),
   },
   {
     path: 'stt/cases/execution',
     canActivate: [authGuard, approvedGuard],
     canActivateChild: [roleChildGuard],
-    data: { roles: ['ROLE_STT'], title: 'Field STT Execution' },
+    data: { roles: ['ROLE_STT'], titleKey: 'routes.fieldSttExecution' },
     loadChildren: () => import('./views/field/routes').then((m) => m.routes),
   },
 
   {
     path: '',
     loadComponent: () => import('./layout').then((m) => m.DefaultLayoutComponent),
-    data: { title: 'Home' },
+    data: { titleKey: 'routes.home' },
     canActivate: [authGuard, approvedGuard],
     children: [
       {
@@ -86,14 +86,14 @@ export const routes: Routes = [
         path: 'alerts',
         loadComponent: () =>
           import('./views/alerts/alert-center-page.component').then(m => m.AlertCenterPageComponent),
-        data: { title: 'Alert Center' }
+        data: { titleKey: 'routes.alertCenter' }
       },
 
       {
         path: 'profile',
         loadComponent: () =>
           import('./views/profile/profile.component').then(m => m.ProfileComponent),
-        data: { title: 'My Profile' }
+        data: { titleKey: 'routes.myProfile' }
       },
 
       { path: '**', redirectTo: 'dashboard' },

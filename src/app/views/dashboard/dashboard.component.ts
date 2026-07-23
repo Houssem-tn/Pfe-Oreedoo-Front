@@ -10,6 +10,7 @@ import {
   RowComponent
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule, TranslocoService, provideTranslocoScope } from '@jsverse/transloco';
 
 import { AuthStore } from '../../core/auth/auth.store';
 import { ActivationImportWorkspaceComponent } from './activation-import-workspace.component';
@@ -24,6 +25,7 @@ type ImportContext = 'todos' | 'activation' | 'complaint' | 'merged';
   standalone: true,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
+  providers: [provideTranslocoScope('dashboard')],
   imports: [
     CommonModule,
     CardComponent,
@@ -33,6 +35,7 @@ type ImportContext = 'todos' | 'activation' | 'complaint' | 'merged';
     GutterDirective,
     ButtonDirective,
     IconDirective,
+    TranslocoModule,
     TodoImportWorkspaceComponent,
     ActivationImportWorkspaceComponent,
     ComplaintImportWorkspaceComponent,
@@ -42,6 +45,7 @@ type ImportContext = 'todos' | 'activation' | 'complaint' | 'merged';
 export class DashboardComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly authStore = inject(AuthStore);
+  private readonly transloco = inject(TranslocoService);
 
   selectedImportType: ImportContext = 'todos';
 
@@ -56,12 +60,7 @@ export class DashboardComponent implements OnInit {
   }
 
   get importTypeLabel(): string {
-    switch (this.selectedImportType) {
-      case 'activation': return 'Activation CSV import and analytics workspace';
-      case 'complaint':  return 'Plainte CSV import and complaint workflow workspace';
-      case 'merged':     return 'Merged Operations analytics — no case distribution';
-      default:           return 'TODO import and study workspace';
-    }
+    return this.transloco.translate(`dashboard.shell.importTypeLabel.${this.selectedImportType}`);
   }
 
   selectImportType(type: ImportContext): void {

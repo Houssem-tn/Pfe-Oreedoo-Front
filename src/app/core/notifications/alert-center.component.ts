@@ -1,8 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
 import { SpinnerComponent } from '@coreui/angular';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import {
   NotificationItem,
@@ -14,6 +16,7 @@ import {
 } from './models/notification.model';
 import { NotificationStoreService } from './notification-store.service';
 import { AuthStore } from '../auth/auth.store';
+import { ROLE_LABEL_KEYS } from '../i18n/ui-labels';
 
 type Tab            = 'ACTIVE' | 'ARCHIVED';
 type LevelFilter    = 'ALL' | AlertLevel;
@@ -32,7 +35,7 @@ interface SummaryCard {
 @Component({
   selector: 'app-alert-center',
   standalone: true,
-  imports: [IconDirective, SpinnerComponent],
+  imports: [IconDirective, SpinnerComponent, TranslocoModule],
   templateUrl: './alert-center.component.html',
   styleUrls: ['./alert-center.component.scss']
 })
@@ -40,8 +43,11 @@ export class AlertCenterComponent {
   readonly store             = inject(NotificationStoreService);
   private readonly router    = inject(Router);
   private readonly authStore = inject(AuthStore);
+  private readonly transloco = inject(TranslocoService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── View state ────────────────────────────────────────────────────────
+  readonly activeLang      = signal(this.transloco.getActiveLang());
   readonly activeTab       = signal<Tab>('ACTIVE');
   readonly searchTerm      = signal('');
   readonly fromDate        = signal('');
@@ -49,24 +55,30 @@ export class AlertCenterComponent {
   readonly typeFilter      = signal<CategoryFilter>('ALL');
   readonly severityFilter  = signal<LevelFilter>('ALL');
 
-  readonly categoryOptions: { value: CategoryFilter; label: string }[] = [
-    { value: 'ALL',             label: 'All Types' },
-    { value: 'SLA',             label: 'SLA' },
-    { value: 'CASE',            label: 'Cases' },
-    { value: 'STOCK',           label: 'Stock' },
-    { value: 'MATERIAL_RETURN', label: 'Material Returns' },
-    { value: 'DPM',             label: 'DPM' },
-    { value: 'PERMISSION',      label: 'Permissions' },
-    { value: 'USER',            label: 'Users' },
-    { value: 'SYSTEM',          label: 'System' },
-  ];
+  readonly categoryOptions = computed<{ value: CategoryFilter; label: string }[]>(() => {
+    this.activeLang();
+    return [
+      { value: 'ALL',             label: this.t('notifications.alertCenter.filters.allTypes') },
+      { value: 'SLA',             label: this.t('notifications.category.sla') },
+      { value: 'CASE',            label: this.t('notifications.category.case') },
+      { value: 'STOCK',           label: this.t('notifications.category.stock') },
+      { value: 'MATERIAL_RETURN', label: this.t('notifications.category.materialReturn') },
+      { value: 'DPM',             label: this.t('notifications.category.dpm') },
+      { value: 'PERMISSION',      label: this.t('notifications.category.permission') },
+      { value: 'USER',            label: this.t('notifications.category.user') },
+      { value: 'SYSTEM',          label: this.t('notifications.category.system') },
+    ];
+  });
 
-  readonly severityOptions: { value: LevelFilter; label: string }[] = [
-    { value: 'ALL',      label: 'All Severities' },
-    { value: 'CRITICAL', label: 'Critical' },
-    { value: 'WARNING',  label: 'Warning' },
-    { value: 'INFO',     label: 'Info' },
-  ];
+  readonly severityOptions = computed<{ value: LevelFilter; label: string }[]>(() => {
+    this.activeLang();
+    return [
+      { value: 'ALL',      label: this.t('notifications.alertCenter.filters.allSeverities') },
+      { value: 'CRITICAL', label: this.t('notifications.alertCenter.severity.critical') },
+      { value: 'WARNING',  label: this.t('notifications.alertCenter.severity.warning') },
+      { value: 'INFO',     label: this.t('notifications.alertCenter.severity.info') },
+    ];
+  });
 
   // ── Severity / category counters (scoped to active, unread alerts) ─────
   private readonly activePool = computed(() =>
@@ -95,14 +107,15 @@ export class AlertCenterComponent {
 
   /** The six headline tiles, mirroring the design, driven by live counts. */
   readonly summaryCards = computed<SummaryCard[]>(() => {
+    this.activeLang();
     const c = this.categoryCounters();
     return [
-      { key: 'critical', count: this.criticalCount(),                label: 'Critical', sublabel: 'SLA Risk',         icon: 'cilXCircle',     tone: 'crit'   },
-      { key: 'warning',  count: this.warningCount(),                 label: 'Warnings', sublabel: 'Low Stock',        icon: 'cilWarning',     tone: 'warn'   },
-      { key: 'returns',  count: c.MATERIAL_RETURN,                   label: 'Pending',  sublabel: 'Material Returns', icon: 'cilReload',      tone: 'info'   },
-      { key: 'cases',    count: c.CASE + c.SLA,                      label: 'Active',   sublabel: 'Case Escalations', icon: 'cilChart',       tone: 'purple' },
-      { key: 'team',     count: c.USER + c.PERMISSION,               label: 'Team',     sublabel: 'Check-ins',        icon: 'cilPeople',      tone: 'green'  },
-      { key: 'urgent',   count: this.store.unreadCriticalCount(),    label: 'Urgent',   sublabel: 'Coverage Issue',   icon: 'cilLocationPin', tone: 'rose'   },
+      { key: 'critical', count: this.criticalCount(),             label: this.t('notifications.alertCenter.summary.critical.label'), sublabel: this.t('notifications.alertCenter.summary.critical.sublabel'), icon: 'cilXCircle',     tone: 'crit'   },
+      { key: 'warning',  count: this.warningCount(),              label: this.t('notifications.alertCenter.summary.warning.label'), sublabel: this.t('notifications.alertCenter.summary.warning.sublabel'), icon: 'cilWarning',     tone: 'warn'   },
+      { key: 'returns',  count: c.MATERIAL_RETURN,                label: this.t('notifications.alertCenter.summary.returns.label'), sublabel: this.t('notifications.alertCenter.summary.returns.sublabel'), icon: 'cilReload',      tone: 'info'   },
+      { key: 'cases',    count: c.CASE + c.SLA,                   label: this.t('notifications.alertCenter.summary.cases.label'), sublabel: this.t('notifications.alertCenter.summary.cases.sublabel'), icon: 'cilChart',       tone: 'purple' },
+      { key: 'team',     count: c.USER + c.PERMISSION,            label: this.t('notifications.alertCenter.summary.team.label'), sublabel: this.t('notifications.alertCenter.summary.team.sublabel'), icon: 'cilPeople',      tone: 'green'  },
+      { key: 'urgent',   count: this.store.unreadCriticalCount(), label: this.t('notifications.alertCenter.summary.urgent.label'), sublabel: this.t('notifications.alertCenter.summary.urgent.sublabel'), icon: 'cilLocationPin', tone: 'rose'   },
     ];
   });
 
@@ -163,11 +176,12 @@ export class AlertCenterComponent {
   });
 
   readonly pageRangeLabel = computed(() => {
+    this.activeLang();
     const total = this.filtered().length;
-    if (total === 0) return '0 alerts';
+    if (total === 0) return this.t('notifications.alertCenter.pager.zeroAlerts');
     const start = (this.activePage() - 1) * this.pageSize + 1;
     const end   = Math.min(this.activePage() * this.pageSize, total);
-    return `${start}–${end} of ${total}`;
+    return this.t('notifications.alertCenter.pager.range', { start, end, total });
   });
 
   readonly visiblePages = computed<(number | '...')[]>(() => {
@@ -187,6 +201,10 @@ export class AlertCenterComponent {
   });
 
   constructor() {
+    this.transloco.langChanges$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((lang) => this.activeLang.set(lang));
+
     // Keep the page in range when the list shrinks (e.g. dismissing the last card on a page).
     effect(() => {
       const tp = this.totalPages();
@@ -278,21 +296,22 @@ export class AlertCenterComponent {
   /** Severity pill shown top-right of every card. */
   severityBadge(item: NotificationItem): { label: string; tone: string } {
     switch (effectiveLevel(item)) {
-      case 'CRITICAL': return { label: 'Critical', tone: 'crit' };
-      case 'WARNING':  return { label: 'Warning',  tone: 'warn' };
-      default:         return { label: 'Info',     tone: 'info' };
+      case 'CRITICAL': return { label: this.t('notifications.alertCenter.severity.critical'), tone: 'crit' };
+      case 'WARNING':  return { label: this.t('notifications.alertCenter.severity.warning'), tone: 'warn' };
+      default:         return { label: this.t('notifications.alertCenter.severity.info'), tone: 'info' };
     }
   }
 
   /** Secondary identifier line under the title (case ref / actor / role). */
   cardSubtitle(item: NotificationItem): string {
+    this.activeLang();
     const data = item.data ?? {};
 
     const caseRef = data['caseReference'] ?? data['caseRef'];
-    if (caseRef) return `Case #${caseRef}`;
+    if (caseRef) return this.t('notifications.alertCenter.subtitles.caseNumber', { ref: caseRef });
 
     const caseId = item.relatedCaseId ?? data['caseId'];
-    if (caseId) return `Case #${String(caseId).slice(-8).toUpperCase()}`;
+    if (caseId) return this.t('notifications.alertCenter.subtitles.caseNumber', { ref: String(caseId).slice(-8).toUpperCase() });
 
     const actor = item.triggeredBy ?? data['actorName'] ?? data['triggeredBy'];
     if (actor) return String(actor);
@@ -301,27 +320,29 @@ export class AlertCenterComponent {
     if (zone) return String(zone);
 
     switch (item.targetRole) {
-      case 'ROLE_TECH': return 'Field Technician';
-      case 'ROLE_STT':  return 'STT Team';
-      case 'ROLE_ZM':   return 'Zone Manager';
-      default:          return 'System';
+      case 'ROLE_TECH': return this.t('notifications.alertCenter.targetRoles.tech');
+      case 'ROLE_STT':  return this.t('notifications.alertCenter.targetRoles.stt');
+      case 'ROLE_ZM':   return this.t('notifications.alertCenter.targetRoles.zm');
+      case 'ROLE_ADMIN': return this.t(ROLE_LABEL_KEYS.ROLE_ADMIN);
+      default:          return this.t('notifications.alertCenter.targetRoles.system');
     }
   }
 
   // ── Time ──────────────────────────────────────────────────────────────
   getRelativeTime(dateStr: string): string {
+    this.activeLang();
     if (!dateStr) return '';
     const diffMs = Date.now() - new Date(dateStr).getTime();
-    if (diffMs < 0) return 'Now';
+    if (diffMs < 0) return this.t('notifications.alertCenter.relativeTime.now');
     const min = Math.floor(diffMs / 60_000);
-    if (min < 1)  return 'Now';
-    if (min < 60) return `${min} min ago`;
+    if (min < 1)  return this.t('notifications.alertCenter.relativeTime.now');
+    if (min < 60) return this.t('notifications.alertCenter.relativeTime.minutesAgo', { count: min });
     const h = Math.floor(min / 60);
-    if (h < 24)   return `${h}h ago`;
+    if (h < 24)   return this.t('notifications.alertCenter.relativeTime.hoursAgo', { count: h });
     const d = Math.floor(h / 24);
-    if (d === 1)  return 'Yesterday';
-    if (d < 7)    return `${d}d ago`;
-    return new DatePipe('en-US').transform(dateStr, 'dd MMM') ?? '';
+    if (d === 1)  return this.t('notifications.alertCenter.relativeTime.yesterday');
+    if (d < 7)    return this.t('notifications.alertCenter.relativeTime.daysAgo', { count: d });
+    return new DatePipe(this.dateLocale()).transform(dateStr, 'dd MMM') ?? '';
   }
 
   // ── Actions ───────────────────────────────────────────────────────────
@@ -330,21 +351,23 @@ export class AlertCenterComponent {
   primaryActionLabel(item: NotificationItem): string {
     if (item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM') {
       const count = Number(item.data?.['count'] ?? 0);
-      return count > 0 ? `View ${count} case${count === 1 ? '' : 's'}` : 'View Cases';
+      return count > 0
+        ? this.t('notifications.alertCenter.actions.viewCasesCount', { count })
+        : this.t('notifications.alertCenter.actions.viewCases');
     }
     switch (item.actionType as AlertActionType) {
-      case 'OPEN_CASE':                     return 'View Case';
+      case 'OPEN_CASE':                     return this.t('notifications.alertCenter.actions.viewCase');
       case 'OPEN_DPM':
-      case 'OPEN_DPM_REQUEST':              return 'Open DPM';
+      case 'OPEN_DPM_REQUEST':              return this.t('notifications.alertCenter.actions.openDpm');
       case 'OPEN_STOCK':
-      case 'OPEN_STOCK_PAGE':               return 'View Stock';
+      case 'OPEN_STOCK_PAGE':               return this.t('notifications.alertCenter.actions.viewStock');
       case 'OPEN_PERMISSION_REQUEST':
-      case 'OPEN_STOCK_PERMISSION_REQUEST': return 'Review Request';
-      case 'OPEN_USER':                     return 'Review User';
+      case 'OPEN_STOCK_PERMISSION_REQUEST': return this.t('notifications.alertCenter.actions.reviewRequest');
+      case 'OPEN_USER':                     return this.t('notifications.alertCenter.actions.reviewUser');
       case 'OPEN_THRESHOLDS':
-      case 'OPEN_STOCK_THRESHOLDS':         return 'Configure';
-      case 'OPEN_MATERIAL_RETURN':          return 'View Return';
-      default:                              return 'Open';
+      case 'OPEN_STOCK_THRESHOLDS':         return this.t('notifications.alertCenter.actions.configure');
+      case 'OPEN_MATERIAL_RETURN':          return this.t('notifications.alertCenter.actions.viewReturn');
+      default:                              return this.t('notifications.alertCenter.actions.open');
     }
   }
 
@@ -355,7 +378,7 @@ export class AlertCenterComponent {
 
     switch (item.actionType as AlertActionType) {
       case 'OPEN_CASE':
-        this.router.navigate([data['routeHint'] ?? this.defaultCaseRoute(role)]);
+        this.navigateToCase(item, role);
         break;
       case 'OPEN_DPM':
       case 'OPEN_DPM_REQUEST':
@@ -401,12 +424,73 @@ export class AlertCenterComponent {
   // ── Empty state ───────────────────────────────────────────────────────
   emptyMessage(): { title: string; sub: string } {
     if (this.hasActiveFilters()) {
-      return { title: 'No alerts match your filters.', sub: 'Try widening the search or clearing filters.' };
+      return {
+        title: this.t('notifications.alertCenter.empty.filtered.title'),
+        sub: this.t('notifications.alertCenter.empty.filtered.sub')
+      };
     }
     if (this.activeTab() === 'ARCHIVED') {
-      return { title: 'No archived alerts.', sub: 'Dismissed alerts will appear here.' };
+      return {
+        title: this.t('notifications.alertCenter.empty.archived.title'),
+        sub: this.t('notifications.alertCenter.empty.archived.sub')
+      };
     }
-    return { title: 'All clear.', sub: 'New alerts will appear here in real time.' };
+    return {
+      title: this.t('notifications.alertCenter.empty.active.title'),
+      sub: this.t('notifications.alertCenter.empty.active.sub')
+    };
+  }
+
+  pageRangeLabelText(): string {
+    this.activeLang();
+    const total = this.filtered().length;
+    if (total === 0) {
+      return this.t('notifications.alertCenter.pager.zeroAlerts');
+    }
+    const start = (this.activePage() - 1) * this.pageSize + 1;
+    const end = Math.min(this.activePage() * this.pageSize, total);
+    return this.t('notifications.alertCenter.pager.range', { start, end, total });
+  }
+
+  /**
+   * Opens the exact case referenced by an alert. Uses the stable `caseId`
+   * (`relatedCaseId` / `data.caseId`) and a role-based board route derived from the
+   * case type, passing `focusCaseId` so the board loads the full case by ID and opens
+   * it (or shows a controlled error if it no longer exists). Bulk-assignment alerts
+   * carry no single case, so they honour their server `routeHint`. We never navigate to
+   * the backend's non-role `/cases/...` hint, which is not a real client route.
+   */
+  private navigateToCase(item: NotificationItem, role: string | null): void {
+    const data = item.data ?? {};
+
+    if (item.eventType === 'CASES_BULK_ASSIGNED_TO_ZM') {
+      const hint = typeof data['routeHint'] === 'string' ? data['routeHint'] : null;
+      this.router.navigate([hint ?? this.defaultCaseRoute(role)]);
+      return;
+    }
+
+    const caseId = item.relatedCaseId
+      ?? (typeof data['caseId'] === 'string' ? (data['caseId'] as string) : null);
+    const caseType = typeof data['caseType'] === 'string' ? (data['caseType'] as string).toUpperCase() : '';
+    const route = this.caseRouteByType(role, caseType);
+
+    if (caseId) {
+      this.router.navigate([route], { queryParams: { focusCaseId: caseId } });
+    } else {
+      this.router.navigate([route]);
+    }
+  }
+
+  private caseRouteByType(role: string | null, caseType: string): string {
+    if (caseType === 'PLAINTE') {
+      switch (role) {
+        case 'ROLE_ZM':   return '/zm/cases/complaint';
+        case 'ROLE_STT':  return '/stt/cases/complaint';
+        case 'ROLE_TECH': return '/tech/cases/complaint';
+        default:          return '/admin/cases/complaint';
+      }
+    }
+    return this.defaultCaseRoute(role);
   }
 
   // ── Default routes ────────────────────────────────────────────────────
@@ -435,5 +519,20 @@ export class AlertCenterComponent {
 
   private defaultReturnRoute(role: string | null): string {
     return role === 'ROLE_ZM' ? '/zm/stock/returns' : '/stt/stock/returns';
+  }
+
+  private t(key: string, params?: Record<string, unknown>): string {
+    return this.transloco.translate(key, params);
+  }
+
+  private dateLocale(): string {
+    switch (this.activeLang()) {
+      case 'ar':
+        return 'ar-TN';
+      case 'en':
+        return 'en-US';
+      default:
+        return 'fr-TN';
+    }
   }
 }

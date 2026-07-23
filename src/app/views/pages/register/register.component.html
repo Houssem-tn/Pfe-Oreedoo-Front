@@ -1,4 +1,8 @@
 <div class="register-page min-vh-100 d-flex align-items-center py-4">
+  <div class="position-fixed top-0 end-0 m-3" style="z-index: 1060;">
+    <app-language-selector variant="header" />
+  </div>
+
   <c-container>
     <c-row class="justify-content-center align-items-center register-page__row">
       <c-col lg="11" xl="10">
@@ -13,17 +17,16 @@
 
               <div class="register-shell__brand-copy">
                 <span class="register-shell__brand-title">ooredoo</span>
-                <span class="register-shell__brand-subtitle">Onboarding Access</span>
+                <span class="register-shell__brand-subtitle">{{ 'register.brandSubtitle' | transloco }}</span>
               </div>
             </div>
 
-            <span class="register-shell__eyebrow">Role-Based Registration</span>
+            <span class="register-shell__eyebrow">{{ 'register.eyebrow' | transloco }}</span>
 
-            <h1 class="register-shell__title">Create your account and enter the approval workflow.</h1>
+            <h1 class="register-shell__title">{{ 'register.heroTitle' | transloco }}</h1>
 
             <p class="register-shell__description">
-              Register as STT or ZM, submit your identity details, and let the right approval chain activate
-              your workspace access.
+              {{ 'register.heroDescription' | transloco }}
             </p>
 
             <div class="register-shell__highlights">
@@ -32,8 +35,8 @@
                   <svg cIcon name="cilUserFollow"></svg>
                 </span>
                 <div>
-                  <h2>Structured onboarding</h2>
-                  <p>Fast registration with role-based approval from the right manager.</p>
+                  <h2>{{ 'register.highlightOnboardingTitle' | transloco }}</h2>
+                  <p>{{ 'register.highlightOnboardingText' | transloco }}</p>
                 </div>
               </article>
 
@@ -42,8 +45,8 @@
                   <svg cIcon name="cilLockLocked"></svg>
                 </span>
                 <div>
-                  <h2>Secure activation</h2>
-                  <p>Accounts stay protected until the validation process is complete.</p>
+                  <h2>{{ 'register.highlightSecureTitle' | transloco }}</h2>
+                  <p>{{ 'register.highlightSecureText' | transloco }}</p>
                 </div>
               </article>
 
@@ -52,15 +55,15 @@
                   <svg cIcon name="cilPeople"></svg>
                 </span>
                 <div>
-                  <h2>Operational hierarchy</h2>
-                  <p>STT and ZM access remains aligned with telecom field responsibilities.</p>
+                  <h2>{{ 'register.highlightHierarchyTitle' | transloco }}</h2>
+                  <p>{{ 'register.highlightHierarchyText' | transloco }}</p>
                 </div>
               </article>
             </div>
 
             <div class="register-shell__signin">
-              <span class="register-shell__signin-label">Already approved?</span>
-              <a routerLink="/login" class="register-shell__signin-link">Go to sign in</a>
+              <span class="register-shell__signin-label">{{ 'register.alreadyApproved' | transloco }}</span>
+              <a routerLink="/login" class="register-shell__signin-link">{{ 'register.goToSignIn' | transloco }}</a>
             </div>
           </section>
 
@@ -68,10 +71,10 @@
             <c-card class="register-card">
               <c-card-body class="register-card__body">
                 <div class="register-card__intro">
-                  <span class="register-card__kicker">New Account</span>
-                  <h2 class="register-card__title">Create account</h2>
+                  <span class="register-card__kicker">{{ 'register.newAccount' | transloco }}</span>
+                  <h2 class="register-card__title">{{ 'register.createAccount' | transloco }}</h2>
                   <p class="register-card__subtitle">
-                    Fill in your profile, choose your role, and submit your registration for validation.
+                    {{ 'register.subtitle' | transloco }}
                   </p>
                 </div>
 
@@ -86,8 +89,8 @@
 
                   <section class="register-section">
                     <div class="register-section__header">
-                      <span class="register-section__eyebrow">Step 1</span>
-                      <h3>{{ isSttRegistration ? 'Company information' : 'Personal information' }}</h3>
+                      <span class="register-section__eyebrow">{{ 'register.step1' | transloco }}</span>
+                      <h3>{{ (isSttRegistration ? 'register.companyInformation' : 'register.personalInformation') | transloco }}</h3>
                     </div>
 
                     <div class="row g-3">
@@ -99,14 +102,14 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="STT / company name"
+                            [placeholder]="'register.companyNamePlaceholder' | transloco"
                             name="fullName"
                             [(ngModel)]="form.fullName"
                             required
                           />
                         </c-input-group>
                         <div class="register-form__hint mt-2">
-                          Use the official STT company name, for example THS or INSCOM.
+                          {{ 'register.companyNameHint' | transloco }}
                         </div>
                       </div>
 
@@ -118,7 +121,7 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="First name"
+                            [placeholder]="'register.firstNamePlaceholder' | transloco"
                             name="firstName"
                             [(ngModel)]="form.firstName"
                             required
@@ -134,7 +137,7 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="Last name"
+                            [placeholder]="'register.lastNamePlaceholder' | transloco"
                             name="lastName"
                             [(ngModel)]="form.lastName"
                             required
@@ -150,7 +153,7 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="Phone"
+                            [placeholder]="'register.phonePlaceholder' | transloco"
                             name="phone"
                             [(ngModel)]="form.phone"
                           />
@@ -163,7 +166,7 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="Email"
+                            [placeholder]="'register.emailPlaceholder' | transloco"
                             type="email"
                             name="email"
                             [(ngModel)]="form.email"
@@ -173,26 +176,35 @@
                       </div>
 
                       <div class="col-12">
-                        <label class="register-form__label">Profile photo</label>
+                        <label class="register-form__label" id="photoInputLabel">{{ 'register.profilePhoto' | transloco }}</label>
 
-                        <input
-                          #photoInput
-                          cFormControl
-                          class="register-form__file"
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          (change)="onPhotoSelected($event)"
-                        />
+                        <div class="file-upload">
+                          <label class="file-upload__trigger" aria-labelledby="photoInputLabel">
+                            <input
+                              #photoInput
+                              class="file-upload__input"
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp"
+                              (change)="onPhotoSelected($event)"
+                            />
+                            <svg cIcon name="cilPaperclip"></svg>
+                            <span>{{ (selectedPhotoFile ? 'register.changeFile' : 'register.chooseFile') | transloco }}</span>
+                          </label>
+
+                          <span class="file-upload__filename" [class.file-upload__filename--empty]="!selectedPhotoFile">
+                            {{ selectedPhotoFile ? selectedPhotoFile.name : ('register.noFileSelected' | transloco) }}
+                          </span>
+                        </div>
 
                         <div class="register-form__hint">
-                          Optional. Accepted formats: JPG, PNG, WEBP. Max size: 5 MB.
+                          {{ 'register.profilePhotoHint' | transloco }}
                         </div>
 
                         <div class="profile-photo-preview mt-3" *ngIf="photoPreviewUrl">
                           <div class="profile-photo-preview__card">
                             <img
                               [src]="photoPreviewUrl"
-                              alt="Profile preview"
+                              [alt]="'register.profilePreviewAlt' | transloco"
                               class="profile-photo-preview__image"
                             />
 
@@ -206,9 +218,10 @@
                             <button
                               type="button"
                               class="btn btn-outline-danger btn-sm profile-photo-preview__remove"
+                              [attr.aria-label]="'register.removeFile' | transloco"
                               (click)="removeSelectedPhoto(photoInput)"
                             >
-                              Remove
+                              {{ 'register.remove' | transloco }}
                             </button>
                           </div>
                         </div>
@@ -218,8 +231,8 @@
 
                   <section class="register-section">
                     <div class="register-section__header">
-                      <span class="register-section__eyebrow">Step 2</span>
-                      <h3>Choose your role</h3>
+                      <span class="register-section__eyebrow">{{ 'register.step2' | transloco }}</span>
+                      <h3>{{ 'register.chooseRole' | transloco }}</h3>
                     </div>
 
                     <div class="role-grid">
@@ -249,14 +262,14 @@
                     </div>
 
                     <div class="register-form__hint register-form__hint--spaced">
-                      STT accounts are approved by ZM. ZM accounts are approved by Admin.
+                      {{ 'register.roleApprovalHint' | transloco }}
                     </div>
                   </section>
 
                   <section class="register-section">
                     <div class="register-section__header">
-                      <span class="register-section__eyebrow">Step 3</span>
-                      <h3>Set your password</h3>
+                      <span class="register-section__eyebrow">{{ 'register.step3' | transloco }}</span>
+                      <h3>{{ 'register.setPassword' | transloco }}</h3>
                     </div>
 
                     <div class="row g-3">
@@ -268,7 +281,7 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="Password"
+                            [placeholder]="'register.passwordPlaceholder' | transloco"
                             type="password"
                             name="password"
                             [(ngModel)]="form.password"
@@ -286,7 +299,7 @@
                           <input
                             cFormControl
                             class="register-form__control"
-                            placeholder="Repeat password"
+                            [placeholder]="'register.confirmPasswordPlaceholder' | transloco"
                             type="password"
                             name="confirmPassword"
                             [(ngModel)]="form.confirmPassword"
@@ -300,12 +313,12 @@
 
                   <div class="register-form__footer">
                     <button cButton class="register-form__submit" color="primary" type="submit" [disabled]="loading">
-                      {{ loading ? 'Creating account...' : 'Create account' }}
+                      {{ (loading ? 'register.creatingAccount' : 'register.submit') | transloco }}
                     </button>
 
                     <div class="register-form__signin-note">
-                      Already have an account?
-                      <a routerLink="/login" class="register-form__signin-link">Sign in</a>
+                      {{ 'register.alreadyHaveAccount' | transloco }}
+                      <a routerLink="/login" class="register-form__signin-link">{{ 'register.signIn' | transloco }}</a>
                     </div>
                   </div>
                 </form>

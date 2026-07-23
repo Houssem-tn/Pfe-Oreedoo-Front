@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, NgZone, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, DatePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { filter, finalize } from 'rxjs/operators';
 import { IconDirective } from '@coreui/icons-angular';
 import {
   CardComponent, CardBodyComponent, CardHeaderComponent,
@@ -18,6 +19,12 @@ import {
   materialUnitLabel,
   materialUnitShort
 } from '../../../../core/stock/material-quantity.util';
+import { RetrievedStockService } from '../../../../core/stock/retrieved-stock.service';
+import { RetrievedStockItem } from '../../../../core/stock/retrieved-stock.model';
+import { NotificationStoreService } from '../../../../core/notifications/notification-store.service';
+import { NotificationItem } from '../../../../core/notifications/models/notification.model';
+
+type TechStockTab = 'available' | 'retrieved';
 
 @Component({
   standalone: true,
@@ -31,30 +38,65 @@ import {
 })
 export class TechMyStockComponent implements OnInit {
   private readonly stockSvc = inject(StockService);
+  private readonly retrievedStockSvc = inject(RetrievedStockService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly zone = inject(NgZone);
+  private readonly notificationStore = inject(NotificationStoreService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  activeTab: TechStockTab = 'available';
 
   stock: TechStock | null = null;
   pendingConfirmations: PendingDistribution[] = [];
+  retrievedItems: RetrievedStockItem[] = [];
   loading = true;
   confirming: Record<string, boolean> = {};
   error: string | null = null;
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+
+    // Live updates: whenever a stock-affecting event reaches this technician over the
+    // WebSocket (STT distribution, distribution/return approval, retrieved-stock collection,
+    // threshold alerts), reload from the backend — no manual page refresh required.
+    this.notificationStore.realtime$
+      .pipe(
+        filter((n) => this.affectsTechStock(n)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => this.load());
+  }
+
+  private affectsTechStock(n: NotificationItem): boolean {
+    const type = n.eventType ?? '';
+    return type.startsWith('STOCK_')
+      || type.startsWith('RETRIEVED_STOCK_')
+      || n.category === 'STOCK';
+  }
+
+  switchTab(tab: TechStockTab): void {
+    this.activeTab = tab;
+  }
 
   load(): void {
     this.loading = true;
     this.error = null;
     forkJoin({
       stock: this.stockSvc.getMyTechStock(),
-      pending: this.stockSvc.getMyPendingConfirmations()
+      pending: this.stockSvc.getMyPendingConfirmations(),
+      retrieved: this.retrievedStockSvc.getMyRetrievedStock()
     }).pipe(finalize(() => { this.loading = false; this.zone.run(() => this.cdr.detectChanges()); })).subscribe({
-      next: ({ stock, pending }) => {
+      next: ({ stock, pending, retrieved }) => {
         this.stock = stock;
         this.pendingConfirmations = pending;
+        this.retrievedItems = retrieved;
       },
       error: e => this.error = e.message
     });
+  }
+
+  retrievedItemIdentifier(item: RetrievedStockItem): string {
+    return [item.serialNumber, item.imei].filter(Boolean).join(' · ') || '-';
   }
 
   confirmReception(dist: PendingDistribution): void {
@@ -86,8 +128,9 @@ export class TechMyStockComponent implements OnInit {
         })
       ).subscribe({
         next: () => {
-          this.pendingConfirmations = this.pendingConfirmations.filter(p => p.id !== dist.id);
-          this.stockSvc.getMyTechStock().subscribe({ next: s => this.stock = s });
+          // Reload the full snapshot (stock + pending + retrieved) from the backend so every
+          // panel reflects the confirmed reception immediately — no manual refresh.
+          this.load();
           Swal.fire({
             title: 'Reception Confirmed',
             text: 'The stock has been added to your inventory.',

@@ -1,0 +1,32 @@
+<div class="language-selector" [class.language-selector--field]="variant() === 'field'">
+  <button
+    type="button"
+    class="language-selector__toggle"
+    [class.language-selector__toggle--field]="variant() === 'field'"
+    (click)="toggle()"
+    [attr.aria-label]="'header.openLanguagePicker' | transloco"
+    [attr.aria-expanded]="isOpen()"
+  >
+    <span class="language-selector__code">{{ languageService.currentLang() | uppercase }}</span>
+  </button>
+
+  @if (isOpen()) {
+    <div class="language-selector__menu" [class.language-selector__menu--field]="variant() === 'field'">
+      @for (option of languageService.availableLanguages; track option.code) {
+        <button
+          type="button"
+          class="language-selector__item"
+          [class.language-selector__item--active]="languageService.currentLang() === option.code"
+          (click)="select(option.code)"
+        >
+          <span>{{ option.labelKey | transloco }}</span>
+          @if (languageService.currentLang() === option.code) {
+            <svg class="language-selector__check" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M13.485 1.929a1 1 0 0 1 0 1.414l-7.07 7.071a1 1 0 0 1-1.415 0L1.515 6.929a1 1 0 1 1 1.414-1.414L6 8.586l6.07-6.071a1 1 0 0 1 1.415-.586z" fill-rule="evenodd" clip-rule="evenodd" transform="translate(0.5 3.5)"/>
+            </svg>
+          }
+        </button>
+      }
+    </div>
+  }
+</div>

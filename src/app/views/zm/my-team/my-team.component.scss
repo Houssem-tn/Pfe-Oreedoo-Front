@@ -335,6 +335,46 @@
   &:disabled { cursor: not-allowed; opacity: 0.65; }
 }
 
+.mt-pending-card__actions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.4rem;
+}
+
+/* ── Decline btn ──────────────────────────────────────────────────────── */
+.mt-decline-btn {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 600;
+  gap: 0.35rem;
+  padding: 0.45rem 0.8rem;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+  &:disabled { cursor: not-allowed; opacity: 0.65; }
+}
+
+/* Module tag shown next to a pending governorate (e.g. ACT / PLT) */
+.mt-module-tag {
+  background: rgba(146, 64, 14, 0.12);
+  border-radius: 4px;
+  color: #92400e;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-left: 0.3rem;
+  padding: 0.05rem 0.3rem;
+  vertical-align: middle;
+}
+
 /* ── Toolbar ──────────────────────────────────────────────────────────── */
 .mt-toolbar {
   align-items: center;

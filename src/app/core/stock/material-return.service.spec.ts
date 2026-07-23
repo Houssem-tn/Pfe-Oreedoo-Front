@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { MaterialReturnService } from './material-return.service';
 import { API_BASE_URL } from '../http/api.config';
+import { RETURN_SOURCE_LABELS } from './material-return.model';
 
 describe('MaterialReturnService', () => {
   let service: MaterialReturnService;
@@ -24,6 +25,11 @@ describe('MaterialReturnService', () => {
 
   afterEach(() => httpMock.verify());
 
+  it('RETURN_SOURCE_LABELS should expose both STT stock and collected item stock for the STT modal', () => {
+    expect(RETURN_SOURCE_LABELS['STT_STOCK']).toBe('statuses.returnSource.sttStock');
+    expect(RETURN_SOURCE_LABELS['COLLECTED_ITEM_STOCK']).toBe('statuses.returnSource.collectedItemStock');
+  });
+
   it('createReturn() should POST the payload to the base returns endpoint', () => {
     const payload = { responsibleZmId: 'zm-1', items: [] } as any;
     service.createReturn(payload).subscribe();
@@ -31,6 +37,22 @@ describe('MaterialReturnService', () => {
     const req = httpMock.expectOne('/api/v1/stock/returns');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toBe(payload);
+    req.flush({});
+  });
+
+  it('createReturn() should preserve collected-item ids when the request source is collected stock', () => {
+    const payload = {
+      responsibleZmId: 'zm-1',
+      returnSource: 'COLLECTED_ITEM_STOCK',
+      retrievedStockItemIds: ['rsi-1', 'rsi-2'],
+      items: [],
+    } as any;
+
+    service.createReturn(payload).subscribe();
+
+    const req = httpMock.expectOne('/api/v1/stock/returns');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body.retrievedStockItemIds).toEqual(['rsi-1', 'rsi-2']);
     req.flush({});
   });
 

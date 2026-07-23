@@ -15,9 +15,12 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './core/auth/auth.interceptor';
 
 import { API_BASE_URL, resolveApiBaseUrl } from './core/http/api.config';
+import { provideAppTransloco } from './core/i18n/transloco.config';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    ...provideAppTransloco(),
+
    provideRouter(
   routes,
   withRouterConfig({ onSameUrlNavigation: 'reload' }),

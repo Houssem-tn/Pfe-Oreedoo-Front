@@ -1,6 +1,7 @@
 import { Component, effect, inject, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { NgScrollbar } from 'ngx-scrollbar';
+import { TranslocoService } from '@jsverse/transloco';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
@@ -22,6 +23,7 @@ import { getNavByRole } from './__nav';
 import { AuthStore } from '../../core/auth/auth.store';
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
 import { NotificationToastStackComponent } from '../../core/notifications/notification-toast-stack.component';
+import { TranslocoModule } from '@jsverse/transloco';
 
 @Component({
   selector: 'app-dashboard',
@@ -42,7 +44,8 @@ import { NotificationToastStackComponent } from '../../core/notifications/notifi
     RouterOutlet,
     RouterLink,
     ShadowOnScrollDirective,
-    NotificationToastStackComponent
+    NotificationToastStackComponent,
+    TranslocoModule
   ]
 })
 export class DefaultLayoutComponent implements OnInit, OnDestroy {
@@ -51,6 +54,7 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   private readonly store = inject(AuthStore);
   private readonly notificationStore = inject(NotificationStoreService);
   private readonly router = inject(Router);
+  private readonly transloco = inject(TranslocoService);
   private readonly subscriptions = new Subscription();
 
   constructor() {
@@ -68,6 +72,9 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
           this.refreshNavItems();
         })
     );
+    this.subscriptions.add(
+      this.transloco.langChanges$.subscribe(() => this.refreshNavItems())
+    );
   }
 
   ngOnDestroy(): void {
@@ -76,10 +83,15 @@ export class DefaultLayoutComponent implements OnInit, OnDestroy {
   }
 
   private refreshNavItems(): void {
-    this.navItems = getNavByRole(
+    const rawItems = getNavByRole(
       this.store.role(),
       this.store.canCreateDpm(),
       this.store.canImportCoverage()
     );
+
+    this.navItems = rawItems.map(item => ({
+      ...item,
+      name: item.name ? this.transloco.translate(item.name) : item.name
+    }));
   }
 }

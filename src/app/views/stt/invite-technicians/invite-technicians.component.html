@@ -1,19 +1,19 @@
 <div class="stt-invite-shell">
   <section class="stt-invite-hero">
     <div>
-      <div class="stt-invite-hero__eyebrow">Technician onboarding</div>
-      <h1>Invite technicians</h1>
-      <p>Send registration links, monitor approval progress, and keep the invitation flow easy to handle on phone.</p>
+      <div class="stt-invite-hero__eyebrow">{{ 'invitations.eyebrow' | transloco }}</div>
+      <h1>{{ 'invitations.title' | transloco }}</h1>
+      <p>{{ 'invitations.description' | transloco }}</p>
     </div>
 
     <div class="stt-invite-hero__actions">
       <a routerLink="/stt/my-technicians" class="stt-invite-btn stt-invite-btn--primary">
         <svg cIcon name="cilPeople"></svg>
-        Open team
+        {{ 'invitations.openTeam' | transloco }}
       </a>
       <button class="stt-invite-btn stt-invite-btn--ghost" (click)="loadInvitations()" [disabled]="loading">
         <svg cIcon name="cilReload"></svg>
-        {{ loading ? 'Refreshing...' : 'Refresh list' }}
+        {{ (loading ? 'invitations.refreshing' : 'invitations.refreshList') | transloco }}
       </button>
     </div>
   </section>
@@ -22,7 +22,7 @@
     <article class="stt-invite-stat" [ngClass]="'stt-invite-stat--' + stat.tone" *ngFor="let stat of summaryCards">
       <div class="stt-invite-stat__icon"><svg cIcon [name]="stat.icon"></svg></div>
       <strong>{{ stat.value }}</strong>
-      <span>{{ stat.label }}</span>
+      <span>{{ stat.label | transloco }}</span>
     </article>
   </section>
 
@@ -39,13 +39,13 @@
   <section class="stt-invite-layout">
     <article class="stt-invite-panel">
       <div class="stt-invite-panel__header">
-        <div class="stt-invite-panel__eyebrow">New invitation</div>
-        <h2>Send registration link</h2>
+        <div class="stt-invite-panel__eyebrow">{{ 'invitations.newInvitation' | transloco }}</div>
+        <h2>{{ 'invitations.sendRegistrationLink' | transloco }}</h2>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="stt-invite-form">
         <label class="stt-invite-field">
-          <span><svg cIcon name="cilEnvelopeOpen"></svg>Technician email</span>
+          <span><svg cIcon name="cilEnvelopeOpen"></svg>{{ 'invitations.emailLabel' | transloco }}</span>
           <input
             type="email"
             formControlName="email"
@@ -54,30 +54,30 @@
         </label>
 
         <div class="stt-invite-field__hint" *ngIf="form.controls.email.touched && form.controls.email.invalid">
-          Please enter a valid email.
+          {{ emailErrorMessage }}
         </div>
 
         <button type="submit" class="stt-invite-btn stt-invite-btn--primary" [disabled]="submitting">
           <svg cIcon name="cilEnvelopeOpen"></svg>
-          {{ submitting ? 'Sending...' : 'Send invitation' }}
+          {{ (submitting ? 'invitations.sending' : 'invitations.sendInvitation') | transloco }}
         </button>
       </form>
     </article>
 
     <article class="stt-invite-panel">
       <div class="stt-invite-panel__header">
-        <div class="stt-invite-panel__eyebrow">Invitation traceability</div>
-        <h2>My invitations</h2>
+        <div class="stt-invite-panel__eyebrow">{{ 'invitations.traceability' | transloco }}</div>
+        <h2>{{ 'invitations.myInvitations' | transloco }}</h2>
       </div>
 
       <div *ngIf="loading" class="stt-invite-state">
         <div class="spinner-border spinner-border-sm" role="status"></div>
-        <span>Loading invitations...</span>
+        <span>{{ 'invitations.loadingInvitations' | transloco }}</span>
       </div>
 
       <div *ngIf="!loading && sortedInvitations.length === 0" class="stt-invite-empty">
-        <strong>No invitations found.</strong>
-        <span>Your sent invitations will appear here with their registration and ZM decision status.</span>
+        <strong>{{ 'invitations.noInvitationsTitle' | transloco }}</strong>
+        <span>{{ 'invitations.noInvitationsText' | transloco }}</span>
       </div>
 
       <div class="stt-invite-list" *ngIf="!loading && sortedInvitations.length > 0">
@@ -90,11 +90,11 @@
           </div>
 
           <div class="stt-invite-card__meta">
-            <span><svg cIcon name="cilClock"></svg>Sent {{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
-            <span><svg cIcon name="cilUser"></svg>ZM {{ item.zmName || item.zmEmail || '-' }}</span>
-            <span><svg cIcon name="cilPeople"></svg>Used {{ item.used ? 'Yes' : 'No' }}</span>
-            <span><svg cIcon name="cilPeople"></svg>Registered {{ item.registeredAt ? (item.registeredAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
-            <span><svg cIcon name="cilCheckCircle"></svg>Decision {{ item.zmDecisionAt ? (item.zmDecisionAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+            <span><svg cIcon name="cilClock"></svg>{{ 'invitations.sent' | transloco }} {{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+            <span><svg cIcon name="cilUser"></svg>{{ 'invitations.zm' | transloco }} <span class="ltr-content">{{ item.zmName || item.zmEmail || '-' }}</span></span>
+            <span><svg cIcon name="cilPeople"></svg>{{ 'invitations.used' | transloco }} {{ (item.used ? 'common.yes' : 'common.no') | transloco }}</span>
+            <span><svg cIcon name="cilPeople"></svg>{{ 'invitations.registered' | transloco }} {{ item.registeredAt ? (item.registeredAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
+            <span><svg cIcon name="cilCheckCircle"></svg>{{ 'invitations.decision' | transloco }} {{ item.zmDecisionAt ? (item.zmDecisionAt | date:'dd/MM/yyyy HH:mm') : '-' }}</span>
           </div>
         </article>
       </div>

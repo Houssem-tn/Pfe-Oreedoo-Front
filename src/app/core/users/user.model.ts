@@ -54,6 +54,19 @@ export interface AppUser {
   profileThumbnailUrl?: string | null;
 }
 
+/** One governorate still awaiting the current ZM's decision, with the module(s)
+ *  this ZM covers it for (e.g. ACT for one ZM, PLT for another on the same zone). */
+export interface PendingGovernorateCoverage {
+  governorate: string;
+  modules: string[];
+}
+
+/** An STT pending coverage confirmation for the current ZM. */
+export interface SttCoverageRequest {
+  stt: AppUser;
+  pending: PendingGovernorateCoverage[];
+}
+
 export interface UserAuditItem {
   id: string;
   fullName: string;

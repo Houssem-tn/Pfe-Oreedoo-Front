@@ -1,4 +1,8 @@
 <div class="login-page min-vh-100 d-flex align-items-center">
+  <div class="position-fixed top-0 end-0 m-3" style="z-index: 1060;">
+    <app-language-selector variant="header" />
+  </div>
+
   <c-container>
     <c-row class="justify-content-center align-items-center login-page__row">
       <c-col lg="11" xl="10">
@@ -13,17 +17,16 @@
 
               <div class="login-shell__brand-copy">
                 <span class="login-shell__brand-title">ooredoo</span>
-                <span class="login-shell__brand-subtitle">Field Service Platform</span>
+                <span class="login-shell__brand-subtitle">{{ 'login.brandSubtitle' | transloco }}</span>
               </div>
             </div>
 
-            <span class="login-shell__eyebrow">Telecom Operations Workspace</span>
+            <span class="login-shell__eyebrow">{{ 'login.eyebrow' | transloco }}</span>
 
-            <h1 class="login-shell__title">Sign in to manage field service activity with confidence.</h1>
+            <h1 class="login-shell__title">{{ 'login.heroTitle' | transloco }}</h1>
 
             <p class="login-shell__description">
-              Access approvals, activation cases, technician operations, and audit visibility inside one
-              operational workspace built for Ooredoo teams.
+              {{ 'login.heroDescription' | transloco }}
             </p>
 
             <div class="login-shell__highlights">
@@ -32,8 +35,8 @@
                   <svg cIcon name="cilSpeedometer"></svg>
                 </span>
                 <div>
-                  <h2>Operational control</h2>
-                  <p>Track cases, KPIs, and escalations in real time.</p>
+                  <h2>{{ 'login.highlightOperationalTitle' | transloco }}</h2>
+                  <p>{{ 'login.highlightOperationalText' | transloco }}</p>
                 </div>
               </article>
 
@@ -42,8 +45,8 @@
                   <svg cIcon name="cilTask"></svg>
                 </span>
                 <div>
-                  <h2>Field execution</h2>
-                  <p>Coordinate RDV, work proof, and technician progress seamlessly.</p>
+                  <h2>{{ 'login.highlightFieldTitle' | transloco }}</h2>
+                  <p>{{ 'login.highlightFieldText' | transloco }}</p>
                 </div>
               </article>
 
@@ -52,8 +55,8 @@
                   <svg cIcon name="cilCheckCircle"></svg>
                 </span>
                 <div>
-                  <h2>Secure workflows</h2>
-                  <p>Approval and role validation stay aligned with your business process.</p>
+                  <h2>{{ 'login.highlightSecureTitle' | transloco }}</h2>
+                  <p>{{ 'login.highlightSecureText' | transloco }}</p>
                 </div>
               </article>
             </div>
@@ -63,9 +66,9 @@
             <c-card class="login-card">
               <c-card-body class="login-card__body">
                 <div class="login-card__intro">
-                  <span class="login-card__kicker">Welcome Back</span>
-                  <h2 class="login-card__title">Sign in</h2>
-                  <p class="login-card__subtitle">Use your email or username to access the platform.</p>
+                  <span class="login-card__kicker">{{ 'login.welcomeBack' | transloco }}</span>
+                  <h2 class="login-card__title">{{ 'login.signIn' | transloco }}</h2>
+                  <p class="login-card__subtitle">{{ 'login.subtitle' | transloco }}</p>
                 </div>
 
                 <form cForm class="login-form" (ngSubmit)="submit()">
@@ -81,7 +84,7 @@
                       autoComplete="username"
                       cFormControl
                       class="login-form__control"
-                      placeholder="Email or Username"
+                      [placeholder]="'login.identifierPlaceholder' | transloco"
                       name="identifier"
                       [(ngModel)]="form.identifier"
                       required
@@ -96,7 +99,7 @@
                       autoComplete="current-password"
                       cFormControl
                       class="login-form__control"
-                      placeholder="Password"
+                      [placeholder]="'login.passwordPlaceholder' | transloco"
                       type="password"
                       name="password"
                       [(ngModel)]="form.password"
@@ -112,20 +115,20 @@
                       type="submit"
                       [disabled]="loading"
                     >
-                      {{ loading ? 'Logging in...' : 'Login' }}
+                      {{ (loading ? 'login.loggingIn' : 'login.submit') | transloco }}
                     </button>
 
                     <button cButton class="login-form__forgot" color="link" type="button">
-                      Forgot password?
+                      {{ 'login.forgotPassword' | transloco }}
                     </button>
                   </div>
                 </form>
 
                 <div class="login-card__signup">
                   <div>
-                    <span class="login-card__signup-label">Need an account?</span>
+                    <span class="login-card__signup-label">{{ 'login.needAccount' | transloco }}</span>
                     <p class="login-card__signup-text">
-                      Register and follow the normal validation process before activation.
+                      {{ 'login.signupText' | transloco }}
                     </p>
                   </div>
 
@@ -136,7 +139,7 @@
                     [routerLink]="['/register']"
                     type="button"
                   >
-                    Register now
+                    {{ 'login.registerNow' | transloco }}
                   </button>
                 </div>
               </c-card-body>

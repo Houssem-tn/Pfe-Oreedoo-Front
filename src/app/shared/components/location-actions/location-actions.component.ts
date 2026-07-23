@@ -1,4 +1,5 @@
-import { Component, Input, signal } from '@angular/core';
+import { Component, Input, inject, signal } from '@angular/core';
+import { TranslocoService } from '@jsverse/transloco';
 import { MapViewerComponent } from '../map-viewer/map-viewer.component';
 
 export interface ParsedCoords {
@@ -14,6 +15,7 @@ export interface ParsedCoords {
   styleUrls: ['./location-actions.component.scss']
 })
 export class LocationActionsComponent {
+  private readonly transloco = inject(TranslocoService);
   @Input() lat: number | string | null | undefined;
   @Input() lng: number | string | null | undefined;
   @Input() label?: string;
@@ -40,12 +42,12 @@ export class LocationActionsComponent {
 
   get coordsLabel(): string {
     const c = this.validCoords;
-    if (!c) return 'No valid coordinates';
+    if (!c) return this.transloco.translate('shared.location.noValidCoordinates');
     return `${c.lat.toFixed(6)}, ${c.lng.toFixed(6)}`;
   }
 
   get modalTitle(): string {
-    return this.contextTitle ?? this.label ?? 'Location';
+    return this.contextTitle ?? this.label ?? this.transloco.translate('shared.location.title');
   }
 
   // ── Actions ─────────────────────────────────────────────────────────

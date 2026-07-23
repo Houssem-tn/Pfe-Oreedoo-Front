@@ -7,20 +7,20 @@
       class="btn"
       toggle="visible"
       style="margin-inline-start: -14px;"
-      aria-label="Toggle sidebar navigation"
+      [attr.aria-label]="'header.toggleSidebar' | transloco"
     >
       <svg cIcon name="cilMenu" size="lg"></svg>
     </button>
 
     <c-header-nav class="d-none d-md-flex">
       <c-nav-item>
-        <a cNavLink routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a cNavLink routerLink="/dashboard" routerLinkActive="active">{{ 'header.dashboard' | transloco }}</a>
       </c-nav-item>
       <c-nav-item>
-        <a cNavLink routerLink="/users" routerLinkActive="active">Users</a>
+        <a cNavLink routerLink="/users" routerLinkActive="active">{{ 'nav.users' | transloco }}</a>
       </c-nav-item>
       <c-nav-item>
-        <a cNavLink routerLink="/settings" routerLinkActive="active">Settings</a>
+        <a cNavLink routerLink="/settings" routerLinkActive="active">{{ 'nav.settings' | transloco }}</a>
       </c-nav-item>
     </c-header-nav>
 
@@ -47,6 +47,10 @@
       <div class="nav-item py-1">
         <div class="vr h-100 mx-2 text-body text-opacity-75 d-none d-md-block"></div>
       </div>
+      <app-language-selector variant="header" />
+      <div class="nav-item py-1">
+        <div class="vr h-100 mx-2 text-body text-opacity-75 d-none d-md-block"></div>
+      </div>
     </c-header-nav>
 
     <c-header-nav class="mx-0">
@@ -55,7 +59,7 @@
   </c-container>
 
   <c-container [fluid]="true" class="px-4">
-    <c-breadcrumb-router />
+    <app-breadcrumb />
   </c-container>
 </ng-container>
 <!--</c-header>-->
@@ -66,7 +70,7 @@
       [caret]="false"
       cDropdownToggle
       class="header-notification-toggle position-relative"
-      aria-label="Open notifications"
+      [attr.aria-label]="'header.openNotifications' | transloco"
     >
       <svg cIcon class="my-1" name="cilBell" size="lg"></svg>
 
@@ -83,8 +87,8 @@
     <div cDropdownMenu class="header-notification-menu pt-0">
       <div class="notif-header">
         <div class="notif-header__left">
-          <span class="notif-header__title">Notifications</span>
-          <span class="notif-header__count">{{ unreadCount() }} unread</span>
+          <span class="notif-header__title">{{ 'header.notifications' | transloco }}</span>
+          <span class="notif-header__count">{{ unreadCount() }} {{ 'header.unread' | transloco }}</span>
         </div>
         <button
           class="notif-header__mark-all"
@@ -92,12 +96,12 @@
           (click)="markAllAsRead($event)"
           [disabled]="unreadCount() === 0"
         >
-          Mark all read
+          {{ 'header.markAllRead' | transloco }}
         </button>
       </div>
 
       @if (notifications().length === 0) {
-        <div class="notif-empty">No notifications yet.</div>
+        <div class="notif-empty">{{ 'header.noNotifications' | transloco }}</div>
       } @else {
         <div class="header-notification-menu__list">
           @for (item of notifications().slice(0, 10); track item.id) {
@@ -116,7 +120,7 @@
                 <span class="notif-title-row">
                   <span class="notif-title">{{ item.title }}</span>
                   @if (!item.read) {
-                    <c-badge color="danger" class="notif-new-badge">New</c-badge>
+                    <c-badge color="danger" class="notif-new-badge">{{ 'header.new' | transloco }}</c-badge>
                   }
                 </span>
                 <span class="notif-msg">{{ item.message }}</span>
@@ -137,7 +141,7 @@
         [caret]="false"
         cDropdownToggle
         class="header-notification-toggle position-relative"
-        aria-label="Open case messages"
+        [attr.aria-label]="'header.openCaseMessages' | transloco"
       >
         <svg cIcon class="my-1" name="cilEnvelopeOpen" size="lg"></svg>
 
@@ -154,13 +158,13 @@
       <div cDropdownMenu class="header-notification-menu pt-0">
         <div class="notif-header">
           <div class="notif-header__left">
-            <span class="notif-header__title">Case messages</span>
-            <span class="notif-header__count">{{ unreadMessagesCount() }} unread</span>
+            <span class="notif-header__title">{{ 'header.caseMessages' | transloco }}</span>
+            <span class="notif-header__count">{{ unreadMessagesCount() }} {{ 'header.unread' | transloco }}</span>
           </div>
         </div>
 
         @if (unreadMessageCases().length === 0) {
-          <div class="notif-empty">No unread case messages.</div>
+          <div class="notif-empty">{{ 'header.noUnreadCaseMessages' | transloco }}</div>
         } @else {
           <div class="header-notification-menu__list">
             @for (entry of unreadMessageCases(); track entry.caseId) {
@@ -176,11 +180,11 @@
                 </span>
                 <span class="notif-body">
                   <span class="notif-title-row">
-                    <span class="notif-title">Case {{ entry.caseReference }}</span>
+                    <span class="notif-title">{{ 'header.case' | transloco }} <span class="ltr-content">{{ entry.caseReference }}</span></span>
                     <c-badge color="danger" class="notif-new-badge">{{ entry.unreadCount }}</c-badge>
                   </span>
                   <span class="notif-msg">
-                    {{ entry.unreadCount }} unread message{{ entry.unreadCount > 1 ? 's' : '' }}
+                    {{ (entry.unreadCount > 1 ? 'header.unreadMessagesPlural' : 'header.unreadMessagesSingular') | transloco: { count: entry.unreadCount } }}
                   </span>
                   @if (entry.lastMessageAt) {
                     <span class="notif-time">{{ entry.lastMessageAt | date:'MMM d · h:mm a' }}</span>
@@ -197,7 +201,7 @@
 
 <ng-template #userDropdown>
   <c-dropdown [popperOptions]="{ placement: 'bottom-start' }" variant="nav-item">
-    <button [caret]="false" cDropdownToggle class="header-user-toggle py-0 pe-0 position-relative" aria-label="Open user menu">
+    <button [caret]="false" cDropdownToggle class="header-user-toggle py-0 pe-0 position-relative" [attr.aria-label]="'header.openUserMenu' | transloco">
       <c-avatar
         class="header-user-avatar"
         shape="rounded-1"
@@ -205,7 +209,7 @@
         [src]="currentUserAvatarUrl()"
         status="success"
         textColor="primary"
-        alt="User avatar"
+        [attr.alt]="'header.userAvatarAlt' | transloco"
       />
 
       @if (activeTasksCount > 0) {
@@ -215,13 +219,13 @@
     <ul cDropdownMenu class="pt-0 w-auto">
       <li>
         <h6 cDropdownHeader class="bg-body-secondary text-body-secondary fw-semibold py-2 rounded-top">
-          Account
+          {{ 'header.account' | transloco }}
         </h6>
       </li>
       <li>
         <a cDropdownItem routerLink="/profile" routerLinkActive="active">
           <svg cIcon class="me-2" name="cilUser"></svg>
-          Profile
+          {{ 'header.profile' | transloco }}
         </a>
       </li>
       <li>
@@ -230,7 +234,7 @@
       <li>
         <button type="button" cDropdownItem (click)="logout()">
           <svg cIcon class="me-2" name="cilAccountLogout"></svg>
-          Logout
+          {{ 'header.logout' | transloco }}
         </button>
       </li>
     </ul>
@@ -239,7 +243,7 @@
 
 <ng-template #themeDropdown>
   <c-dropdown alignment="end" variant="nav-item">
-    <button [caret]="false" cDropdownToggle aria-label="Open theme picker">
+    <button [caret]="false" cDropdownToggle [attr.aria-label]="'header.openThemePicker' | transloco">
       <svg cIcon [name]="icons()" size="lg"></svg>
     </button>
     <div cDropdownMenu>
@@ -251,7 +255,7 @@
           class="d-flex align-items-center"
         >
           <svg cIcon class="me-2" [name]="mode.icon" size="lg"></svg>
-          {{ mode.text }}
+          {{ mode.textKey | transloco }}
         </button>
       }
     </div>

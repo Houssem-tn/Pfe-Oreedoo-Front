@@ -9,11 +9,11 @@
   <c-modal-header>
     <div class="gov-modal-header">
       <div class="gov-modal-header__main">
-        <h5 cModalTitle class="gov-modal-header__title">{{ title }}</h5>
-        <p *ngIf="description" class="gov-modal-header__desc">{{ description }}</p>
+        <h5 cModalTitle class="gov-modal-header__title">{{ title | transloco }}</h5>
+        <p *ngIf="description" class="gov-modal-header__desc">{{ description | transloco }}</p>
       </div>
       <span class="gov-counter">
-        <strong>{{ selectedCount }}</strong> of {{ totalCount }} selected
+        <strong>{{ selectedCount }}</strong> {{ 'common.of' | transloco }} {{ totalCount }} {{ 'shared.governorateSelector.selected' | transloco }}
       </span>
     </div>
     <button cButtonClose (click)="onCancel()"></button>
@@ -26,7 +26,7 @@
         <input
           type="text"
           class="gov-search__input"
-          placeholder="Filter governorates..."
+          [placeholder]="'shared.governorateSelector.filterPlaceholder' | transloco"
           [(ngModel)]="searchTerm"
         />
         <button
@@ -34,7 +34,7 @@
           type="button"
           class="gov-search__clear"
           (click)="searchTerm = ''"
-          aria-label="Clear search"
+          [attr.aria-label]="'shared.governorateSelector.clearSearch' | transloco"
         >
           <svg cIcon name="cilX"></svg>
         </button>
@@ -42,20 +42,19 @@
 
       <div class="gov-bulk-actions">
         <button type="button" class="gov-bulk-btn" (click)="selectAll()">
-          Select all
+          {{ 'common.selectAll' | transloco }}
         </button>
         <button type="button" class="gov-bulk-btn gov-bulk-btn--ghost" (click)="clearAll()">
-          Clear all
+          {{ 'common.clear' | transloco }}
         </button>
       </div>
     </div>
 
     <ng-container *ngIf="filteredOptions.length > 0; else emptyState">
-
       <ng-container *ngIf="useRegionGroups; else flatGrid">
         <div *ngFor="let region of regions">
           <ng-container *ngIf="showRegion(region.govs)">
-            <div class="gov-region-header">{{ region.label }}</div>
+            <div class="gov-region-header">{{ region.labelKey | transloco }}</div>
             <div class="gov-chip-grid gov-chip-grid--grouped">
               <button
                 *ngFor="let gov of groupItems(region.govs)"
@@ -90,26 +89,25 @@
           </button>
         </div>
       </ng-template>
-
     </ng-container>
 
     <ng-template #emptyState>
       <div class="gov-empty">
         <svg cIcon name="cilMagnifyingGlass" class="gov-empty__icon"></svg>
-        <p>No governorates match <strong>"{{ searchTerm }}"</strong></p>
+        <p>{{ 'shared.governorateSelector.noMatches' | transloco: { searchTerm } }}</p>
       </div>
     </ng-template>
   </c-modal-body>
 
   <c-modal-footer>
-    <button cButton color="secondary" variant="ghost" (click)="onCancel()">Cancel</button>
+    <button cButton color="secondary" variant="ghost" (click)="onCancel()">{{ 'common.cancel' | transloco }}</button>
     <button
       cButton
       color="primary"
       [disabled]="selectedCount === 0 && !allowEmpty"
       (click)="onSave()"
     >
-      {{ confirmText }}
+      {{ confirmText | transloco }}
     </button>
   </c-modal-footer>
 </c-modal>

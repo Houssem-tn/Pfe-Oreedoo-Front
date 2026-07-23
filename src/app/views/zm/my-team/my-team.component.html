@@ -134,32 +134,48 @@
         <p class="mt-coverage-hdr__desc">Review governorates proposed by STTs and validate those inside your territory.</p>
       </div>
       <div class="mt-coverage-grid">
-        @for (stt of pendingCoverageRequests(); track stt.id) {
+        @for (row of pendingCoverageRequests(); track row.stt.id) {
           <div class="mt-pending-card">
             <div class="mt-pending-card__accent"></div>
             <div class="mt-pending-card__head">
               <div>
-                <div class="mt-pending-card__name">{{ stt.fullName }}</div>
-                <div class="mt-pending-card__email">{{ stt.email }}</div>
+                <div class="mt-pending-card__name">{{ row.stt.fullName }}</div>
+                <div class="mt-pending-card__email">{{ row.stt.email }}</div>
               </div>
-              <button class="mt-validate-btn" type="button"
-                      [disabled]="isValidatingCoverage(stt.id)"
-                      (click)="openValidateCoverageModal(stt)">
-                @if (isValidatingCoverage(stt.id)) {
-                  <c-spinner size="sm"></c-spinner>
-                  Saving…
-                } @else {
+              <div class="mt-pending-card__actions">
+                <button class="mt-validate-btn" type="button"
+                        [disabled]="isValidatingCoverage(row.stt.id)"
+                        (click)="openValidateCoverageModal(row)">
+                  @if (isValidatingCoverage(row.stt.id)) {
+                    <c-spinner size="sm"></c-spinner>
+                    Saving…
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Validate Zones
+                  }
+                </button>
+                <button class="mt-decline-btn" type="button"
+                        [disabled]="isValidatingCoverage(row.stt.id)"
+                        (click)="openDeclineCoverageModal(row)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13">
-                    <polyline points="20 6 9 17 4 12"></polyline>
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
                   </svg>
-                  Validate Zones
-                }
-              </button>
+                  Decline
+                </button>
+              </div>
             </div>
-            <div class="mt-pending-card__lbl">Governorates in your territory</div>
+            <div class="mt-pending-card__lbl">Governorates awaiting your decision</div>
             <div class="mt-gov-chips">
-              @for (gov of pendingGovernoratesFor(stt); track gov) {
-                <span class="mt-gov-chip mt-gov-chip--amber">{{ gov }}</span>
+              @for (item of row.pending; track item.governorate) {
+                <span class="mt-gov-chip mt-gov-chip--amber">
+                  {{ item.governorate }}
+                  @for (module of item.modules; track module) {
+                    <span class="mt-module-tag">{{ module }}</span>
+                  }
+                </span>
               }
             </div>
           </div>
@@ -411,9 +427,9 @@
   (visibleChange)="govSelectorVisible.set($event)"
   [selected]="govSelectorSelected()"
   [governorateOptions]="govSelectorOptions()"
-  [title]="'Validate Coverage Zones for ' + (govSelectorPendingStt()?.fullName ?? '')"
-  description="Approve the governorates you want to activate for this STT inside your territory."
-  confirmText="Validate zones"
+  [title]="govSelectorTitle"
+  [description]="govSelectorDescription"
+  [confirmText]="govSelectorConfirmText"
   (save)="onGovSave($event)"
   (cancel)="onGovCancel()"
 ></app-governorate-selector>

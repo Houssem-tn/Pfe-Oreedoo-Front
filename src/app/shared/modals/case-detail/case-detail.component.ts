@@ -13,13 +13,15 @@ import {
   ModalTitleDirective
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import {
   CASE_STATUS_UI,
   CaseProofFile,
   CaseResponse,
   CaseStatus,
-  CaseTimelineEvent
+  CaseTimelineEvent,
+  caseSupportsMetrics
 } from '../../../core/cases/models/case.model';
 import { StockService } from '../../../core/stock/stock.service';
 import { PermissionItemDetail, StockUsagePermission, PermissionStatus } from '../../../core/stock/stock.model';
@@ -30,6 +32,14 @@ import { CaseMessage, CaseMessagesService } from '../../../core/cases/case-messa
 import { CaseMessagesStore } from '../../../core/cases/case-messages.store';
 import { NotificationStoreService } from '../../../core/notifications/notification-store.service';
 import { NotificationItem } from '../../../core/notifications/models/notification.model';
+import {
+  CASE_TYPE_LABEL_KEYS,
+  COMPLAINT_CATEGORY_LABEL_KEYS,
+  EXECUTION_MODE_LABEL_KEYS,
+  PERMISSION_STATUS_LABEL_KEYS,
+  RESOLUTION_VALIDATION_LABEL_KEYS,
+  ROLE_LABEL_KEYS
+} from '../../../core/i18n/ui-labels';
 
 @Component({
   selector: 'app-case-detail',
@@ -46,6 +56,7 @@ import { NotificationItem } from '../../../core/notifications/models/notificatio
     ButtonDirective,
     BadgeComponent,
     IconDirective,
+    TranslocoModule,
     LocationActionsComponent
   ],
   templateUrl: './case-detail.component.html',
@@ -60,6 +71,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
   private readonly caseMessagesService = inject(CaseMessagesService);
   private readonly caseMessagesStore = inject(CaseMessagesStore);
   private readonly notificationStore = inject(NotificationStoreService);
+  private readonly transloco = inject(TranslocoService);
 
   @Input() visible = false;
   @Input() caseData: CaseResponse | null = null;
@@ -132,7 +144,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
       return null;
     }
     if (this.authStore.role() === 'ROLE_ZM' && !this.caseData.sttId && !this.caseData.sttEmail) {
-      return 'Assign an STT to this case to start the discussion.';
+      return this.transloco.translate('caseDetail.discussion.assignSttFirst');
     }
     return null;
   }
@@ -216,7 +228,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
           this.stopMessagesPolling();
           return;
         }
-        this.messagesError = err?.error?.message ?? 'Failed to load the discussion';
+        this.messagesError = err?.error?.message ?? this.transloco.translate('caseDetail.discussion.loadFailed');
       }
     });
   }
@@ -252,7 +264,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
       },
       error: (err) => {
         this.sendingMessage = false;
-        this.messagesError = err?.error?.message ?? 'Failed to send the message';
+        this.messagesError = err?.error?.message ?? this.transloco.translate('caseDetail.discussion.sendFailed');
       }
     });
   }
@@ -270,7 +282,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     if (file && !file.type.startsWith('image/')) {
-      this.messagesError = 'Only image files can be attached';
+      this.messagesError = this.transloco.translate('caseDetail.discussion.imageOnly');
       input.value = '';
       return;
     }
@@ -291,12 +303,8 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
   }
 
   messageRoleLabel(role: string): string {
-    switch (role) {
-      case 'ROLE_ZM': return 'ZM';
-      case 'ROLE_STT': return 'STT';
-      case 'ROLE_ADMIN': return 'Admin';
-      default: return role?.replace('ROLE_', '') ?? '';
-    }
+    const key = ROLE_LABEL_KEYS[role as keyof typeof ROLE_LABEL_KEYS];
+    return key ? this.transloco.translate(key) : (role?.replace('ROLE_', '') ?? '');
   }
 
   trackByMessageId(_: number, item: CaseMessage): string {
@@ -304,13 +312,8 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
   }
 
   permissionStatusLabel(status: PermissionStatus): string {
-    switch (status) {
-      case 'PENDING': return 'Pending';
-      case 'APPROVED': return 'Approved';
-      case 'PARTIALLY_APPROVED': return 'Partially Approved';
-      case 'REJECTED': return 'Rejected';
-      default: return status;
-    }
+    const key = PERMISSION_STATUS_LABEL_KEYS[status];
+    return this.transloco.translate(key ?? status);
   }
 
   permissionStatusColor(status: PermissionStatus): string {
@@ -351,29 +354,29 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
   }
 
   statusLabel(status?: CaseStatus | null): string {
-    if (!status) return '-';
-    return CASE_STATUS_UI[status]?.label ?? status;
+    if (!status) return this.transloco.translate('common.notSpecified');
+    return this.transloco.translate(CASE_STATUS_UI[status]?.label ?? status);
   }
 
   val(value: string | null | undefined): string {
     const s = (value ?? '').trim();
-    return s || '—';
+    return s || this.transloco.translate('common.notSpecified');
   }
 
   numVal(value: number | null | undefined): string {
-    if (value == null) return '—';
+    if (value == null) return this.transloco.translate('common.notSpecified');
     return String(value);
   }
 
   boolVal(value: boolean | null | undefined): string {
-    if (value == null) return '—';
-    return value ? 'Yes' : 'No';
+    if (value == null) return this.transloco.translate('common.notSpecified');
+    return this.transloco.translate(value ? 'common.yes' : 'common.no');
   }
 
   dateVal(value: string | null | undefined): string {
-    if (!value) return '—';
+    if (!value) return this.transloco.translate('common.notSpecified');
     try {
-      return new Date(value).toLocaleString('fr-TN', {
+      return new Date(value).toLocaleString(this.currentLocale(), {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -386,10 +389,31 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
   }
 
   humanizeStatus(value?: string | null): string {
-    if (!value?.trim()) return '—';
-    return value.trim().toLowerCase().split('_')
+    if (!value?.trim()) return this.transloco.translate('common.notSpecified');
+
+    const normalized = value.trim().toUpperCase();
+    const translatedKey =
+      (EXECUTION_MODE_LABEL_KEYS as Record<string, string>)[normalized] ??
+      (COMPLAINT_CATEGORY_LABEL_KEYS as Record<string, string>)[normalized] ??
+      (RESOLUTION_VALIDATION_LABEL_KEYS as Record<string, string>)[normalized] ??
+      (CASE_TYPE_LABEL_KEYS as Record<string, string>)[normalized];
+
+    if (translatedKey) {
+      return this.transloco.translate(translatedKey);
+    }
+
+    return normalized.toLowerCase().split('_')
       .map(p => p ? p[0].toUpperCase() + p.slice(1) : '')
       .join(' ');
+  }
+
+  typeLabel(value?: string | null): string {
+    if (!value?.trim()) {
+      return this.transloco.translate('common.notSpecified');
+    }
+
+    const key = (CASE_TYPE_LABEL_KEYS as Record<string, string>)[value.trim().toUpperCase()];
+    return key ? this.transloco.translate(key) : value;
   }
 
   get hasLocation(): boolean {
@@ -412,9 +436,22 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
 
   get hasMetrics(): boolean {
     const m = this.caseData?.metrics;
+    // `!= null` keeps a valid zero (0 is a real metric value, not "absent").
     return !!(m?.nombrePv != null ||
               m?.debitDl != null || m?.debitUl != null ||
-              m?.rsrp != null || m?.rsrq != null || m?.sinr != null);
+              m?.rsrp != null || m?.rsrq != null || m?.sinr != null ||
+              // fall back to legacy top-level fields for older cases
+              this.caseData?.nombrePv != null || this.caseData?.debitDl != null ||
+              this.caseData?.debitUl != null || this.caseData?.rsrp != null ||
+              this.caseData?.rsrq != null || this.caseData?.sinr != null);
+  }
+
+  /**
+   * Metrics section is shown for Activation AND Complaint, never for Résiliation.
+   * (RES is a PLAINTE case discriminated by module/source.)
+   */
+  get showMetricsSection(): boolean {
+    return caseSupportsMetrics(this.caseData) && this.hasMetrics;
   }
 
   get sortedTimeline(): CaseTimelineEvent[] {
@@ -448,7 +485,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
     const normalizedLongitude = this.parseCoordinate(longitude);
 
     if (normalizedLatitude == null || normalizedLongitude == null) {
-      return '—';
+      return this.transloco.translate('common.notSpecified');
     }
 
     return `${normalizedLatitude.toFixed(6)}, ${normalizedLongitude.toFixed(6)}`;
@@ -467,7 +504,7 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
 
   accuracyLabel(value?: number | null): string {
     if (value == null || Number.isNaN(value)) {
-      return '—';
+      return this.transloco.translate('common.notSpecified');
     }
 
     return `${Math.round(value)} m`;
@@ -478,22 +515,33 @@ export class CaseDetailComponent implements OnChanges, OnDestroy {
 
     switch (normalized) {
       case 'camera':
-        return 'Work proof photo';
+        return this.transloco.translate('caseDetail.proofSource.camera');
       case 'gallery':
-        return 'Gallery photo';
+        return this.transloco.translate('caseDetail.proofSource.gallery');
       case 'speedtest_screenshot':
-        return 'Speedtest screenshot';
+        return this.transloco.translate('caseDetail.proofSource.speedtestScreenshot');
       case 'signal_screenshot':
-        return 'Signal screenshot';
+        return this.transloco.translate('caseDetail.proofSource.signalScreenshot');
       default:
         if (!normalized) {
-          return 'Attachment';
+          return this.transloco.translate('caseDetail.proofSource.attachment');
         }
 
         return normalized
           .split(/[_-]+/)
           .map((part) => part ? part[0].toUpperCase() + part.slice(1) : '')
           .join(' ');
+    }
+  }
+
+  private currentLocale(): string {
+    switch (this.transloco.getActiveLang()) {
+      case 'ar':
+        return 'ar-TN';
+      case 'en':
+        return 'en-US';
+      default:
+        return 'fr-TN';
     }
   }
 

@@ -1,9 +1,15 @@
 import {
-  Component, Input, Output, EventEmitter, forwardRef,
-  HostListener, ElementRef, inject, ChangeDetectorRef
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  Input,
+  forwardRef,
+  inject
 } from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { TranslocoModule } from '@jsverse/transloco';
 
 export interface SelectOption {
   value: string;
@@ -19,7 +25,7 @@ export interface SelectOption {
 @Component({
   standalone: true,
   selector: 'app-searchable-select',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslocoModule],
   templateUrl: './searchable-select.component.html',
   styleUrls: ['./searchable-select.component.scss'],
   providers: [
@@ -32,47 +38,75 @@ export interface SelectOption {
 })
 export class SearchableSelectComponent implements ControlValueAccessor {
   @Input() options: SelectOption[] = [];
-  @Input() placeholder = 'Select…';
+  @Input() placeholder = '';
+  @Input() placeholderKey = 'common.select';
+  @Input() searchPlaceholderKey = 'common.search';
+  @Input() searchAriaLabelKey = 'shared.searchableSelect.searchOptions';
+  @Input() clearSelectionAriaLabelKey = 'shared.searchableSelect.clearSelection';
+  @Input() noResultsKey = 'shared.searchableSelect.noResults';
   @Input() disabled = false;
 
   searchTerm = '';
   isOpen = false;
   activeIndex = -1;
 
-  private _value = '';
-  private onChange: (v: string) => void = () => {};
+  private valueInternal = '';
+  private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
 
-  private readonly el = inject(ElementRef);
-  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
-  get value(): string { return this._value; }
+  get value(): string {
+    return this.valueInternal;
+  }
 
   get selectedOption(): SelectOption | undefined {
-    return this.options.find(o => o.value === this._value);
+    return this.options.find((option) => option.value === this.valueInternal);
   }
 
   get filtered(): SelectOption[] {
-    if (!this.searchTerm.trim()) return this.options;
-    const q = this.searchTerm.toLowerCase();
-    return this.options.filter(o =>
-      o.label.toLowerCase().includes(q) ||
-      (o.subtitle?.toLowerCase().includes(q) ?? false)
+    if (!this.searchTerm.trim()) {
+      return this.options;
+    }
+
+    const query = this.searchTerm.toLowerCase();
+    return this.options.filter((option) =>
+      option.label.toLowerCase().includes(query)
+      || (option.subtitle?.toLowerCase().includes(query) ?? false)
     );
   }
 
-  writeValue(v: string): void { this._value = v ?? ''; this.cdr.markForCheck(); }
-  registerOnChange(fn: (v: string) => void): void { this.onChange = fn; }
-  registerOnTouched(fn: () => void): void { this.onTouched = fn; }
-  setDisabledState(isDisabled: boolean): void { this.disabled = isDisabled; this.cdr.markForCheck(); }
+  writeValue(value: string): void {
+    this.valueInternal = value ?? '';
+    this.changeDetectorRef.markForCheck();
+  }
+
+  registerOnChange(fn: (value: string) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled = isDisabled;
+    this.changeDetectorRef.markForCheck();
+  }
 
   open(): void {
-    if (this.disabled) return;
+    if (this.disabled) {
+      return;
+    }
+
     this.isOpen = true;
     this.searchTerm = '';
-    this.activeIndex = this.filtered.findIndex(o => o.value === this._value);
+    this.activeIndex = this.filtered.findIndex((option) => option.value === this.valueInternal);
+
     setTimeout(() => {
-      (this.el.nativeElement as HTMLElement).querySelector<HTMLInputElement>('.ss-search')?.focus();
+      const searchInput = this.elementRef.nativeElement.querySelector('.ss-search') as HTMLInputElement | null;
+      searchInput?.focus();
     }, 30);
   }
 
@@ -85,49 +119,62 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     this.isOpen ? this.close() : this.open();
   }
 
-  select(opt: SelectOption): void {
-    this._value = opt.value;
-    this.onChange(opt.value);
+  select(option: SelectOption): void {
+    this.valueInternal = option.value;
+    this.onChange(option.value);
     this.close();
-    this.cdr.markForCheck();
+    this.changeDetectorRef.markForCheck();
   }
 
-  clear(e: Event): void {
-    e.stopPropagation();
-    this._value = '';
+  clear(event: Event): void {
+    event.stopPropagation();
+    this.valueInternal = '';
     this.onChange('');
-    this.cdr.markForCheck();
+    this.changeDetectorRef.markForCheck();
   }
 
   @HostListener('document:click', ['$event'])
-  onDocClick(e: MouseEvent): void {
-    if (this.isOpen && !(this.el.nativeElement as HTMLElement).contains(e.target as Node)) {
+  onDocumentClick(event: MouseEvent): void {
+    if (this.isOpen && !this.elementRef.nativeElement.contains(event.target as Node)) {
       this.close();
     }
   }
 
-  onKeydown(e: KeyboardEvent): void {
+  onKeydown(event: KeyboardEvent): void {
     const items = this.filtered;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
       this.activeIndex = Math.min(this.activeIndex + 1, items.length - 1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
       this.activeIndex = Math.max(this.activeIndex - 1, 0);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
       if (this.activeIndex >= 0 && this.activeIndex < items.length) {
         this.select(items[this.activeIndex]);
       }
-    } else if (e.key === 'Escape') {
+      return;
+    }
+
+    if (event.key === 'Escape') {
       this.close();
     }
   }
 
   highlight(text: string): string {
     const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    if (!this.searchTerm.trim()) return safe;
-    const q = this.searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return safe.replace(new RegExp(q, 'gi'), m => `<mark>${m}</mark>`);
+    if (!this.searchTerm.trim()) {
+      return safe;
+    }
+
+    const query = this.searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp(query, 'gi'), (match) => `<mark>${match}</mark>`);
   }
 }

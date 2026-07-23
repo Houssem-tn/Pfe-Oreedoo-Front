@@ -1,0 +1,1312 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "create": "إنشاء",
+    "search": "بحث",
+    "filter": "تصفية",
+    "filters": "عوامل التصفية",
+    "actions": "إجراءات",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "yes": "نعم",
+    "no": "لا",
+    "loading": "جارٍ التحميل...",
+    "noData": "لا توجد بيانات متاحة",
+    "requiredField": "هذا الحقل مطلوب",
+    "notSpecified": "غير محدد",
+    "requiredFieldsNote": "حقول مطلوبة",
+    "export": "تصدير",
+    "import": "استيراد",
+    "download": "تنزيل",
+    "upload": "رفع",
+    "refresh": "تحديث",
+    "apply": "تطبيق",
+    "reset": "إعادة تعيين",
+    "clear": "مسح",
+    "viewDetails": "عرض التفاصيل",
+    "details": "التفاصيل",
+    "status": "الحالة",
+    "all": "الكل",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "name": "الاسم",
+    "description": "الوصف",
+    "date": "التاريخ",
+    "time": "الوقت",
+    "from": "من",
+    "to": "إلى",
+    "of": "من",
+    "page": "صفحة",
+    "rowsPerPage": "عدد الصفوف في الصفحة",
+    "total": "الإجمالي",
+    "select": "اختيار",
+    "selectAll": "تحديد الكل",
+    "none": "لا شيء",
+    "unknown": "غير معروف",
+    "optional": "اختياري",
+    "warning": "تحذير",
+    "success": "نجاح",
+    "error": "خطأ",
+    "info": "معلومة",
+    "retry": "إعادة المحاولة",
+    "ok": "موافق",
+    "continue": "متابعة",
+    "done": "تم",
+    "duration": {
+      "lessThanMinute": "??? ?? ?????",
+      "minutesCompact": "{{value}} ?",
+      "hoursMinutesCompact": "{{hours}} ? {{minutes}} ?"
+    },
+    "measure": {
+      "approxMeters": "?{{value}} ?"
+    }
+  },
+  "app": {
+    "title": "خدمة الميدان من أوريدو",
+    "brandName": "أوريدو",
+    "brandSubtitle": "خدمة الميدان",
+    "brandAlt": "شعار أوريدو"
+  },
+  "languages": {
+    "en": "الإنجليزية",
+    "fr": "الفرنسية",
+    "ar": "العربية",
+    "selectLanguage": "اختر اللغة"
+  },
+  "header": {
+    "dashboard": "لوحة التحكم",
+    "notifications": "الإشعارات",
+    "markAllRead": "تعليم الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات بعد.",
+    "unread": "غير مقروء",
+    "caseMessages": "رسائل الملف",
+    "noUnreadCaseMessages": "لا توجد رسائل ملف غير مقروءة.",
+    "case": "ملف",
+    "account": "الحساب",
+    "profile": "الملف الشخصي",
+    "logout": "تسجيل الخروج",
+    "language": "اللغة",
+    "theme": "المظهر",
+    "themeLight": "فاتح",
+    "themeDark": "داكن",
+    "themeAuto": "تلقائي",
+    "openNotifications": "فتح الإشعارات",
+    "openCaseMessages": "فتح رسائل الملف",
+    "openUserMenu": "فتح قائمة المستخدم",
+    "openThemePicker": "فتح منتقي المظهر",
+    "openLanguagePicker": "فتح منتقي اللغة",
+    "toggleSidebar": "إظهار/إخفاء شريط التنقل",
+    "userAvatarAlt": "صورة المستخدم",
+    "new": "جديد",
+    "unreadMessagesSingular": "{{ count }} رسالة غير مقروءة",
+    "unreadMessagesPlural": "{{ count }} رسائل غير مقروءة"
+  },
+  "field": {
+    "hello": "مرحبًا،",
+    "notifications": "الإشعارات",
+    "readAll": "قراءة الكل",
+    "noNotifications": "لا توجد إشعارات بعد.",
+    "logout": "تسجيل الخروج",
+    "roleSttExecution": "تنفيذ STT",
+    "roleTechField": "TECH ميداني",
+    "fieldUser": "مستخدم ميداني",
+    "home": "الرئيسية",
+    "tasks": "المهام",
+    "myStock": "مخزوني",
+    "history": "السجل",
+    "profile": "الملف الشخصي",
+    "fieldNavigation": "التنقل الميداني"
+  },
+  "routes": {
+    "loginPage": "صفحة تسجيل الدخول",
+    "registerPage": "صفحة التسجيل",
+    "technicianInvitationRegistration": "تسجيل عبر دعوة فني",
+    "page404": "صفحة 404",
+    "page500": "صفحة 500",
+    "fieldTech": "TECH ميداني",
+    "fieldSttExecution": "تنفيذ STT الميداني",
+    "home": "الرئيسية",
+    "alertCenter": "مركز التنبيهات",
+    "myProfile": "ملفي الشخصي",
+    "dashboard": "لوحة التحكم",
+    "resExecution": "تنفيذ RES"
+  },
+  "nav": {
+    "sectionAdministration": "الإدارة",
+    "sectionPerformance": "الأداء",
+    "sectionMonitoring": "المتابعة",
+    "sectionCoverageIntelligence": "ذكاء التغطية",
+    "sectionStockManagement": "إدارة المخزون",
+    "sectionStock": "المخزون",
+    "sectionCoverage": "التغطية",
+    "dashboard": "لوحة التحكم",
+    "fieldDashboard": "لوحة التحكم الميدانية",
+    "approvals": "الموافقات",
+    "users": "المستخدمون",
+    "businessRules": "قواعد العمل",
+    "importAnalytics": "استيراد التحليلات",
+    "todosAnalysis": "تحليل المهام (Todos)",
+    "actAnalysis": "تحليل الأعمال",
+    "activationCases": "ملفات التفعيل",
+    "complaintCases": "ملفات الشكاوى",
+    "resiliationCases": "ملفات الفسخ",
+    "networkCoverage": "تغطية الشبكة",
+    "equipment": "المعدات",
+    "stockTracking": "تتبع المخزون",
+    "teamDistributions": "توزيعات الفريق",
+    "unitTracking": "تتبع الوحدات",
+    "audit": "التدقيق",
+    "inviteTechnicians": "دعوة فنيين",
+    "myTechnicians": "فنيّوّ",
+    "myStock": "مخزوني",
+    "incomingDpms": "DPM الواردة",
+    "distributeToTech": "التوزيع على TECH",
+    "usageApprovals": "موافقات الاستخدام",
+    "materialReturns": "إرجاع المواد",
+    "retrievedStockCollection": "تجميع المخزون المسترجع",
+    "retrievedStockTracking": "تتبع المخزون المسترجع",
+    "retrievedStock": "المخزون المسترجع",
+    "myFieldTasks": "مهامي الميدانية",
+    "complaintTasks": "مهام الشكاوى",
+    "myEquipment": "معداتي",
+    "myPermissions": "أذوناتي",
+    "alertCenter": "مركز التنبيهات",
+    "technicianApprovals": "موافقات الفنيين",
+    "injectTodos": "حقن المهام (Todos)",
+    "importedTodos": "المهام المستوردة",
+    "myTeam": "فريقي",
+    "myDpms": "DPM الخاصة بي",
+    "createDpm": "إنشاء DPM",
+    "teamStock": "مخزون الفريق",
+    "caseStockAudit": "تدقيق مخزون الملفات",
+    "stockThresholds": "عتبات المخزون",
+    "settings": "الإعدادات"
+  },
+  "footer": {
+    "poweredBy": "مدعوم من",
+    "allRightsReserved": "جميع الحقوق محفوظة."
+  },
+  "roles": {
+    "admin": "المدير",
+    "crmBoutique": "متجر CRM",
+    "stt": "STT",
+    "tech": "TECH",
+    "zm": "ZM"
+  },
+  "errors": {
+    "fallback": "حدث خطأ ما. الرجاء المحاولة مرة أخرى.",
+    "networkError": "خطأ في الشبكة. الرجاء التحقق من اتصالك والمحاولة مرة أخرى.",
+    "unauthorized": "غير مصرح لك. الرجاء تسجيل الدخول مرة أخرى.",
+    "forbidden": "ليس لديك الصلاحية للقيام بهذا الإجراء.",
+    "notFound": "العنصر المطلوب غير موجود.",
+    "serverError": "حدث خطأ في الخادم. الرجاء المحاولة لاحقًا.",
+    "validationError": "الرجاء التحقق من الحقول المحددة والمحاولة مرة أخرى.",
+    "loginFailed": "فشل تسجيل الدخول",
+    "accountDisabled": "للأسف، تم حظر حسابك! يرجى التواصل مع المسؤول"
+  },
+  "dialogs": {
+    "confirmDelete": {
+      "title": "هل أنت متأكد؟",
+      "text": "سيؤدي هذا إلى حذف هذا العنصر نهائيًا: {{ entity }}.",
+      "defaultEntity": "العنصر"
+    },
+    "promptSelect": {
+      "placeholder": "اختر خيارًا"
+    },
+    "promptTextarea": {
+      "placeholder": "اكتب هنا...",
+      "fieldRequired": "{{ field }} مطلوب",
+      "fieldMaxLength": "{{ field }} يجب ألا يتجاوز {{ max }} حرفًا"
+    },
+    "locationRequired": {
+      "title": "الموقع مطلوب",
+      "text": "يلزم تفعيل GPS/الموقع لإرسال إثبات العمل الميداني. الرجاء تفعيل خدمات الموقع والسماح بالإذن، ثم إعادة المحاولة.",
+      "tryAgain": "إعادة المحاولة"
+    },
+    "severity": {
+      "critical": "Ø­Ø±Ø¬",
+      "warning": "ØªØ­Ø°ÙŠØ±",
+      "info": "Ù…Ø¹Ù„ÙˆÙ…Ø§Øª"
+    },
+    "alertCenter": {
+      "title": "Ù…Ø±ÙƒØ² Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª",
+      "subtitle": "Ø±Ø§Ù‚Ø¨ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ø¹Ø§Ø¬Ù„Ø© ÙˆØ§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ© ÙˆØ¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„ÙØ±Ù‚ ÙÙŠ Ø§Ù„ÙˆÙ‚Øª Ø§Ù„ÙØ¹Ù„ÙŠ.",
+      "refresh": "ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª",
+      "liveMonitoring": "Ù…Ø±Ø§Ù‚Ø¨Ø© Ù…Ø¨Ø§Ø´Ø±Ø©",
+      "tabs": {
+        "active": "Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù†Ø´Ø·Ø©",
+        "archived": "Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù…Ø¤Ø±Ø´ÙØ©"
+      },
+      "summary": {
+        "critical": {
+          "label": "Ø­Ø±Ø¬",
+          "sublabel": "Ù…Ø®Ø§Ø·Ø± SLA"
+        },
+        "warning": {
+          "label": "ØªØ­Ø°ÙŠØ±Ø§Øª",
+          "sublabel": "Ù…Ø®Ø²ÙˆÙ† Ù…Ù†Ø®ÙØ¶"
+        },
+        "returns": {
+          "label": "Ù‚ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
+          "sublabel": "Ø¥Ø±Ø¬Ø§Ø¹Ø§Øª Ø§Ù„Ù…ÙˆØ§Ø¯"
+        },
+        "cases": {
+          "label": "Ù†Ø´Ø·",
+          "sublabel": "ØªØµØ¹ÙŠØ¯Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø§Øª"
+        },
+        "team": {
+          "label": "Ø§Ù„ÙØ±ÙŠÙ‚",
+          "sublabel": "Ù…ØªØ§Ø¨Ø¹Ø§Øª"
+        },
+        "urgent": {
+          "label": "Ø¹Ø§Ø¬Ù„",
+          "sublabel": "Ù…Ø´ÙƒÙ„Ø© ØªØºØ·ÙŠØ©"
+        }
+      },
+      "searchPlaceholder": "Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª ÙˆØ§Ù„Ø­Ø§Ù„Ø§Øª ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†...",
+      "fromDate": "Ù…Ù† ØªØ§Ø±ÙŠØ®",
+      "toDate": "Ø¥Ù„Ù‰ ØªØ§Ø±ÙŠØ®",
+      "typeLabel": "Ù†ÙˆØ¹ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡",
+      "severityLabel": "Ø§Ù„Ø´Ø¯Ø©",
+      "clearFilters": "Ù…Ø³Ø­ Ø§Ù„ÙÙ„Ø§ØªØ±",
+      "loading": "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª...",
+      "filters": {
+        "allTypes": "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£Ù†ÙˆØ§Ø¹",
+        "allSeverities": "Ø¬Ù…ÙŠØ¹ Ø¯Ø±Ø¬Ø§Øª Ø§Ù„Ø´Ø¯Ø©"
+      },
+      "subtitles": {
+        "caseNumber": "Ø§Ù„Ø­Ø§Ù„Ø© #{{ ref }}"
+      },
+      "targetRoles": {
+        "tech": "Ø§Ù„ÙÙ†ÙŠ Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠ",
+        "stt": "ÙØ±ÙŠÙ‚ STT",
+        "zm": "Ù…Ø¯ÙŠØ± Ø§Ù„Ù…Ù†Ø·Ù‚Ø©",
+        "system": "Ø§Ù„Ù†Ø¸Ø§Ù…"
+      },
+      "relativeTime": {
+        "now": "Ø§Ù„Ø¢Ù†",
+        "minutesAgo": "Ù…Ù†Ø° {{ count }} Ø¯Ù‚ÙŠÙ‚Ø©",
+        "hoursAgo": "Ù…Ù†Ø° {{ count }} Ø³Ø§Ø¹Ø©",
+        "yesterday": "Ø£Ù…Ø³",
+        "daysAgo": "Ù…Ù†Ø° {{ count }} ÙŠÙˆÙ…"
+      },
+      "actions": {
+        "dismiss": "ØªØ¬Ø§Ù‡Ù„",
+        "open": "ÙØªØ­",
+        "viewCases": "Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø§Øª",
+        "viewCasesCount": "Ø¹Ø±Ø¶ {{ count }} Ø­Ø§Ù„Ø§Øª",
+        "viewCase": "Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø©",
+        "openDpm": "ÙØªØ­ DPM",
+        "viewStock": "Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†",
+        "reviewRequest": "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø·Ù„Ø¨",
+        "reviewUser": "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…",
+        "configure": "Ø¶Ø¨Ø·",
+        "viewReturn": "Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø±Ø¬Ø§Ø¹"
+      },
+      "empty": {
+        "filtered": {
+          "title": "Ù„Ø§ ØªÙˆØ¬Ø¯ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª ØªØ·Ø§Ø¨Ù‚ Ø§Ù„ÙÙ„Ø§ØªØ± Ø§Ù„Ø­Ø§Ù„ÙŠØ©.",
+          "sub": "Ø­Ø§ÙˆÙ„ ØªÙˆØ³ÙŠØ¹ Ø§Ù„Ø¨Ø­Ø« Ø£Ùˆ Ù…Ø³Ø­ Ø§Ù„ÙÙ„Ø§ØªØ±."
+        },
+        "archived": {
+          "title": "Ù„Ø§ ØªÙˆØ¬Ø¯ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ù…Ø¤Ø±Ø´ÙØ©.",
+          "sub": "Ø³ØªØ¸Ù‡Ø± Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù…ØªØ¬Ø§Ù‡Ù„Ø© Ù‡Ù†Ø§."
+        },
+        "active": {
+          "title": "ÙƒÙ„ Ø´ÙŠØ¡ Ø¨Ø®ÙŠØ±.",
+          "sub": "Ø³ØªØ¸Ù‡Ø± Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ù‡Ù†Ø§ ÙÙŠ Ø§Ù„ÙˆÙ‚Øª Ø§Ù„ÙØ¹Ù„ÙŠ."
+        }
+      },
+      "pager": {
+        "zeroAlerts": "0 ØªÙ†Ø¨ÙŠÙ‡",
+        "range": "{{ start }}-{{ end }} Ù…Ù† {{ total }}",
+        "previousPage": "Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©",
+        "nextPage": "Ø§Ù„ØµÙØ­Ø© Ø§Ù„ØªØ§Ù„ÙŠØ©"
+      }
+    }
+  },
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "email": "أدخل عنوان بريد إلكتروني صالحًا",
+    "minLength": "الحد الأدنى {{ length }} أحرف مطلوبة",
+    "maxLength": "الحد الأقصى {{ length }} حرفًا مسموح به",
+    "invalidNumber": "أدخل رقمًا صالحًا",
+    "min": "يجب أن تكون القيمة {{ min }} على الأقل",
+    "max": "يجب ألا تتجاوز القيمة {{ max }}",
+    "pattern": "القيمة ليست بالصيغة المتوقعة",
+    "passwordsMismatch": "كلمتا المرور غير متطابقتين"
+  },
+  "statuses": {
+    "case": {
+      "created": "تم الإنشاء",
+      "assignedToZm": "مُسند إلى ZM",
+      "assignedToStt": "مُسند إلى STT",
+      "assignedToTech": "مُسند إلى TECH",
+      "rdvSet": "تم تحديد الموعد",
+      "diagnosisStep": "مرحلة التشخيص",
+      "escalated": "تم التصعيد",
+      "resolutionSubmitted": "تم تقديم الحل",
+      "returnedToStt": "أُعيد إلى STT",
+      "reopened": "أُعيد فتحه",
+      "notReachable": "تعذر الوصول",
+      "abandoned": "متروك",
+      "workDone": "تم إنجاز العمل",
+      "validatedByZm": "تم التحقق من قبل ZM",
+      "rejectedByZm": "مرفوض من قبل ZM",
+      "closed": "مغلق"
+    },
+    "sla": {
+      "onTrack": "ضمن المهلة",
+      "warning": "تحذير",
+      "breached": "تم تجاوز المهلة",
+      "completedOnTime": "أُنجز في الوقت المحدد",
+      "completedLate": "أُنجز متأخرًا"
+    },
+    "resolutionValidation": {
+      "pending": "قيد الانتظار",
+      "approved": "موافق عليه",
+      "returnedToStt": "أُعيد إلى STT",
+      "rejected": "مرفوض",
+      "reopened": "أُعيد فتحه"
+    },
+    "account": {
+      "pending": "قيد الانتظار",
+      "approved": "موافق عليه",
+      "rejected": "مرفوض"
+    },
+    "invitation": {
+      "pendingRegistration": "بانتظار التسجيل",
+      "registeredPendingZmApproval": "مسجَّل — بانتظار موافقة ZM",
+      "approvedByZm": "موافق عليه من قبل ZM",
+      "rejectedByZm": "مرفوض من قبل ZM",
+      "expired": "منتهي الصلاحية",
+      "cancelled": "ملغى"
+    },
+    "materialReturn": {
+      "submitted": "تم الإرسال",
+      "awaitingZmReview": "بانتظار مراجعة ZM",
+      "scheduleProposed": "تم اقتراح موعد",
+      "awaitingSttConfirmation": "بانتظار تأكيد STT",
+      "rescheduleRequested": "طُلب تغيير الموعد",
+      "approved": "موافق عليه",
+      "scheduleConfirmed": "تم تأكيد الموعد",
+      "rejected": "مرفوض",
+      "handedOver": "تم التسليم",
+      "received": "تم الاستلام",
+      "completed": "مكتمل",
+      "closed": "مغلق"
+    },
+    "returnReason": {
+      "damaged": "مادة تالفة",
+      "broken": "معطلة / لا تعمل",
+      "clientResiliationRecovery": "مستردة بعد الفسخ",
+      "unused": "مادة غير مستخدمة",
+      "wrongDistribution": "توزيع خاطئ",
+      "replacement": "مادة استبدال",
+      "other": "أخرى"
+    },
+    "returnCondition": {
+      "good": "حالة جيدة",
+      "reconditionable": "قابلة لإعادة التأهيل",
+      "damaged": "تالفة",
+      "broken": "معطلة",
+      "lost": "مفقودة",
+      "unknown": "غير معروفة / بحاجة لفحص"
+    },
+    "recoveryDisposition": {
+      "retrieved": "تم الاسترجاع",
+      "damaged": "تالف",
+      "missing": "مفقود",
+      "notFound": "غير موجود",
+      "alreadyReturned": "تم إرجاعه مسبقًا"
+    },
+    "retrievedStockStatus": {
+      "pendingSttCollection": "بانتظار تجميع STT",
+      "collectedByStt": "تم التجميع من قبل STT",
+      "inReturnRequest": "ضمن طلب إرجاع",
+      "returned": "تم الإرجاع",
+      "pendingCollection": "بانتظار التجميع",
+      "collected": "تم التجميع"
+    },
+    "returnDestination": {
+      "usableStock": "مخزون قابل للاستخدام",
+      "damagedStock": "مخزون تالف",
+      "repairCenter": "مركز الإصلاح",
+      "reconditioning": "إعادة التأهيل",
+      "centralWarehouse": "المستودع المركزي",
+      "scrap": "خردة / إتلاف"
+    },
+    "returnSource": {
+      "sttStock": "من مخزون STT",
+      "collectedItemStock": "مخزون العناصر المجمعة",
+      "clientRecovery": "استرداد من العميل",
+      "resiliationRecovery": "استرداد بعد الفسخ",
+      "damagedFieldRecovery": "استرداد ميداني تالف",
+      "unusedFieldMaterial": "مادة ميدانية غير مستخدمة",
+      "other": "أخرى / غير مصنفة"
+    },
+    "dpm": {
+      "waitingTeamStockApproval": "بانتظار موافقة مخزون الفريق",
+      "teamStockRejected": "تم رفض مخزون الفريق",
+      "rdvScheduled": "تم تحديد الموعد",
+      "rdvConfirmedByStt": "تم تأكيد الموعد من قبل STT",
+      "materialReceived": "تم استلام المادة",
+      "completed": "مكتمل",
+      "pendingSttConfirmation": "بانتظار تأكيد STT",
+      "partiallyConfirmed": "تم التأكيد جزئيًا",
+      "fullyConfirmed": "تم التأكيد بالكامل",
+      "rejected": "مرفوض",
+      "cancelled": "ملغى"
+    },
+    "distribution": {
+      "pendingTechConfirmation": "بانتظار تأكيد TECH",
+      "confirmedByTech": "تم التأكيد من قبل TECH",
+      "cancelled": "ملغى"
+    },
+    "teamDistribution": {
+      "pending": "قيد الانتظار",
+      "confirmed": "مؤكد",
+      "partiallyUsed": "مستخدم جزئيًا",
+      "fullyUsed": "مستخدم بالكامل",
+      "cancelled": "ملغى"
+    },
+    "permission": {
+      "pending": "قيد الانتظار",
+      "approved": "موافق عليه",
+      "partiallyApproved": "موافق عليه جزئيًا",
+      "rejected": "مرفوض",
+      "cancelled": "ملغى"
+    },
+    "instance": {
+      "inSttStock": "في مخزون STT",
+      "inTechStock": "في مخزون TECH",
+      "usedOnCase": "مستخدم في ملف",
+      "recoveredFromClient": "مسترد من العميل",
+      "returnedToDepot": "أُعيد إلى المستودع"
+    }
+  },
+  "units": {
+    "piece": {
+      "one": "قطعة",
+      "other": "قطع"
+    },
+    "meter": {
+      "one": "متر",
+      "other": "أمتار"
+    }
+  },
+  "notifications": {
+    "category": {
+      "dpm": "DPM",
+      "stock": "المخزون",
+      "materialReturn": "إرجاع المواد",
+      "case": "الحالة",
+      "permission": "الإذن",
+      "user": "المستخدم",
+      "sla": "SLA",
+      "system": "النظام"
+    },
+    "toastStack": {
+      "ariaLabel": "الإشعارات",
+      "dismiss": "إغلاق الإشعار",
+      "markAsRead": "تحديد كمقروء"
+    },
+    "severity": {
+      "critical": "Ø­Ø±Ø¬",
+      "warning": "ØªØ­Ø°ÙŠØ±",
+      "info": "Ù…Ø¹Ù„ÙˆÙ…Ø§Øª"
+    },
+    "alertCenter": {
+      "title": "Ù…Ø±ÙƒØ² Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª",
+      "subtitle": "Ø±Ø§Ù‚Ø¨ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ø¹Ø§Ø¬Ù„Ø© ÙˆØ§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ© ÙˆØ¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„ÙØ±Ù‚ ÙÙŠ Ø§Ù„ÙˆÙ‚Øª Ø§Ù„ÙØ¹Ù„ÙŠ.",
+      "refresh": "ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª",
+      "liveMonitoring": "Ù…Ø±Ø§Ù‚Ø¨Ø© Ù…Ø¨Ø§Ø´Ø±Ø©",
+      "tabs": {
+        "active": "Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù†Ø´Ø·Ø©",
+        "archived": "Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù…Ø¤Ø±Ø´ÙØ©"
+      },
+      "summary": {
+        "critical": {
+          "label": "Ø­Ø±Ø¬",
+          "sublabel": "Ù…Ø®Ø§Ø·Ø± SLA"
+        },
+        "warning": {
+          "label": "ØªØ­Ø°ÙŠØ±Ø§Øª",
+          "sublabel": "Ù…Ø®Ø²ÙˆÙ† Ù…Ù†Ø®ÙØ¶"
+        },
+        "returns": {
+          "label": "Ù‚ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
+          "sublabel": "Ø¥Ø±Ø¬Ø§Ø¹Ø§Øª Ø§Ù„Ù…ÙˆØ§Ø¯"
+        },
+        "cases": {
+          "label": "Ù†Ø´Ø·",
+          "sublabel": "ØªØµØ¹ÙŠØ¯Ø§Øª Ø§Ù„Ø­Ø§Ù„Ø§Øª"
+        },
+        "team": {
+          "label": "Ø§Ù„ÙØ±ÙŠÙ‚",
+          "sublabel": "Ù…ØªØ§Ø¨Ø¹Ø§Øª"
+        },
+        "urgent": {
+          "label": "Ø¹Ø§Ø¬Ù„",
+          "sublabel": "Ù…Ø´ÙƒÙ„Ø© ØªØºØ·ÙŠØ©"
+        }
+      },
+      "searchPlaceholder": "Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª ÙˆØ§Ù„Ø­Ø§Ù„Ø§Øª ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†...",
+      "fromDate": "Ù…Ù† ØªØ§Ø±ÙŠØ®",
+      "toDate": "Ø¥Ù„Ù‰ ØªØ§Ø±ÙŠØ®",
+      "typeLabel": "Ù†ÙˆØ¹ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡",
+      "severityLabel": "Ø§Ù„Ø´Ø¯Ø©",
+      "clearFilters": "Ù…Ø³Ø­ Ø§Ù„ÙÙ„Ø§ØªØ±",
+      "loading": "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª...",
+      "filters": {
+        "allTypes": "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£Ù†ÙˆØ§Ø¹",
+        "allSeverities": "Ø¬Ù…ÙŠØ¹ Ø¯Ø±Ø¬Ø§Øª Ø§Ù„Ø´Ø¯Ø©"
+      },
+      "subtitles": {
+        "caseNumber": "Ø§Ù„Ø­Ø§Ù„Ø© #{{ ref }}"
+      },
+      "targetRoles": {
+        "tech": "Ø§Ù„ÙÙ†ÙŠ Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠ",
+        "stt": "ÙØ±ÙŠÙ‚ STT",
+        "zm": "Ù…Ø¯ÙŠØ± Ø§Ù„Ù…Ù†Ø·Ù‚Ø©",
+        "system": "Ø§Ù„Ù†Ø¸Ø§Ù…"
+      },
+      "relativeTime": {
+        "now": "Ø§Ù„Ø¢Ù†",
+        "minutesAgo": "Ù…Ù†Ø° {{ count }} Ø¯Ù‚ÙŠÙ‚Ø©",
+        "hoursAgo": "Ù…Ù†Ø° {{ count }} Ø³Ø§Ø¹Ø©",
+        "yesterday": "Ø£Ù…Ø³",
+        "daysAgo": "Ù…Ù†Ø° {{ count }} ÙŠÙˆÙ…"
+      },
+      "actions": {
+        "dismiss": "ØªØ¬Ø§Ù‡Ù„",
+        "open": "ÙØªØ­",
+        "viewCases": "Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø§Øª",
+        "viewCasesCount": "Ø¹Ø±Ø¶ {{ count }} Ø­Ø§Ù„Ø§Øª",
+        "viewCase": "Ø¹Ø±Ø¶ Ø§Ù„Ø­Ø§Ù„Ø©",
+        "openDpm": "ÙØªØ­ DPM",
+        "viewStock": "Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø®Ø²ÙˆÙ†",
+        "reviewRequest": "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø·Ù„Ø¨",
+        "reviewUser": "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…",
+        "configure": "Ø¶Ø¨Ø·",
+        "viewReturn": "Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø±Ø¬Ø§Ø¹"
+      },
+      "empty": {
+        "filtered": {
+          "title": "Ù„Ø§ ØªÙˆØ¬Ø¯ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª ØªØ·Ø§Ø¨Ù‚ Ø§Ù„ÙÙ„Ø§ØªØ± Ø§Ù„Ø­Ø§Ù„ÙŠØ©.",
+          "sub": "Ø­Ø§ÙˆÙ„ ØªÙˆØ³ÙŠØ¹ Ø§Ù„Ø¨Ø­Ø« Ø£Ùˆ Ù…Ø³Ø­ Ø§Ù„ÙÙ„Ø§ØªØ±."
+        },
+        "archived": {
+          "title": "Ù„Ø§ ØªÙˆØ¬Ø¯ ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ù…Ø¤Ø±Ø´ÙØ©.",
+          "sub": "Ø³ØªØ¸Ù‡Ø± Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ù…ØªØ¬Ø§Ù‡Ù„Ø© Ù‡Ù†Ø§."
+        },
+        "active": {
+          "title": "ÙƒÙ„ Ø´ÙŠØ¡ Ø¨Ø®ÙŠØ±.",
+          "sub": "Ø³ØªØ¸Ù‡Ø± Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ù‡Ù†Ø§ ÙÙŠ Ø§Ù„ÙˆÙ‚Øª Ø§Ù„ÙØ¹Ù„ÙŠ."
+        }
+      },
+      "pager": {
+        "zeroAlerts": "0 ØªÙ†Ø¨ÙŠÙ‡",
+        "range": "{{ start }}-{{ end }} Ù…Ù† {{ total }}",
+        "previousPage": "Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©",
+        "nextPage": "Ø§Ù„ØµÙØ­Ø© Ø§Ù„ØªØ§Ù„ÙŠØ©"
+      }
+    }
+  },
+  "shared": {
+    "searchableSelect": {
+      "searchOptions": "البحث في الخيارات",
+      "clearSelection": "مسح الاختيار",
+      "noResults": "لا توجد نتائج لـ \"{{ searchTerm }}\""
+    },
+    "location": {
+      "noValidCoordinates": "لا توجد إحداثيات صالحة",
+      "title": "الموقع"
+    },
+    "governorateSelector": {
+      "title": "اختر الولايات",
+      "description": "اختر الولايات التي يغطيها هذا المستخدم أو هذا الفريق.",
+      "clearSearch": "مسح البحث",
+      "selectedCount": "{{ count }} محددة",
+      "matchingDelegations": "{{ count }} معتمديات",
+      "noResultsTitle": "لا توجد ولايات مطابقة",
+      "noResultsText": "جرّب كلمة بحث أخرى.",
+      "regions": {
+        "north": "الشمال",
+        "center": "الوسط",
+        "south": "الجنوب"
+      }
+    }
+  },
+  "stock": {
+    "movement": {
+      "dpmCreated": "تم إنشاء DPM",
+      "dpmConfirmed": "تم تأكيد DPM",
+      "sttToTechDistribution": "توزيع من STT إلى TECH",
+      "techReceivedFromStt": "استلم TECH من STT",
+      "caseUsage": "تم الاستخدام في الحالة",
+      "materialReturnSubmitted": "تم إرسال إرجاع المواد",
+      "materialReturnApproved": "تمت الموافقة على إرجاع المواد",
+      "materialReturnRejected": "تم رفض إرجاع المواد",
+      "returnToUsableStock": "تمت الإعادة إلى المخزون القابل للاستخدام",
+      "returnToDamagedStock": "تمت الإعادة إلى المخزون التالف",
+      "returnToRepair": "تم الإرسال إلى الإصلاح",
+      "returnToReconditioning": "تم الإرسال إلى إعادة التأهيل",
+      "returnToCentralWarehouse": "تمت الإعادة إلى المستودع المركزي",
+      "returnToScrap": "تم الإرسال إلى الإتلاف"
+    }
+  },
+  "admin": {
+    "users": {
+      "create": "إنشاء مستخدم",
+      "edit": "تعديل المستخدم"
+    },
+    "savedZmPerformance": {
+      "title": "التحليلات المحفوظة"
+    },
+    "audit": {
+      "users": "تدقيق المستخدمين",
+      "stock": "تدقيق المخزون",
+      "interventions": "تدقيق التدخلات"
+    }
+  },
+  "cases": {
+    "types": {
+      "activation": "تفعيل",
+      "complaint": "شكوى"
+    },
+    "modules": {
+      "activation": "تفعيل",
+      "complaint": "شكوى",
+      "resiliation": "فسخ"
+    },
+    "execution": {
+      "sttSelfExecution": "تنفيذ STT",
+      "techExecution": "تنفيذ الفني",
+      "notSelected": "لم يتم تحديد وضع التنفيذ"
+    },
+    "complaintCategory": {
+      "networkCoverage": "تغطية الشبكة",
+      "serviceQuality": "جودة الخدمة",
+      "installation": "التركيب",
+      "equipment": "المعدات",
+      "billing": "الفوترة",
+      "activationFollowUp": "متابعة التفعيل",
+      "customerEducation": "توعية العميل",
+      "other": "أخرى"
+    },
+    "createActivation": {
+      "title": "إنشاء حالة تفعيل"
+    },
+    "board": {
+      "brandChip": "Ø³ÙŠØ± Ø¹Ù…Ù„ CRM Ø£ÙˆØ±ÙŠØ¯Ùˆ",
+      "refreshing": "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ø¯ÙŠØ«...",
+      "refreshQueue": "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø·Ø§Ø¨ÙˆØ±",
+      "newCase": "Ø­Ø§Ù„Ø© CRM Ø¬Ø¯ÙŠØ¯Ø©",
+      "queueEyebrow": "Ø·Ø§Ø¨ÙˆØ± Ø§Ù„Ø­Ø§Ù„Ø§Øª",
+      "loadingTitle": "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø­Ø§Ù„Ø§Øª {{ module }}...",
+      "loadingHint": "Ø¬Ø§Ø±ÙŠ ØªØ¬Ù‡ÙŠØ² Ø£Ø­Ø¯Ø« Ø¨ÙŠØ§Ù†Ø§Øª Ø³ÙŠØ± Ø¹Ù…Ù„ CRM.",
+      "unavailableTitle": "Ù„ÙˆØ­Ø© Ø§Ù„Ø­Ø§Ù„Ø§Øª ØºÙŠØ± Ù…ØªØ§Ø­Ø©",
+      "modules": {
+        "activation": {
+          "plural": "Ø­Ø§Ù„Ø§Øª Ø§Ù„ØªÙØ¹ÙŠÙ„"
+        },
+        "complaint": {
+          "plural": "Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰"
+        },
+        "resiliation": {
+          "plural": "Ø­Ø§Ù„Ø§Øª Ø§Ù„ÙØ³Ø®"
+        }
+      },
+      "workspace": {
+        "activation": {
+          "admin": {
+            "title": "Ù…Ø±ÙƒØ² Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªÙØ¹ÙŠÙ„ Ø£ÙˆØ±ÙŠØ¯Ùˆ",
+            "subtitle": "Ø±Ø§Ù‚Ø¨ Ù…Ø³Ø§Ø± ØªÙØ¹ÙŠÙ„ CRM Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ù…Ù† Ø§Ù„Ø§Ø³ØªÙ‚Ø¨Ø§Ù„ Ø¥Ù„Ù‰ Ø§Ù„Ø¥ØºÙ„Ø§Ù‚ Ù…Ù† Ø®Ù„Ø§Ù„ Ù…Ø³Ø§Ø­Ø© Ø¹Ù…Ù„ ØªØ´ØºÙŠÙ„ÙŠØ© Ù…ÙˆØ­Ø¯Ø©."
+          },
+          "zm": {
+            "title": "Ø¥Ø´Ø±Ø§Ù ØªÙØ¹ÙŠÙ„ Ø§Ù„Ù…Ù†Ø·Ù‚Ø©",
+            "subtitle": "ØªØ§Ø¨Ø¹ Ù…Ù„ÙƒÙŠØ© Ø§Ù„Ù…Ù†Ø·Ù‚Ø© ÙˆØ¶ØºØ· SLA ÙˆÙ‚Ø±Ø§Ø±Ø§Øª Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ù„Ø§Ø­Ù‚Ø© Ø¨Ø³Ø±Ø¹Ø© Ø£ÙƒØ¨Ø±."
+          },
+          "stt": {
+            "title": "Ø§Ù„ØªØ­ÙƒÙ… ÙÙŠ ØªÙ†ÙÙŠØ° Ø§Ù„Ø´Ø±ÙƒØ§Ø¡",
+            "subtitle": "Ø§Ø­ÙØ¸ ØªÙˆØ§ÙÙ‚ Ø¥Ø³Ù†Ø§Ø¯Ø§Øª STT ÙˆØªÙ†ÙÙŠØ° Ø§Ù„ÙÙ†ÙŠÙŠÙ† ÙˆÙ…ØªØ§Ø¨Ø¹Ø© SLA ÙÙŠ Ù„ÙˆØ­Ø© Ø¹Ù…Ù„ ÙˆØ§Ø­Ø¯Ø©."
+          },
+          "tech": {
+            "title": "Ø·Ø§Ø¨ÙˆØ± Ø§Ù„ØªÙØ¹ÙŠÙ„ Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠ",
+            "subtitle": "Ø±Ø§Ø¬Ø¹ Ø§Ù„Ø­Ø§Ù„Ø§Øª Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠØ© Ø§Ù„Ù…Ø³Ù†Ø¯Ø© ÙˆØ¶ØºØ· Ø§Ù„ÙˆÙ‚Øª ÙˆØ­Ø§Ù„Ø© Ø§Ù„ØªÙ†ÙÙŠØ° ÙÙŠ Ø·Ø§Ø¨ÙˆØ± Ø£ÙƒØ«Ø± ØªØ±ÙƒÙŠØ²Ø§Ù‹."
+          },
+          "default": {
+            "title": "Ø¥Ø¯Ø§Ø±Ø© Ø­Ø§Ù„Ø§Øª Ø§Ù„ØªÙØ¹ÙŠÙ„",
+            "subtitle": "Ø³ÙŠØ± Ø¹Ù…Ù„ Ù…ÙŠØ¯Ø§Ù†ÙŠ Ù„Ù„Ø§ØªØµØ§Ù„Ø§Øª: Ø¥Ø³Ù†Ø§Ø¯ØŒ RDVØŒ ØªÙ†ÙÙŠØ°ØŒ ØªØ­Ù‚Ù‚ØŒ Ø¥ØºÙ„Ø§Ù‚."
+          }
+        },
+        "complaint": {
+          "admin": {
+            "title": "Ù…Ø±ÙƒØ² Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰ Ø£ÙˆØ±ÙŠØ¯Ùˆ",
+            "subtitle": "Ø­ÙˆÙ‘Ù„ Ø´ÙƒØ§ÙˆÙ‰ CRM Ø§Ù„Ù…Ø³ØªÙˆØ±Ø¯Ø© Ø¥Ù„Ù‰ Ø³ÙŠØ± Ø¹Ù…Ù„ Ù…Ø­ÙƒÙ… Ù„Ù„Ø­Ù„ Ù…Ø¹ Ù†ÙØ³ Ø§Ù†Ø¶Ø¨Ø§Ø· Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯ ÙˆØ§Ù„ØªØ­Ù‚Ù‚."
+          },
+          "zm": {
+            "title": "Ø¥Ø´Ø±Ø§Ù Ø´ÙƒØ§ÙˆÙ‰ Ø§Ù„Ù…Ù†Ø·Ù‚Ø©",
+            "subtitle": "Ø£Ø´Ø±Ù Ø¹Ù„Ù‰ Ù…Ù„ÙƒÙŠØ© Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰ ÙˆÙ†ØªØ§Ø¦Ø¬ Ø§Ù„ØªØ´Ø®ÙŠØµ ÙˆØ§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ Ø¹Ø¨Ø± Ù…Ù†Ø·Ù‚ØªÙƒ."
+          },
+          "stt": {
+            "title": "Ø§Ù„ØªØ­ÙƒÙ… ÙÙŠ Ø­Ù„ Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰",
+            "subtitle": "Ø£Ø¯Ø± Ø§Ù„ØªØ´Ø®ÙŠØµ ÙˆÙ‚Ø±Ø§Ø±Ø§Øª Ø§Ù„ÙÙ†ÙŠ ÙˆØ¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø­Ù„ Ù…Ù† Ø¯ÙˆÙ† Ù…ØºØ§Ø¯Ø±Ø© Ù„ÙˆØ­Ø© Ø§Ù„Ø¹Ù…Ù„."
+          },
+          "tech": {
+            "title": "Ø·Ø§Ø¨ÙˆØ± Ø´ÙƒØ§ÙˆÙ‰ Ù…ÙŠØ¯Ø§Ù†ÙŠ",
+            "subtitle": "Ø±Ø§Ø¬Ø¹ Ø§Ù„ØªØ¯Ø®Ù„Ø§Øª ÙˆØ§Ù„Ø£Ø¯Ù„Ø© ÙˆØªÙ‚Ø¯Ù… Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠ Ù„Ù„Ø´ÙƒØ§ÙˆÙ‰ ÙÙŠ Ù†ÙØ³ Ø§Ù„Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ù…ØªÙ†Ù‚Ù„Ø©."
+          },
+          "default": {
+            "title": "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰",
+            "subtitle": "Ø³ÙŠØ± Ø¹Ù…Ù„ Ø´ÙƒÙˆÙ‰ Ø§ØªØµØ§Ù„Ø§Øª: Ø¥Ø³Ù†Ø§Ø¯ØŒ RDVØŒ ØªØ´Ø®ÙŠØµØŒ Ø£Ø¹Ù…Ø§Ù„ØŒ ØªØ­Ù‚Ù‚ØŒ Ø¥ØºÙ„Ø§Ù‚."
+          }
+        },
+        "resiliation": {
+          "admin": {
+            "title": "Ù…Ø±ÙƒØ² Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ÙØ³Ø® Ø£ÙˆØ±ÙŠØ¯Ùˆ",
+            "subtitle": "Ø§Ø¯ÙØ¹ Ø£ÙˆØ§Ù…Ø± RES Ø§Ù„Ù…Ø³ØªÙˆØ±Ø¯Ø© Ø¨Ù†ÙØ³ Ø§Ù†Ø¶Ø¨Ø§Ø· Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯ ÙˆØ§Ù„ØªÙ†ÙÙŠØ° ÙˆØ§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ù…Ø·Ø¨Ù‚ Ø¹Ù„Ù‰ Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰."
+          },
+          "zm": {
+            "title": "Ø¥Ø´Ø±Ø§Ù ÙØ³Ø® Ø§Ù„Ù…Ù†Ø·Ù‚Ø©",
+            "subtitle": "Ø£Ø´Ø±Ù Ø¹Ù„Ù‰ Ù…Ù„ÙƒÙŠØ© Ø­Ø§Ù„Ø§Øª Ø§Ù„ÙØ³Ø® ÙˆØªÙ†ÙÙŠØ° STT ÙˆØ§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ Ø¹Ø¨Ø± Ù…Ù†Ø·Ù‚ØªÙƒ."
+          },
+          "stt": {
+            "title": "Ø§Ù„ØªØ­ÙƒÙ… ÙÙŠ ØªÙ†ÙÙŠØ° Ø§Ù„ÙØ³Ø®",
+            "subtitle": "Ø£Ø¯Ø± Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„ÙÙ†ÙŠ ÙˆØ¥Ø±Ø³Ø§Ù„ Ø­Ù„ÙˆÙ„ Ø§Ù„ÙØ³Ø® Ù…Ù† Ù„ÙˆØ­Ø© Ø¹Ù…Ù„ ØªØ´ØºÙŠÙ„ÙŠØ© ÙˆØ§Ø­Ø¯Ø©."
+          },
+          "tech": {
+            "title": "Ø·Ø§Ø¨ÙˆØ± ÙØ³Ø® Ù…ÙŠØ¯Ø§Ù†ÙŠ",
+            "subtitle": "Ø±Ø§Ø¬Ø¹ ØªØ¯Ø®Ù„Ø§Øª Ø§Ù„ÙØ³Ø® ÙˆØ§Ù„Ø£Ø¯Ù„Ø© ÙˆØªÙ‚Ø¯Ù… Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠ ÙÙŠ Ù†ÙØ³ Ø§Ù„Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ù…ØªÙ†Ù‚Ù„Ø©."
+          },
+          "default": {
+            "title": "Ø¥Ø¯Ø§Ø±Ø© Ø­Ø§Ù„Ø§Øª Ø§Ù„ÙØ³Ø®",
+            "subtitle": "Ø³ÙŠØ± Ø¹Ù…Ù„ ÙØ³Ø® Ø§Ù„Ø§ØªØµØ§Ù„Ø§Øª: Ø¥Ø³Ù†Ø§Ø¯ØŒ ØªÙ†ÙÙŠØ°ØŒ Ø£Ø¹Ù…Ø§Ù„ØŒ ØªØ­Ù‚Ù‚ØŒ Ø¥ØºÙ„Ø§Ù‚."
+          }
+        }
+      },
+      "filters": {
+        "allStatuses": "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ø§Ù„Ø§Øª",
+        "searchPlaceholder": "CRMØŒ Ø¹Ù…ÙŠÙ„ØŒ Ø¥Ø³Ù†Ø§Ø¯ØŒ Ø¹Ø±Ø¶ØŒ Ù…ÙˆÙ‚Ø¹",
+        "visibleRangeHint": "Ø­Ø§Ù„Ø§Øª Ù…Ø±Ø¦ÙŠØ© ÙÙŠ Ù†Ø§ÙØ°Ø© Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©",
+        "filteredCases": "{{ count }} Ø­Ø§Ù„Ø§Øª Ù…ÙÙ„ØªØ±Ø©"
+      },
+      "alerts": {
+        "eyebrow": "ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ù…Ø¨Ø§Ø´Ø±Ø©",
+        "title": "Ù…Ø±ÙƒØ² Ø§Ù„ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ© Ù„Ø£ÙˆØ±ÙŠØ¯Ùˆ",
+        "hint": "ÙŠØ¨Ù‚Ù‰ Ø¶ØºØ· SLA ÙˆØªØºÙŠÙŠØ±Ø§Øª Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯ ÙÙˆÙ‚ Ø·Ø§Ø¨ÙˆØ± Ø§Ù„Ø¹Ù…Ù„.",
+        "acknowledged": "ØªÙ… Ø§Ù„Ø¥Ù‚Ø±Ø§Ø±",
+        "needsAttention": "ÙŠØ­ØªØ§Ø¬ Ø§Ù‡ØªÙ…Ø§Ù…Ø§Ù‹"
+      },
+      "stats": {
+        "totalCases": "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø­Ø§Ù„Ø§Øª",
+        "totalComplaints": "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø´ÙƒØ§ÙˆÙ‰",
+        "totalResiliations": "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙØ³Ø®",
+        "ownedByZm": "Ù…Ù…Ù„ÙˆÙƒØ© Ù„Ù€ ZM",
+        "assignedToStt": "Ù…Ø³Ù†Ø¯Ø© Ø¥Ù„Ù‰ STT",
+        "assignedToTech": "Ù…Ø³Ù†Ø¯Ø© Ø¥Ù„Ù‰ TECH",
+        "slaWarning": "ØªØ­Ø°ÙŠØ± SLA",
+        "slaBreached": "ØªØ¬Ø§ÙˆØ² SLA",
+        "resolutionReady": "Ø§Ù„Ø­Ù„ Ø¬Ø§Ù‡Ø²",
+        "workDone": "ØªÙ… Ø¥Ù†Ø¬Ø§Ø² Ø§Ù„Ø¹Ù…Ù„"
+      },
+      "performance": {
+        "eyebrow": "Ø§Ù„Ø£Ø¯Ø§Ø¡",
+        "title": "Ù„Ù…Ø­Ø© Ø¹Ù† Ø£Ø¯Ø§Ø¦ÙŠ",
+        "hint": "Ø¹Ø¨Ø¡ Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…Ø¨Ø§Ø´Ø± ÙˆØ¬ÙˆØ¯Ø© RDV ÙˆØ§Ù„ØªØ­ÙƒÙ… ÙÙŠ SLA Ù„Ù„Ù†Ø·Ø§Ù‚ Ø§Ù„Ø­Ø§Ù„ÙŠ.",
+        "activeTasks": "Ø§Ù„Ù…Ù‡Ø§Ù… Ø§Ù„Ù†Ø´Ø·Ø©",
+        "rdvOnTime": "RDV ÙÙŠ Ø§Ù„ÙˆÙ‚Øª",
+        "rdvLate": "RDV Ù…ØªØ£Ø®Ø±",
+        "rdvOnTimeRate": "Ù†Ø³Ø¨Ø© RDV ÙÙŠ Ø§Ù„ÙˆÙ‚Øª",
+        "avgRdvResponse": "Ù…ØªÙˆØ³Ø· Ø§Ø³ØªØ¬Ø§Ø¨Ø© RDV",
+        "slaWarnings": "ØªØ­Ø°ÙŠØ±Ø§Øª SLA",
+        "slaEscalations": "ØªØµØ¹ÙŠØ¯Ø§Øª SLA",
+        "avgOverdue": "Ù…ØªÙˆØ³Ø· Ø§Ù„ØªØ£Ø®Ø±",
+        "completion": "Ø§Ù„Ø¥Ù†Ø¬Ø§Ø²"
+      },
+      "team": {
+        "eyebrow": "Ø¥Ø¨Ø±Ø§Ø² Ø§Ù„ØªÙ†ÙÙŠØ°",
+        "title": "ØªÙ‚Ø¯Ù… Ø£ÙØ¶Ù„ Ø§Ù„ÙÙ†ÙŠÙŠÙ†",
+        "completion": "Ø¥Ù†Ø¬Ø§Ø²",
+        "activeTasks": "Ù…Ù‡Ø§Ù… Ù†Ø´Ø·Ø©"
+      },
+      "alertSummary": {
+        "criticalBreach": "Ø®Ø±Ù‚ Ø­Ø±Ø¬",
+        "escalated": "Ù…ØµØ¹Ø¯",
+        "slaWarning": "ØªØ­Ø°ÙŠØ± SLA",
+        "assignments": "Ø§Ù„Ø¥Ø³Ù†Ø§Ø¯Ø§Øª",
+        "unreadAlerts": "ØªÙ†Ø¨ÙŠÙ‡Ø§Øª ØºÙŠØ± Ù…Ù‚Ø±ÙˆØ¡Ø©"
+      },
+      "labels": {
+        "executor": "Ø§Ù„Ù…Ù†ÙØ°",
+        "ownerZm": "Ù…Ø§Ù„Ùƒ ZM",
+        "notAssigned": "ØºÙŠØ± Ù…Ø³Ù†Ø¯",
+        "notSet": "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
+        "pending": "Ù‚ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
+        "rdvNotSet": "Ù„Ù… ÙŠØªÙ… ØªØ­Ø¯ÙŠØ¯ RDV",
+        "workPending": "Ø§Ù„Ø¹Ù…Ù„ Ù‚ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±",
+        "validationPending": "Ø§Ù„ØªØ­Ù‚Ù‚ Ù‚ÙŠØ¯ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±"
+      },
+      "sla": {
+        "notStarted": "Ù„Ù… ÙŠØ¨Ø¯Ø£",
+        "rdvCaptured": "ØªÙ… ØªØ³Ø¬ÙŠÙ„ RDV",
+        "respondedIn": "ØªÙ… Ø§Ù„Ø±Ø¯ Ø®Ù„Ø§Ù„ {{ duration }}",
+        "overdueBy": "Ù…ØªØ£Ø®Ø± Ø¨Ù…Ù‚Ø¯Ø§Ø± {{ duration }}",
+        "overdue": "Ù…ØªØ£Ø®Ø±",
+        "remaining": "Ù…ØªØ¨Ù‚ÙŠ {{ duration }}"
+      },
+      "actions": {
+        "diagnosis": "ØªØ´Ø®ÙŠØµ",
+        "work": "Ø§Ù„Ø¹Ù…Ù„",
+        "rdv": "RDV",
+        "executing": "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªÙ†ÙÙŠØ°",
+        "executeMyself": "Ø£Ù†ÙØ° Ø¨Ù†ÙØ³ÙŠ",
+        "assignTechnician": "Ø¥Ø³Ù†Ø§Ø¯ ÙÙ†ÙŠ",
+        "assignOrChangeStt": "Ø¥Ø³Ù†Ø§Ø¯ Ø£Ùˆ ØªØºÙŠÙŠØ± STT",
+        "assignOrChangeTech": "Ø¥Ø³Ù†Ø§Ø¯ Ø£Ùˆ ØªØºÙŠÙŠØ± TECH",
+        "setRdv": "ØªØ­Ø¯ÙŠØ¯ RDV",
+        "saveDiagnosis": "Ø­ÙØ¸ Ø§Ù„ØªØ´Ø®ÙŠØµ",
+        "updateWork": "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¹Ù…Ù„",
+        "validateCase": "ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø­Ø§Ù„Ø©",
+        "closeCase": "Ø¥ØºÙ„Ø§Ù‚ Ø§Ù„Ø­Ø§Ù„Ø©",
+        "reopenComplaint": "Ø¥Ø¹Ø§Ø¯Ø© ÙØªØ­ Ø§Ù„Ø´ÙƒÙˆÙ‰"
+      },
+      "assign": {
+        "loadFailedTitle": "ÙØ´Ù„ Ø§Ù„ØªØ­Ù…ÙŠÙ„",
+        "stt": {
+          "title": "Ø¥Ø³Ù†Ø§Ø¯ STT - CRM {{ crmCase }}",
+          "descriptionForGovernorate": "Ø¹Ø±Ø¶ Ø£Ø¹Ø¶Ø§Ø¡ STT Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ÙŠÙ† Ø§Ù„Ø°ÙŠÙ† ÙŠØºØ·ÙˆÙ† {{ governorate }}.",
+          "descriptionDefault": "Ø¹Ø±Ø¶ Ø£Ø¹Ø¶Ø§Ø¡ STT Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ÙŠÙ† Ø§Ù„Ù…ØªØ§Ø­ÙŠÙ† Ù„Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø§Ù„Ø©.",
+          "change": "ØªØºÙŠÙŠØ± STT",
+          "assign": "Ø¥Ø³Ù†Ø§Ø¯ STT",
+          "loadError": "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ù‚Ø§Ø¦Ù…Ø© STT",
+          "saved": "ØªÙ… Ø­ÙØ¸ Ø¥Ø³Ù†Ø§Ø¯ STT"
+        },
+        "tech": {
+          "title": "Ø¥Ø³Ù†Ø§Ø¯ ÙÙ†ÙŠ - CRM {{ crmCase }}",
+          "descriptionDefault": "Ø¹Ø±Ø¶ Ø§Ù„ÙÙ†ÙŠÙŠÙ† Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ÙŠÙ† Ù…Ù† ÙØ±ÙŠÙ‚Ùƒ.",
+          "change": "ØªØºÙŠÙŠØ± TECH",
+          "assign": "Ø¥Ø³Ù†Ø§Ø¯ TECH",
+          "loadError": "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„ÙÙ†ÙŠÙŠÙ†",
+          "saved": "ØªÙ… Ø­ÙØ¸ Ø¥Ø³Ù†Ø§Ø¯ TECH"
+        }
+      },
+      "table": {
+        "locationOffer": "Ø§Ù„Ù…ÙˆÙ‚Ø¹ / Ø§Ù„Ø¹Ø±Ø¶"
+      },
+      "empty": {
+        "tech": "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ø§Ù„Ø§Øª Ù…ÙŠØ¯Ø§Ù†ÙŠØ© Ù†Ø´Ø·Ø© ØªØ·Ø§Ø¨Ù‚ ÙÙ„Ø§ØªØ±Ùƒ.",
+        "stt": "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø­Ø§Ù„Ø§Øª STT ØªØ·Ø§Ø¨Ù‚ ÙÙ„Ø§ØªØ±Ùƒ Ø§Ù„Ø­Ø§Ù„ÙŠØ©.",
+        "genericTitle": "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø­Ø§Ù„Ø§Øª {{ module }}",
+        "genericHint": "Ø­Ø§ÙˆÙ„ ØªØºÙŠÙŠØ± Ø§Ù„Ø¨Ø­Ø« Ø£Ùˆ Ø§Ù„ÙÙ„Ø§ØªØ±."
+      },
+      "pagination": {
+        "range": "{{ start }}-{{ end }} Ù…Ù† {{ total }}",
+        "pageOf": "Ø§Ù„ØµÙØ­Ø© {{ current }} Ù…Ù† {{ total }}",
+        "firstPage": "Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰",
+        "lastPage": "Ø§Ù„ØµÙØ­Ø© Ø§Ù„Ø£Ø®ÙŠØ±Ø©",
+        "goTo": "Ø§Ù†ØªÙ‚Ù„ Ø¥Ù„Ù‰",
+        "jumpToPage": "Ø§Ù†ØªÙ‚Ù„ Ø¥Ù„Ù‰ ØµÙØ­Ø©",
+        "go": "Ø§Ø°Ù‡Ø¨"
+      },
+      "errors": {
+        "loadCases": "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø­Ø§Ù„Ø§Øª {{ module }}"
+      },
+      "executeMyself": {
+        "confirmTitle": "?? ???? ???? ??????? ??????",
+        "confirmText": "????? ???? CRM {{crmCase}} ??? ?????? ??????? ??? ??? ??????? ?????? STT.",
+        "confirmButton": "???? ?????",
+        "kept": "?? ??????? ??? ????? STT",
+        "activated": "?? ????? ??????? ?????? STT",
+        "errorTitle": "??? ????? ??? ???????",
+        "errorMessage": "???? ????? ??????? ?????? STT"
+      },
+      "details": {
+        "errorTitle": "???????? ??? ?????",
+        "errorMessage": "???? ????? ?????? ??????",
+        "deletedMessage": "?? ???? ??? ?????? ????? ?? ?? ????.",
+        "forbiddenMessage": "?? ???? ?????? ??? ?????? ??????."
+      },
+      "download": {
+        "errorTitle": "??? ???????",
+        "errorMessage": "???? ????? ????? ??????"
+      },
+      "messages": {
+        "operationCompleted": "?????? ??????? ?????.",
+        "operationFailed": "???? ???????",
+        "requestFailed": "??? ?????"
+      },
+      "rdv": {
+        "title": "????? RDV - CRM {{crmCase}}",
+        "confirmButton": "??? RDV",
+        "saved": "?? ??? RDV",
+        "fields": {
+          "dateTime": "????? ???? RDV",
+          "operationalDetail": "????? ??????",
+          "comment": "?????? RDV"
+        },
+        "placeholders": {
+          "causeInjoignabilite": "????? ????? ???? ?????? = ??",
+          "operationalDetail": "?????? ??????/?????? ????? ???????",
+          "comment": "??????? ?????? ??? ???????",
+          "causeAbandon": "????? ????? ???? ?????? ?????? = ???"
+        },
+        "validation": {
+          "dateRequired": "????? RDV ?????",
+          "causeInjoignabiliteRequired": "??? ???? ?????? ????? ????? ???? ?????? ??? ???? ??????",
+          "causeAbandonRequired": "??? ????? ????? ????? ??? ????? ?????? ???????"
+        }
+      },
+      "work": {
+        "title": "????? ????? - CRM {{crmCase}}",
+        "confirmButton": "????? ?????",
+        "saved": "?? ????? ?????",
+        "fields": {
+          "result": "????? ?????",
+          "completedAt": "????? ?????? ?????",
+          "comment": "??????",
+          "metrageCable": "??? ??????",
+          "nombrePv": "??? PV",
+          "debitDl": "???? ???????",
+          "debitUl": "???? ?????"
+        },
+        "placeholders": {
+          "comment": "??? ????? ?????? ??????????"
+        },
+        "validation": {
+          "requiredFields": "????? ????? ?????? ???????? ????????? ???? ??????"
+        }
+      },
+      "diagnosis": {
+        "title": "??????? - CRM {{crmCase}}",
+        "confirmButton": "??? ???????",
+        "saved": "?? ??? ???????",
+        "fields": {
+          "category": "??? ??????",
+          "comment": "?????? ???????"
+        },
+        "placeholders": {
+          "comment": "??? ??????? ????????? ??????? ??????"
+        },
+        "validation": {
+          "categoryRequired": "??? ?????? ??????",
+          "nextStepConflict": "???? ??? ??????? ?? ???? TECH ?????? ???????"
+        }
+      },
+      "validation": {
+        "title": "?????? ZM - CRM {{crmCase}}",
+        "confirmButton": "????? ????????",
+        "saved": "?? ??? ????????",
+        "fields": {
+          "decision": "??????",
+          "comment": "?????? ????????"
+        },
+        "options": {
+          "approve": "??????",
+          "reject": "???"
+        },
+        "placeholders": {
+          "comment": "???? ???? ???????? ?????? ??????"
+        },
+        "validation": {
+          "commentRequired": "???????? ??????"
+        }
+      },
+      "reopen": {
+        "title": "????? ??? ?????? - CRM {{crmCase}}",
+        "confirmButton": "????? ??? ??????",
+        "saved": "??? ????? ??? ??????",
+        "fields": {
+          "comment": "?????? ????? ?????"
+        },
+        "placeholders": {
+          "comment": "???? ????? ????? ??? ?????? ??? ???? ?? ?????"
+        }
+      },
+      "close": {
+        "confirmTitle": "????? ??? ???????",
+        "confirmText": "???? ????? CRM {{crmCase}} ??? ????? ?? ???????? ?????.",
+        "confirmButton": "????? ??????",
+        "saved": "?? ????? ??????"
+      },
+      "timeline": {
+        "empty": "?? ???? ????? ?? ??????? ?????? ???.",
+        "event": "???",
+        "actorState": "??????: {{actor}} ? ??????: {{from}} -> {{to}}"
+      },
+      "proof": {
+        "empty": "?? ???? ???? ????? ?????? ???.",
+        "defaultFilename": "???? ?????",
+        "uploaded": "?? ?????: {{value}}",
+        "by": "??????: {{value}}",
+        "source": "??????: {{value}}",
+        "gps": "???????? GPS: {{value}}",
+        "capturedAt": "?? ???????? ??: {{value}}",
+        "accuracy": "?????: {{value}}",
+        "openImage": "??? ??????",
+        "openMap": "??? ???????"
+      },
+      "workLocation": {
+        "empty": "?? ???? ???? GPS ????? ?????? ????? ???.",
+        "coordinates": "??????????:",
+        "openMap": "??? ???? ????? ??? ???????"
+      }
+    }
+  },
+  "caseDetail": {
+    "sections": {
+      "caseIdentity": "هوية الحالة",
+      "clientInformation": "معلومات العميل",
+      "offerDetails": "تفاصيل العرض",
+      "complaintDetails": "تفاصيل الشكوى",
+      "assignmentChain": "سلسلة الإسناد",
+      "rdv": "الموعد (RDV)",
+      "diagnosis": "التشخيص",
+      "workExecution": "تنفيذ العمل",
+      "attachedPhotos": "الصور المرفقة",
+      "technicalMetrics": "المؤشرات التقنية",
+      "resolution": "الحل",
+      "zmValidation": "اعتماد ZM",
+      "stockPermissions": "أذونات المخزون فوق الحد",
+      "discussion": "المناقشة (ZM ↔ STT)",
+      "timeline": "التسلسل الزمني"
+    },
+    "fields": {
+      "crmCase": "حالة CRM #",
+      "type": "النوع",
+      "createdAt": "تاريخ الإنشاء",
+      "crmCreationDate": "تاريخ إنشاء CRM",
+      "openingDateTimos": "تاريخ الفتح (TIMOS)",
+      "openDateActivation": "تاريخ فتح التفعيل",
+      "fullName": "الاسم الكامل",
+      "phone": "الهاتف",
+      "contactCl2": "جهة الاتصال CL2",
+      "msisdn": "MSISDN",
+      "governorate": "الولاية",
+      "delegation": "المعتمدية",
+      "locality": "المنطقة",
+      "siteSector": "الموقع / القطاع",
+      "gpsCoordinates": "إحداثيات GPS",
+      "offer": "العرض",
+      "pack": "الباقة",
+      "offerSpeedType": "نوع سرعة العرض",
+      "clientType": "نوع العميل",
+      "source": "المصدر",
+      "ownerZm": "ZM المسؤول",
+      "sttSupervisor": "مشرف STT",
+      "technician": "الفني",
+      "executionMode": "وضع التنفيذ",
+      "reachable": "يمكن الوصول إليه",
+      "rdvDate": "تاريخ RDV",
+      "causeInjoignabilite": "سبب تعذر الوصول",
+      "abandoned": "متروك",
+      "causeAbandon": "سبب الترك",
+      "category": "الفئة",
+      "rootCause": "السبب الجذري",
+      "requiresFieldWork": "يتطلب عملاً ميدانياً",
+      "requiresTech": "يتطلب TECH",
+      "requiresEscalation": "يتطلب تصعيداً",
+      "diagnosedAt": "تم التشخيص في",
+      "diagnosedBy": "تم التشخيص بواسطة",
+      "result": "النتيجة",
+      "completionDate": "تاريخ الإنجاز",
+      "workSubmissionGps": "موقع GPS عند إرسال العمل",
+      "gpsCapturedAt": "تم التقاط GPS في",
+      "gpsAccuracy": "دقة GPS",
+      "capturedAt": "تم الالتقاط في",
+      "accuracy": "الدقة",
+      "pvCount": "عدد PV",
+      "downloadMbps": "التنزيل (Mbps)",
+      "uploadMbps": "الرفع (Mbps)",
+      "resolutionType": "نوع الحل",
+      "validationStatus": "حالة التحقق",
+      "submittedAt": "تم الإرسال في",
+      "submittedBy": "تم الإرسال بواسطة",
+      "validatedAt": "تم الاعتماد في",
+      "approved": "تمت الموافقة",
+      "zmResponse": "رد ZM",
+      "requestedCable": "الكابل المطلوب",
+      "approvedCable": "الكابل المعتمد",
+      "requestedItems": "العناصر المطلوبة",
+      "sttReviewer": "مراجع STT",
+      "submitted": "تم الإرسال",
+      "reviewed": "تمت المراجعة",
+      "reason": "السبب",
+      "sttNote": "ملاحظة STT"
+    },
+    "labels": {
+      "caseSite": "موقع الحالة",
+      "workSubmissionLocation": "موقع إرسال العمل",
+      "proofPhotoLocation": "موقع صورة الإثبات",
+      "requestedOverLimitUsage": "طلب استخداماً فوق الحد"
+    },
+    "actions": {
+      "openAttachment": "فتح المرفق",
+      "openPhoto": "فتح الصورة",
+      "downloadPdf": "تنزيل PDF",
+      "removeAttachment": "إزالة المرفق",
+      "attachPhoto": "إرفاق صورة"
+    },
+    "states": {
+      "noPreviewAvailable": "لا توجد معاينة متاحة",
+      "loadingPermissions": "جارٍ تحميل طلبات الإذن…",
+      "noOverLimitPermissions": "لا توجد طلبات إذن فوق الحد لهذه الحالة."
+    },
+    "discussion": {
+      "assignSttFirst": "قم بإسناد STT إلى هذه الحالة لبدء المناقشة.",
+      "loadFailed": "فشل تحميل المناقشة",
+      "sendFailed": "فشل إرسال الرسالة",
+      "imageOnly": "يمكن إرفاق ملفات الصور فقط",
+      "loading": "جارٍ تحميل المناقشة…",
+      "noMessages": "لا توجد رسائل بعد.",
+      "startConversation": "ابدأ المحادثة أدناه.",
+      "seen": "تمت المشاهدة",
+      "sent": "تم الإرسال",
+      "writeMessage": "اكتب رسالة…"
+    },
+    "proof": {
+      "uploadedMeta": "تم الرفع {{ date }} بواسطة {{ user }}"
+    },
+    "proofSource": {
+      "camera": "صورة إثبات العمل",
+      "gallery": "صورة من المعرض",
+      "speedtestScreenshot": "لقطة Speedtest",
+      "signalScreenshot": "لقطة الإشارة",
+      "attachment": "مرفق"
+    }
+  },
+  "invitations": {
+    "eyebrow": "تأهيل الفنيين",
+    "title": "دعوة فنيين",
+    "description": "أرسل روابط التسجيل، وتابع تقدم الموافقات، واجعل سير عمل الدعوات سهل الإدارة من الهاتف.",
+    "openTeam": "فتح الفريق",
+    "refreshing": "جارٍ التحديث...",
+    "refreshList": "تحديث القائمة",
+    "newInvitation": "دعوة جديدة",
+    "sendRegistrationLink": "إرسال رابط التسجيل",
+    "emailLabel": "البريد الإلكتروني للفني",
+    "sending": "جارٍ الإرسال...",
+    "sendInvitation": "إرسال الدعوة",
+    "traceability": "تتبع الدعوات",
+    "myInvitations": "دعواتي",
+    "loadingInvitations": "جارٍ تحميل الدعوات...",
+    "noInvitationsTitle": "لا توجد دعوات.",
+    "noInvitationsText": "ستظهر هنا الدعوات التي أرسلتها مع حالة تسجيلها وقرار ZM.",
+    "sent": "أُرسلت",
+    "zm": "ZM",
+    "used": "مستخدمة",
+    "registered": "مسجَّلة",
+    "decision": "القرار",
+    "totalInvitations": "إجمالي الدعوات",
+    "invalidFormTitle": "نموذج غير صالح",
+    "invalidFormText": "الرجاء إدخال بريد إلكتروني صالح للفني.",
+    "invalidEmailTitle": "بريد إلكتروني غير صالح",
+    "sendConfirmTitle": "إرسال الدعوة؟",
+    "sendConfirmText": "سيتم إرسال دعوة إلى {{ email }}.",
+    "sendConfirmButton": "إرسال",
+    "invitationSentTitle": "تم إرسال الدعوة",
+    "invitationSentDefault": "تم إرسال الدعوة بنجاح",
+    "refreshFailedTitle": "فشل التحديث",
+    "sendFailedTitle": "فشل الإرسال",
+    "loadFailedFallback": "فشل تحميل الدعوات",
+    "refreshFailedFallback": "تم إرسال الدعوة، لكن فشل تحديث القائمة",
+    "sendFailedFallback": "فشل إرسال الدعوة"
+  },
+  "login": {
+    "brandSubtitle": "منصة الخدمة الميدانية",
+    "eyebrow": "مساحة عمل عمليات الاتصالات",
+    "heroTitle": "سجّل الدخول لإدارة نشاط الخدمة الميدانية بثقة.",
+    "heroDescription": "الوصول إلى الموافقات وملفات التفعيل وعمليات الفنيين ورؤية التدقيق ضمن مساحة عمل تشغيلية واحدة مصممة لفرق Ooredoo.",
+    "highlightOperationalTitle": "التحكم التشغيلي",
+    "highlightOperationalText": "تتبّع الملفات ومؤشرات الأداء والتصعيدات في الوقت الفعلي.",
+    "highlightFieldTitle": "التنفيذ الميداني",
+    "highlightFieldText": "نسّق المواعيد وإثباتات العمل وتقدّم الفنيين بسلاسة.",
+    "highlightSecureTitle": "سير عمل آمن",
+    "highlightSecureText": "تبقى الموافقة والتحقق من الأدوار متوافقين مع سير عملك.",
+    "welcomeBack": "مرحبًا بعودتك",
+    "signIn": "تسجيل الدخول",
+    "subtitle": "استخدم بريدك الإلكتروني أو اسم المستخدم للوصول إلى المنصة.",
+    "identifierPlaceholder": "البريد الإلكتروني أو اسم المستخدم",
+    "passwordPlaceholder": "كلمة المرور",
+    "loggingIn": "جارٍ تسجيل الدخول...",
+    "submit": "تسجيل الدخول",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "needAccount": "بحاجة إلى حساب؟",
+    "signupText": "سجّل واتبع عملية التحقق المعتادة قبل التفعيل.",
+    "registerNow": "سجّل الآن"
+  },
+  "register": {
+    "brandSubtitle": "الوصول عند الالتحاق",
+    "eyebrow": "التسجيل حسب الدور",
+    "heroTitle": "أنشئ حسابك وادخل في مسار الموافقة.",
+    "heroDescription": "سجّل كـ STT أو ZM، وقدّم بيانات هويتك، ودع سلسلة الموافقة المناسبة تفعّل وصولك إلى مساحة العمل.",
+    "highlightOnboardingTitle": "التحاق منظم",
+    "highlightOnboardingText": "تسجيل سريع مع موافقة حسب الدور من المسؤول المناسب.",
+    "highlightSecureTitle": "تفعيل آمن",
+    "highlightSecureText": "تبقى الحسابات محمية حتى اكتمال عملية التحقق.",
+    "highlightHierarchyTitle": "التسلسل التشغيلي",
+    "highlightHierarchyText": "يبقى وصول STT وZM متوافقًا مع مسؤوليات الاتصالات الميدانية.",
+    "alreadyApproved": "تمت الموافقة عليك مسبقًا؟",
+    "goToSignIn": "الانتقال لتسجيل الدخول",
+    "newAccount": "حساب جديد",
+    "createAccount": "إنشاء حساب",
+    "subtitle": "أكمل ملفك الشخصي، اختر دورك، وقدّم تسجيلك للتحقق.",
+    "step1": "الخطوة 1",
+    "companyInformation": "معلومات الشركة",
+    "personalInformation": "المعلومات الشخصية",
+    "companyNamePlaceholder": "اسم STT / الشركة",
+    "companyNameHint": "استخدم الاسم الرسمي لشركة STT، مثل THS أو INSCOM.",
+    "firstNamePlaceholder": "الاسم الأول",
+    "lastNamePlaceholder": "اسم العائلة",
+    "phonePlaceholder": "الهاتف",
+    "emailPlaceholder": "البريد الإلكتروني",
+    "profilePhoto": "صورة الملف الشخصي",
+    "profilePhotoHint": "اختياري. الصيغ المقبولة: JPG وPNG وWEBP. الحجم الأقصى: 5 ميغابايت.",
+    "profilePreviewAlt": "معاينة الملف الشخصي",
+    "chooseFile": "اختيار ملف",
+    "noFileSelected": "لم يتم اختيار ملف",
+    "changeFile": "تغيير الملف",
+    "removeFile": "إزالة الملف",
+    "remove": "إزالة",
+    "step2": "الخطوة 2",
+    "chooseRole": "اختر دورك",
+    "roleZmDescription": "صلاحية مدير منطقة",
+    "roleSttDescription": "صلاحية مشرف STT",
+    "rolePlatformDescription": "صلاحية المنصة",
+    "roleApprovalHint": "تتم الموافقة على حسابات STT من قبل ZM. وتتم الموافقة على حسابات ZM من قبل المسؤول.",
+    "step3": "الخطوة 3",
+    "setPassword": "عيّن كلمة المرور",
+    "passwordPlaceholder": "كلمة المرور",
+    "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+    "creatingAccount": "جارٍ إنشاء الحساب...",
+    "submit": "إنشاء حساب",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "signIn": "تسجيل الدخول",
+    "errors": {
+      "photoTypeInvalid": "يُسمح فقط بصور JPG وPNG وWEBP",
+      "photoTooLarge": "يجب ألا يتجاوز حجم الصورة 5 ميغابايت",
+      "companyNameRequired": "اسم STT/الشركة مطلوب",
+      "firstNameRequired": "الاسم الأول مطلوب",
+      "lastNameRequired": "اسم العائلة مطلوب",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "passwordTooShort": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
+      "passwordsMismatch": "كلمتا المرور غير متطابقتين",
+      "registerFailed": "فشل التسجيل",
+      "photoUploadFailed": "تم إنشاء الحساب، لكن فشل رفع صورة الملف الشخصي. يمكنك رفعها لاحقًا."
+    },
+    "success": {
+      "waitingZmApproval": "تم إنشاء الحساب. بانتظار موافقة ZM.",
+      "waitingAdminApproval": "تم إنشاء الحساب. بانتظار موافقة المسؤول."
+    }
+  }
+}

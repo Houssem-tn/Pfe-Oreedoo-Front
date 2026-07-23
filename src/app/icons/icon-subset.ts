@@ -112,7 +112,8 @@ import {
   cilCheckCircle,
   cilStorage,
   cilFolder,
-  cilImage
+  cilImage,
+  cilTruck
 } from '@coreui/icons';
 
 import { signet } from './signet';
@@ -235,6 +236,7 @@ export const iconSubset = {
   cilStorage,
   cilFolder,
   cilImage,
+  cilTruck,
 };
 
 export enum IconSubset {

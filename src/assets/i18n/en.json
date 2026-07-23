@@ -1,0 +1,1312 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "filters": "Filters",
+    "actions": "Actions",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "yes": "Yes",
+    "no": "No",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "requiredField": "This field is required",
+    "notSpecified": "Not specified",
+    "requiredFieldsNote": "required fields",
+    "export": "Export",
+    "import": "Import",
+    "download": "Download",
+    "upload": "Upload",
+    "refresh": "Refresh",
+    "apply": "Apply",
+    "reset": "Reset",
+    "clear": "Clear",
+    "viewDetails": "View details",
+    "details": "Details",
+    "status": "Status",
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "name": "Name",
+    "description": "Description",
+    "date": "Date",
+    "time": "Time",
+    "from": "From",
+    "to": "To",
+    "of": "of",
+    "page": "Page",
+    "rowsPerPage": "Rows per page",
+    "total": "Total",
+    "select": "Select",
+    "selectAll": "Select all",
+    "none": "None",
+    "unknown": "Unknown",
+    "optional": "Optional",
+    "warning": "Warning",
+    "success": "Success",
+    "error": "Error",
+    "info": "Info",
+    "retry": "Retry",
+    "ok": "OK",
+    "continue": "Continue",
+    "done": "Done",
+    "duration": {
+      "lessThanMinute": "<1m",
+      "minutesCompact": "{{value}}m",
+      "hoursMinutesCompact": "{{hours}}h {{minutes}}m"
+    },
+    "measure": {
+      "approxMeters": "?{{value}} m"
+    }
+  },
+  "app": {
+    "title": "Ooredoo Field Service",
+    "brandName": "Ooredoo",
+    "brandSubtitle": "Field Service",
+    "brandAlt": "Ooredoo logo"
+  },
+  "languages": {
+    "en": "English",
+    "fr": "French",
+    "ar": "Arabic",
+    "selectLanguage": "Select language"
+  },
+  "header": {
+    "dashboard": "Dashboard",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all read",
+    "noNotifications": "No notifications yet.",
+    "unread": "unread",
+    "caseMessages": "Case messages",
+    "noUnreadCaseMessages": "No unread case messages.",
+    "case": "Case",
+    "account": "Account",
+    "profile": "Profile",
+    "logout": "Logout",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "Auto",
+    "openNotifications": "Open notifications",
+    "openCaseMessages": "Open case messages",
+    "openUserMenu": "Open user menu",
+    "openThemePicker": "Open theme picker",
+    "openLanguagePicker": "Open language picker",
+    "toggleSidebar": "Toggle sidebar navigation",
+    "userAvatarAlt": "User avatar",
+    "new": "New",
+    "unreadMessagesSingular": "{{ count }} unread message",
+    "unreadMessagesPlural": "{{ count }} unread messages"
+  },
+  "field": {
+    "hello": "Hello,",
+    "notifications": "Notifications",
+    "readAll": "Read all",
+    "noNotifications": "No notifications yet.",
+    "logout": "Log out",
+    "roleSttExecution": "STT execution",
+    "roleTechField": "TECH field",
+    "fieldUser": "Field user",
+    "home": "Home",
+    "tasks": "Tasks",
+    "myStock": "My Stock",
+    "history": "History",
+    "profile": "Profile",
+    "fieldNavigation": "Field navigation"
+  },
+  "routes": {
+    "loginPage": "Login Page",
+    "registerPage": "Register Page",
+    "technicianInvitationRegistration": "Technician Invitation Registration",
+    "page404": "Page 404",
+    "page500": "Page 500",
+    "fieldTech": "Field TECH",
+    "fieldSttExecution": "Field STT Execution",
+    "home": "Home",
+    "alertCenter": "Alert Center",
+    "myProfile": "My Profile",
+    "dashboard": "Dashboard",
+    "resExecution": "RES Execution"
+  },
+  "nav": {
+    "sectionAdministration": "Administration",
+    "sectionPerformance": "Performance",
+    "sectionMonitoring": "Monitoring",
+    "sectionCoverageIntelligence": "Coverage Intelligence",
+    "sectionStockManagement": "Stock Management",
+    "sectionStock": "Stock",
+    "sectionCoverage": "Coverage",
+    "dashboard": "Dashboard",
+    "fieldDashboard": "Field Dashboard",
+    "approvals": "Approvals",
+    "users": "Users",
+    "businessRules": "Business Rules",
+    "importAnalytics": "Import Analytics",
+    "todosAnalysis": "Todos Analysis",
+    "actAnalysis": "Act analysis",
+    "activationCases": "Activation Cases",
+    "complaintCases": "Complaint Cases",
+    "resiliationCases": "Resiliation Cases",
+    "networkCoverage": "Network Coverage",
+    "equipment": "Equipment",
+    "stockTracking": "Stock Tracking",
+    "teamDistributions": "Team Distributions",
+    "unitTracking": "Unit Tracking",
+    "audit": "Audit",
+    "inviteTechnicians": "Invite Technicians",
+    "myTechnicians": "My Technicians",
+    "myStock": "My Stock",
+    "incomingDpms": "Incoming DPMs",
+    "distributeToTech": "Distribute to TECH",
+    "usageApprovals": "Usage Approvals",
+    "materialReturns": "Material Returns",
+    "retrievedStockCollection": "Retrieved Stock Collection",
+    "retrievedStockTracking": "Retrieved Stock Tracking",
+    "retrievedStock": "Retrieved Stock",
+    "myFieldTasks": "My Field Tasks",
+    "complaintTasks": "Complaint Tasks",
+    "myEquipment": "My Equipment",
+    "myPermissions": "My Permissions",
+    "alertCenter": "Alert Center",
+    "technicianApprovals": "Technician Approvals",
+    "injectTodos": "Inject Todos",
+    "importedTodos": "Imported Todos",
+    "myTeam": "My Team",
+    "myDpms": "My DPMs",
+    "createDpm": "Create DPM",
+    "teamStock": "Team Stock",
+    "caseStockAudit": "Case Stock Audit",
+    "stockThresholds": "Stock Thresholds",
+    "settings": "Settings"
+  },
+  "footer": {
+    "poweredBy": "Powered by",
+    "allRightsReserved": "All rights reserved."
+  },
+  "roles": {
+    "admin": "Admin",
+    "crmBoutique": "CRM Boutique",
+    "stt": "STT",
+    "tech": "TECH",
+    "zm": "ZM"
+  },
+  "errors": {
+    "fallback": "Something went wrong. Please try again.",
+    "networkError": "Network error. Please check your connection and try again.",
+    "unauthorized": "You are not authorized. Please sign in again.",
+    "forbidden": "You do not have permission to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "serverError": "A server error occurred. Please try again later.",
+    "validationError": "Please check the highlighted fields and try again.",
+    "loginFailed": "Login failed",
+    "accountDisabled": "Unfortunately you are banned! Contact admin"
+  },
+  "dialogs": {
+    "confirmDelete": {
+      "title": "Are you sure?",
+      "text": "This will permanently delete this {{ entity }}.",
+      "defaultEntity": "item"
+    },
+    "promptSelect": {
+      "placeholder": "Choose an option"
+    },
+    "promptTextarea": {
+      "placeholder": "Type here...",
+      "fieldRequired": "{{ field }} is required",
+      "fieldMaxLength": "{{ field }} must be at most {{ max }} characters"
+    },
+    "locationRequired": {
+      "title": "Location Required",
+      "text": "GPS/location is required to submit field proof. Please enable location services and allow location permission, then try again.",
+      "tryAgain": "Try Again"
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "alertCenter": {
+      "title": "Alert Center",
+      "subtitle": "Monitor urgent events, operational warnings, and team actions in real time.",
+      "refresh": "Refresh alerts",
+      "liveMonitoring": "Live monitoring",
+      "tabs": {
+        "active": "Active alerts",
+        "archived": "Archived alerts"
+      },
+      "summary": {
+        "critical": {
+          "label": "Critical",
+          "sublabel": "SLA risk"
+        },
+        "warning": {
+          "label": "Warnings",
+          "sublabel": "Low stock"
+        },
+        "returns": {
+          "label": "Pending",
+          "sublabel": "Material returns"
+        },
+        "cases": {
+          "label": "Active",
+          "sublabel": "Case escalations"
+        },
+        "team": {
+          "label": "Team",
+          "sublabel": "Check-ins"
+        },
+        "urgent": {
+          "label": "Urgent",
+          "sublabel": "Coverage issue"
+        }
+      },
+      "searchPlaceholder": "Search alerts, cases, users...",
+      "fromDate": "From date",
+      "toDate": "To date",
+      "typeLabel": "Alert type",
+      "severityLabel": "Severity",
+      "clearFilters": "Clear filters",
+      "loading": "Loading alerts...",
+      "filters": {
+        "allTypes": "All types",
+        "allSeverities": "All severities"
+      },
+      "subtitles": {
+        "caseNumber": "Case #{{ ref }}"
+      },
+      "targetRoles": {
+        "tech": "Field technician",
+        "stt": "STT team",
+        "zm": "Zone manager",
+        "system": "System"
+      },
+      "relativeTime": {
+        "now": "Now",
+        "minutesAgo": "{{ count }} min ago",
+        "hoursAgo": "{{ count }}h ago",
+        "yesterday": "Yesterday",
+        "daysAgo": "{{ count }}d ago"
+      },
+      "actions": {
+        "dismiss": "Dismiss",
+        "open": "Open",
+        "viewCases": "View cases",
+        "viewCasesCount": "View {{ count }} cases",
+        "viewCase": "View case",
+        "openDpm": "Open DPM",
+        "viewStock": "View stock",
+        "reviewRequest": "Review request",
+        "reviewUser": "Review user",
+        "configure": "Configure",
+        "viewReturn": "View return"
+      },
+      "empty": {
+        "filtered": {
+          "title": "No alerts match your filters.",
+          "sub": "Try widening the search or clearing filters."
+        },
+        "archived": {
+          "title": "No archived alerts.",
+          "sub": "Dismissed alerts will appear here."
+        },
+        "active": {
+          "title": "All clear.",
+          "sub": "New alerts will appear here in real time."
+        }
+      },
+      "pager": {
+        "zeroAlerts": "0 alerts",
+        "range": "{{ start }}-{{ end }} of {{ total }}",
+        "previousPage": "Previous page",
+        "nextPage": "Next page"
+      }
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Enter a valid email address",
+    "minLength": "Minimum {{ length }} characters are required",
+    "maxLength": "Maximum {{ length }} characters are allowed",
+    "invalidNumber": "Enter a valid number",
+    "min": "Value must be at least {{ min }}",
+    "max": "Value must be at most {{ max }}",
+    "pattern": "Value is not in the expected format",
+    "passwordsMismatch": "Passwords do not match"
+  },
+  "statuses": {
+    "case": {
+      "created": "Created",
+      "assignedToZm": "Assigned to ZM",
+      "assignedToStt": "Assigned to STT",
+      "assignedToTech": "Assigned to TECH",
+      "rdvSet": "RDV set",
+      "diagnosisStep": "Diagnosis step",
+      "escalated": "Escalated",
+      "resolutionSubmitted": "Resolution submitted",
+      "returnedToStt": "Returned to STT",
+      "reopened": "Reopened",
+      "notReachable": "Not reachable",
+      "abandoned": "Abandoned",
+      "workDone": "Work done",
+      "validatedByZm": "Validated by ZM",
+      "rejectedByZm": "Rejected by ZM",
+      "closed": "Closed"
+    },
+    "sla": {
+      "onTrack": "On track",
+      "warning": "Warning",
+      "breached": "Breached",
+      "completedOnTime": "Completed on time",
+      "completedLate": "Completed late"
+    },
+    "resolutionValidation": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "returnedToStt": "Returned to STT",
+      "rejected": "Rejected",
+      "reopened": "Reopened"
+    },
+    "account": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "invitation": {
+      "pendingRegistration": "Pending registration",
+      "registeredPendingZmApproval": "Registered — pending ZM approval",
+      "approvedByZm": "Approved by ZM",
+      "rejectedByZm": "Rejected by ZM",
+      "expired": "Expired",
+      "cancelled": "Cancelled"
+    },
+    "materialReturn": {
+      "submitted": "Submitted",
+      "awaitingZmReview": "Awaiting ZM Review",
+      "scheduleProposed": "Schedule Proposed",
+      "awaitingSttConfirmation": "Awaiting STT Confirmation",
+      "rescheduleRequested": "Reschedule Requested",
+      "approved": "Approved",
+      "scheduleConfirmed": "Schedule Confirmed",
+      "rejected": "Rejected",
+      "handedOver": "Handed Over",
+      "received": "Received",
+      "completed": "Completed",
+      "closed": "Closed"
+    },
+    "returnReason": {
+      "damaged": "Damaged material",
+      "broken": "Broken / not working",
+      "clientResiliationRecovery": "Recovered after resiliation",
+      "unused": "Unused material",
+      "wrongDistribution": "Wrongly distributed",
+      "replacement": "Replacement material",
+      "other": "Other"
+    },
+    "returnCondition": {
+      "good": "Good condition",
+      "reconditionable": "Reconditionable",
+      "damaged": "Damaged",
+      "broken": "Broken",
+      "lost": "Lost",
+      "unknown": "Unknown / needs inspection"
+    },
+    "recoveryDisposition": {
+      "retrieved": "Retrieved",
+      "damaged": "Damaged",
+      "missing": "Missing",
+      "notFound": "Not found",
+      "alreadyReturned": "Already returned"
+    },
+    "retrievedStockStatus": {
+      "pendingSttCollection": "Pending STT collection",
+      "collectedByStt": "Collected by STT",
+      "inReturnRequest": "In return request",
+      "returned": "Returned",
+      "pendingCollection": "Pending collection",
+      "collected": "Collected"
+    },
+    "returnDestination": {
+      "usableStock": "Usable stock",
+      "damagedStock": "Damaged stock",
+      "repairCenter": "Repair center",
+      "reconditioning": "Reconditioning",
+      "centralWarehouse": "Central warehouse",
+      "scrap": "Scrap / disposal"
+    },
+    "returnSource": {
+      "sttStock": "From STT stock",
+      "collectedItemStock": "Collected Item Stock",
+      "clientRecovery": "Client recovery",
+      "resiliationRecovery": "Resiliation recovery",
+      "damagedFieldRecovery": "Damaged field recovery",
+      "unusedFieldMaterial": "Unused field material",
+      "other": "Other / unclassified"
+    },
+    "dpm": {
+      "waitingTeamStockApproval": "Awaiting team stock approval",
+      "teamStockRejected": "Team stock rejected",
+      "rdvScheduled": "RDV scheduled",
+      "rdvConfirmedByStt": "RDV confirmed by STT",
+      "materialReceived": "Material received",
+      "completed": "Completed",
+      "pendingSttConfirmation": "Pending STT confirmation",
+      "partiallyConfirmed": "Partially confirmed",
+      "fullyConfirmed": "Fully confirmed",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "distribution": {
+      "pendingTechConfirmation": "Pending TECH confirmation",
+      "confirmedByTech": "Confirmed by TECH",
+      "cancelled": "Cancelled"
+    },
+    "teamDistribution": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "partiallyUsed": "Partially used",
+      "fullyUsed": "Fully used",
+      "cancelled": "Cancelled"
+    },
+    "permission": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "partiallyApproved": "Partially approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "instance": {
+      "inSttStock": "In STT stock",
+      "inTechStock": "In TECH stock",
+      "usedOnCase": "Used on case",
+      "recoveredFromClient": "Recovered from client",
+      "returnedToDepot": "Returned to depot"
+    }
+  },
+  "units": {
+    "piece": {
+      "one": "piece",
+      "other": "pieces"
+    },
+    "meter": {
+      "one": "meter",
+      "other": "meters"
+    }
+  },
+  "notifications": {
+    "category": {
+      "dpm": "DPM",
+      "stock": "Stock",
+      "materialReturn": "Material return",
+      "case": "Case",
+      "permission": "Permission",
+      "user": "User",
+      "sla": "SLA",
+      "system": "System"
+    },
+    "toastStack": {
+      "ariaLabel": "Notifications",
+      "dismiss": "Dismiss notification",
+      "markAsRead": "Mark as read"
+    },
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "alertCenter": {
+      "title": "Alert Center",
+      "subtitle": "Monitor urgent events, operational warnings, and team actions in real time.",
+      "refresh": "Refresh alerts",
+      "liveMonitoring": "Live monitoring",
+      "tabs": {
+        "active": "Active alerts",
+        "archived": "Archived alerts"
+      },
+      "summary": {
+        "critical": {
+          "label": "Critical",
+          "sublabel": "SLA risk"
+        },
+        "warning": {
+          "label": "Warnings",
+          "sublabel": "Low stock"
+        },
+        "returns": {
+          "label": "Pending",
+          "sublabel": "Material returns"
+        },
+        "cases": {
+          "label": "Active",
+          "sublabel": "Case escalations"
+        },
+        "team": {
+          "label": "Team",
+          "sublabel": "Check-ins"
+        },
+        "urgent": {
+          "label": "Urgent",
+          "sublabel": "Coverage issue"
+        }
+      },
+      "searchPlaceholder": "Search alerts, cases, users...",
+      "fromDate": "From date",
+      "toDate": "To date",
+      "typeLabel": "Alert type",
+      "severityLabel": "Severity",
+      "clearFilters": "Clear filters",
+      "loading": "Loading alerts...",
+      "filters": {
+        "allTypes": "All types",
+        "allSeverities": "All severities"
+      },
+      "subtitles": {
+        "caseNumber": "Case #{{ ref }}"
+      },
+      "targetRoles": {
+        "tech": "Field technician",
+        "stt": "STT team",
+        "zm": "Zone manager",
+        "system": "System"
+      },
+      "relativeTime": {
+        "now": "Now",
+        "minutesAgo": "{{ count }} min ago",
+        "hoursAgo": "{{ count }}h ago",
+        "yesterday": "Yesterday",
+        "daysAgo": "{{ count }}d ago"
+      },
+      "actions": {
+        "dismiss": "Dismiss",
+        "open": "Open",
+        "viewCases": "View cases",
+        "viewCasesCount": "View {{ count }} cases",
+        "viewCase": "View case",
+        "openDpm": "Open DPM",
+        "viewStock": "View stock",
+        "reviewRequest": "Review request",
+        "reviewUser": "Review user",
+        "configure": "Configure",
+        "viewReturn": "View return"
+      },
+      "empty": {
+        "filtered": {
+          "title": "No alerts match your filters.",
+          "sub": "Try widening the search or clearing filters."
+        },
+        "archived": {
+          "title": "No archived alerts.",
+          "sub": "Dismissed alerts will appear here."
+        },
+        "active": {
+          "title": "All clear.",
+          "sub": "New alerts will appear here in real time."
+        }
+      },
+      "pager": {
+        "zeroAlerts": "0 alerts",
+        "range": "{{ start }}-{{ end }} of {{ total }}",
+        "previousPage": "Previous page",
+        "nextPage": "Next page"
+      }
+    }
+  },
+  "shared": {
+    "searchableSelect": {
+      "searchOptions": "Search options",
+      "clearSelection": "Clear selection",
+      "noResults": "No results found for \"{{ searchTerm }}\""
+    },
+    "location": {
+      "noValidCoordinates": "No valid coordinates",
+      "title": "Location"
+    },
+    "governorateSelector": {
+      "title": "Select governorates",
+      "description": "Choose the governorates this user or team should cover.",
+      "clearSearch": "Clear search",
+      "selectedCount": "{{ count }} selected",
+      "matchingDelegations": "{{ count }} delegations",
+      "noResultsTitle": "No matching governorates",
+      "noResultsText": "Try another search term.",
+      "regions": {
+        "north": "North",
+        "center": "Center",
+        "south": "South"
+      }
+    }
+  },
+  "stock": {
+    "movement": {
+      "dpmCreated": "DPM created",
+      "dpmConfirmed": "DPM confirmed",
+      "sttToTechDistribution": "STT to TECH distribution",
+      "techReceivedFromStt": "TECH received from STT",
+      "caseUsage": "Used on case",
+      "materialReturnSubmitted": "Material return submitted",
+      "materialReturnApproved": "Material return approved",
+      "materialReturnRejected": "Material return rejected",
+      "returnToUsableStock": "Returned to usable stock",
+      "returnToDamagedStock": "Returned to damaged stock",
+      "returnToRepair": "Sent to repair",
+      "returnToReconditioning": "Sent to reconditioning",
+      "returnToCentralWarehouse": "Returned to central warehouse",
+      "returnToScrap": "Sent to scrap"
+    }
+  },
+  "admin": {
+    "users": {
+      "create": "Create user",
+      "edit": "Edit user"
+    },
+    "savedZmPerformance": {
+      "title": "Saved analyses"
+    },
+    "audit": {
+      "users": "User audit",
+      "stock": "Stock audit",
+      "interventions": "Interventions audit"
+    }
+  },
+  "cases": {
+    "types": {
+      "activation": "Activation",
+      "complaint": "Complaint"
+    },
+    "modules": {
+      "activation": "Activation",
+      "complaint": "Complaint",
+      "resiliation": "Resiliation"
+    },
+    "execution": {
+      "sttSelfExecution": "STT self execution",
+      "techExecution": "Technician execution",
+      "notSelected": "Execution not selected"
+    },
+    "complaintCategory": {
+      "networkCoverage": "Network coverage",
+      "serviceQuality": "Service quality",
+      "installation": "Installation",
+      "equipment": "Equipment",
+      "billing": "Billing",
+      "activationFollowUp": "Activation follow-up",
+      "customerEducation": "Customer education",
+      "other": "Other"
+    },
+    "createActivation": {
+      "title": "Create activation case"
+    },
+    "board": {
+      "brandChip": "Ooredoo CRM workflow",
+      "refreshing": "Refreshing...",
+      "refreshQueue": "Refresh queue",
+      "newCase": "New CRM case",
+      "queueEyebrow": "Case queue",
+      "loadingTitle": "Loading {{ module }} cases...",
+      "loadingHint": "Preparing the latest CRM workflow data.",
+      "unavailableTitle": "Case board unavailable",
+      "modules": {
+        "activation": {
+          "plural": "Activation cases"
+        },
+        "complaint": {
+          "plural": "Complaints"
+        },
+        "resiliation": {
+          "plural": "Resiliation cases"
+        }
+      },
+      "workspace": {
+        "activation": {
+          "admin": {
+            "title": "Ooredoo Activation Command Center",
+            "subtitle": "Monitor the full CRM activation pipeline, from intake to closure, inside a branded operations workspace."
+          },
+          "zm": {
+            "title": "Zone Activation Oversight",
+            "subtitle": "Track zone ownership, SLA pressure, and downstream delivery decisions with faster visual scanning."
+          },
+          "stt": {
+            "title": "Partner Delivery Control",
+            "subtitle": "Keep STT assignments, technician execution, and SLA follow-up aligned in one operational board."
+          },
+          "tech": {
+            "title": "Field Activation Queue",
+            "subtitle": "Review assigned field cases, time pressure, and execution status in a more focused activation queue."
+          },
+          "default": {
+            "title": "Activation Case Management",
+            "subtitle": "Telecom field workflow: assignment, RDV, work execution, validation, and closure."
+          }
+        },
+        "complaint": {
+          "admin": {
+            "title": "Ooredoo Complaint Command Center",
+            "subtitle": "Turn imported CRM complaints into a controlled resolution workflow with the same assignment and validation discipline."
+          },
+          "zm": {
+            "title": "Zone Complaint Oversight",
+            "subtitle": "Supervise complaint ownership, diagnosis outcomes, and final validation across your zone."
+          },
+          "stt": {
+            "title": "Complaint Resolution Control",
+            "subtitle": "Manage complaint diagnosis, technician decisions, and resolution submission without leaving the operational board."
+          },
+          "tech": {
+            "title": "Field Complaint Queue",
+            "subtitle": "Review complaint interventions, proof capture, and field execution progress in the same mobile workspace."
+          },
+          "default": {
+            "title": "Complaint Case Management",
+            "subtitle": "Telecom complaint workflow: assignment, RDV, diagnosis, work, validation, and closure."
+          }
+        },
+        "resiliation": {
+          "admin": {
+            "title": "Ooredoo Resiliation Command Center",
+            "subtitle": "Drive imported RES resiliation orders through the same assignment, execution, and validation discipline as complaints."
+          },
+          "zm": {
+            "title": "Zone Resiliation Oversight",
+            "subtitle": "Supervise resiliation ownership, STT execution, and final validation across your zone."
+          },
+          "stt": {
+            "title": "Resiliation Execution Control",
+            "subtitle": "Manage resiliation technician decisions and resolution submission from one operational board."
+          },
+          "tech": {
+            "title": "Field Resiliation Queue",
+            "subtitle": "Review resiliation interventions, proof capture, and field execution progress in the same mobile workspace."
+          },
+          "default": {
+            "title": "Resiliation Case Management",
+            "subtitle": "Telecom resiliation workflow: assignment, execution, work, validation, and closure."
+          }
+        }
+      },
+      "filters": {
+        "allStatuses": "All statuses",
+        "searchPlaceholder": "CRM, client, assignment, offer, location",
+        "visibleRangeHint": "cases visible in the current review window",
+        "filteredCases": "{{ count }} filtered cases"
+      },
+      "alerts": {
+        "eyebrow": "Live alerts",
+        "title": "Ooredoo operational alerts center",
+        "hint": "SLA pressure and assignment changes stay above the working queue.",
+        "acknowledged": "Acknowledged",
+        "needsAttention": "Needs attention"
+      },
+      "stats": {
+        "totalCases": "Total cases",
+        "totalComplaints": "Total complaints",
+        "totalResiliations": "Total resiliations",
+        "ownedByZm": "Owned by ZM",
+        "assignedToStt": "Assigned to STT",
+        "assignedToTech": "Assigned to TECH",
+        "slaWarning": "SLA warning",
+        "slaBreached": "SLA breached",
+        "resolutionReady": "Resolution ready",
+        "workDone": "Work done"
+      },
+      "performance": {
+        "eyebrow": "Performance",
+        "title": "My performance snapshot",
+        "hint": "Live workload, RDV quality, and SLA control for the current scope.",
+        "activeTasks": "Active tasks",
+        "rdvOnTime": "RDV on-time",
+        "rdvLate": "RDV late",
+        "rdvOnTimeRate": "RDV on-time rate",
+        "avgRdvResponse": "Avg RDV response",
+        "slaWarnings": "SLA warnings",
+        "slaEscalations": "SLA escalations",
+        "avgOverdue": "Avg overdue",
+        "completion": "Completion"
+      },
+      "team": {
+        "eyebrow": "Execution spotlight",
+        "title": "Top technician progress",
+        "completion": "completion",
+        "activeTasks": "active tasks"
+      },
+      "alertSummary": {
+        "criticalBreach": "Critical breach",
+        "escalated": "Escalated",
+        "slaWarning": "SLA warning",
+        "assignments": "Assignments",
+        "unreadAlerts": "Unread alerts"
+      },
+      "labels": {
+        "executor": "Executor",
+        "ownerZm": "Owner ZM",
+        "notAssigned": "Not assigned",
+        "notSet": "Not set",
+        "pending": "Pending",
+        "rdvNotSet": "RDV not set",
+        "workPending": "Work pending",
+        "validationPending": "Validation pending"
+      },
+      "sla": {
+        "notStarted": "Not started",
+        "rdvCaptured": "RDV captured",
+        "respondedIn": "Responded in {{ duration }}",
+        "overdueBy": "Overdue by {{ duration }}",
+        "overdue": "Overdue",
+        "remaining": "{{ duration }} left"
+      },
+      "actions": {
+        "diagnosis": "Diagnosis",
+        "work": "Work",
+        "rdv": "RDV",
+        "executing": "Executing",
+        "executeMyself": "Execute myself",
+        "assignTechnician": "Assign technician",
+        "assignOrChangeStt": "Assign or change STT",
+        "assignOrChangeTech": "Assign or change TECH",
+        "setRdv": "Set RDV",
+        "saveDiagnosis": "Save diagnosis",
+        "updateWork": "Update work",
+        "validateCase": "Validate case",
+        "closeCase": "Close case",
+        "reopenComplaint": "Reopen complaint"
+      },
+      "assign": {
+        "loadFailedTitle": "Load failed",
+        "stt": {
+          "title": "Assign STT - CRM {{ crmCase }}",
+          "descriptionForGovernorate": "Showing approved STTs that cover {{ governorate }}.",
+          "descriptionDefault": "Showing approved STTs available for this case.",
+          "change": "Change STT",
+          "assign": "Assign STT",
+          "loadError": "Failed to load STT list",
+          "saved": "STT assignment saved"
+        },
+        "tech": {
+          "title": "Assign technician - CRM {{ crmCase }}",
+          "descriptionDefault": "Showing approved technicians from your team.",
+          "change": "Change TECH",
+          "assign": "Assign TECH",
+          "loadError": "Failed to load technician list",
+          "saved": "TECH assignment saved"
+        }
+      },
+      "table": {
+        "locationOffer": "Location / Offer"
+      },
+      "empty": {
+        "tech": "No active field cases match your filters.",
+        "stt": "No STT cases match your current filters.",
+        "genericTitle": "No {{ module }} cases found",
+        "genericHint": "Try changing search or filters."
+      },
+      "pagination": {
+        "range": "{{ start }}-{{ end }} of {{ total }}",
+        "pageOf": "Page {{ current }} of {{ total }}",
+        "firstPage": "First page",
+        "lastPage": "Last page",
+        "goTo": "Go to",
+        "jumpToPage": "Jump to page",
+        "go": "Go"
+      },
+      "errors": {
+        "loadCases": "Failed to load {{ module }} cases"
+      },
+      "executeMyself": {
+        "confirmTitle": "Take execution yourself?",
+        "confirmText": "CRM {{crmCase}} will stay under your supervision and move into STT self-execution mode.",
+        "confirmButton": "Execute myself",
+        "kept": "STT execution kept",
+        "activated": "STT self-execution activated",
+        "errorTitle": "Execution switch failed",
+        "errorMessage": "Failed to activate STT self-execution"
+      },
+      "details": {
+        "errorTitle": "Details unavailable",
+        "errorMessage": "Failed to load case details",
+        "deletedMessage": "This case no longer exists or was deleted.",
+        "forbiddenMessage": "You do not have access to this case."
+      },
+      "download": {
+        "errorTitle": "Download failed",
+        "errorMessage": "Failed to download case report"
+      },
+      "messages": {
+        "operationCompleted": "Operation completed successfully.",
+        "operationFailed": "Operation failed",
+        "requestFailed": "Request failed"
+      },
+      "rdv": {
+        "title": "Set RDV - CRM {{crmCase}}",
+        "confirmButton": "Save RDV",
+        "saved": "RDV saved",
+        "fields": {
+          "dateTime": "Date & time RDV",
+          "operationalDetail": "Operational detail",
+          "comment": "RDV comment"
+        },
+        "placeholders": {
+          "causeInjoignabilite": "Required when reachable = No",
+          "operationalDetail": "Customer/site detail for field team",
+          "comment": "Additional scheduling notes",
+          "causeAbandon": "Required when abandoned = Yes"
+        },
+        "validation": {
+          "dateRequired": "RDV date is required",
+          "causeInjoignabiliteRequired": "Reachability cause is required when the client is not reachable",
+          "causeAbandonRequired": "Abandon reason is required when the case is marked abandoned"
+        }
+      },
+      "work": {
+        "title": "Update work - CRM {{crmCase}}",
+        "confirmButton": "Submit work",
+        "saved": "Work updated",
+        "fields": {
+          "result": "Work result",
+          "completedAt": "Work completion date",
+          "comment": "Comment",
+          "metrageCable": "Cable length",
+          "nombrePv": "PV count",
+          "debitDl": "Download speed",
+          "debitUl": "Upload speed"
+        },
+        "placeholders": {
+          "comment": "Summarize the intervention outcome and observations"
+        },
+        "validation": {
+          "requiredFields": "Work result, completion date, and comment are required"
+        }
+      },
+      "diagnosis": {
+        "title": "Diagnosis - CRM {{crmCase}}",
+        "confirmButton": "Save diagnosis",
+        "saved": "Diagnosis saved",
+        "fields": {
+          "category": "Complaint category",
+          "comment": "Diagnosis comment"
+        },
+        "placeholders": {
+          "comment": "Summarize the issue, checks, and next decision"
+        },
+        "validation": {
+          "categoryRequired": "Complaint category is required",
+          "nextStepConflict": "Choose either escalation or TECH intervention for the next step"
+        }
+      },
+      "validation": {
+        "title": "ZM validation - CRM {{crmCase}}",
+        "confirmButton": "Submit validation",
+        "saved": "Validation saved",
+        "fields": {
+          "decision": "Decision",
+          "comment": "Validation comment"
+        },
+        "options": {
+          "approve": "Approve",
+          "reject": "Reject"
+        },
+        "placeholders": {
+          "comment": "Explain your validation decision for traceability"
+        },
+        "validation": {
+          "commentRequired": "Comment is required"
+        }
+      },
+      "reopen": {
+        "title": "Reopen complaint - CRM {{crmCase}}",
+        "confirmButton": "Reopen complaint",
+        "saved": "Complaint reopened",
+        "fields": {
+          "comment": "Reopen comment"
+        },
+        "placeholders": {
+          "comment": "Explain why this complaint needs another resolution cycle"
+        }
+      },
+      "close": {
+        "confirmTitle": "Close this case?",
+        "confirmText": "CRM {{crmCase}} will be closed and cannot move forward.",
+        "confirmButton": "Close case",
+        "saved": "Case closed"
+      },
+      "timeline": {
+        "empty": "No timeline events yet.",
+        "event": "Event",
+        "actorState": "Actor: {{actor}} ? State: {{from}} -> {{to}}"
+      },
+      "proof": {
+        "empty": "No proof image uploaded yet.",
+        "defaultFilename": "Proof image",
+        "uploaded": "Uploaded: {{value}}",
+        "by": "By: {{value}}",
+        "source": "Source: {{value}}",
+        "gps": "GPS: {{value}}",
+        "capturedAt": "Captured at: {{value}}",
+        "accuracy": "Accuracy: {{value}}",
+        "openImage": "Open image",
+        "openMap": "Open map"
+      },
+      "workLocation": {
+        "empty": "No work submission GPS saved yet.",
+        "coordinates": "Coordinates:",
+        "openMap": "Open work location on map"
+      }
+    }
+  },
+  "caseDetail": {
+    "sections": {
+      "caseIdentity": "Case identity",
+      "clientInformation": "Client information",
+      "offerDetails": "Offer details",
+      "complaintDetails": "Complaint details",
+      "assignmentChain": "Assignment chain",
+      "rdv": "Rendez-vous (RDV)",
+      "diagnosis": "Diagnosis",
+      "workExecution": "Work execution",
+      "attachedPhotos": "Attached photos",
+      "technicalMetrics": "Technical metrics",
+      "resolution": "Resolution",
+      "zmValidation": "ZM validation",
+      "stockPermissions": "Over-limit stock permissions",
+      "discussion": "Discussion (ZM ↔ STT)",
+      "timeline": "Timeline"
+    },
+    "fields": {
+      "crmCase": "CRM case #",
+      "type": "Type",
+      "createdAt": "Created at",
+      "crmCreationDate": "CRM creation date",
+      "openingDateTimos": "Opening date (TIMOS)",
+      "openDateActivation": "Open date activation",
+      "fullName": "Full name",
+      "phone": "Phone",
+      "contactCl2": "Contact CL2",
+      "msisdn": "MSISDN",
+      "governorate": "Governorate",
+      "delegation": "Delegation",
+      "locality": "Locality",
+      "siteSector": "Site / sector",
+      "gpsCoordinates": "GPS coordinates",
+      "offer": "Offer",
+      "pack": "Pack",
+      "offerSpeedType": "Offer speed type",
+      "clientType": "Client type",
+      "source": "Source",
+      "ownerZm": "Owner ZM",
+      "sttSupervisor": "STT supervisor",
+      "technician": "Technician",
+      "executionMode": "Execution mode",
+      "reachable": "Reachable (joignable)",
+      "rdvDate": "RDV date",
+      "causeInjoignabilite": "Reachability cause",
+      "abandoned": "Abandoned",
+      "causeAbandon": "Abandon cause",
+      "category": "Category",
+      "rootCause": "Root cause",
+      "requiresFieldWork": "Requires field work",
+      "requiresTech": "Requires TECH",
+      "requiresEscalation": "Requires escalation",
+      "diagnosedAt": "Diagnosed at",
+      "diagnosedBy": "Diagnosed by",
+      "result": "Result",
+      "completionDate": "Completion date",
+      "workSubmissionGps": "Work submission GPS",
+      "gpsCapturedAt": "GPS captured at",
+      "gpsAccuracy": "GPS accuracy",
+      "capturedAt": "Captured at",
+      "accuracy": "Accuracy",
+      "pvCount": "PV count",
+      "downloadMbps": "Download (Mbps)",
+      "uploadMbps": "Upload (Mbps)",
+      "resolutionType": "Resolution type",
+      "validationStatus": "Validation status",
+      "submittedAt": "Submitted at",
+      "submittedBy": "Submitted by",
+      "validatedAt": "Validated at",
+      "approved": "Approved",
+      "zmResponse": "ZM response",
+      "requestedCable": "Requested cable",
+      "approvedCable": "Approved cable",
+      "requestedItems": "Requested items",
+      "sttReviewer": "STT reviewer",
+      "submitted": "Submitted",
+      "reviewed": "Reviewed",
+      "reason": "Reason",
+      "sttNote": "STT note"
+    },
+    "labels": {
+      "caseSite": "Case site",
+      "workSubmissionLocation": "Work submission location",
+      "proofPhotoLocation": "Proof photo location",
+      "requestedOverLimitUsage": "requested over-limit usage"
+    },
+    "actions": {
+      "openAttachment": "Open attachment",
+      "openPhoto": "Open photo",
+      "downloadPdf": "Download PDF",
+      "removeAttachment": "Remove attachment",
+      "attachPhoto": "Attach a photo"
+    },
+    "states": {
+      "noPreviewAvailable": "No preview available",
+      "loadingPermissions": "Loading permission requests…",
+      "noOverLimitPermissions": "No over-limit permission requests for this case."
+    },
+    "discussion": {
+      "assignSttFirst": "Assign an STT to this case to start the discussion.",
+      "loadFailed": "Failed to load the discussion",
+      "sendFailed": "Failed to send the message",
+      "imageOnly": "Only image files can be attached",
+      "loading": "Loading discussion…",
+      "noMessages": "No messages yet.",
+      "startConversation": "Start the conversation below.",
+      "seen": "Seen",
+      "sent": "Sent",
+      "writeMessage": "Write a message…"
+    },
+    "proof": {
+      "uploadedMeta": "Uploaded {{ date }} by {{ user }}"
+    },
+    "proofSource": {
+      "camera": "Work proof photo",
+      "gallery": "Gallery photo",
+      "speedtestScreenshot": "Speedtest screenshot",
+      "signalScreenshot": "Signal screenshot",
+      "attachment": "Attachment"
+    }
+  },
+  "invitations": {
+    "eyebrow": "Technician onboarding",
+    "title": "Invite technicians",
+    "description": "Send registration links, monitor approval progress, and keep the invitation flow easy to handle on phone.",
+    "openTeam": "Open team",
+    "refreshing": "Refreshing...",
+    "refreshList": "Refresh list",
+    "newInvitation": "New invitation",
+    "sendRegistrationLink": "Send registration link",
+    "emailLabel": "Technician email",
+    "sending": "Sending...",
+    "sendInvitation": "Send invitation",
+    "traceability": "Invitation traceability",
+    "myInvitations": "My invitations",
+    "loadingInvitations": "Loading invitations...",
+    "noInvitationsTitle": "No invitations found.",
+    "noInvitationsText": "Your sent invitations will appear here with their registration and ZM decision status.",
+    "sent": "Sent",
+    "zm": "ZM",
+    "used": "Used",
+    "registered": "Registered",
+    "decision": "Decision",
+    "totalInvitations": "Total invitations",
+    "invalidFormTitle": "Invalid form",
+    "invalidFormText": "Please enter a valid technician email.",
+    "invalidEmailTitle": "Invalid email",
+    "sendConfirmTitle": "Send invitation?",
+    "sendConfirmText": "An invitation will be sent to {{ email }}.",
+    "sendConfirmButton": "Send",
+    "invitationSentTitle": "Invitation sent",
+    "invitationSentDefault": "Invitation sent successfully",
+    "refreshFailedTitle": "Refresh failed",
+    "sendFailedTitle": "Send failed",
+    "loadFailedFallback": "Failed to load invitations",
+    "refreshFailedFallback": "Invitation sent, but failed to refresh list",
+    "sendFailedFallback": "Failed to send invitation"
+  },
+  "login": {
+    "brandSubtitle": "Field Service Platform",
+    "eyebrow": "Telecom Operations Workspace",
+    "heroTitle": "Sign in to manage field service activity with confidence.",
+    "heroDescription": "Access approvals, activation cases, technician operations, and audit visibility inside one operational workspace built for Ooredoo teams.",
+    "highlightOperationalTitle": "Operational control",
+    "highlightOperationalText": "Track cases, KPIs, and escalations in real time.",
+    "highlightFieldTitle": "Field execution",
+    "highlightFieldText": "Coordinate RDV, work proof, and technician progress seamlessly.",
+    "highlightSecureTitle": "Secure workflows",
+    "highlightSecureText": "Approval and role validation stay aligned with your business process.",
+    "welcomeBack": "Welcome Back",
+    "signIn": "Sign in",
+    "subtitle": "Use your email or username to access the platform.",
+    "identifierPlaceholder": "Email or Username",
+    "passwordPlaceholder": "Password",
+    "loggingIn": "Logging in...",
+    "submit": "Login",
+    "forgotPassword": "Forgot password?",
+    "needAccount": "Need an account?",
+    "signupText": "Register and follow the normal validation process before activation.",
+    "registerNow": "Register now"
+  },
+  "register": {
+    "brandSubtitle": "Onboarding Access",
+    "eyebrow": "Role-Based Registration",
+    "heroTitle": "Create your account and enter the approval workflow.",
+    "heroDescription": "Register as STT or ZM, submit your identity details, and let the right approval chain activate your workspace access.",
+    "highlightOnboardingTitle": "Structured onboarding",
+    "highlightOnboardingText": "Fast registration with role-based approval from the right manager.",
+    "highlightSecureTitle": "Secure activation",
+    "highlightSecureText": "Accounts stay protected until the validation process is complete.",
+    "highlightHierarchyTitle": "Operational hierarchy",
+    "highlightHierarchyText": "STT and ZM access remains aligned with telecom field responsibilities.",
+    "alreadyApproved": "Already approved?",
+    "goToSignIn": "Go to sign in",
+    "newAccount": "New Account",
+    "createAccount": "Create account",
+    "subtitle": "Fill in your profile, choose your role, and submit your registration for validation.",
+    "step1": "Step 1",
+    "companyInformation": "Company information",
+    "personalInformation": "Personal information",
+    "companyNamePlaceholder": "STT / company name",
+    "companyNameHint": "Use the official STT company name, for example THS or INSCOM.",
+    "firstNamePlaceholder": "First name",
+    "lastNamePlaceholder": "Last name",
+    "phonePlaceholder": "Phone",
+    "emailPlaceholder": "Email",
+    "profilePhoto": "Profile photo",
+    "profilePhotoHint": "Optional. Accepted formats: JPG, PNG, WEBP. Max size: 5 MB.",
+    "profilePreviewAlt": "Profile preview",
+    "chooseFile": "Choose file",
+    "noFileSelected": "No file selected",
+    "changeFile": "Change file",
+    "removeFile": "Remove file",
+    "remove": "Remove",
+    "step2": "Step 2",
+    "chooseRole": "Choose your role",
+    "roleZmDescription": "Zone manager access",
+    "roleSttDescription": "STT supervisor access",
+    "rolePlatformDescription": "Platform access",
+    "roleApprovalHint": "STT accounts are approved by ZM. ZM accounts are approved by Admin.",
+    "step3": "Step 3",
+    "setPassword": "Set your password",
+    "passwordPlaceholder": "Password",
+    "confirmPasswordPlaceholder": "Repeat password",
+    "creatingAccount": "Creating account...",
+    "submit": "Create account",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "errors": {
+      "photoTypeInvalid": "Only JPG, PNG, and WEBP images are allowed",
+      "photoTooLarge": "Photo size must not exceed 5 MB",
+      "companyNameRequired": "STT/company name is required",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "Password must contain at least 6 characters",
+      "passwordsMismatch": "Passwords do not match",
+      "registerFailed": "Register failed",
+      "photoUploadFailed": "Account created, but profile photo upload failed. You can upload it later."
+    },
+    "success": {
+      "waitingZmApproval": "Account created. Waiting for ZM approval.",
+      "waitingAdminApproval": "Account created. Waiting for admin approval."
+    }
+  }
+}

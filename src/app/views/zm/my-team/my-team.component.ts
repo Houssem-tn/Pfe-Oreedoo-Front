@@ -6,10 +6,9 @@ import { SpinnerComponent } from '@coreui/angular';
 
 import { CasesService } from '../../../core/cases/cases.service';
 import { PerformanceSummaryResponse } from '../../../core/cases/models/case.model';
-import { normalizeGovernorateList } from '../../../core/shared/tunisia-governorates';
 import { SwalService } from '../../../core/ui/swal.service';
 import { UserService } from '../../../core/users/user.service';
-import { AppUser } from '../../../core/users/user.model';
+import { AppUser, SttCoverageRequest } from '../../../core/users/user.model';
 import { GovernorateSelectorComponent } from '../../../shared/modals/governorate-selector/governorate-selector.component';
 
 @Component({
@@ -25,8 +24,7 @@ export class MyTeamComponent implements OnInit {
   private readonly swal = inject(SwalService);
 
   stts = signal<AppUser[]>([]);
-  zmProfile = signal<AppUser | null>(null);
-  pendingCoverageRequests = signal<AppUser[]>([]);
+  pendingCoverageRequests = signal<SttCoverageRequest[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
   validatingCoverageSttId = signal<string | null>(null);
@@ -49,27 +47,15 @@ export class MyTeamComponent implements OnInit {
 
   // Governorate selector modal state
   govSelectorVisible = signal(false);
+  govSelectorMode = signal<'approve' | 'decline'>('approve');
   govSelectorOptions = signal<string[]>([]);
   govSelectorSelected = signal<string[]>([]);
   govSelectorPendingStt = signal<AppUser | null>(null);
 
   ngOnInit(): void {
-    this.loadMyProfile();
     this.loadMyStts();
     this.loadPendingCoverageRequests();
     this.loadTechPerformance();
-  }
-
-  loadMyProfile(): void {
-    this.userService.getMe().subscribe({
-      next: (res) => {
-        this.zmProfile.set(res ?? null);
-      },
-      error: (err) => {
-        console.error('Failed to load ZM profile', err);
-        this.zmProfile.set(null);
-      }
-    });
   }
 
   loadMyStts(): void {
@@ -255,7 +241,7 @@ export class MyTeamComponent implements OnInit {
   }
 
   get pendingCoverageValidationCount(): number {
-    return this.pendingCoverageRequests().reduce((sum, stt) => sum + this.pendingGovernoratesFor(stt).length, 0);
+    return this.pendingCoverageRequests().reduce((sum, row) => sum + row.pending.length, 0);
   }
 
   get avgTeamCompletion(): number {
@@ -279,23 +265,48 @@ export class MyTeamComponent implements OnInit {
     }
   }
 
-  pendingGovernoratesFor(stt: AppUser): string[] {
-    const territory = new Set(normalizeGovernorateList(this.zmProfile()?.assignedGovernorates ?? []));
-    return normalizeGovernorateList(stt.requestedGovernorates ?? []).filter((governorate) => territory.has(governorate));
+  private governorateNames(row: SttCoverageRequest): string[] {
+    return row.pending.map((item) => item.governorate);
   }
 
   isValidatingCoverage(sttId: string): boolean {
     return this.validatingCoverageSttId() === sttId;
   }
 
-  openValidateCoverageModal(stt: AppUser): void {
-    const governorates = this.pendingGovernoratesFor(stt);
+  get govSelectorTitle(): string {
+    const name = this.govSelectorPendingStt()?.fullName ?? '';
+    return this.govSelectorMode() === 'decline'
+      ? `Decline Coverage Zones for ${name}`
+      : `Validate Coverage Zones for ${name}`;
+  }
+
+  get govSelectorDescription(): string {
+    return this.govSelectorMode() === 'decline'
+      ? 'Select the governorates you want to decline for this STT inside your territory.'
+      : 'Approve the governorates you want to activate for this STT inside your territory.';
+  }
+
+  get govSelectorConfirmText(): string {
+    return this.govSelectorMode() === 'decline' ? 'Decline zones' : 'Validate zones';
+  }
+
+  openValidateCoverageModal(row: SttCoverageRequest): void {
+    this.openCoverageModal(row, 'approve');
+  }
+
+  openDeclineCoverageModal(row: SttCoverageRequest): void {
+    this.openCoverageModal(row, 'decline');
+  }
+
+  private openCoverageModal(row: SttCoverageRequest, mode: 'approve' | 'decline'): void {
+    const governorates = this.governorateNames(row);
     if (!governorates.length) {
-      void this.swal.error('Nothing to validate', 'This STT has no pending governorate request inside your territory.');
+      void this.swal.error('Nothing pending', 'This STT has no governorate awaiting your decision.');
       return;
     }
 
-    this.govSelectorPendingStt.set(stt);
+    this.govSelectorMode.set(mode);
+    this.govSelectorPendingStt.set(row.stt);
     this.govSelectorOptions.set(governorates);
     this.govSelectorSelected.set([...governorates]); // all pre-checked
     this.govSelectorVisible.set(true);
@@ -305,22 +316,30 @@ export class MyTeamComponent implements OnInit {
     const stt = this.govSelectorPendingStt();
     if (!stt || !selected.length) return;
 
+    const mode = this.govSelectorMode();
     this.govSelectorVisible.set(false);
     this.validatingCoverageSttId.set(stt.id);
 
-    this.userService.validateCoverageAreasForStt(stt.id, {
-      approvedGovernorates: selected
-    }).subscribe({
+    const request$ = mode === 'decline'
+      ? this.userService.declineCoverageAreasForStt(stt.id, { declinedGovernorates: selected })
+      : this.userService.validateCoverageAreasForStt(stt.id, { approvedGovernorates: selected });
+
+    request$.subscribe({
       next: async () => {
         this.loadMyStts();
         this.loadPendingCoverageRequests();
-        await this.swal.success('Zones validated', `Governorates were validated successfully for ${stt.fullName}.`);
+        if (mode === 'decline') {
+          await this.swal.success('Zones declined', `Governorates were declined for ${stt.fullName}.`);
+        } else {
+          await this.swal.success('Zones validated', `Governorates were validated successfully for ${stt.fullName}.`);
+        }
         this.validatingCoverageSttId.set(null);
       },
       error: async (err) => {
-        console.error('Failed to validate STT coverage areas', err);
-        const message = err?.error?.message ?? 'Failed to validate STT coverage areas';
-        await this.swal.error('Validation failed', message);
+        console.error('Failed to update STT coverage areas', err);
+        const fallback = mode === 'decline' ? 'Failed to decline STT coverage areas' : 'Failed to validate STT coverage areas';
+        const message = err?.error?.message ?? fallback;
+        await this.swal.error(mode === 'decline' ? 'Decline failed' : 'Validation failed', message);
         this.validatingCoverageSttId.set(null);
       }
     });

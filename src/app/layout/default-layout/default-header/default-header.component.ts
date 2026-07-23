@@ -11,7 +11,6 @@ import { CasesService } from '../../../core/cases/cases.service';
 import {
   AvatarComponent,
   BadgeComponent,
-  BreadcrumbRouterComponent,
   ColorModeService,
   ContainerComponent,
   DropdownComponent,
@@ -29,10 +28,13 @@ import {
 } from '@coreui/angular';
 
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule } from '@jsverse/transloco';
 import { NotificationStoreService } from '../../../core/notifications/notification-store.service';
 import { NotificationItem } from '../../../core/notifications/models/notification.model';
 import { CaseMessagesStore } from '../../../core/cases/case-messages.store';
 import { CaseMessageUnread } from '../../../core/cases/case-messages.service';
+import { LanguageSelectorComponent } from '../../../shared/language-selector/language-selector.component';
+import { AppBreadcrumbComponent } from '../../../shared/breadcrumb/app-breadcrumb.component';
 
 @Component({
   selector: 'app-default-header',
@@ -49,7 +51,6 @@ import { CaseMessageUnread } from '../../../core/cases/case-messages.service';
     RouterLink,
     RouterLinkActive,
     NgTemplateOutlet,
-    BreadcrumbRouterComponent,
     DropdownComponent,
     DropdownToggleDirective,
     AvatarComponent,
@@ -58,7 +59,10 @@ import { CaseMessageUnread } from '../../../core/cases/case-messages.service';
     DropdownItemDirective,
     BadgeComponent,
     DropdownDividerDirective,
-    DatePipe
+    DatePipe,
+    TranslocoModule,
+    LanguageSelectorComponent,
+    AppBreadcrumbComponent
   ]
 })
 export class DefaultHeaderComponent extends HeaderComponent implements OnInit, OnDestroy {
@@ -85,9 +89,9 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
   readonly colorMode = this.#colorModeService.colorMode;
 
   readonly colorModes = [
-    { name: 'light', text: 'Light', icon: 'cilSun' },
-    { name: 'dark', text: 'Dark', icon: 'cilMoon' },
-    { name: 'auto', text: 'Auto', icon: 'cilContrast' }
+    { name: 'light', textKey: 'header.themeLight', icon: 'cilSun' },
+    { name: 'dark', textKey: 'header.themeDark', icon: 'cilMoon' },
+    { name: 'auto', textKey: 'header.themeAuto', icon: 'cilContrast' }
   ];
 
   readonly icons = computed(() => {
@@ -172,10 +176,8 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
     }
 
     if (eventType !== 'USER_REGISTERED') {
-      const roleRoute = this.getCaseRouteForNotification(notification);
-
-      if (roleRoute && this.isCaseEvent(notification.eventType)) {
-        this.router.navigate([roleRoute]);
+      if (this.isCaseEvent(notification.eventType)) {
+        this.navigateToCaseNotification(notification);
       }
 
       return;
@@ -335,6 +337,29 @@ export class DefaultHeaderComponent extends HeaderComponent implements OnInit, O
       return;
     }
     this.router.navigate([`${prefix}/cases/activation`], extras);
+  }
+
+  /**
+   * Opens the exact case a notification refers to. The notification carries a stable
+   * `caseId` (via `relatedCaseId` or `data.caseId`); we navigate to the correct role-based
+   * board with `focusCaseId`, and the board loads the full case from the backend by ID and
+   * opens its details (or shows a controlled error if it was deleted / is inaccessible).
+   * When no caseId is present we fall back to the board list rather than a dead route.
+   */
+  private navigateToCaseNotification(notification: NotificationItem): void {
+    const caseId = notification.relatedCaseId
+      ?? (typeof notification.data?.['caseId'] === 'string' ? notification.data['caseId'] : null);
+
+    const roleRoute = this.getCaseRouteForNotification(notification);
+    if (!roleRoute) {
+      return;
+    }
+
+    if (caseId) {
+      this.router.navigate([roleRoute], { queryParams: { focusCaseId: caseId } });
+    } else {
+      this.router.navigate([roleRoute]);
+    }
   }
 
   private isCaseEvent(eventType?: string): boolean {

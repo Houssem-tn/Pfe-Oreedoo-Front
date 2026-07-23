@@ -30,7 +30,9 @@
     "lint:baseline:generate": "node scripts/eslint-baseline.js generate",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCI --code-coverage",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
+    "i18n:check": "node scripts/check-i18n-keys.js",
+    "i18n:audit": "node scripts/audit-hardcoded-i18n.js"
   },
   "private": true,
   "dependencies": {
@@ -52,6 +54,7 @@
     "@coreui/icons": "^3.0.1",
     "@coreui/icons-angular": "~5.6.12",
     "@coreui/utils": "^2.0.2",
+    "@jsverse/transloco": "^8.4.0",
     "@stomp/stompjs": "^7.3.0",
     "chart.js": "^4.5.1",
     "jspdf": "^4.2.1",

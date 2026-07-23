@@ -1,0 +1,178 @@
+<div>
+
+  <!-- ── Tabs ──────────────────────────────────────────────────────────────── -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'pending'" (click)="switchTab('pending')">
+        Awaiting collection
+      </button>
+    </li>
+    <li class="nav-item">
+      <button type="button" class="nav-link" [class.active]="activeTab === 'collected'" (click)="switchTab('collected')">
+        Collected stock
+      </button>
+    </li>
+  </ul>
+
+  @if (error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  <!-- ══ Awaiting collection — grouped by technician, multi-select ══════════ -->
+  @if (activeTab === 'pending') {
+    <c-card>
+      <c-card-header class="d-flex align-items-center justify-content-between">
+        <strong>Recovered equipment awaiting collection from my technicians</strong>
+        <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
+          <svg cIcon name="cilReload"></svg>
+        </button>
+      </c-card-header>
+      <c-card-body>
+        @if (loading) {
+          <div class="text-center py-4">
+            <c-spinner size="sm"></c-spinner>
+            Loading recovered equipment...
+          </div>
+        } @else if (pendingGroups.length === 0) {
+          <div class="text-center text-muted py-4">
+            <svg cIcon name="cilStorage" size="3xl" class="mb-2 text-secondary"></svg>
+            <p>No recovered equipment is waiting for collection right now.</p>
+          </div>
+        } @else {
+          <div class="d-flex flex-column gap-3">
+            @for (group of pendingGroups; track group.technicianId) {
+              <div class="border rounded p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" [id]="'grp_' + group.technicianId"
+                           [checked]="isGroupFullySelected(group)" (change)="toggleGroupSelected(group)" />
+                    <label class="form-check-label fw-semibold" [for]="'grp_' + group.technicianId">
+                      {{ group.technicianName ?? group.technicianId }}
+                    </label>
+                  </div>
+                  <c-badge color="secondary">{{ group.items.length }} item(s)</c-badge>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th style="width: 2rem"></th>
+                        <th>Equipment</th>
+                        <th>Qty</th>
+                        <th>Serial / IMEI</th>
+                        <th>Condition</th>
+                        <th>Case type</th>
+                        <th>Case ref</th>
+                        <th>Customer</th>
+                        <th>Retrieved</th>
+                        <th>Proof</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (item of group.items; track item.id) {
+                        <tr [class.table-primary]="isSelected(item)">
+                          <td>
+                            <input class="form-check-input" type="checkbox" [checked]="isSelected(item)"
+                                   (change)="toggleSelected(item)" />
+                          </td>
+                          <td>{{ item.equipmentName }}</td>
+                          <td>{{ quantityLabel(item) }}</td>
+                          <td>{{ identifierLabel(item) }}</td>
+                          <td>{{ item.condition ?? '-' }}</td>
+                          <td>{{ item.caseUsageContext ?? '-' }}</td>
+                          <td>{{ item.crmCase ?? '-' }}</td>
+                          <td>{{ item.clientName ?? '-' }}</td>
+                          <td>{{ item.retrievedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                          <td>
+                            @if (item.proofViewUrl) {
+                              <a [href]="item.proofViewUrl" target="_blank" rel="noopener">View</a>
+                            } @else {
+                              <span class="text-muted">-</span>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+
+    <!-- ── Sticky selection summary + confirm action ────────────────────── -->
+    @if (selectedCount > 0) {
+      <div class="border rounded p-3 mt-3 bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <strong>{{ selectedCount }}</strong> item(s) selected across
+          <strong>{{ selectedTechnicianCount }}</strong> technician(s)
+        </div>
+        <button cButton color="success" [disabled]="confirming" (click)="confirmCollection()">
+          @if (confirming) {
+            <c-spinner size="sm" class="me-1"></c-spinner>
+          }
+          Confirm collection
+        </button>
+      </div>
+    }
+  }
+
+  <!-- ══ Collected stock — awaiting Material Return ═════════════════════════ -->
+  @if (activeTab === 'collected') {
+    <c-card>
+      <c-card-header class="d-flex align-items-center justify-content-between">
+        <strong>Collected stock (awaiting Material Return)</strong>
+        <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
+          <svg cIcon name="cilReload"></svg>
+        </button>
+      </c-card-header>
+      <c-card-body>
+        @if (loading) {
+          <div class="text-center py-4">
+            <c-spinner size="sm"></c-spinner>
+            Loading collected stock...
+          </div>
+        } @else if (collectedItems.length === 0) {
+          <div class="text-center text-muted py-4">
+            <p>Nothing collected yet.</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Equipment</th>
+                  <th>Qty</th>
+                  <th>Serial / IMEI</th>
+                  <th>Technician</th>
+                  <th>Case ref</th>
+                  <th>Customer</th>
+                  <th>Collected at</th>
+                  <th>Return status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of collectedItems; track item.id) {
+                  <tr>
+                    <td>{{ item.equipmentName }}</td>
+                    <td>{{ quantityLabel(item) }}</td>
+                    <td>{{ identifierLabel(item) }}</td>
+                    <td>{{ item.technicianName ?? '-' }}</td>
+                    <td>{{ item.crmCase ?? '-' }}</td>
+                    <td>{{ item.clientName ?? '-' }}</td>
+                    <td>{{ item.collectedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ item.status ?? '-' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </c-card-body>
+    </c-card>
+  }
+
+</div>

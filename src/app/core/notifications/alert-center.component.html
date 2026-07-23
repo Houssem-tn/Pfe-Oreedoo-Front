@@ -3,17 +3,17 @@
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header class="ac-head">
     <div class="ac-head__text">
-      <h1 class="ac-head__title">Alert Center</h1>
-      <p class="ac-head__subtitle">Monitor urgent events, operational warnings, and team actions in real time.</p>
+      <h1 class="ac-head__title">{{ 'notifications.alertCenter.title' | transloco }}</h1>
+      <p class="ac-head__subtitle">{{ 'notifications.alertCenter.subtitle' | transloco }}</p>
     </div>
     <div class="ac-head__actions">
-      <button class="ac-refresh" type="button" (click)="store.refresh()" title="Refresh alerts" aria-label="Refresh alerts">
+      <button class="ac-refresh" type="button" (click)="store.refresh()" [title]="'notifications.alertCenter.refresh' | transloco" [attr.aria-label]="'notifications.alertCenter.refresh' | transloco">
         <svg cIcon name="cilReload"></svg>
-        Refresh
+        {{ 'notifications.alertCenter.refresh' | transloco }}
       </button>
       <span class="ac-live">
         <span class="ac-live__dot"></span>
-        Live Monitoring
+        {{ 'notifications.alertCenter.liveMonitoring' | transloco }}
       </span>
     </div>
   </header>
@@ -21,11 +21,11 @@
   <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
   <nav class="ac-tabs">
     <button class="ac-tab" [class.ac-tab--active]="activeTab() === 'ACTIVE'" (click)="setTab('ACTIVE')">
-      Active Alerts
+      {{ 'notifications.alertCenter.tabs.active' | transloco }}
       @if (activeCount() > 0) { <span class="ac-tab__count">{{ activeCount() }}</span> }
     </button>
     <button class="ac-tab" [class.ac-tab--active]="activeTab() === 'ARCHIVED'" (click)="setTab('ARCHIVED')">
-      Archived Alerts
+      {{ 'notifications.alertCenter.tabs.archived' | transloco }}
       @if (archivedCount() > 0) { <span class="ac-tab__count">{{ archivedCount() }}</span> }
     </button>
   </nav>
@@ -53,7 +53,7 @@
       <input
         type="text"
         class="ac-search__input"
-        placeholder="Search alerts, cases, users..."
+        [placeholder]="'notifications.alertCenter.searchPlaceholder' | transloco"
         [value]="searchTerm()"
         (input)="onSearch($any($event.target).value)" />
     </div>
@@ -62,7 +62,7 @@
       <input
         type="date"
         class="ac-field__input"
-        aria-label="From date"
+        [attr.aria-label]="'notifications.alertCenter.fromDate' | transloco"
         [value]="fromDate()"
         (change)="onFromDate($any($event.target).value)" />
     </div>
@@ -71,31 +71,31 @@
       <input
         type="date"
         class="ac-field__input"
-        aria-label="To date"
+        [attr.aria-label]="'notifications.alertCenter.toDate' | transloco"
         [value]="toDate()"
         (change)="onToDate($any($event.target).value)" />
     </div>
 
     <div class="ac-field">
-      <select class="ac-field__input" aria-label="Alert type"
+      <select class="ac-field__input" [attr.aria-label]="'notifications.alertCenter.typeLabel' | transloco"
               [value]="typeFilter()" (change)="onType($any($event.target).value)">
-        @for (opt of categoryOptions; track opt.value) {
+        @for (opt of categoryOptions(); track opt.value) {
           <option [value]="opt.value">{{ opt.label }}</option>
         }
       </select>
     </div>
 
     <div class="ac-field">
-      <select class="ac-field__input" aria-label="Severity"
+      <select class="ac-field__input" [attr.aria-label]="'notifications.alertCenter.severityLabel' | transloco"
               [value]="severityFilter()" (change)="onSeverity($any($event.target).value)">
-        @for (opt of severityOptions; track opt.value) {
+        @for (opt of severityOptions(); track opt.value) {
           <option [value]="opt.value">{{ opt.label }}</option>
         }
       </select>
     </div>
 
     @if (hasActiveFilters()) {
-      <button class="ac-clear" (click)="clearFilters()" title="Clear filters">
+      <button class="ac-clear" (click)="clearFilters()" [title]="'notifications.alertCenter.clearFilters' | transloco" [attr.aria-label]="'notifications.alertCenter.clearFilters' | transloco">
         <svg cIcon name="cilX"></svg>
       </button>
     }
@@ -105,7 +105,7 @@
   @if (store.loading()) {
     <div class="ac-state">
       <c-spinner size="sm"></c-spinner>
-      <span>Loading alerts…</span>
+      <span>{{ 'notifications.alertCenter.loading' | transloco }}</span>
     </div>
   }
 
@@ -149,7 +149,7 @@
           <div class="ac-card__actions">
             @if (activeTab() === 'ACTIVE') {
               <button class="ac-btn ac-btn--ghost" (click)="dismiss(alert, $event)">
-                Dismiss
+                {{ 'notifications.alertCenter.actions.dismiss' | transloco }}
               </button>
             }
             <button class="ac-btn ac-btn--solid" (click)="handleAction(alert)">
@@ -165,10 +165,10 @@
     <!-- ── Pagination ───────────────────────────────────────────────────── -->
     @if (totalPages() > 1) {
       <nav class="ac-pager">
-        <span class="ac-pager__info">{{ pageRangeLabel() }}</span>
+        <span class="ac-pager__info">{{ pageRangeLabelText() }}</span>
         <div class="ac-pager__controls">
           <button class="ac-page" [disabled]="activePage() === 1"
-                  (click)="goToPage(activePage() - 1)" title="Previous page" aria-label="Previous page">
+                  (click)="goToPage(activePage() - 1)" [title]="'notifications.alertCenter.pager.previousPage' | transloco" [attr.aria-label]="'notifications.alertCenter.pager.previousPage' | transloco">
             <svg cIcon name="cilChevronLeft"></svg>
           </button>
           @for (p of visiblePages(); track $index) {
@@ -181,7 +181,7 @@
             }
           }
           <button class="ac-page" [disabled]="activePage() === totalPages()"
-                  (click)="goToPage(activePage() + 1)" title="Next page" aria-label="Next page">
+                  (click)="goToPage(activePage() + 1)" [title]="'notifications.alertCenter.pager.nextPage' | transloco" [attr.aria-label]="'notifications.alertCenter.pager.nextPage' | transloco">
             <svg cIcon name="cilChevronRight"></svg>
           </button>
         </div>

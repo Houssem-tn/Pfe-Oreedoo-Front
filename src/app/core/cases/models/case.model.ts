@@ -216,10 +216,26 @@ export interface CaseRecoveredEquipmentItem {
   quantity: number;
   serialNumber?: string | null;
   macAddress?: string | null;
+  imei?: string | null;
   condition?: string | null;
+  /** Legacy material-return code (older RES-only path only). */
   returnCode?: string | null;
+  /** Linked tracked-unit id when this recovered unit is an EquipmentInstance. */
+  instanceId?: string | null;
+  /** RETRIEVED / DAMAGED / MISSING / NOT_FOUND / ALREADY_RETURNED — plain string, see
+   * RecoveredEquipmentRequestItem's own note on why this isn't a shared enum type. */
+  disposition?: string | null;
+  dispositionNote?: string | null;
+  /** Linked RetrievedStockItem id — present only for physically-held dispositions. */
+  retrievedStockItemId?: string | null;
 }
 
+/**
+ * `condition`/`disposition` stay plain strings (not imported from `retrieved-stock.model`'s
+ * `RecoveryDisposition`/`ReturnCondition` types) to mirror the backend DTO's own choice of keeping
+ * `case_management` decoupled from `stock_management.retrieved_stock` — this model is shared by
+ * both the Complaint and Résiliation retrieval flows regardless of which stock subsystem consumes it.
+ */
 export interface RecoveredEquipmentRequestItem {
   equipmentId: string;
   equipmentName?: string;
@@ -229,6 +245,9 @@ export interface RecoveredEquipmentRequestItem {
   macAddress?: string;
   imei?: string;
   condition?: string;
+  /** RETRIEVED (default) / DAMAGED / MISSING / NOT_FOUND / ALREADY_RETURNED. */
+  disposition?: string;
+  dispositionNote?: string;
 }
 
 export interface DeclareClientRecoveryRequest {
@@ -399,21 +418,51 @@ export interface CaseStatusUi {
   badgeClass: string;
 }
 
+/**
+ * `label` holds a translation KEY (statuses.case.*), not display text — pass it
+ * through TranslocoService.translate() / the `transloco` pipe at render time.
+ */
 export const CASE_STATUS_UI: Record<CaseStatus, CaseStatusUi> = {
-  CREATED: { label: 'Created', badgeClass: 'bg-secondary-subtle text-secondary-emphasis' },
-  ASSIGNED_TO_ZM: { label: 'Assigned to ZM', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
-  ASSIGNED_TO_STT: { label: 'Assigned to STT', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
-  ASSIGNED_TO_TECH: { label: 'Assigned to TECH', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
-  RDV_SET: { label: 'RDV set', badgeClass: 'bg-info-subtle text-info-emphasis' },
-  DIAGNOSIS_STEP: { label: 'Diagnosis step', badgeClass: 'bg-info-subtle text-info-emphasis' },
-  ESCALATED: { label: 'Escalated', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
-  RESOLUTION_SUBMITTED: { label: 'Resolution submitted', badgeClass: 'bg-success-subtle text-success-emphasis' },
-  RETURNED_TO_STT: { label: 'Returned to STT', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
-  REOPENED: { label: 'Reopened', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
-  NOT_REACHABLE: { label: 'Not reachable', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
-  ABANDONED: { label: 'Abandoned', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
-  WORK_DONE: { label: 'Work done', badgeClass: 'bg-success-subtle text-success-emphasis' },
-  VALIDATED_BY_ZM: { label: 'Validated by ZM', badgeClass: 'bg-success-subtle text-success-emphasis' },
-  REJECTED_BY_ZM: { label: 'Rejected by ZM', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
-  CLOSED: { label: 'Closed', badgeClass: 'bg-dark-subtle text-dark-emphasis' }
+  CREATED: { label: 'statuses.case.created', badgeClass: 'bg-secondary-subtle text-secondary-emphasis' },
+  ASSIGNED_TO_ZM: { label: 'statuses.case.assignedToZm', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
+  ASSIGNED_TO_STT: { label: 'statuses.case.assignedToStt', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
+  ASSIGNED_TO_TECH: { label: 'statuses.case.assignedToTech', badgeClass: 'bg-primary-subtle text-primary-emphasis' },
+  RDV_SET: { label: 'statuses.case.rdvSet', badgeClass: 'bg-info-subtle text-info-emphasis' },
+  DIAGNOSIS_STEP: { label: 'statuses.case.diagnosisStep', badgeClass: 'bg-info-subtle text-info-emphasis' },
+  ESCALATED: { label: 'statuses.case.escalated', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
+  RESOLUTION_SUBMITTED: { label: 'statuses.case.resolutionSubmitted', badgeClass: 'bg-success-subtle text-success-emphasis' },
+  RETURNED_TO_STT: { label: 'statuses.case.returnedToStt', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
+  REOPENED: { label: 'statuses.case.reopened', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
+  NOT_REACHABLE: { label: 'statuses.case.notReachable', badgeClass: 'bg-warning-subtle text-warning-emphasis' },
+  ABANDONED: { label: 'statuses.case.abandoned', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
+  WORK_DONE: { label: 'statuses.case.workDone', badgeClass: 'bg-success-subtle text-success-emphasis' },
+  VALIDATED_BY_ZM: { label: 'statuses.case.validatedByZm', badgeClass: 'bg-success-subtle text-success-emphasis' },
+  REJECTED_BY_ZM: { label: 'statuses.case.rejectedByZm', badgeClass: 'bg-danger-subtle text-danger-emphasis' },
+  CLOSED: { label: 'statuses.case.closed', badgeClass: 'bg-dark-subtle text-dark-emphasis' }
 };
+
+/**
+ * True when a case is a Résiliation. RES is stored as a PLAINTE case discriminated by its
+ * module/import source (there is no dedicated CaseType). Metrics never apply to RES.
+ */
+export function isResiliationCase(
+  item: Pick<CaseResponse, 'type' | 'caseModule' | 'source'> | null | undefined
+): boolean {
+  if (!item || item.type !== 'PLAINTE') {
+    return false;
+  }
+  return (item.caseModule ?? '').toUpperCase() === 'RES' || item.source === 'RES_TODO_IMPORT';
+}
+
+/**
+ * Technical metrics apply to Activation and Complaint (PLAINTE non-RES) — never to Résiliation.
+ * Use this to gate the metrics section consistently across every case-detail view.
+ */
+export function caseSupportsMetrics(
+  item: Pick<CaseResponse, 'type' | 'caseModule' | 'source'> | null | undefined
+): boolean {
+  if (!item) {
+    return false;
+  }
+  return item.type === 'ACTIVATION' || (item.type === 'PLAINTE' && !isResiliationCase(item));
+}

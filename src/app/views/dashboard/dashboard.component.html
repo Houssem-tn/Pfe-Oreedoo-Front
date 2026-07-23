@@ -1,7 +1,7 @@
 <div class="admin-analytics-dashboard" *ngIf="isAdmin">
   <div class="dashboard-brand-ribbon">
     <span class="dashboard-brand-ribbon__pill">ooredoo</span>
-    <span class="dashboard-brand-ribbon__text">Choose the dataset type first, then import and analyze it in its own dedicated workflow.</span>
+    <span class="dashboard-brand-ribbon__text">{{ 'dashboard.shell.ribbon' | transloco }}</span>
   </div>
 
   <c-row [gutter]="4">
@@ -10,37 +10,37 @@
         <c-card-body>
           <div class="hero-card__content">
             <div>
-              <div class="hero-card__eyebrow">Ooredoo admin import workspace</div>
+              <div class="hero-card__eyebrow">{{ 'dashboard.shell.heroEyebrow' | transloco }}</div>
               <div class="hero-card__brandline">
                 <span class="hero-card__brand">ooredoo</span>
-                <span class="hero-card__brandcopy">Multi-context import</span>
+                <span class="hero-card__brandcopy">{{ 'dashboard.shell.heroBrandcopy' | transloco }}</span>
               </div>
-              <h2 class="hero-card__title">Import TODO, Activation, Plainte, and Merged files without mixing their workflows</h2>
+              <h2 class="hero-card__title">{{ 'dashboard.shell.heroTitle' | transloco }}</h2>
               <p class="hero-card__description">
-                The admin chooses the import context first. TODO files continue through the TODO study pipeline, Activation CSV stays in the activation analytics flow, Plainte CSV goes into the complaint workflow, and Merged files go into the analytics-only pipeline without triggering any case distribution.
+                {{ 'dashboard.shell.heroDescription' | transloco }}
               </p>
             </div>
 
             <div class="hero-card__chips">
               <span class="dashboard-chip">
                 <svg cIcon name="cilCloudUpload"></svg>
-                Separate file contexts
+                {{ 'dashboard.shell.chipSeparateContexts' | transloco }}
               </span>
               <span class="dashboard-chip">
                 <svg cIcon name="cilDescription"></svg>
-                TODO study preserved
+                {{ 'dashboard.shell.chipTodoStudyPreserved' | transloco }}
               </span>
               <span class="dashboard-chip">
                 <svg cIcon name="cilBolt"></svg>
-                Activation analytics isolated
+                {{ 'dashboard.shell.chipActivationIsolated' | transloco }}
               </span>
               <span class="dashboard-chip">
                 <svg cIcon name="cilWarning"></svg>
-                Complaint workflow isolated
+                {{ 'dashboard.shell.chipComplaintIsolated' | transloco }}
               </span>
               <span class="dashboard-chip">
                 <svg cIcon name="cilChartPie"></svg>
-                Merged — analytics only
+                {{ 'dashboard.shell.chipMergedAnalyticsOnly' | transloco }}
               </span>
               <span class="dashboard-chip dashboard-chip--accent">
                 <svg cIcon name="cilChartLine"></svg>
@@ -59,8 +59,8 @@
         <c-card-body>
           <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
             <div>
-              <div class="dashboard-panel__eyebrow">File type selection</div>
-              <div class="dashboard-panel__title">Choose the exact workflow the uploaded file belongs to</div>
+              <div class="dashboard-panel__eyebrow">{{ 'dashboard.shell.panelEyebrow' | transloco }}</div>
+              <div class="dashboard-panel__title">{{ 'dashboard.shell.panelTitle' | transloco }}</div>
             </div>
 
             <div class="d-flex flex-wrap gap-2">
@@ -73,7 +73,7 @@
                 (click)="selectImportType('todos')"
               >
                 <svg cIcon name="cilDescription" class="me-2"></svg>
-                Import TODO Files
+                {{ 'dashboard.shell.importTodo' | transloco }}
               </button>
 
               <button
@@ -85,7 +85,7 @@
                 (click)="selectImportType('activation')"
               >
                 <svg cIcon name="cilBolt" class="me-2"></svg>
-                Import Activation CSV
+                {{ 'dashboard.shell.importActivation' | transloco }}
               </button>
 
               <button
@@ -97,7 +97,7 @@
                 (click)="selectImportType('complaint')"
               >
                 <svg cIcon name="cilWarning" class="me-2"></svg>
-                Import Plainte CSV
+                {{ 'dashboard.shell.importComplaint' | transloco }}
               </button>
 
               <button
@@ -109,13 +109,13 @@
                 (click)="selectImportType('merged')"
               >
                 <svg cIcon name="cilChartPie" class="me-2"></svg>
-                Import Merged Operations File
+                {{ 'dashboard.shell.importMerged' | transloco }}
               </button>
             </div>
           </div>
 
           <div class="small text-body-secondary mt-3">
-            `Todos` uses the TODO study pipeline. `Activation` uses the activation analytics endpoint. `Plaintes` uses the complaint import endpoint. `Merged` uses a dedicated analytics-only pipeline — no case distribution, no notifications.
+            {{ 'dashboard.shell.pipelineNote' | transloco }}
           </div>
         </c-card-body>
       </c-card>

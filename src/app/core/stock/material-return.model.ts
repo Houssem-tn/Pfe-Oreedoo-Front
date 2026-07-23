@@ -43,66 +43,76 @@ export type ReturnDestination =
 
 export type ReturnSource =
   | 'STT_STOCK'
+  | 'COLLECTED_ITEM_STOCK'
   | 'CLIENT_RECOVERY'
   | 'RESILIATION_RECOVERY'
   | 'DAMAGED_FIELD_RECOVERY'
   | 'UNUSED_FIELD_MATERIAL'
   | 'OTHER';
 
+/**
+ * Values are translation KEYS (statuses.materialReturn.*), not display text —
+ * pass them through TranslocoService.translate() / the `transloco` pipe.
+ */
 export const RETURN_STATUS_LABELS: Record<MaterialReturnStatus, string> = {
-  SUBMITTED: 'Submitted',
-  PENDING: 'Awaiting ZM Review',
-  PENDING_ZM_REVIEW: 'Awaiting ZM Review',
-  SCHEDULE_PROPOSED: 'Schedule Proposed',
-  PENDING_STT_CONFIRMATION: 'Awaiting STT Confirmation',
-  WAITING_STT_CONFIRMATION: 'Awaiting STT Confirmation',
-  SCHEDULE_PROPOSED_BY_ZM: 'Schedule Proposed',
-  RESCHEDULE_REQUESTED: 'Reschedule Requested',
-  SCHEDULE_REJECTED_BY_STT: 'Reschedule Requested',
-  APPROVED: 'Approved',
-  SCHEDULE_CONFIRMED: 'Schedule Confirmed',
-  REJECTED: 'Rejected',
-  HANDED_OVER: 'Handed Over',
-  RECEIVED: 'Received',
-  COMPLETED: 'Completed',
-  CLOSED: 'Closed',
+  SUBMITTED: 'statuses.materialReturn.submitted',
+  PENDING: 'statuses.materialReturn.awaitingZmReview',
+  PENDING_ZM_REVIEW: 'statuses.materialReturn.awaitingZmReview',
+  SCHEDULE_PROPOSED: 'statuses.materialReturn.scheduleProposed',
+  PENDING_STT_CONFIRMATION: 'statuses.materialReturn.awaitingSttConfirmation',
+  WAITING_STT_CONFIRMATION: 'statuses.materialReturn.awaitingSttConfirmation',
+  SCHEDULE_PROPOSED_BY_ZM: 'statuses.materialReturn.scheduleProposed',
+  RESCHEDULE_REQUESTED: 'statuses.materialReturn.rescheduleRequested',
+  SCHEDULE_REJECTED_BY_STT: 'statuses.materialReturn.rescheduleRequested',
+  APPROVED: 'statuses.materialReturn.approved',
+  SCHEDULE_CONFIRMED: 'statuses.materialReturn.scheduleConfirmed',
+  REJECTED: 'statuses.materialReturn.rejected',
+  HANDED_OVER: 'statuses.materialReturn.handedOver',
+  RECEIVED: 'statuses.materialReturn.received',
+  COMPLETED: 'statuses.materialReturn.completed',
+  CLOSED: 'statuses.materialReturn.closed',
 };
 
+/** Values are translation keys (statuses.returnReason.*). */
 export const RETURN_REASON_LABELS: Record<ReturnReason, string> = {
-  DAMAGED: 'Damaged material',
-  BROKEN: 'Broken / not working',
-  CLIENT_RESILIATION_RECOVERY: 'Recovered after resiliation',
-  UNUSED: 'Unused material',
-  WRONG_DISTRIBUTION: 'Wrongly distributed',
-  REPLACEMENT: 'Replacement material',
-  OTHER: 'Other',
+  DAMAGED: 'statuses.returnReason.damaged',
+  BROKEN: 'statuses.returnReason.broken',
+  CLIENT_RESILIATION_RECOVERY: 'statuses.returnReason.clientResiliationRecovery',
+  UNUSED: 'statuses.returnReason.unused',
+  WRONG_DISTRIBUTION: 'statuses.returnReason.wrongDistribution',
+  REPLACEMENT: 'statuses.returnReason.replacement',
+  OTHER: 'statuses.returnReason.other',
 };
 
+/** Values are translation keys (statuses.returnCondition.*). */
 export const RETURN_CONDITION_LABELS: Record<ReturnCondition, string> = {
-  GOOD: 'Good condition',
-  RECONDITIONABLE: 'Reconditionable',
-  DAMAGED: 'Damaged',
-  BROKEN: 'Broken',
-  LOST: 'Lost',
-  UNKNOWN: 'Unknown / needs inspection',
+  GOOD: 'statuses.returnCondition.good',
+  RECONDITIONABLE: 'statuses.returnCondition.reconditionable',
+  DAMAGED: 'statuses.returnCondition.damaged',
+  BROKEN: 'statuses.returnCondition.broken',
+  LOST: 'statuses.returnCondition.lost',
+  UNKNOWN: 'statuses.returnCondition.unknown',
 };
 
+/** Values are translation keys (statuses.returnDestination.*). */
 export const RETURN_DESTINATION_LABELS: Record<ReturnDestination, string> = {
-  USABLE_STOCK: 'Usable stock',
-  DAMAGED_STOCK: 'Damaged stock',
-  REPAIR_CENTER: 'Repair center',
-  RECONDITIONING: 'Reconditioning',
-  CENTRAL_WAREHOUSE: 'Central warehouse',
-  SCRAP: 'Scrap / disposal',
+  USABLE_STOCK: 'statuses.returnDestination.usableStock',
+  DAMAGED_STOCK: 'statuses.returnDestination.damagedStock',
+  REPAIR_CENTER: 'statuses.returnDestination.repairCenter',
+  RECONDITIONING: 'statuses.returnDestination.reconditioning',
+  CENTRAL_WAREHOUSE: 'statuses.returnDestination.centralWarehouse',
+  SCRAP: 'statuses.returnDestination.scrap',
 };
 
+/** Values are translation keys (statuses.returnSource.*). */
 export const RETURN_SOURCE_LABELS: Record<ReturnSource, string> = {
-  STT_STOCK: 'From STT stock',
-  CLIENT_RECOVERY: 'Client recovery',
-  RESILIATION_RECOVERY: 'Resiliation recovery',
-  DAMAGED_FIELD_RECOVERY: 'Damaged field recovery',
-  UNUSED_FIELD_MATERIAL: 'Unused field material',
-  OTHER: 'Other / unclassified',
+  STT_STOCK: 'statuses.returnSource.sttStock',
+  COLLECTED_ITEM_STOCK: 'statuses.returnSource.collectedItemStock',
+  CLIENT_RECOVERY: 'statuses.returnSource.clientRecovery',
+  RESILIATION_RECOVERY: 'statuses.returnSource.resiliationRecovery',
+  DAMAGED_FIELD_RECOVERY: 'statuses.returnSource.damagedFieldRecovery',
+  UNUSED_FIELD_MATERIAL: 'statuses.returnSource.unusedFieldMaterial',
+  OTHER: 'statuses.returnSource.other',
 };
 
 export interface ReturnTimelineEvent {
@@ -123,7 +133,22 @@ export interface ReturnedItem {
   serialNumber?: string;
   macAddress?: string;
   imei?: string;
+  instanceId?: string;
   condition?: ReturnCondition;
+  retrievedStockItemId?: string;
+  originalTechnicianId?: string;
+  originalTechnicianName?: string;
+  originalTechnicianEmail?: string;
+  originalCaseId?: string;
+  originalCaseReference?: string;
+  originalCaseType?: string;
+  originalCustomerName?: string;
+  originalCustomerPhone?: string;
+  originalRecoveryDate?: string;
+  sttCollectedAt?: string;
+  proofFileId?: string;
+  proofViewUrl?: string;
+  proofDownloadUrl?: string;
 }
 
 export interface MaterialReturn {
@@ -171,6 +196,8 @@ export interface ReturnedItemRequest {
   serialNumber?: string;
   macAddress?: string;
   imei?: string;
+  instanceId?: string;
+  retrievedStockItemId?: string;
   condition?: ReturnCondition;
 }
 
@@ -183,7 +210,8 @@ export interface CreateMaterialReturnRequest {
   reason: ReturnReason;
   condition: ReturnCondition;
   destination: ReturnDestination;
-  items: ReturnedItemRequest[];
+  items?: ReturnedItemRequest[];
+  retrievedStockItemIds?: string[];
   comment?: string;
   proofImageUrls?: string[];
 }

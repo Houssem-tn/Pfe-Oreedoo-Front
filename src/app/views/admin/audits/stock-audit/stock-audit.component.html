@@ -303,6 +303,9 @@
                 @if (entry.auditType === 'RETURN_MATERIAL' && entry.reason) {
                   <span class="sa-reason-chip">{{ reasonLabel(entry.reason) }}</span>
                 }
+                @if (entry.auditType === 'RETURN_MATERIAL' && entry.returnSource) {
+                  <span class="sa-reason-chip">{{ prettyEnum(entry.returnSource) }}</span>
+                }
                 @if (entry.crmCase || entry.relatedCaseId) {
                   <span class="sa-case-chip">
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -451,6 +454,74 @@
                     <span class="sa-usage-qty">{{ formatQty(item.quantity, item.unit) }}</span>
                     <span class="sa-usage-unit">{{ item.condition ? prettyEnum(item.condition) : '—' }}</span>
                   </div>
+                }
+              </div>
+
+              <div class="returned-items-grid" style="margin-top:0.85rem">
+                @for (item of selectedReturn.items; track $index) {
+                  @if (item.technicianName || item.originalCaseReference || item.originalCustomerName || item.originalRecoveryDate || item.sttCollectedAt || item.currentReturnStatus || item.serialNumber || item.imei || item.retrievedStockItemId) {
+                    <article class="returned-item-detail">
+                      <div class="returned-item-detail__head">
+                        <div>
+                          <strong>{{ item.equipmentName ?? item.equipmentId }}</strong>
+                          <span>{{ formatQty(item.quantity, item.unit) }}</span>
+                        </div>
+                        <span class="sa-pill sa-pill--confirmed">{{ item.condition ? prettyEnum(item.condition) : 'â€”' }}</span>
+                      </div>
+
+                      <div class="summary-chip-wrap">
+                        <span class="sa-case-chip">{{ itemIdentifier(item) }}</span>
+                        @if (item.retrievedStockItemId) {
+                          <span class="sa-case-chip">Collected ID: {{ item.retrievedStockItemId }}</span>
+                        }
+                        @if (proofLink(item)) {
+                          <a class="sa-case-chip" [href]="proofLink(item)!" target="_blank" rel="noopener">View proof</a>
+                        }
+                      </div>
+
+                      <div class="returned-item-detail__grid">
+                        @if (item.technicianName) {
+                          <div>
+                            <span class="sa-detail-label">Technician</span>
+                            <strong>{{ item.technicianName }}</strong>
+                          </div>
+                        }
+                        @if (item.originalCaseReference) {
+                          <div>
+                            <span class="sa-detail-label">Original Case</span>
+                            <strong>{{ item.originalCaseReference }}</strong>
+                            @if (item.originalCaseType) {
+                              <span class="sa-muted-text">{{ item.originalCaseType }}</span>
+                            }
+                          </div>
+                        }
+                        @if (item.originalCustomerName) {
+                          <div>
+                            <span class="sa-detail-label">Customer</span>
+                            <strong>{{ item.originalCustomerName }}</strong>
+                          </div>
+                        }
+                        @if (item.originalRecoveryDate) {
+                          <div>
+                            <span class="sa-detail-label">Recovery Date</span>
+                            <strong>{{ item.originalRecoveryDate | date:'dd/MM/yyyy HH:mm' }}</strong>
+                          </div>
+                        }
+                        @if (item.sttCollectedAt) {
+                          <div>
+                            <span class="sa-detail-label">STT Collection</span>
+                            <strong>{{ item.sttCollectedAt | date:'dd/MM/yyyy HH:mm' }}</strong>
+                          </div>
+                        }
+                        @if (item.currentReturnStatus) {
+                          <div>
+                            <span class="sa-detail-label">Return Status</span>
+                            <strong>{{ prettyEnum(item.currentReturnStatus) }}</strong>
+                          </div>
+                        }
+                      </div>
+                    </article>
+                  }
                 }
               </div>
             } @else {

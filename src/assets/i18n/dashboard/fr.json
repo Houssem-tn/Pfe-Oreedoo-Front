@@ -1,0 +1,27 @@
+{
+  "shell": {
+    "ribbon": "Choisissez d'abord le type de jeu de données, puis importez-le et analysez-le dans son propre flux dédié.",
+    "heroEyebrow": "Espace d'import administrateur Ooredoo",
+    "heroBrandcopy": "Import multi-contextes",
+    "heroTitle": "Importez les fichiers TODO, Activation, Plainte et Fusionné sans mélanger leurs flux",
+    "heroDescription": "L'administrateur choisit d'abord le contexte d'import. Les fichiers TODO poursuivent le pipeline d'étude TODO, le CSV Activation reste dans le flux d'analytique d'activation, le CSV Plainte va dans le flux de réclamation, et les fichiers Fusionnés vont dans un pipeline analytique uniquement, sans déclencher de distribution de dossiers.",
+    "chipSeparateContexts": "Contextes de fichiers séparés",
+    "chipTodoStudyPreserved": "Étude TODO préservée",
+    "chipActivationIsolated": "Analytique d'activation isolée",
+    "chipComplaintIsolated": "Flux de réclamation isolé",
+    "chipMergedAnalyticsOnly": "Fusionné — analytique uniquement",
+    "panelEyebrow": "Sélection du type de fichier",
+    "panelTitle": "Choisissez le flux exact auquel appartient le fichier importé",
+    "importTodo": "Importer des fichiers TODO",
+    "importActivation": "Importer un CSV Activation",
+    "importComplaint": "Importer un CSV Plainte",
+    "importMerged": "Importer un fichier Opérations fusionnées",
+    "pipelineNote": "« Todos » utilise le pipeline d'étude TODO. « Activation » utilise le point d'entrée analytique d'activation. « Plaintes » utilise le point d'entrée d'import de réclamation. « Fusionné » utilise un pipeline analytique dédié — aucune distribution de dossiers, aucune notification.",
+    "importTypeLabel": {
+      "activation": "Espace d'import et d'analytique CSV Activation",
+      "complaint": "Espace d'import CSV Plainte et de flux de réclamation",
+      "merged": "Analytique des opérations fusionnées — sans distribution de dossiers",
+      "todos": "Espace d'import et d'étude TODO"
+    }
+  }
+}

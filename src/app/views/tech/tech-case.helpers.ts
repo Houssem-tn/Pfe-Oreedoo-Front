@@ -6,9 +6,10 @@ import {
   CaseSlaTracking,
   CaseTimelineEvent,
   CaseWork,
+  RecoveredEquipmentRequestItem,
   SlaStatus
 } from '../../core/cases/models/case.model';
-import { TechStockItem } from '../../core/stock/stock.model';
+import { Equipment, TechStockItem } from '../../core/stock/stock.model';
 
 export interface LiveSlaState {
   status: SlaStatus | null;
@@ -23,6 +24,30 @@ export interface EquipmentUsageLine {
   quantity: string | number;
   /** Selected tracked-unit ids for this line (tracked equipment only). */
   instanceIds?: string[];
+}
+
+/**
+ * One line in the "equipment retrieved from the customer" form, shared by Complaint (PLT — always
+ * disposition RETRIEVED, no picker shown) and Résiliation (RES — full disposition picker).
+ */
+export interface RecoveryLine {
+  equipmentId: string;
+  quantity: string | number;
+  serialNumber: string;
+  macAddress: string;
+  imei: string;
+  condition: string;
+  /** RETRIEVED (default) / DAMAGED / MISSING / NOT_FOUND / ALREADY_RETURNED. */
+  disposition: string;
+  /** Free-text note — mainly used for non-physical dispositions (e.g. why it's missing). */
+  dispositionNote: string;
+}
+
+export function newRecoveryLine(): RecoveryLine {
+  return {
+    equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '',
+    condition: 'GOOD', disposition: 'RETRIEVED', dispositionNote: ''
+  };
 }
 
 const DEFAULT_WARNING_THRESHOLD = 50;
@@ -298,6 +323,102 @@ export function buildUsedEquipmentPayload(
       quantity: selected.quantity,
       instanceIds: selected.instanceIds
     });
+  }
+
+  return { items, error: null };
+}
+
+const PHYSICALLY_HELD_DISPOSITIONS = new Set(['RETRIEVED', 'DAMAGED']);
+
+/**
+ * Validates and builds the retrieval-declaration payload, mirroring `buildUsedEquipmentPayload`'s
+ * `{items, error}` shape. Server-side (`RetrievedStockService.recordRetrieval`) re-validates
+ * everything here too — this is client-side defense-in-depth so the technician gets fast feedback
+ * before a round-trip, not the source of truth.
+ */
+export function buildRecoveredEquipmentPayload(
+  lines: RecoveryLine[],
+  equipmentCatalog: Equipment[]
+): { items: RecoveredEquipmentRequestItem[]; error: string | null } {
+  const items: RecoveredEquipmentRequestItem[] = [];
+  const seenImei = new Set<string>();
+  const seenSerial = new Set<string>();
+
+  for (const line of lines) {
+    const equipmentId = line.equipmentId.trim();
+    const quantityText = String(line.quantity ?? '').trim();
+    if (!equipmentId && !quantityText) {
+      continue; // fully blank row — skip silently
+    }
+    if (!equipmentId) {
+      return { items: [], error: 'Select the equipment for every recovery line before submitting.' };
+    }
+
+    const quantity = Number(quantityText || '1');
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return { items: [], error: 'Recovered quantities must be positive numbers.' };
+    }
+
+    const disposition = (line.disposition || 'RETRIEVED').trim().toUpperCase();
+    const physicallyHeld = PHYSICALLY_HELD_DISPOSITIONS.has(disposition);
+    const equipment = equipmentCatalog.find((e) => e.id === equipmentId);
+    const name = equipment?.name ?? equipmentId;
+    const trackingMode = equipment?.trackingMode ?? 'NONE';
+    const isTracked = trackingMode !== 'NONE';
+    const serial = (line.serialNumber ?? '').trim();
+    const imei = (line.imei ?? '').trim();
+
+    if (physicallyHeld && isTracked) {
+      if (quantity !== 1) {
+        return { items: [], error: `${name} is a tracked item: submit one line per unit (quantity must be 1).` };
+      }
+      const requiresSerial = trackingMode === 'SERIAL_ONLY' || trackingMode === 'SERIAL_AND_IMEI';
+      const requiresImei = trackingMode === 'IMEI_ONLY' || trackingMode === 'SERIAL_AND_IMEI';
+      const requiresAtLeastOne = trackingMode === 'SERIAL_OR_IMEI';
+      if (requiresSerial && !serial) {
+        return { items: [], error: `Serial number is required for ${name}.` };
+      }
+      if (requiresImei && !imei) {
+        return { items: [], error: `IMEI is required for ${name}.` };
+      }
+      if (requiresAtLeastOne && !serial && !imei) {
+        return { items: [], error: `Enter at least a serial number or IMEI for ${name}.` };
+      }
+    }
+
+    if (physicallyHeld) {
+      const normImei = imei.toUpperCase();
+      const normSerial = serial.toUpperCase();
+      if (normImei) {
+        if (seenImei.has(normImei)) {
+          return { items: [], error: `IMEI '${imei}' is repeated across your recovery lines.` };
+        }
+        seenImei.add(normImei);
+      }
+      if (normSerial) {
+        if (seenSerial.has(normSerial)) {
+          return { items: [], error: `Serial number '${serial}' is repeated across your recovery lines.` };
+        }
+        seenSerial.add(normSerial);
+      }
+    }
+
+    items.push({
+      equipmentId,
+      equipmentName: equipment?.name,
+      unit: equipment?.unit,
+      quantity,
+      serialNumber: serial || undefined,
+      macAddress: (line.macAddress ?? '').trim() || undefined,
+      imei: imei || undefined,
+      condition: line.condition || 'GOOD',
+      disposition,
+      dispositionNote: (line.dispositionNote ?? '').trim() || undefined
+    });
+  }
+
+  if (items.length === 0) {
+    return { items: [], error: 'Select at least one recovered item before declaring.' };
   }
 
   return { items, error: null };

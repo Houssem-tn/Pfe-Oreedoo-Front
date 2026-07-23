@@ -17,8 +17,10 @@ import {
   RowComponent
 } from '@coreui/angular';
 
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Role } from '../../../core/auth/models/roles.type';
+import { LanguageSelectorComponent } from '../../../shared/language-selector/language-selector.component';
 
 @Component({
   selector: 'app-register',
@@ -39,11 +41,14 @@ import { Role } from '../../../core/auth/models/roles.type';
     InputGroupTextDirective,
     IconDirective,
     FormControlDirective,
-    ButtonDirective
+    ButtonDirective,
+    TranslocoModule,
+    LanguageSelectorComponent
   ]
 })
 export class RegisterComponent {
   private readonly auth = inject(AuthService);
+  private readonly transloco = inject(TranslocoService);
   readonly router = inject(Router);
 
   roles: Role[] = [
@@ -102,11 +107,11 @@ export class RegisterComponent {
   getRoleDescription(role: Role): string {
     switch (role) {
       case 'ROLE_ZM':
-        return 'Zone manager access';
+        return this.transloco.translate('register.roleZmDescription');
       case 'ROLE_STT':
-        return 'STT supervisor access';
+        return this.transloco.translate('register.roleSttDescription');
       default:
-        return 'Platform access';
+        return this.transloco.translate('register.rolePlatformDescription');
     }
   }
 
@@ -134,13 +139,13 @@ export class RegisterComponent {
 
     if (!this.allowedPhotoTypes.includes(file.type)) {
       this.clearSelectedPhoto(input);
-      this.error = 'Only JPG, PNG, and WEBP images are allowed';
+      this.error = this.transloco.translate('register.errors.photoTypeInvalid');
       return;
     }
 
     if (file.size > this.maxPhotoSizeBytes) {
       this.clearSelectedPhoto(input);
-      this.error = 'Photo size must not exceed 5 MB';
+      this.error = this.transloco.translate('register.errors.photoTooLarge');
       return;
     }
 
@@ -167,37 +172,37 @@ export class RegisterComponent {
     const phone = this.form.phone?.trim() || undefined;
 
     if (this.isSttRegistration && !fullName) {
-      this.error = 'STT/company name is required';
+      this.error = this.transloco.translate('register.errors.companyNameRequired');
       return;
     }
 
     if (!this.isSttRegistration && !firstName) {
-      this.error = 'First name is required';
+      this.error = this.transloco.translate('register.errors.firstNameRequired');
       return;
     }
 
     if (!this.isSttRegistration && !lastName) {
-      this.error = 'Last name is required';
+      this.error = this.transloco.translate('register.errors.lastNameRequired');
       return;
     }
 
     if (!email) {
-      this.error = 'Email is required';
+      this.error = this.transloco.translate('register.errors.emailRequired');
       return;
     }
 
     if (!this.form.password) {
-      this.error = 'Password is required';
+      this.error = this.transloco.translate('register.errors.passwordRequired');
       return;
     }
 
     if (this.form.password.length < 6) {
-      this.error = 'Password must contain at least 6 characters';
+      this.error = this.transloco.translate('register.errors.passwordTooShort');
       return;
     }
 
     if (this.form.password !== this.form.confirmPassword) {
-      this.error = 'Passwords do not match';
+      this.error = this.transloco.translate('register.errors.passwordsMismatch');
       return;
     }
 
@@ -223,14 +228,14 @@ export class RegisterComponent {
           next: () => this.handleRegisterSuccess(),
           error: () => {
             this.loading = false;
-            this.success = 'Account created, but profile photo upload failed. You can upload it later.';
+            this.success = this.transloco.translate('register.errors.photoUploadFailed');
             setTimeout(() => this.router.navigateByUrl('/login'), 1500);
           }
         });
       },
       error: (err) => {
         this.loading = false;
-        this.error = err?.error?.message ?? 'Register failed';
+        this.error = err?.error?.message ?? this.transloco.translate('register.errors.registerFailed');
       }
     });
   }
@@ -238,8 +243,8 @@ export class RegisterComponent {
   private handleRegisterSuccess(): void {
     this.loading = false;
     this.success = this.form.role === 'ROLE_STT'
-      ? 'Account created. Waiting for ZM approval.'
-      : 'Account created. Waiting for admin approval.';
+      ? this.transloco.translate('register.success.waitingZmApproval')
+      : this.transloco.translate('register.success.waitingAdminApproval');
 
     setTimeout(() => this.router.navigateByUrl('/login'), 1000);
   }

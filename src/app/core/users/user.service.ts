@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { AppUser, Role, UserAuditDetailsResponse, UserAuditItem } from './user.model';
+import { AppUser, Role, SttCoverageRequest, UserAuditDetailsResponse, UserAuditItem } from './user.model';
 import { API_BASE_URL } from '../http/api.config';
 
 export interface AssignCoverageAreasToSttRequest {
@@ -16,6 +16,10 @@ export interface RequestCoverageAreasRequest {
 
 export interface ValidateCoverageAreasRequest {
   approvedGovernorates: string[];
+}
+
+export interface DeclineCoverageAreasRequest {
+  declinedGovernorates: string[];
 }
 
 export interface AssignGovernoratesToZmRequest {
@@ -112,8 +116,8 @@ export class UserService {
     return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts`);
   }
 
-  getMyPendingCoverageRequests(): Observable<AppUser[]> {
-    return this.http.get<AppUser[]>(`${this.usersUrl}/me/stts/coverage-requests`);
+  getMyPendingCoverageRequests(): Observable<SttCoverageRequest[]> {
+    return this.http.get<SttCoverageRequest[]>(`${this.usersUrl}/me/stts/coverage-requests`);
   }
 
   getMySttsForZm(): Observable<AppUser[]> {
@@ -144,6 +148,10 @@ export class UserService {
 
   validateCoverageAreasForStt(sttId: string, body: ValidateCoverageAreasRequest): Observable<AppUser> {
     return this.http.put<AppUser>(`${this.usersUrl}/me/stts/${sttId}/coverage-validation`, body);
+  }
+
+  declineCoverageAreasForStt(sttId: string, body: DeclineCoverageAreasRequest): Observable<AppUser> {
+    return this.http.put<AppUser>(`${this.usersUrl}/me/stts/${sttId}/coverage-decline`, body);
   }
 
   uploadProfileImage(userId: string, file: File): Observable<AppUser> {

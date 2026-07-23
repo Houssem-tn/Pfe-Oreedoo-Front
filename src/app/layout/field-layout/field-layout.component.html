@@ -3,16 +3,18 @@
     <div class="field-topbar__identity">
       <div class="field-topbar__mark">O</div>
       <div>
-        <span>Hello,</span>
+        <span>{{ 'field.hello' | transloco }}</span>
         <strong>{{ userName }}</strong>
       </div>
     </div>
 
     <div class="field-topbar__actions">
+      <app-language-selector variant="field" />
+
       <button
         type="button"
         class="field-icon-button"
-        aria-label="Notifications"
+        [attr.aria-label]="'field.notifications' | transloco"
         (click)="toggleNotifications()"
       >
         <svg cIcon name="cilBell"></svg>
@@ -22,7 +24,7 @@
       <button
         type="button"
         class="field-icon-button"
-        aria-label="Log out"
+        [attr.aria-label]="'field.logout' | transloco"
         (click)="logout()"
       >
         <svg cIcon name="cilAccountLogout"></svg>
@@ -35,12 +37,12 @@
   <section class="field-notification-panel" *ngIf="notificationsOpen">
     <div class="field-notification-panel__header">
       <div>
-        <strong>Notifications</strong>
-        <span>{{ unreadCount }} unread</span>
+        <strong>{{ 'field.notifications' | transloco }}</strong>
+        <span>{{ unreadCount }} {{ 'header.unread' | transloco }}</span>
       </div>
       <button type="button" class="field-button field-button--ghost" (click)="markAllRead()" [disabled]="unreadCount === 0">
         <svg cIcon name="cilCheck"></svg>
-        Read all
+        {{ 'field.readAll' | transloco }}
       </button>
     </div>
 
@@ -61,7 +63,7 @@
     <ng-template #noNotifications>
       <div class="field-notification-panel__empty">
         <svg cIcon name="cilInbox"></svg>
-        <span>No notifications yet.</span>
+        <span>{{ 'field.noNotifications' | transloco }}</span>
       </div>
     </ng-template>
   </section>
@@ -72,7 +74,7 @@
 
   <nav
     class="field-bottom-nav"
-    aria-label="Field navigation"
+    [attr.aria-label]="'field.fieldNavigation' | transloco"
     [style.gridTemplateColumns]="'repeat(' + navItems.length + ', minmax(0, 1fr))'"
   >
     <a
@@ -83,7 +85,7 @@
       [routerLink]="linkFor(item.path)"
     >
       <svg cIcon [name]="item.icon"></svg>
-      <span>{{ item.label }}</span>
+      <span>{{ item.labelKey | transloco }}</span>
     </a>
   </nav>
 

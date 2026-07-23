@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { NotificationItem, effectiveLevel } from './models/notification.model';
 import { NotificationStoreService } from './notification-store.service';
@@ -8,16 +9,26 @@ import { NotificationStoreService } from './notification-store.service';
 @Component({
   selector: 'app-notification-toast-stack',
   standalone: true,
-  imports: [CommonModule, DatePipe, IconDirective],
+  imports: [CommonModule, DatePipe, IconDirective, TranslocoModule],
   template: `
-    <section class="notification-toast-stack" *ngIf="alerts().length > 0" aria-live="polite" aria-label="Operational alerts">
+    <section
+      class="notification-toast-stack"
+      *ngIf="alerts().length > 0"
+      aria-live="polite"
+      [attr.aria-label]="'notifications.toastStack.ariaLabel' | transloco"
+    >
       <article class="notification-toast" [ngClass]="toastClass(alert)" *ngFor="let alert of alerts(); trackBy: trackById">
         <div class="notification-toast__header">
           <div class="d-flex align-items-center gap-2">
             <span class="notification-toast__icon"><svg cIcon [name]="iconName(alert)"></svg></span>
             <div class="notification-toast__title">{{ alert.title }}</div>
           </div>
-          <button type="button" class="btn-close" aria-label="Dismiss" (click)="dismiss(alert.id)"></button>
+          <button
+            type="button"
+            class="btn-close"
+            [attr.aria-label]="'notifications.toastStack.dismiss' | transloco"
+            (click)="dismiss(alert.id)"
+          ></button>
         </div>
 
         <div class="notification-toast__message">{{ alert.message }}</div>
@@ -25,7 +36,7 @@ import { NotificationStoreService } from './notification-store.service';
         <div class="notification-toast__footer">
           <span class="x-small text-body-secondary">{{ alert.createdAt | date:'shortTime' }}</span>
           <button class="btn btn-sm btn-link p-0 text-decoration-none" *ngIf="!alert.read" (click)="markAsRead(alert)">
-            Mark as read
+            {{ 'notifications.toastStack.markAsRead' | transloco }}
           </button>
         </div>
       </article>
@@ -177,6 +188,7 @@ export class NotificationToastStackComponent {
     const level = effectiveLevel(item);
     if (level === 'CRITICAL') return 'notification-toast--danger notification-toast--pulse';
     if (level === 'WARNING') return 'notification-toast--warning';
+
     switch (item.eventType) {
       case 'CASE_ASSIGNED_TO_ZM':
       case 'CASE_ASSIGNED_TO_STT':

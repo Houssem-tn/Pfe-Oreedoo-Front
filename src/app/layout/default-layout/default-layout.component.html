@@ -10,18 +10,18 @@
     <c-sidebar-brand [routerLink]="[]" class="app-sidebar-brand">
       <span class="sidebar-brand-full app-sidebar-brand__full">
         <img
-          alt="Ooredoo"
+          [attr.alt]="'app.brandAlt' | transloco"
           class="app-sidebar-brand__logo"
           src="assets/images/Ooredoo-Tunisie.png"
         />
         <span class="app-sidebar-brand__text">
-          <span class="app-sidebar-brand__title">ooredoo</span>
-          <span class="app-sidebar-brand__subtitle">Field Service</span>
+          <span class="app-sidebar-brand__title">{{ 'app.brandName' | transloco }}</span>
+          <span class="app-sidebar-brand__subtitle">{{ 'app.brandSubtitle' | transloco }}</span>
         </span>
       </span>
       <span class="sidebar-brand-narrow app-sidebar-brand__narrow">
         <img
-          alt="Ooredoo"
+          [attr.alt]="'app.brandAlt' | transloco"
           class="app-sidebar-brand__logo app-sidebar-brand__logo--narrow"
           src="assets/images/Ooredoo-Tunisie.png"
         />
@@ -35,7 +35,7 @@
 
   @if (!sidebar1.narrow) {
     <c-sidebar-footer cSidebarToggle="sidebar1" class="border-top d-none d-lg-flex" toggle="unfoldable" style="cursor: pointer;">
-      <button cSidebarToggler aria-label="Toggle sidebar fold"></button>
+      <button cSidebarToggler [attr.aria-label]="'header.toggleSidebar' | transloco"></button>
     </c-sidebar-footer>
   }
 </c-sidebar>

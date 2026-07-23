@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, Subscription, debounceTime, finalize, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { CaseDetailComponent } from '../../shared/modals/case-detail/case-detail.component';
 import { AssignUserModalComponent } from '../../shared/modals/assign-user-modal/assign-user-modal.component';
 import { AuthStore } from '../../core/auth/auth.store';
@@ -40,6 +41,12 @@ import {
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { governoratesMatch } from '../../core/shared/tunisia-governorates';
+import {
+  CASE_MODULE_LABEL_KEYS,
+  COMPLAINT_CATEGORY_LABEL_KEYS,
+  EXECUTION_MODE_LABEL_KEYS,
+  SLA_STATUS_LABEL_KEYS
+} from '../../core/i18n/ui-labels';
 
 type AssignableUser = { id: string; fullName: string; email: string };
 
@@ -60,7 +67,7 @@ type PerfCard = {
 @Component({
   selector: 'app-activation-cases-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective, CaseDetailComponent, AssignUserModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IconDirective, TranslocoModule, CaseDetailComponent, AssignUserModalComponent],
   templateUrl: './activation-cases-list.component.html',
   styleUrl: './activation-cases-list.component.scss'
 })
@@ -78,6 +85,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private readonly zone = inject(NgZone);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly transloco = inject(TranslocoService);
 
   cases: CaseResponse[] = [];
   loading = false;
@@ -130,6 +138,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private readonly filterChange$ = new Subject<void>();
   private filterSub?: Subscription;
   private focusSub?: Subscription;
+  private langSub?: Subscription;
   private loadSeq = 0;
 
   private nowEpochMs = Date.now();
@@ -171,6 +180,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       });
     });
 
+    this.langSub = this.transloco.langChanges$.subscribe(() => {
+      this.zone.run(() => this.cdr.detectChanges());
+    });
+
     this.loadCases();
     this.loadSummary();
     this.loadPerformance();
@@ -181,6 +194,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.filterSub?.unsubscribe();
     this.focusSub?.unsubscribe();
+    this.langSub?.unsubscribe();
     this.stopLiveTicker();
     this.stopBackendResync();
   }
@@ -215,47 +229,54 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get caseBoardLabel(): string {
-    if (this.isResModule) return 'Resiliation';
-    return this.isComplaintModule ? 'Complaint' : 'Activation';
+    if (this.isResModule) {
+      return this.transloco.translate(CASE_MODULE_LABEL_KEYS.RES);
+    }
+    if (this.isComplaintModule) {
+      return this.transloco.translate(CASE_MODULE_LABEL_KEYS.PLT);
+    }
+    return this.transloco.translate(CASE_MODULE_LABEL_KEYS.ACT);
   }
 
   get caseBoardLabelPlural(): string {
-    if (this.isResModule) return 'Resiliation cases';
-    return this.isComplaintModule ? 'Complaints' : 'Activation cases';
+    if (this.isResModule) return this.t('cases.board.modules.resiliation.plural');
+    return this.isComplaintModule
+      ? this.t('cases.board.modules.complaint.plural')
+      : this.t('cases.board.modules.activation.plural');
   }
 
   get statusOptions(): Array<{ value: '' | CaseStatus; label: string }> {
     if (this.isComplaintModule) {
       return [
-        { value: '', label: 'All statuses' },
-        { value: 'CREATED', label: 'Created' },
-        { value: 'ASSIGNED_TO_ZM', label: 'Assigned to ZM' },
-        { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
-        { value: 'DIAGNOSIS_STEP', label: 'Diagnosis step' },
-        { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
-        { value: 'NOT_REACHABLE', label: 'Not reachable' },
-        { value: 'RESOLUTION_SUBMITTED', label: 'Resolution submitted' },
-        { value: 'RETURNED_TO_STT', label: 'Returned to STT' },
-        { value: 'ESCALATED', label: 'Escalated' },
-        { value: 'REOPENED', label: 'Reopened' },
-        { value: 'VALIDATED_BY_ZM', label: 'Validated by ZM' },
-        { value: 'CLOSED', label: 'Closed' }
+        { value: '', label: this.t('cases.board.filters.allStatuses') },
+        { value: 'CREATED', label: this.statusLabel('CREATED') },
+        { value: 'ASSIGNED_TO_ZM', label: this.statusLabel('ASSIGNED_TO_ZM') },
+        { value: 'ASSIGNED_TO_STT', label: this.statusLabel('ASSIGNED_TO_STT') },
+        { value: 'DIAGNOSIS_STEP', label: this.statusLabel('DIAGNOSIS_STEP') },
+        { value: 'ASSIGNED_TO_TECH', label: this.statusLabel('ASSIGNED_TO_TECH') },
+        { value: 'NOT_REACHABLE', label: this.statusLabel('NOT_REACHABLE') },
+        { value: 'RESOLUTION_SUBMITTED', label: this.statusLabel('RESOLUTION_SUBMITTED') },
+        { value: 'RETURNED_TO_STT', label: this.statusLabel('RETURNED_TO_STT') },
+        { value: 'ESCALATED', label: this.statusLabel('ESCALATED') },
+        { value: 'REOPENED', label: this.statusLabel('REOPENED') },
+        { value: 'VALIDATED_BY_ZM', label: this.statusLabel('VALIDATED_BY_ZM') },
+        { value: 'CLOSED', label: this.statusLabel('CLOSED') }
       ];
     }
 
     return [
-      { value: '', label: 'All statuses' },
-      { value: 'CREATED', label: 'Created' },
-      { value: 'ASSIGNED_TO_ZM', label: 'Assigned to ZM' },
-      { value: 'ASSIGNED_TO_STT', label: 'Assigned to STT' },
-      { value: 'ASSIGNED_TO_TECH', label: 'Assigned to TECH' },
-      { value: 'RDV_SET', label: 'RDV set' },
-      { value: 'NOT_REACHABLE', label: 'Not reachable' },
-      { value: 'ABANDONED', label: 'Abandoned' },
-      { value: 'WORK_DONE', label: 'Work done' },
-      { value: 'VALIDATED_BY_ZM', label: 'Validated by ZM' },
-      { value: 'REJECTED_BY_ZM', label: 'Rejected by ZM' },
-      { value: 'CLOSED', label: 'Closed' }
+      { value: '', label: this.t('cases.board.filters.allStatuses') },
+      { value: 'CREATED', label: this.statusLabel('CREATED') },
+      { value: 'ASSIGNED_TO_ZM', label: this.statusLabel('ASSIGNED_TO_ZM') },
+      { value: 'ASSIGNED_TO_STT', label: this.statusLabel('ASSIGNED_TO_STT') },
+      { value: 'ASSIGNED_TO_TECH', label: this.statusLabel('ASSIGNED_TO_TECH') },
+      { value: 'RDV_SET', label: this.statusLabel('RDV_SET') },
+      { value: 'NOT_REACHABLE', label: this.statusLabel('NOT_REACHABLE') },
+      { value: 'ABANDONED', label: this.statusLabel('ABANDONED') },
+      { value: 'WORK_DONE', label: this.statusLabel('WORK_DONE') },
+      { value: 'VALIDATED_BY_ZM', label: this.statusLabel('VALIDATED_BY_ZM') },
+      { value: 'REJECTED_BY_ZM', label: this.statusLabel('REJECTED_BY_ZM') },
+      { value: 'CLOSED', label: this.statusLabel('CLOSED') }
     ];
   }
 
@@ -268,93 +289,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   get workspaceTitle(): string {
-    if (this.isResModule) {
-      switch (this.currentRole) {
-        case 'ROLE_ADMIN':
-          return 'Ooredoo Resiliation Command Center';
-        case 'ROLE_ZM':
-          return 'Zone Resiliation Oversight';
-        case 'ROLE_STT':
-          return 'Resiliation Execution Control';
-        case 'ROLE_TECH':
-          return 'Field Resiliation Queue';
-        default:
-          return 'Resiliation Case Management';
-      }
-    }
-
-    if (this.isComplaintModule) {
-      switch (this.currentRole) {
-        case 'ROLE_ADMIN':
-          return 'Ooredoo Complaint Command Center';
-        case 'ROLE_ZM':
-          return 'Zone Complaint Oversight';
-        case 'ROLE_STT':
-          return 'Complaint Resolution Control';
-        case 'ROLE_TECH':
-          return 'Field Complaint Queue';
-        default:
-          return 'Complaint Case Management';
-      }
-    }
-
-    switch (this.currentRole) {
-      case 'ROLE_ADMIN':
-        return 'Ooredoo Activation Command Center';
-      case 'ROLE_ZM':
-        return 'Zone Activation Oversight';
-      case 'ROLE_STT':
-        return 'Partner Delivery Control';
-      case 'ROLE_TECH':
-        return 'Field Activation Queue';
-      default:
-        return 'Activation Case Management';
-    }
+    return this.t(this.workspaceTitleKey());
   }
 
   get workspaceSubtitle(): string {
-    if (this.isResModule) {
-      switch (this.currentRole) {
-        case 'ROLE_ADMIN':
-          return 'Drive imported RES resiliation orders through the same assignment, execution, and validation discipline as complaints.';
-        case 'ROLE_ZM':
-          return 'Supervise resiliation ownership, STT execution, and final validation across your zone.';
-        case 'ROLE_STT':
-          return 'Manage resiliation technician decisions and resolution submission from one operational board.';
-        case 'ROLE_TECH':
-          return 'Review resiliation interventions, proof capture, and field execution progress in the same mobile workspace.';
-        default:
-          return 'Telecom resiliation workflow: assignment, execution, work, validation, and closure.';
-      }
-    }
-
-    if (this.isComplaintModule) {
-      switch (this.currentRole) {
-        case 'ROLE_ADMIN':
-          return 'Turn imported CRM complaints into a controlled resolution workflow with the same assignment and validation discipline.';
-        case 'ROLE_ZM':
-          return 'Supervise complaint ownership, diagnosis outcomes, and final validation across your zone.';
-        case 'ROLE_STT':
-          return 'Manage complaint diagnosis, technician decisions, and resolution submission without leaving the operational board.';
-        case 'ROLE_TECH':
-          return 'Review complaint interventions, proof capture, and field execution progress in the same mobile workspace.';
-        default:
-          return 'Telecom complaint workflow: assignment, RDV, diagnosis, work, validation, and closure.';
-      }
-    }
-
-    switch (this.currentRole) {
-      case 'ROLE_ADMIN':
-        return 'Monitor the full CRM activation pipeline, from intake to closure, inside a branded operations workspace.';
-      case 'ROLE_ZM':
-        return 'Track zone ownership, SLA pressure, and downstream delivery decisions with faster visual scanning.';
-      case 'ROLE_STT':
-        return 'Keep STT assignments, technician execution, and SLA follow-up aligned in one operational board.';
-      case 'ROLE_TECH':
-        return 'Review assigned field cases, time pressure, and execution status in a more focused activation queue.';
-      default:
-        return 'Telecom field workflow: assignment, RDV, work execution, validation, and closure.';
-    }
+    return this.t(this.workspaceSubtitleKey());
   }
 
   // The server already scopes/filters/paginates, so these are simply the current page of items.
@@ -408,14 +347,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const s = this.summary;
 
     return [
-      { label: this.isResModule ? 'Total resiliations' : this.isComplaintModule ? 'Total complaints' : 'Total Cases', value: s?.totalCases ?? 0, icon: 'cilDescription', className: 'stat-neutral' },
-      { label: 'Owned by ZM', value: s?.ownedByZm ?? 0, icon: 'cilUser', className: 'stat-primary' },
-      { label: 'Assigned to STT', value: s?.assignedStt ?? 0, icon: 'cilPeople', className: 'stat-info' },
-      { label: 'Assigned to TECH', value: s?.assignedTech ?? 0, icon: 'cilUserFollow', className: 'stat-warning' },
-      { label: 'SLA Warning', value: s?.slaWarning ?? 0, icon: 'cilWarning', className: 'stat-warning' },
-      { label: 'SLA Breached', value: s?.slaBreached ?? 0, icon: 'cilBan', className: 'stat-danger' },
-      { label: this.isComplaintModule ? 'Resolution ready' : 'Work Done', value: s?.workDone ?? 0, icon: 'cilTask', className: 'stat-success' },
-      { label: 'Closed', value: s?.closed ?? 0, icon: 'cilLockLocked', className: 'stat-dark' }
+      { label: this.isResModule ? this.t('cases.board.stats.totalResiliations') : this.isComplaintModule ? this.t('cases.board.stats.totalComplaints') : this.t('cases.board.stats.totalCases'), value: s?.totalCases ?? 0, icon: 'cilDescription', className: 'stat-neutral' },
+      { label: this.t('cases.board.stats.ownedByZm'), value: s?.ownedByZm ?? 0, icon: 'cilUser', className: 'stat-primary' },
+      { label: this.t('cases.board.stats.assignedToStt'), value: s?.assignedStt ?? 0, icon: 'cilPeople', className: 'stat-info' },
+      { label: this.t('cases.board.stats.assignedToTech'), value: s?.assignedTech ?? 0, icon: 'cilUserFollow', className: 'stat-warning' },
+      { label: this.t('cases.board.stats.slaWarning'), value: s?.slaWarning ?? 0, icon: 'cilWarning', className: 'stat-warning' },
+      { label: this.t('cases.board.stats.slaBreached'), value: s?.slaBreached ?? 0, icon: 'cilBan', className: 'stat-danger' },
+      { label: this.isComplaintModule ? this.t('cases.board.stats.resolutionReady') : this.t('cases.board.stats.workDone'), value: s?.workDone ?? 0, icon: 'cilTask', className: 'stat-success' },
+      { label: this.t('statuses.case.closed'), value: s?.closed ?? 0, icon: 'cilLockLocked', className: 'stat-dark' }
     ];
   }
 
@@ -426,55 +365,55 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     return [
       {
-        label: 'Active Tasks',
+        label: this.t('cases.board.performance.activeTasks'),
         value: String(this.myPerformance.activeTasksCount),
         icon: 'cilTask',
         className: 'perf-primary'
       },
       {
-        label: 'RDV On-Time',
+        label: this.t('cases.board.performance.rdvOnTime'),
         value: String(this.myPerformance.rdvOnTime),
         icon: 'cilCheckCircle',
         className: 'perf-success'
       },
       {
-        label: 'RDV Late',
+        label: this.t('cases.board.performance.rdvLate'),
         value: String(this.myPerformance.rdvLate),
         icon: 'cilClock',
         className: 'perf-danger'
       },
       {
-        label: 'RDV On-Time Rate',
+        label: this.t('cases.board.performance.rdvOnTimeRate'),
         value: `${this.myPerformance.rdvOnTimeRate.toFixed(1)}%`,
         icon: 'cilChart',
         className: 'perf-success'
       },
       {
-        label: 'Avg RDV Response',
+        label: this.t('cases.board.performance.avgRdvResponse'),
         value: this.formatMinutes(this.myPerformance.averageResponseMinutes),
         icon: 'cilSpeedometer',
         className: 'perf-info'
       },
       {
-        label: 'SLA Warnings',
+        label: this.t('cases.board.performance.slaWarnings'),
         value: String(this.myPerformance.slaWarningCount),
         icon: 'cilWarning',
         className: 'perf-warning'
       },
       {
-        label: 'SLA Escalations',
+        label: this.t('cases.board.performance.slaEscalations'),
         value: String(this.myPerformance.slaEscalationCount),
         icon: 'cilBan',
         className: 'perf-danger'
       },
       {
-        label: 'Avg Overdue',
+        label: this.t('cases.board.performance.avgOverdue'),
         value: this.formatMinutes(this.myPerformance.averageOverdueMinutes),
         icon: 'cilClock',
         className: 'perf-warning'
       },
       {
-        label: 'Completion',
+        label: this.t('cases.board.performance.completion'),
         value: `${this.myPerformance.workCompletionProgress.toFixed(1)}%`,
         icon: 'cilChartPie',
         className: 'perf-dark'
@@ -517,11 +456,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const unread = alerts.filter((item) => !item.read).length;
 
     return [
-      { label: 'Critical Breach', value: breached, icon: 'cilBan', className: 'stat-danger' },
-      { label: 'Escalated', value: escalated, icon: 'cilWarning', className: 'stat-danger' },
-      { label: 'SLA Warning', value: warning, icon: 'cilWarning', className: 'stat-warning' },
-      { label: 'Assignments', value: assignments, icon: 'cilTask', className: 'stat-primary' },
-      { label: 'Unread Alerts', value: unread, icon: 'cilBell', className: 'stat-dark' }
+      { label: this.t('cases.board.alertSummary.criticalBreach'), value: breached, icon: 'cilBan', className: 'stat-danger' },
+      { label: this.t('cases.board.alertSummary.escalated'), value: escalated, icon: 'cilWarning', className: 'stat-danger' },
+      { label: this.t('cases.board.alertSummary.slaWarning'), value: warning, icon: 'cilWarning', className: 'stat-warning' },
+      { label: this.t('cases.board.alertSummary.assignments'), value: assignments, icon: 'cilTask', className: 'stat-primary' },
+      { label: this.t('cases.board.alertSummary.unreadAlerts'), value: unread, icon: 'cilBell', className: 'stat-dark' }
     ];
   }
 
@@ -570,7 +509,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         error: (err) => {
           if (seq !== this.loadSeq) return;
           console.error(`Failed to load ${this.caseType.toLowerCase()} cases:`, err);
-          this.error = err?.error?.message ?? `Failed to load ${this.caseBoardLabel.toLowerCase()} cases`;
+          this.error = err?.error?.message ?? this.t('cases.board.errors.loadCases', { module: this.caseBoardLabel.toLowerCase() });
         }
       });
   }
@@ -669,12 +608,12 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   rangeLabel(): string {
     if (this.totalElements === 0) {
-      return '0 of 0';
+      return this.t('cases.board.pagination.range', { start: 0, end: 0, total: 0 });
     }
 
     const start = (this.currentPage - 1) * this.pageSize + 1;
     const end = Math.min(this.currentPage * this.pageSize, this.totalElements);
-    return `${start}-${end} of ${this.totalElements}`;
+    return this.t('cases.board.pagination.range', { start, end, total: this.totalElements });
   }
 
   statusBadgeClass(status: CaseStatus): string {
@@ -682,7 +621,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: CaseStatus): string {
-    return CASE_STATUS_UI[status]?.label ?? status;
+    return this.transloco.translate(CASE_STATUS_UI[status]?.label ?? status);
   }
 
   getSlaStatus(item: CaseResponse): SlaStatus | null {
@@ -694,17 +633,17 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     switch (status) {
       case 'ON_TRACK':
-        return 'On Track';
+        return this.transloco.translate(SLA_STATUS_LABEL_KEYS.ON_TRACK);
       case 'WARNING':
-        return 'Warning';
+        return this.transloco.translate(SLA_STATUS_LABEL_KEYS.WARNING);
       case 'BREACHED':
-        return 'Breached';
+        return this.transloco.translate(SLA_STATUS_LABEL_KEYS.BREACHED);
       case 'COMPLETED_ON_TIME':
-        return 'Completed On Time';
+        return this.transloco.translate(SLA_STATUS_LABEL_KEYS.COMPLETED_ON_TIME);
       case 'COMPLETED_LATE':
-        return 'Completed Late';
+        return this.transloco.translate(SLA_STATUS_LABEL_KEYS.COMPLETED_LATE);
       default:
-        return 'Not Started';
+        return this.t('cases.board.sla.notStarted');
     }
   }
 
@@ -759,10 +698,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     if (live.status === 'COMPLETED_ON_TIME' || live.status === 'COMPLETED_LATE') {
       if (live.responseDurationSeconds == null) {
-        return 'RDV captured';
+        return this.t('cases.board.sla.rdvCaptured');
       }
 
-      return `Responded in ${this.formatSeconds(live.responseDurationSeconds)}`;
+      return this.t('cases.board.sla.respondedIn', { duration: this.formatSeconds(live.responseDurationSeconds) });
     }
 
     const remaining = live.remainingSeconds;
@@ -772,11 +711,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     if (remaining <= 0) {
       return live.overdueSeconds > 0
-        ? `Overdue by ${this.formatSeconds(live.overdueSeconds)}`
-        : 'Overdue';
+        ? this.t('cases.board.sla.overdueBy', { duration: this.formatSeconds(live.overdueSeconds) })
+        : this.t('cases.board.sla.overdue');
     }
 
-    return `${this.formatSeconds(remaining)} left`;
+    return this.t('cases.board.sla.remaining', { duration: this.formatSeconds(remaining) });
   }
 
   alertClass(item: NotificationItem): string {
@@ -1046,12 +985,12 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   openAssignStt(item: CaseResponse): void {
     this.assignModalMode = 'stt';
     this.assignModalPendingCase = item;
-    this.assignModalTitle = `Assign STT — CRM ${item.crmCase}`;
+    this.assignModalTitle = this.t('cases.board.assign.stt.title', { crmCase: item.crmCase });
     this.assignModalDescription = item.gouvernorat
-      ? `Showing approved STTs that cover ${item.gouvernorat}.`
-      : 'Showing approved STTs available for this case.';
+      ? this.t('cases.board.assign.stt.descriptionForGovernorate', { governorate: item.gouvernorat })
+      : this.t('cases.board.assign.stt.descriptionDefault');
     this.assignModalCurrentId = item.sttId ?? null;
-    this.assignModalConfirmText = item.sttId ? 'Change STT' : 'Assign STT';
+    this.assignModalConfirmText = item.sttId ? this.t('cases.board.assign.stt.change') : this.t('cases.board.assign.stt.assign');
     this.assignModalUsers = [];
     this.assignModalLoading = true;
     this.assignModalVisible = true;
@@ -1063,8 +1002,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     }).catch(err => {
       this.assignModalLoading = false;
       this.assignModalVisible = false;
-      const message = err?.error?.message ?? 'Failed to load STT list';
-      void this.swal.error('Load failed', message);
+      const message = err?.error?.message ?? this.t('cases.board.assign.stt.loadError');
+      void this.swal.error(this.t('cases.board.assign.loadFailedTitle'), message);
       this.zone.run(() => this.cdr.detectChanges());
     });
   }
@@ -1072,10 +1011,10 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   openAssignTech(item: CaseResponse): void {
     this.assignModalMode = 'tech';
     this.assignModalPendingCase = item;
-    this.assignModalTitle = `Assign Technician — CRM ${item.crmCase}`;
-    this.assignModalDescription = 'Showing approved technicians from your team.';
+    this.assignModalTitle = this.t('cases.board.assign.tech.title', { crmCase: item.crmCase });
+    this.assignModalDescription = this.t('cases.board.assign.tech.descriptionDefault');
     this.assignModalCurrentId = item.techId ?? null;
-    this.assignModalConfirmText = item.techId ? 'Change TECH' : 'Assign TECH';
+    this.assignModalConfirmText = item.techId ? this.t('cases.board.assign.tech.change') : this.t('cases.board.assign.tech.assign');
     this.assignModalUsers = [];
     this.assignModalLoading = true;
     this.assignModalVisible = true;
@@ -1087,8 +1026,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     }).catch(err => {
       this.assignModalLoading = false;
       this.assignModalVisible = false;
-      const message = err?.error?.message ?? 'Failed to load technician list';
-      void this.swal.error('Load failed', message);
+      const message = err?.error?.message ?? this.t('cases.board.assign.tech.loadError');
+      void this.swal.error(this.t('cases.board.assign.loadFailedTitle'), message);
       this.zone.run(() => this.cdr.detectChanges());
     });
   }
@@ -1099,9 +1038,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     this.assignModalVisible = false;
 
     if (this.assignModalMode === 'stt') {
-      await this.runAction(item.id, () => this.casesService.assignStt(item.id, userId), 'STT assignment saved');
+      await this.runAction(item.id, () => this.casesService.assignStt(item.id, userId), this.t('cases.board.assign.stt.saved'));
     } else {
-      await this.runAction(item.id, () => this.casesService.assignTech(item.id, userId), 'TECH assignment saved');
+      await this.runAction(item.id, () => this.casesService.assignTech(item.id, userId), this.t('cases.board.assign.tech.saved'));
     }
 
     this.assignModalPendingCase = null;
@@ -1120,9 +1059,9 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       const confirm = alreadySelfExecuting
         ? { isConfirmed: true }
         : await this.swal.confirmAction(
-            'Take execution yourself?',
-            `CRM ${item.crmCase} will stay under your supervision and move into STT self-execution mode.`,
-            'Execute myself'
+            this.t('cases.board.executeMyself.confirmTitle'),
+            this.t('cases.board.executeMyself.confirmText', { crmCase: item.crmCase }),
+            this.t('cases.board.executeMyself.confirmButton')
           );
 
       if (!confirm.isConfirmed) {
@@ -1132,14 +1071,16 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       await this.runAction(
         item.id,
         () => this.casesService.executeMyself(item.id),
-        alreadySelfExecuting ? 'STT execution kept' : 'STT self-execution activated'
+        alreadySelfExecuting
+          ? this.t('cases.board.executeMyself.kept')
+          : this.t('cases.board.executeMyself.activated')
       );
 
       void this.openSttExecutionWorkspace(item.id, 'details');
     } catch (err: any) {
       console.error('Failed to switch to STT self-execution:', err);
-      const message = err?.error?.message ?? 'Failed to activate STT self-execution';
-      await this.swal.error('Execution switch failed', message);
+      const message = err?.error?.message ?? this.t('cases.board.executeMyself.errorMessage');
+      await this.swal.error(this.t('cases.board.executeMyself.errorTitle'), message);
     } finally {
       this.actionLoadingCaseId = null;
       this.zone.run(() => this.cdr.detectChanges());
@@ -1180,18 +1121,18 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   sttPrimaryActionLabel(item: CaseResponse): string {
     if (this.canDiagnose(item)) {
-      return 'Diagnosis';
+      return this.t('cases.board.actions.diagnosis');
     }
 
     if (this.canUpdateWork(item) && (item.type === 'PLAINTE' || item.status === 'RDV_SET')) {
-      return 'Work';
+      return this.t('cases.board.actions.work');
     }
 
     if (this.canSetRdv(item)) {
-      return 'RDV';
+      return this.t('cases.board.actions.rdv');
     }
 
-    return 'Details';
+    return this.t('common.details');
   }
 
   sttPrimaryActionIcon(item: CaseResponse): string {
@@ -1219,38 +1160,38 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const rdv = this.extractRdv(item);
 
     const result = await Swal.fire<SetRdvRequest>({
-      title: `Set RDV - CRM ${this.escapeHtml(item.crmCase)}`,
+      title: this.t('cases.board.rdv.title', { crmCase: item.crmCase }),
       width: 860,
       html: `
         <div class="case-op-modal">
           <div class="case-op-grid case-op-grid-2">
             <div class="case-op-field">
-              <label class="case-op-label">Joignable <span>*</span></label>
+              <label class="case-op-label">${this.popupText('caseDetail.fields.reachable')} <span>*</span></label>
               <select id="sw-rdv-joignable" class="swal2-input case-op-input">
-                <option value="true" ${rdv.joignable !== false ? 'selected' : ''}>Yes</option>
-                <option value="false" ${rdv.joignable === false ? 'selected' : ''}>No</option>
+                <option value="true" ${rdv.joignable !== false ? 'selected' : ''}>${this.popupText('common.yes')}</option>
+                <option value="false" ${rdv.joignable === false ? 'selected' : ''}>${this.popupText('common.no')}</option>
               </select>
             </div>
 
             <div class="case-op-field">
-              <label class="case-op-label">Date & Time RDV <span>*</span></label>
+              <label class="case-op-label">${this.popupText('cases.board.rdv.fields.dateTime')} <span>*</span></label>
               <input id="sw-rdv-date" type="datetime-local" class="swal2-input case-op-input" value="${this.toDateTimeLocal(rdv.datePriseRdv)}" />
             </div>
           </div>
 
           <div class="case-op-field">
-            <label class="case-op-label">Customer Reachability Cause</label>
-            <input id="sw-rdv-cause-inj" class="swal2-input case-op-input" value="${this.escapeHtml(rdv.causeInjoignabilite ?? '')}" placeholder="Required when joignable = No" />
+            <label class="case-op-label">${this.popupText('caseDetail.fields.causeInjoignabilite')}</label>
+            <input id="sw-rdv-cause-inj" class="swal2-input case-op-input" value="${this.escapeHtml(rdv.causeInjoignabilite ?? '')}" placeholder="${this.popupText('cases.board.rdv.placeholders.causeInjoignabilite')}" />
           </div>
 
           <div class="case-op-grid case-op-grid-2">
             <div class="case-op-field">
-              <label class="case-op-label">Operational Detail</label>
-              <textarea id="sw-rdv-detail" class="swal2-textarea case-op-textarea" placeholder="Customer/site detail for field team">${this.escapeHtml(rdv.detail ?? '')}</textarea>
+              <label class="case-op-label">${this.popupText('cases.board.rdv.fields.operationalDetail')}</label>
+              <textarea id="sw-rdv-detail" class="swal2-textarea case-op-textarea" placeholder="${this.popupText('cases.board.rdv.placeholders.operationalDetail')}">${this.escapeHtml(rdv.detail ?? '')}</textarea>
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">RDV Comment</label>
-              <textarea id="sw-rdv-comment" class="swal2-textarea case-op-textarea" placeholder="Additional scheduling notes">${this.escapeHtml(rdv.cmtRdv ?? '')}</textarea>
+              <label class="case-op-label">${this.popupText('cases.board.rdv.fields.comment')}</label>
+              <textarea id="sw-rdv-comment" class="swal2-textarea case-op-textarea" placeholder="${this.popupText('cases.board.rdv.placeholders.comment')}">${this.escapeHtml(rdv.cmtRdv ?? '')}</textarea>
             </div>
           </div>
 
@@ -1258,16 +1199,16 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
           <div class="case-op-grid case-op-grid-2">
             <div class="case-op-field">
-              <label class="case-op-label">Abandon</label>
+              <label class="case-op-label">${this.popupText('caseDetail.fields.abandoned')}</label>
               <select id="sw-rdv-abandon" class="swal2-input case-op-input">
-                <option value="false" ${rdv.abandon ? '' : 'selected'}>No</option>
-                <option value="true" ${rdv.abandon ? 'selected' : ''}>Yes</option>
+                <option value="false" ${rdv.abandon ? '' : 'selected'}>${this.popupText('common.no')}</option>
+                <option value="true" ${rdv.abandon ? 'selected' : ''}>${this.popupText('common.yes')}</option>
               </select>
             </div>
 
             <div class="case-op-field">
-              <label class="case-op-label">Cause Abandon</label>
-              <input id="sw-rdv-cause-abandon" class="swal2-input case-op-input" value="${this.escapeHtml(rdv.causeAbandon ?? '')}" placeholder="Required when abandon = Yes" />
+              <label class="case-op-label">${this.popupText('caseDetail.fields.causeAbandon')}</label>
+              <input id="sw-rdv-cause-abandon" class="swal2-input case-op-input" value="${this.escapeHtml(rdv.causeAbandon ?? '')}" placeholder="${this.popupText('cases.board.rdv.placeholders.causeAbandon')}" />
             </div>
           </div>
         </div>
@@ -1276,8 +1217,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         popup: 'case-op-popup'
       },
       showCancelButton: true,
-      confirmButtonText: 'Save RDV',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: this.t('cases.board.rdv.confirmButton'),
+      cancelButtonText: this.t('common.cancel'),
       confirmButtonColor: '#321fdb',
       preConfirm: () => {
         const joignable = this.getElementValue('sw-rdv-joignable') === 'true';
@@ -1289,17 +1230,17 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         const causeAbandon = this.toNullable(this.getElementValue('sw-rdv-cause-abandon'));
 
         if (!datePriseRdv) {
-          Swal.showValidationMessage('Date RDV is required');
+          Swal.showValidationMessage(this.t('cases.board.rdv.validation.dateRequired'));
           return undefined;
         }
 
         if (!joignable && !causeInjoignabilite) {
-          Swal.showValidationMessage('Cause injoignabilite is required when client is not joignable');
+          Swal.showValidationMessage(this.t('cases.board.rdv.validation.causeInjoignabiliteRequired'));
           return undefined;
         }
 
         if (abandon && !causeAbandon) {
-          Swal.showValidationMessage('Cause abandon is required when abandon is true');
+          Swal.showValidationMessage(this.t('cases.board.rdv.validation.causeAbandonRequired'));
           return undefined;
         }
 
@@ -1317,7 +1258,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     if (!result.isConfirmed || !result.value) return;
     const rdvPayload = result.value;
-    await this.runAction(item.id, () => this.casesService.setRdv(item.id, rdvPayload), 'RDV saved');
+    await this.runAction(item.id, () => this.casesService.setRdv(item.id, rdvPayload), this.t('cases.board.rdv.saved'));
   }
 
   async openWorkPopup(item: CaseResponse): Promise<void> {
@@ -1330,44 +1271,44 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const metrics = this.extractMetrics(item);
 
     const result = await Swal.fire<CompleteWorkRequest>({
-      title: `Update Work - CRM ${this.escapeHtml(item.crmCase)}`,
+      title: this.t('cases.board.work.title', { crmCase: item.crmCase }),
       width: 760,
       html: `
         <div class="case-op-modal">
           <div class="case-op-grid case-op-grid-2">
             <div class="case-op-field">
-              <label class="case-op-label">Work Result <span>*</span></label>
+              <label class="case-op-label">${this.popupText('cases.board.work.fields.result')} <span>*</span></label>
               <input id="sw-work-result" class="swal2-input case-op-input" value="${this.escapeHtml(work.repTravauxStt ?? '')}" />
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">Date End Work <span>*</span></label>
+              <label class="case-op-label">${this.popupText('cases.board.work.fields.completedAt')} <span>*</span></label>
               <input id="sw-work-date" type="datetime-local" class="swal2-input case-op-input" value="${this.toDateTimeLocal(work.dateFinTrv)}" />
             </div>
           </div>
 
           <div class="case-op-field">
-            <label class="case-op-label">Comment <span>*</span></label>
-            <textarea id="sw-work-comment" class="swal2-textarea case-op-textarea" placeholder="Summarize intervention outcome and observations">${this.escapeHtml(work.cmtTrvStt ?? '')}</textarea>
+            <label class="case-op-label">${this.popupText('cases.board.work.fields.comment')} <span>*</span></label>
+            <textarea id="sw-work-comment" class="swal2-textarea case-op-textarea" placeholder="${this.popupText('cases.board.work.placeholders.comment')}">${this.escapeHtml(work.cmtTrvStt ?? '')}</textarea>
           </div>
 
           <div class="case-op-divider"></div>
-          <div class="case-op-subtitle">Technical Metrics</div>
+          <div class="case-op-subtitle">${this.popupText('caseDetail.sections.technicalMetrics')}</div>
 
           <div class="case-op-grid case-op-grid-3">
             <div class="case-op-field">
-              <label class="case-op-label">Metrage Cable</label>
+              <label class="case-op-label">${this.popupText('cases.board.work.fields.metrageCable')}</label>
               <input id="sw-work-metrage" type="number" step="0.01" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.metrageCable)}" />
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">Nombre PV</label>
+              <label class="case-op-label">${this.popupText('cases.board.work.fields.nombrePv')}</label>
               <input id="sw-work-pv" type="number" step="1" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.nombrePv)}" />
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">Debit DL</label>
+              <label class="case-op-label">${this.popupText('cases.board.work.fields.debitDl')}</label>
               <input id="sw-work-dl" type="number" step="0.01" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.debitDl)}" />
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">Debit UL</label>
+              <label class="case-op-label">${this.popupText('cases.board.work.fields.debitUl')}</label>
               <input id="sw-work-ul" type="number" step="0.01" class="swal2-input case-op-input" value="${this.toInputNumber(metrics.debitUl)}" />
             </div>
             <div class="case-op-field">
@@ -1389,8 +1330,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         popup: 'case-op-popup'
       },
       showCancelButton: true,
-      confirmButtonText: 'Submit Work',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: this.t('cases.board.work.confirmButton'),
+      cancelButtonText: this.t('common.cancel'),
       confirmButtonColor: '#2eb85c',
       preConfirm: () => {
         const repTravauxStt = this.getElementValue('sw-work-result').trim();
@@ -1398,7 +1339,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         const cmtTrvStt = this.getElementValue('sw-work-comment').trim();
 
         if (!repTravauxStt || !dateFinTrv || !cmtTrvStt) {
-          Swal.showValidationMessage('Work result, date and comment are required');
+          Swal.showValidationMessage(this.t('cases.board.work.validation.requiredFields'));
           return undefined;
         }
 
@@ -1419,7 +1360,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     if (!result.isConfirmed || !result.value) return;
     const workPayload = result.value;
-    await this.runAction(item.id, () => this.casesService.completeWork(item.id, workPayload), 'Work updated');
+    await this.runAction(item.id, () => this.casesService.completeWork(item.id, workPayload), this.t('cases.board.work.saved'));
   }
 
   async openDiagnosisPopup(item: CaseResponse): Promise<void> {
@@ -1427,13 +1368,13 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const selectedCategory = diagnosis.complaintCategory ?? 'OTHER';
 
     const result = await Swal.fire<ComplaintDiagnosisRequest>({
-      title: `Diagnosis - CRM ${this.escapeHtml(item.crmCase)}`,
+      title: this.t('cases.board.diagnosis.title', { crmCase: item.crmCase }),
       width: 780,
       html: `
         <div class="case-op-modal">
           <div class="case-op-grid case-op-grid-2">
             <div class="case-op-field">
-              <label class="case-op-label">Complaint category <span>*</span></label>
+              <label class="case-op-label">${this.popupText('cases.board.diagnosis.fields.category')} <span>*</span></label>
               <select id="sw-diagnosis-category" class="swal2-input case-op-input">
                 ${this.complaintCategoryOptions()
                   .map((option) => `<option value="${option.value}" ${selectedCategory === option.value ? 'selected' : ''}>${option.label}</option>`)
@@ -1442,38 +1383,38 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
             </div>
 
             <div class="case-op-field">
-              <label class="case-op-label">Root cause</label>
+              <label class="case-op-label">${this.popupText('caseDetail.fields.rootCause')}</label>
               <input id="sw-diagnosis-root-cause" class="swal2-input case-op-input" value="${this.escapeHtml(diagnosis.rootCause ?? '')}" />
             </div>
           </div>
 
           <div class="case-op-field">
-            <label class="case-op-label">Diagnosis comment</label>
-            <textarea id="sw-diagnosis-comment" class="swal2-textarea case-op-textarea" placeholder="Summarize the issue, checks, and next decision">${this.escapeHtml(diagnosis.diagnosisComment ?? item.complaintDescription ?? item.complaintDetail ?? '')}</textarea>
+            <label class="case-op-label">${this.popupText('cases.board.diagnosis.fields.comment')}</label>
+            <textarea id="sw-diagnosis-comment" class="swal2-textarea case-op-textarea" placeholder="${this.popupText('cases.board.diagnosis.placeholders.comment')}">${this.escapeHtml(diagnosis.diagnosisComment ?? item.complaintDescription ?? item.complaintDetail ?? '')}</textarea>
           </div>
 
           <div class="case-op-divider"></div>
 
           <div class="case-op-grid case-op-grid-3">
             <div class="case-op-field">
-              <label class="case-op-label">Requires field work</label>
+              <label class="case-op-label">${this.popupText('caseDetail.fields.requiresFieldWork')}</label>
               <select id="sw-diagnosis-field" class="swal2-input case-op-input">
-                <option value="false" ${diagnosis.requiresFieldWork ? '' : 'selected'}>No</option>
-                <option value="true" ${diagnosis.requiresFieldWork ? 'selected' : ''}>Yes</option>
+                <option value="false" ${diagnosis.requiresFieldWork ? '' : 'selected'}>${this.popupText('common.no')}</option>
+                <option value="true" ${diagnosis.requiresFieldWork ? 'selected' : ''}>${this.popupText('common.yes')}</option>
               </select>
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">Requires TECH</label>
+              <label class="case-op-label">${this.popupText('caseDetail.fields.requiresTech')}</label>
               <select id="sw-diagnosis-tech" class="swal2-input case-op-input">
-                <option value="false" ${diagnosis.requiresTechIntervention ? '' : 'selected'}>No</option>
-                <option value="true" ${diagnosis.requiresTechIntervention ? 'selected' : ''}>Yes</option>
+                <option value="false" ${diagnosis.requiresTechIntervention ? '' : 'selected'}>${this.popupText('common.no')}</option>
+                <option value="true" ${diagnosis.requiresTechIntervention ? 'selected' : ''}>${this.popupText('common.yes')}</option>
               </select>
             </div>
             <div class="case-op-field">
-              <label class="case-op-label">Escalate</label>
+              <label class="case-op-label">${this.popupText('caseDetail.fields.requiresEscalation')}</label>
               <select id="sw-diagnosis-escalation" class="swal2-input case-op-input">
-                <option value="false" ${diagnosis.requiresEscalation ? '' : 'selected'}>No</option>
-                <option value="true" ${diagnosis.requiresEscalation ? 'selected' : ''}>Yes</option>
+                <option value="false" ${diagnosis.requiresEscalation ? '' : 'selected'}>${this.popupText('common.no')}</option>
+                <option value="true" ${diagnosis.requiresEscalation ? 'selected' : ''}>${this.popupText('common.yes')}</option>
               </select>
             </div>
           </div>
@@ -1483,8 +1424,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         popup: 'case-op-popup'
       },
       showCancelButton: true,
-      confirmButtonText: 'Save diagnosis',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: this.t('cases.board.diagnosis.confirmButton'),
+      cancelButtonText: this.t('common.cancel'),
       confirmButtonColor: '#1b9aaa',
       preConfirm: () => {
         const complaintCategory = this.getElementValue('sw-diagnosis-category') as ComplaintCategory;
@@ -1495,12 +1436,12 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         const requiresEscalation = this.getElementValue('sw-diagnosis-escalation') === 'true';
 
         if (!complaintCategory) {
-          Swal.showValidationMessage('Complaint category is required');
+          Swal.showValidationMessage(this.t('cases.board.diagnosis.validation.categoryRequired'));
           return undefined;
         }
 
         if (requiresEscalation && requiresTechIntervention) {
-          Swal.showValidationMessage('Choose either escalation or TECH intervention for the next step');
+          Swal.showValidationMessage(this.t('cases.board.diagnosis.validation.nextStepConflict'));
           return undefined;
         }
 
@@ -1520,7 +1461,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     await this.runAction(
       item.id,
       () => this.casesService.diagnoseComplaint(item.id, diagnosisPayload),
-      'Diagnosis saved'
+      this.t('cases.board.diagnosis.saved')
     );
   }
 
@@ -1529,21 +1470,21 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const defaultApproved = validation.approved ?? true;
 
     const result = await Swal.fire<ValidateZmRequest>({
-      title: `ZM Validation - CRM ${this.escapeHtml(item.crmCase)}`,
+      title: this.t('cases.board.validation.title', { crmCase: item.crmCase }),
       width: 720,
       html: `
         <div class="case-op-modal">
           <div class="case-op-field">
-            <label class="case-op-label">Decision <span>*</span></label>
+            <label class="case-op-label">${this.popupText('cases.board.validation.fields.decision')} <span>*</span></label>
             <select id="sw-zm-approved" class="swal2-input case-op-input">
-              <option value="true" ${defaultApproved ? 'selected' : ''}>Approve</option>
-              <option value="false" ${defaultApproved ? '' : 'selected'}>Reject</option>
+              <option value="true" ${defaultApproved ? 'selected' : ''}>${this.popupText('cases.board.validation.options.approve')}</option>
+              <option value="false" ${defaultApproved ? '' : 'selected'}>${this.popupText('cases.board.validation.options.reject')}</option>
             </select>
           </div>
 
           <div class="case-op-field">
-            <label class="case-op-label">Validation Comment <span>*</span></label>
-            <textarea id="sw-zm-comment" class="swal2-textarea case-op-textarea" placeholder="Explain your validation decision for traceability">${this.escapeHtml(validation.comment ?? '')}</textarea>
+            <label class="case-op-label">${this.popupText('cases.board.validation.fields.comment')} <span>*</span></label>
+            <textarea id="sw-zm-comment" class="swal2-textarea case-op-textarea" placeholder="${this.popupText('cases.board.validation.placeholders.comment')}">${this.escapeHtml(validation.comment ?? '')}</textarea>
           </div>
         </div>
       `,
@@ -1551,15 +1492,15 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         popup: 'case-op-popup'
       },
       showCancelButton: true,
-      confirmButtonText: 'Submit Validation',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: this.t('cases.board.validation.confirmButton'),
+      cancelButtonText: this.t('common.cancel'),
       confirmButtonColor: '#321fdb',
       preConfirm: () => {
         const approved = this.getElementValue('sw-zm-approved') === 'true';
         const comment = this.getElementValue('sw-zm-comment').trim();
 
         if (!comment) {
-          Swal.showValidationMessage('Comment is required');
+          Swal.showValidationMessage(this.t('cases.board.validation.validation.commentRequired'));
           return undefined;
         }
 
@@ -1569,18 +1510,18 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     if (!result.isConfirmed || !result.value) return;
     const validationPayload = result.value;
-    await this.runAction(item.id, () => this.casesService.validateZm(item.id, validationPayload), 'Validation saved');
+    await this.runAction(item.id, () => this.casesService.validateZm(item.id, validationPayload), this.t('cases.board.validation.saved'));
   }
 
   async openReopenComplaint(item: CaseResponse): Promise<void> {
     const result = await Swal.fire<ReopenComplaintRequest>({
-      title: `Reopen complaint - CRM ${this.escapeHtml(item.crmCase)}`,
+      title: this.t('cases.board.reopen.title', { crmCase: item.crmCase }),
       width: 640,
       html: `
         <div class="case-op-modal">
           <div class="case-op-field">
-            <label class="case-op-label">Reopen comment</label>
-            <textarea id="sw-reopen-comment" class="swal2-textarea case-op-textarea" placeholder="Explain why this complaint needs another resolution cycle"></textarea>
+            <label class="case-op-label">${this.popupText('cases.board.reopen.fields.comment')}</label>
+            <textarea id="sw-reopen-comment" class="swal2-textarea case-op-textarea" placeholder="${this.popupText('cases.board.reopen.placeholders.comment')}"></textarea>
           </div>
         </div>
       `,
@@ -1588,8 +1529,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         popup: 'case-op-popup'
       },
       showCancelButton: true,
-      confirmButtonText: 'Reopen complaint',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: this.t('cases.board.reopen.confirmButton'),
+      cancelButtonText: this.t('common.cancel'),
       confirmButtonColor: '#f9b115',
       preConfirm: () => {
         return {
@@ -1605,19 +1546,19 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     await this.runAction(
       item.id,
       () => this.casesService.reopenComplaint(item.id, result.value!),
-      'Complaint reopened'
+      this.t('cases.board.reopen.saved')
     );
   }
 
   async openClosePopup(item: CaseResponse): Promise<void> {
     const confirm = await this.swal.confirmAction(
-      'Close this case?',
-      `CRM ${item.crmCase} will be closed and cannot move forward.`,
-      'Close Case'
+      this.t('cases.board.close.confirmTitle'),
+      this.t('cases.board.close.confirmText', { crmCase: item.crmCase }),
+      this.t('cases.board.close.confirmButton')
     );
 
     if (!confirm.isConfirmed) return;
-    await this.runAction(item.id, () => this.casesService.closeCase(item.id), 'Case closed');
+    await this.runAction(item.id, () => this.casesService.closeCase(item.id), this.t('cases.board.close.saved'));
   }
 
   /**
@@ -1653,8 +1594,17 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
         this.zone.run(() => this.cdr.detectChanges());
       },
       error: (err) => {
-        // Couldn't open directly — keep the highlight so the case is easy to find in the list.
-        console.error('Failed to open case from message notification:', err);
+        console.error('Failed to open case from notification:', err);
+        this.highlightedCaseId = null;
+        const status = err?.status;
+        // Controlled feedback when the case is gone or the user may not access it,
+        // instead of silently landing on the board with nothing opened.
+        if (status === 404 || status === 403) {
+          const messageKey = status === 404
+            ? 'cases.board.details.deletedMessage'
+            : 'cases.board.details.forbiddenMessage';
+          this.swal.error(this.t('cases.board.details.errorTitle'), this.t(messageKey));
+        }
         this.zone.run(() => this.cdr.detectChanges());
       }
     });
@@ -1684,8 +1634,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       this.caseDetailVisible = true;
     } catch (err: any) {
       console.error('Failed to load case details:', err);
-      const message = err?.error?.message ?? 'Failed to load case details';
-      await this.swal.error('Details unavailable', message);
+      const message = err?.error?.message ?? this.t('cases.board.details.errorMessage');
+      await this.swal.error(this.t('cases.board.details.errorTitle'), message);
     } finally {
       this.actionLoadingCaseId = null;
       this.zone.run(() => this.cdr.detectChanges());
@@ -1716,8 +1666,8 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       this.saveBlob(blob, filename);
     } catch (err: any) {
       console.error('Failed to download case PDF:', err);
-      const message = err?.error?.message ?? err?.message ?? 'Failed to download case report';
-      await this.swal.error('Download failed', message);
+      const message = err?.error?.message ?? err?.message ?? this.t('cases.board.download.errorMessage');
+      await this.swal.error(this.t('cases.board.download.errorTitle'), message);
     }
   }
 
@@ -1764,15 +1714,15 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
     try {
       await firstValueFrom(action());
-      await this.swal.success(successTitle, 'Operation completed successfully.');
+      await this.swal.success(successTitle, this.t('cases.board.messages.operationCompleted'));
       this.detailCache.delete(caseId);
       this.loadCases();
       this.loadSummary();
       this.loadPerformance();
     } catch (err: any) {
       console.error('Case action failed:', err);
-      const message = err?.error?.message ?? 'Operation failed';
-      await this.swal.error('Request failed', message);
+      const message = err?.error?.message ?? this.t('cases.board.messages.operationFailed');
+      await this.swal.error(this.t('cases.board.messages.requestFailed'), message);
     } finally {
       this.actionLoadingCaseId = null;
       this.zone.run(() => this.cdr.detectChanges());
@@ -1839,14 +1789,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   executionModeLabel(item: CaseResponse): string {
     if (this.hasSttSelfExecution(item)) {
-      return 'STT self execution';
+      return this.transloco.translate(EXECUTION_MODE_LABEL_KEYS.STT_SELF_EXECUTION);
     }
 
     if (this.hasTechExecution(item)) {
-      return 'Technician execution';
+      return this.transloco.translate(EXECUTION_MODE_LABEL_KEYS.TECH_EXECUTION);
     }
 
-    return 'Execution not selected';
+    return this.t('cases.execution.notSelected');
   }
 
   ownerZmCompactLabel(item: CaseResponse): string {
@@ -2017,14 +1967,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private complaintCategoryOptions(): Array<{ value: ComplaintCategory; label: string }> {
     return [
-      { value: 'NETWORK_COVERAGE', label: 'Network coverage' },
-      { value: 'SERVICE_QUALITY', label: 'Service quality' },
-      { value: 'INSTALLATION', label: 'Installation' },
-      { value: 'EQUIPMENT', label: 'Equipment' },
-      { value: 'BILLING', label: 'Billing' },
-      { value: 'ACTIVATION_FOLLOW_UP', label: 'Activation follow-up' },
-      { value: 'CUSTOMER_EDUCATION', label: 'Customer education' },
-      { value: 'OTHER', label: 'Other' }
+      { value: 'NETWORK_COVERAGE', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.NETWORK_COVERAGE) },
+      { value: 'SERVICE_QUALITY', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.SERVICE_QUALITY) },
+      { value: 'INSTALLATION', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.INSTALLATION) },
+      { value: 'EQUIPMENT', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.EQUIPMENT) },
+      { value: 'BILLING', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.BILLING) },
+      { value: 'ACTIVATION_FOLLOW_UP', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.ACTIVATION_FOLLOW_UP) },
+      { value: 'CUSTOMER_EDUCATION', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.CUSTOMER_EDUCATION) },
+      { value: 'OTHER', label: this.t(COMPLAINT_CATEGORY_LABEL_KEYS.OTHER) }
     ];
   }
 
@@ -2108,14 +2058,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private renderTimelineHtml(timeline: CaseTimelineEvent[]): string {
     if (!timeline.length) {
-      return '<div class="text-body-secondary small">No timeline events yet.</div>';
+      return `<div class="text-body-secondary small">${this.popupText('cases.board.timeline.empty')}</div>`;
     }
 
     const rows = timeline.slice(0, 12).map((event) => {
       const occurredAt = this.escapeHtml(this.asDateLabel(event.occurredAt));
-      const title = this.escapeHtml(event.title ?? event.eventType ?? 'Event');
+      const title = this.escapeHtml(event.title ?? event.eventType ?? this.t('cases.board.timeline.event'));
       const details = this.escapeHtml(event.details ?? '-');
-      const actor = this.escapeHtml(event.actor ?? 'SYSTEM');
+      const actor = this.escapeHtml(event.actor ?? this.t('notifications.alertCenter.targetRoles.system'));
       const stateFrom = event.previousStatus ? this.statusLabel(event.previousStatus) : '-';
       const stateTo = event.newStatus ? this.statusLabel(event.newStatus) : '-';
 
@@ -2129,7 +2079,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
             <span class="x-small text-body-secondary">${occurredAt}</span>
           </div>
           <div class="x-small text-body-secondary mt-1">
-            Actor: ${actor} • State: ${this.escapeHtml(stateFrom)} -> ${this.escapeHtml(stateTo)}
+            ${this.popupText('cases.board.timeline.actorState', { actor, from: this.escapeHtml(stateFrom), to: this.escapeHtml(stateTo) })}
           </div>
         </div>
       `;
@@ -2140,11 +2090,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private renderProofsHtml(proofs: CaseProofFile[]): string {
     if (!proofs.length) {
-      return '<div class="text-body-secondary small">No proof image uploaded yet.</div>';
+      return `<div class="text-body-secondary small">${this.popupText('cases.board.proof.empty')}</div>`;
     }
 
     const rows = proofs.map((proof) => {
-      const filename = this.escapeHtml(proof.originalFilename || 'Proof image');
+      const filename = this.escapeHtml(proof.originalFilename || this.t('cases.board.proof.defaultFilename'));
       const uploadedAt = this.escapeHtml(this.asDateLabel(proof.createdAt));
       const uploadedBy = this.escapeHtml(proof.uploadedBy || '-');
       const imageHref = this.escapeHtml(proof.viewUrl || proof.downloadUrl || '#');
@@ -2170,30 +2120,26 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
           </a>
           <div class="text-start">
             <div class="fw-semibold text-body">${filename}</div>
-            <div class="small text-body-secondary">Uploaded: ${uploadedAt}</div>
-            <div class="small text-body-secondary">By: ${uploadedBy}</div>
-            <div class="small text-body-secondary">Source: ${source || '-'}</div>
-            <div class="small text-body-secondary">GPS: ${location}</div>
-            <div class="small text-body-secondary">Captured at: ${capturedAt}</div>
-            <div class="small text-body-secondary">Accuracy: ${accuracy}</div>
+            <div class="small text-body-secondary">${this.popupText('cases.board.proof.uploaded', { value: uploadedAt })}</div>
+            <div class="small text-body-secondary">${this.popupText('cases.board.proof.by', { value: uploadedBy })}</div>
+            <div class="small text-body-secondary">${this.popupText('cases.board.proof.source', { value: source || '-' })}</div>
+            <div class="small text-body-secondary">${this.popupText('cases.board.proof.gps', { value: location })}</div>
+            <div class="small text-body-secondary">${this.popupText('cases.board.proof.capturedAt', { value: capturedAt })}</div>
+            <div class="small text-body-secondary">${this.popupText('cases.board.proof.accuracy', { value: accuracy })}</div>
             <div class="d-flex gap-2 flex-wrap mt-2">
               <a
                 href="${imageHref}"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="small text-primary text-decoration-none"
-              >
-                Open image
-              </a>
+              >${this.popupText('cases.board.proof.openImage')}</a>
               ${mapHref ? `
                 <a
                   href="${this.escapeHtml(mapHref)}"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="small text-primary text-decoration-none"
-                >
-                  Open map
-                </a>
+                >${this.popupText('cases.board.proof.openMap')}</a>
               ` : ''}
             </div>
           </div>
@@ -2211,14 +2157,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const accuracy = this.escapeHtml(this.accuracyLabel(work.locationAccuracyMeters));
 
     if (location === '-') {
-      return '<div class="text-body-secondary small">No work submission GPS saved yet.</div>';
+      return `<div class="text-body-secondary small">${this.popupText('cases.board.workLocation.empty')}</div>`;
     }
 
     return `
       <div class="row g-2 mb-2">
-        <div class="col-md-5"><strong>Coordinates:</strong> ${location}</div>
-        <div class="col-md-4"><strong>Captured at:</strong> ${capturedAt}</div>
-        <div class="col-md-3"><strong>Accuracy:</strong> ${accuracy}</div>
+        <div class="col-md-5"><strong>${this.popupText('cases.board.workLocation.coordinates')}</strong> ${location}</div>
+        <div class="col-md-4"><strong>${this.popupText('caseDetail.fields.capturedAt')}</strong> ${capturedAt}</div>
+        <div class="col-md-3"><strong>${this.popupText('caseDetail.fields.accuracy')}</strong> ${accuracy}</div>
       </div>
       ${mapHref ? `
         <a
@@ -2226,9 +2172,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
           target="_blank"
           rel="noopener noreferrer"
           class="small text-primary text-decoration-none"
-        >
-          Open work location on map
-        </a>
+        >${this.popupText('cases.board.workLocation.openMap')}</a>
       ` : ''}
     `;
   }
@@ -2296,11 +2240,11 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private proofSourceLabel(source?: string | null): string {
     if (source === 'gallery') {
-      return 'Gallery';
+      return this.t('caseDetail.proofSource.gallery');
     }
 
     if (source === 'camera') {
-      return 'Camera';
+      return this.t('caseDetail.proofSource.camera');
     }
 
     return '-';
@@ -2333,7 +2277,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
       return '-';
     }
 
-    return `±${Math.round(value)} m`;
+    return this.t('common.measure.approxMeters', { value: Math.round(value) });
   }
 
   private parseCoordinate(value?: number | string | null): number | null {
@@ -2351,16 +2295,16 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
 
   private formatMinutes(value: number): string {
     if (!Number.isFinite(value) || value <= 0) {
-      return '0m';
+      return this.t('common.duration.minutesCompact', { value: 0 });
     }
 
     const rounded = Math.round(value * 10) / 10;
-    return `${rounded}m`;
+    return this.t('common.duration.minutesCompact', { value: rounded });
   }
 
   private formatSeconds(totalSeconds: number): string {
     if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-      return '<1m';
+      return this.t('common.duration.lessThanMinute');
     }
 
     const safeSeconds = Math.floor(totalSeconds);
@@ -2368,14 +2312,14 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     const minutes = Math.floor((safeSeconds % 3600) / 60);
 
     if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+      return this.t('common.duration.hoursMinutesCompact', { hours, minutes });
     }
 
     if (minutes > 0) {
-      return `${minutes}m`;
+      return this.t('common.duration.minutesCompact', { value: minutes });
     }
 
-    return '<1m';
+    return this.t('common.duration.lessThanMinute');
   }
 
   private resolveLiveSla(item: CaseResponse): {
@@ -2513,7 +2457,7 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
     if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleString();
+    return date.toLocaleString(this.dateLocale());
   }
 
   private toDateTimeLocal(value?: string | null): string {
@@ -2555,6 +2499,115 @@ export class ActivationCasesListComponent implements OnInit, OnDestroy {
   private getElementValue(id: string): string {
     const element = document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
     return element?.value ?? '';
+  }
+
+  private workspaceTitleKey(): string {
+    if (this.isResModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'cases.board.workspace.resiliation.admin.title';
+        case 'ROLE_ZM':
+          return 'cases.board.workspace.resiliation.zm.title';
+        case 'ROLE_STT':
+          return 'cases.board.workspace.resiliation.stt.title';
+        case 'ROLE_TECH':
+          return 'cases.board.workspace.resiliation.tech.title';
+        default:
+          return 'cases.board.workspace.resiliation.default.title';
+      }
+    }
+
+    if (this.isComplaintModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'cases.board.workspace.complaint.admin.title';
+        case 'ROLE_ZM':
+          return 'cases.board.workspace.complaint.zm.title';
+        case 'ROLE_STT':
+          return 'cases.board.workspace.complaint.stt.title';
+        case 'ROLE_TECH':
+          return 'cases.board.workspace.complaint.tech.title';
+        default:
+          return 'cases.board.workspace.complaint.default.title';
+      }
+    }
+
+    switch (this.currentRole) {
+      case 'ROLE_ADMIN':
+        return 'cases.board.workspace.activation.admin.title';
+      case 'ROLE_ZM':
+        return 'cases.board.workspace.activation.zm.title';
+      case 'ROLE_STT':
+        return 'cases.board.workspace.activation.stt.title';
+      case 'ROLE_TECH':
+        return 'cases.board.workspace.activation.tech.title';
+      default:
+        return 'cases.board.workspace.activation.default.title';
+    }
+  }
+
+  private workspaceSubtitleKey(): string {
+    if (this.isResModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'cases.board.workspace.resiliation.admin.subtitle';
+        case 'ROLE_ZM':
+          return 'cases.board.workspace.resiliation.zm.subtitle';
+        case 'ROLE_STT':
+          return 'cases.board.workspace.resiliation.stt.subtitle';
+        case 'ROLE_TECH':
+          return 'cases.board.workspace.resiliation.tech.subtitle';
+        default:
+          return 'cases.board.workspace.resiliation.default.subtitle';
+      }
+    }
+
+    if (this.isComplaintModule) {
+      switch (this.currentRole) {
+        case 'ROLE_ADMIN':
+          return 'cases.board.workspace.complaint.admin.subtitle';
+        case 'ROLE_ZM':
+          return 'cases.board.workspace.complaint.zm.subtitle';
+        case 'ROLE_STT':
+          return 'cases.board.workspace.complaint.stt.subtitle';
+        case 'ROLE_TECH':
+          return 'cases.board.workspace.complaint.tech.subtitle';
+        default:
+          return 'cases.board.workspace.complaint.default.subtitle';
+      }
+    }
+
+    switch (this.currentRole) {
+      case 'ROLE_ADMIN':
+        return 'cases.board.workspace.activation.admin.subtitle';
+      case 'ROLE_ZM':
+        return 'cases.board.workspace.activation.zm.subtitle';
+      case 'ROLE_STT':
+        return 'cases.board.workspace.activation.stt.subtitle';
+      case 'ROLE_TECH':
+        return 'cases.board.workspace.activation.tech.subtitle';
+      default:
+        return 'cases.board.workspace.activation.default.subtitle';
+    }
+  }
+
+  private dateLocale(): string {
+    switch (this.transloco.getActiveLang()) {
+      case 'ar':
+        return 'ar';
+      case 'fr':
+        return 'fr-FR';
+      default:
+        return 'en-US';
+    }
+  }
+
+  private popupText(key: string, params?: Record<string, unknown>): string {
+    return this.escapeHtml(this.t(key, params));
+  }
+
+  private t(key: string, params?: Record<string, unknown>): string {
+    return this.transloco.translate(key, params);
   }
 
   private escapeHtml(value: string): string {

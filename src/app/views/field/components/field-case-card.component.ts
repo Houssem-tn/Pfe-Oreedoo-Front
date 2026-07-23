@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { CaseResponse } from '../../../core/cases/models/case.model';
 import {
@@ -15,7 +16,7 @@ import {
 @Component({
   selector: 'app-field-case-card',
   standalone: true,
-  imports: [CommonModule, RouterLink, IconDirective],
+  imports: [CommonModule, RouterLink, IconDirective, TranslocoModule],
   template: `
     <a class="field-case-card" [routerLink]="detailLink" *ngIf="item">
       <div class="field-case-card__top">
@@ -23,7 +24,7 @@ import {
           <div class="field-case-card__crm">CRM {{ item.crmCase }}</div>
           <h2 class="field-case-card__client">{{ item.clientName }}</h2>
         </div>
-        <span [class]="statusClass">{{ statusLabel }}</span>
+        <span [class]="statusClass">{{ statusLabel | transloco }}</span>
       </div>
 
       <div class="field-case-card__meta">

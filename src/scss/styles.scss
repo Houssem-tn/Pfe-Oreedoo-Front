@@ -20,6 +20,9 @@
 // Mobile field-service interface.
 @use "field";
 
+// RTL (Arabic) layout patches — see the strategy notes inside this file.
+@use "rtl";
+
 // Examples
 // We use those styles to show code examples, you should remove them in your application.
 @use "examples";

@@ -11,20 +11,21 @@ import {
   ModalTitleDirective
 } from '@coreui/angular';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule } from '@jsverse/transloco';
 
 import { TUNISIA_GOVERNORATES } from '../../../core/shared/tunisia-governorates';
 
-const REGION_GROUPS: { label: string; govs: string[] }[] = [
+const REGION_GROUPS: { labelKey: string; govs: string[] }[] = [
   {
-    label: 'North',
+    labelKey: 'shared.governorateSelector.regions.north',
     govs: ['Tunis', 'Ariana', 'Ben Arous', 'Manouba', 'Nabeul', 'Zaghouan', 'Bizerte', 'Beja', 'Jendouba', 'Kef', 'Siliana']
   },
   {
-    label: 'Centre',
+    labelKey: 'shared.governorateSelector.regions.center',
     govs: ['Sousse', 'Monastir', 'Mahdia', 'Sfax', 'Kairouan', 'Kasserine', 'Sidi Bouzid']
   },
   {
-    label: 'South',
+    labelKey: 'shared.governorateSelector.regions.south',
     govs: ['Gabes', 'Medenine', 'Tataouine', 'Gafsa', 'Tozeur', 'Kebili']
   }
 ];
@@ -42,7 +43,8 @@ const REGION_GROUPS: { label: string; govs: string[] }[] = [
     ModalBodyComponent,
     ModalFooterComponent,
     ButtonDirective,
-    IconDirective
+    IconDirective,
+    TranslocoModule
   ],
   templateUrl: './governorate-selector.component.html',
   styleUrl: './governorate-selector.component.scss'
@@ -51,9 +53,9 @@ export class GovernorateSelectorComponent implements OnChanges {
   @Input() visible = false;
   @Input() selected: string[] = [];
   @Input() governorateOptions: string[] = [...TUNISIA_GOVERNORATES];
-  @Input() title = 'Select Governorates';
+  @Input() title = 'shared.governorateSelector.title';
   @Input() description = '';
-  @Input() confirmText = 'Save';
+  @Input() confirmText = 'common.save';
   @Input() allowEmpty = false;
 
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -74,8 +76,11 @@ export class GovernorateSelectorComponent implements OnChanges {
 
   get filteredOptions(): string[] {
     const term = this.searchTerm.trim().toLowerCase();
-    if (!term) return this.governorateOptions;
-    return this.governorateOptions.filter(g => g.toLowerCase().includes(term));
+    if (!term) {
+      return this.governorateOptions;
+    }
+
+    return this.governorateOptions.filter((governorate) => governorate.toLowerCase().includes(term));
   }
 
   get selectedCount(): number {
@@ -90,52 +95,55 @@ export class GovernorateSelectorComponent implements OnChanges {
     return !this.searchTerm.trim() && this.governorateOptions.length === TUNISIA_GOVERNORATES.length;
   }
 
-  isSelected(gov: string): boolean {
-    return this.currentSelection().has(gov);
+  isSelected(governorate: string): boolean {
+    return this.currentSelection().has(governorate);
   }
 
-  toggle(gov: string): void {
-    this.currentSelection.update(set => {
-      const next = new Set(set);
-      if (next.has(gov)) {
-        next.delete(gov);
+  toggle(governorate: string): void {
+    this.currentSelection.update((selection) => {
+      const next = new Set(selection);
+      if (next.has(governorate)) {
+        next.delete(governorate);
       } else {
-        next.add(gov);
+        next.add(governorate);
       }
       return next;
     });
   }
 
   selectAll(): void {
-    this.currentSelection.update(set => {
-      const next = new Set(set);
-      for (const gov of this.filteredOptions) {
-        next.add(gov);
+    this.currentSelection.update((selection) => {
+      const next = new Set(selection);
+      for (const governorate of this.filteredOptions) {
+        next.add(governorate);
       }
       return next;
     });
   }
 
   clearAll(): void {
-    this.currentSelection.update(set => {
-      const next = new Set(set);
-      for (const gov of this.filteredOptions) {
-        next.delete(gov);
+    this.currentSelection.update((selection) => {
+      const next = new Set(selection);
+      for (const governorate of this.filteredOptions) {
+        next.delete(governorate);
       }
       return next;
     });
   }
 
-  groupItems(regionGovs: string[]): string[] {
-    return this.filteredOptions.filter(g => regionGovs.includes(g));
+  groupItems(regionGovernorates: string[]): string[] {
+    return this.filteredOptions.filter((governorate) => regionGovernorates.includes(governorate));
   }
 
-  showRegion(regionGovs: string[]): boolean {
-    return this.groupItems(regionGovs).length > 0;
+  showRegion(regionGovernorates: string[]): boolean {
+    return this.groupItems(regionGovernorates).length > 0;
   }
 
   onSave(): void {
-    if (this.currentSelection().size === 0 && !this.allowEmpty) return;
+    if (this.currentSelection().size === 0 && !this.allowEmpty) {
+      return;
+    }
+
     this.save.emit([...this.currentSelection()]);
     this.visibleChange.emit(false);
   }
@@ -145,10 +153,10 @@ export class GovernorateSelectorComponent implements OnChanges {
     this.visibleChange.emit(false);
   }
 
-  handleVisibleChange(v: boolean): void {
-    if (!v) {
+  handleVisibleChange(visible: boolean): void {
+    if (!visible) {
       this.cancel.emit();
     }
-    this.visibleChange.emit(v);
+    this.visibleChange.emit(visible);
   }
 }

@@ -14,6 +14,7 @@ import {
   SidebarModule
 } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
+import { TranslocoTestingModule } from '@jsverse/transloco';
 import { iconSubset } from '../../../icons/icon-subset';
 import { DefaultHeaderComponent } from './default-header.component';
 
@@ -24,7 +25,22 @@ describe('DefaultHeaderComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    imports: [GridModule, HeaderModule, IconModule, NavModule, BadgeModule, AvatarModule, DropdownModule, BreadcrumbModule, SidebarModule, ProgressModule, ButtonGroupModule, ReactiveFormsModule, DefaultHeaderComponent],
+    imports: [
+      GridModule,
+      HeaderModule,
+      IconModule,
+      NavModule,
+      BadgeModule,
+      AvatarModule,
+      DropdownModule,
+      BreadcrumbModule,
+      SidebarModule,
+      ProgressModule,
+      ButtonGroupModule,
+      ReactiveFormsModule,
+      DefaultHeaderComponent,
+      TranslocoTestingModule.forRoot({ langs: { fr: {} }, translocoConfig: { availableLangs: ['fr'], defaultLang: 'fr' } })
+    ],
     providers: [IconSetService, provideRouter([])]
 })
       .compileComponents();

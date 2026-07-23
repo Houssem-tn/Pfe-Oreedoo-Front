@@ -10,6 +10,7 @@ import { finalize } from 'rxjs/operators';
 import { ZmDashboardService } from '../../core/zm-dashboard/zm-dashboard.service';
 import {
   ZmActionGroup,
+  ZmActionPreview,
   ZmDashboardResponse,
   ZmSttPerformance
 } from '../../core/zm-dashboard/zm-dashboard.model';
@@ -85,8 +86,9 @@ export class ZmDashboardComponent implements OnInit {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (res) => {
-          this.data.set(res);
-          this.buildCharts(res);
+          const normalized = this.normalizeDashboardResponse(res);
+          this.data.set(normalized);
+          this.buildCharts(normalized);
         },
         error: (err) => {
           console.error('Failed to load ZM dashboard', err);
@@ -179,6 +181,10 @@ export class ZmDashboardComponent implements OnInit {
 
   trackByStt(_: number, row: ZmSttPerformance): string {
     return row.sttId;
+  }
+
+  trackActionPreview(_: number, item: ZmActionPreview): string {
+    return this.actionPreviewKey(item);
   }
 
   materialSummary(
@@ -429,5 +435,63 @@ export class ZmDashboardComponent implements OnInit {
   private materialBreakdownKey(group: MaterialQuantityBreakdown): string {
     const equipmentName = group.equipmentName?.trim() || group.equipmentId?.trim() || 'Material';
     return `${equipmentName}::${group.unit ?? 'UNITS'}`;
+  }
+
+  private normalizeDashboardResponse(data: ZmDashboardResponse): ZmDashboardResponse {
+    return {
+      ...data,
+      actionItems: {
+        waitingAssignment: this.normalizeActionGroup(data.actionItems.waitingAssignment),
+        waitingValidation: this.normalizeActionGroup(data.actionItems.waitingValidation),
+        overdue: this.normalizeActionGroup(data.actionItems.overdue),
+        pendingReturns: this.normalizeActionGroup(data.actionItems.pendingReturns),
+        dpmFollowUp: this.normalizeActionGroup(data.actionItems.dpmFollowUp),
+        missingImeiSerial: this.normalizeActionGroup(data.actionItems.missingImeiSerial),
+        stockAnomalies: this.normalizeActionGroup(data.actionItems.stockAnomalies)
+      }
+    };
+  }
+
+  private normalizeActionGroup(group: ZmActionGroup): ZmActionGroup {
+    return {
+      ...group,
+      preview: this.dedupeActionPreviewItems(group.preview)
+    };
+  }
+
+  private dedupeActionPreviewItems(preview: ZmActionPreview[] | null | undefined): ZmActionPreview[] {
+    if (!preview?.length) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+    const deduped: ZmActionPreview[] = [];
+
+    for (let index = preview.length - 1; index >= 0; index--) {
+      const item = preview[index];
+      const key = this.actionPreviewKey(item);
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      deduped.unshift(item);
+    }
+
+    return deduped;
+  }
+
+  private actionPreviewKey(item: ZmActionPreview): string {
+    const id = item.id?.trim();
+    if (id) {
+      return `id:${id}`;
+    }
+
+    const reference = item.reference?.trim() ?? '';
+    const label = item.label?.trim() ?? '';
+    const meta = item.meta?.trim() ?? '';
+
+    return `fallback:${reference}|${label}|${meta}`;
   }
 }

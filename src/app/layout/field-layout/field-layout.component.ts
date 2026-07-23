@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoService, TranslocoModule } from '@jsverse/transloco';
 import { Subscription, filter } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -11,9 +12,10 @@ import { NotificationItem } from '../../core/notifications/models/notification.m
 import { NotificationStoreService } from '../../core/notifications/notification-store.service';
 import { NotificationToastStackComponent } from '../../core/notifications/notification-toast-stack.component';
 import { UserService } from '../../core/users/user.service';
+import { LanguageSelectorComponent } from '../../shared/language-selector/language-selector.component';
 
 interface FieldNavItem {
-  label: string;
+  labelKey: string;
   icon: string;
   path: 'home' | 'tasks' | 'history' | 'profile' | 'stock/my-stock';
   exact: boolean;
@@ -28,7 +30,9 @@ interface FieldNavItem {
     RouterLink,
     RouterLinkActive,
     IconDirective,
-    NotificationToastStackComponent
+    NotificationToastStackComponent,
+    TranslocoModule,
+    LanguageSelectorComponent
   ],
   templateUrl: './field-layout.component.html'
 })
@@ -38,24 +42,25 @@ export class FieldLayoutComponent implements OnInit, OnDestroy {
   private readonly notifications = inject(NotificationStoreService);
   private readonly router = inject(Router);
   private readonly userService = inject(UserService);
+  private readonly transloco = inject(TranslocoService);
   private readonly subscriptions = new Subscription();
 
   navBase = '/tech';
   notificationsOpen = false;
 
   readonly techNavItems: FieldNavItem[] = [
-    { label: 'Home', icon: 'cilHome', path: 'home', exact: true },
-    { label: 'Tasks', icon: 'cilTask', path: 'tasks', exact: false },
-    { label: 'My Stock', icon: 'cilStorage', path: 'stock/my-stock', exact: false },
-    { label: 'History', icon: 'cilClock', path: 'history', exact: true },
-    { label: 'Profile', icon: 'cilUser', path: 'profile', exact: true }
+    { labelKey: 'field.home', icon: 'cilHome', path: 'home', exact: true },
+    { labelKey: 'field.tasks', icon: 'cilTask', path: 'tasks', exact: false },
+    { labelKey: 'field.myStock', icon: 'cilStorage', path: 'stock/my-stock', exact: false },
+    { labelKey: 'field.history', icon: 'cilClock', path: 'history', exact: true },
+    { labelKey: 'field.profile', icon: 'cilUser', path: 'profile', exact: true }
   ];
 
   readonly sttNavItems: FieldNavItem[] = [
-    { label: 'Home', icon: 'cilHome', path: 'home', exact: true },
-    { label: 'Tasks', icon: 'cilTask', path: 'tasks', exact: false },
-    { label: 'History', icon: 'cilClock', path: 'history', exact: true },
-    { label: 'Profile', icon: 'cilUser', path: 'profile', exact: true }
+    { labelKey: 'field.home', icon: 'cilHome', path: 'home', exact: true },
+    { labelKey: 'field.tasks', icon: 'cilTask', path: 'tasks', exact: false },
+    { labelKey: 'field.history', icon: 'cilClock', path: 'history', exact: true },
+    { labelKey: 'field.profile', icon: 'cilUser', path: 'profile', exact: true }
   ];
 
   ngOnInit(): void {
@@ -77,11 +82,12 @@ export class FieldLayoutComponent implements OnInit, OnDestroy {
 
   get userName(): string {
     const user = this.authStore.user();
-    return user?.fullName?.trim() || user?.username?.trim() || user?.email?.split('@')[0] || 'Field user';
+    return user?.fullName?.trim() || user?.username?.trim() || user?.email?.split('@')[0]
+      || this.transloco.translate('field.fieldUser');
   }
 
   get roleLabel(): string {
-    return this.navBase.startsWith('/stt') ? 'STT execution' : 'TECH field';
+    return this.transloco.translate(this.navBase.startsWith('/stt') ? 'field.roleSttExecution' : 'field.roleTechField');
   }
 
   get navItems(): FieldNavItem[] {

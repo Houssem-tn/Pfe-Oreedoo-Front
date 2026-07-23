@@ -1,0 +1,1312 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "create": "Créer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "filters": "Filtres",
+    "actions": "Actions",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Envoyer",
+    "yes": "Oui",
+    "no": "Non",
+    "loading": "Chargement...",
+    "noData": "Aucune donnée disponible",
+    "requiredField": "Ce champ est obligatoire",
+    "notSpecified": "Non spécifié",
+    "requiredFieldsNote": "champs obligatoires",
+    "export": "Exporter",
+    "import": "Importer",
+    "download": "Télécharger",
+    "upload": "Téléverser",
+    "refresh": "Actualiser",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "clear": "Effacer",
+    "viewDetails": "Voir les détails",
+    "details": "Détails",
+    "status": "Statut",
+    "all": "Tous",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "name": "Nom",
+    "description": "Description",
+    "date": "Date",
+    "time": "Heure",
+    "from": "De",
+    "to": "À",
+    "of": "sur",
+    "page": "Page",
+    "rowsPerPage": "Lignes par page",
+    "total": "Total",
+    "select": "Sélectionner",
+    "selectAll": "Tout sélectionner",
+    "none": "Aucun",
+    "unknown": "Inconnu",
+    "optional": "Optionnel",
+    "warning": "Avertissement",
+    "success": "Succès",
+    "error": "Erreur",
+    "info": "Info",
+    "retry": "Réessayer",
+    "ok": "OK",
+    "continue": "Continuer",
+    "done": "Terminé",
+    "duration": {
+      "lessThanMinute": "<1 min",
+      "minutesCompact": "{{value}} min",
+      "hoursMinutesCompact": "{{hours}} h {{minutes}} min"
+    },
+    "measure": {
+      "approxMeters": "? {{value}} m"
+    }
+  },
+  "app": {
+    "title": "Service terrain Ooredoo",
+    "brandName": "Ooredoo",
+    "brandSubtitle": "Service terrain",
+    "brandAlt": "Logo Ooredoo"
+  },
+  "languages": {
+    "en": "Anglais",
+    "fr": "Français",
+    "ar": "Arabe",
+    "selectLanguage": "Choisir la langue"
+  },
+  "header": {
+    "dashboard": "Tableau de bord",
+    "notifications": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification pour le moment.",
+    "unread": "non lu(s)",
+    "caseMessages": "Messages de dossier",
+    "noUnreadCaseMessages": "Aucun message de dossier non lu.",
+    "case": "Dossier",
+    "account": "Compte",
+    "profile": "Profil",
+    "logout": "Déconnexion",
+    "language": "Langue",
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeAuto": "Auto",
+    "openNotifications": "Ouvrir les notifications",
+    "openCaseMessages": "Ouvrir les messages de dossier",
+    "openUserMenu": "Ouvrir le menu utilisateur",
+    "openThemePicker": "Ouvrir le sélecteur de thème",
+    "openLanguagePicker": "Ouvrir le sélecteur de langue",
+    "toggleSidebar": "Afficher/masquer la navigation",
+    "userAvatarAlt": "Avatar utilisateur",
+    "new": "Nouveau",
+    "unreadMessagesSingular": "{{ count }} message non lu",
+    "unreadMessagesPlural": "{{ count }} messages non lus"
+  },
+  "field": {
+    "hello": "Bonjour,",
+    "notifications": "Notifications",
+    "readAll": "Tout lire",
+    "noNotifications": "Aucune notification pour le moment.",
+    "logout": "Déconnexion",
+    "roleSttExecution": "Exécution STT",
+    "roleTechField": "TECH terrain",
+    "fieldUser": "Utilisateur terrain",
+    "home": "Accueil",
+    "tasks": "Tâches",
+    "myStock": "Mon stock",
+    "history": "Historique",
+    "profile": "Profil",
+    "fieldNavigation": "Navigation terrain"
+  },
+  "routes": {
+    "loginPage": "Page de connexion",
+    "registerPage": "Page d'inscription",
+    "technicianInvitationRegistration": "Inscription par invitation technicien",
+    "page404": "Page 404",
+    "page500": "Page 500",
+    "fieldTech": "TECH terrain",
+    "fieldSttExecution": "Exécution STT terrain",
+    "home": "Accueil",
+    "alertCenter": "Centre d'alertes",
+    "myProfile": "Mon profil",
+    "dashboard": "Tableau de bord",
+    "resExecution": "Exécution RES"
+  },
+  "nav": {
+    "sectionAdministration": "Administration",
+    "sectionPerformance": "Performance",
+    "sectionMonitoring": "Suivi",
+    "sectionCoverageIntelligence": "Intelligence de couverture",
+    "sectionStockManagement": "Gestion du stock",
+    "sectionStock": "Stock",
+    "sectionCoverage": "Couverture",
+    "dashboard": "Tableau de bord",
+    "fieldDashboard": "Tableau de bord terrain",
+    "approvals": "Approbations",
+    "users": "Utilisateurs",
+    "businessRules": "Règles métier",
+    "importAnalytics": "Import analytique",
+    "todosAnalysis": "Analyse des Todos",
+    "actAnalysis": "Analyse des actes",
+    "activationCases": "Dossiers d'activation",
+    "complaintCases": "Dossiers de réclamation",
+    "resiliationCases": "Dossiers de résiliation",
+    "networkCoverage": "Couverture réseau",
+    "equipment": "Équipement",
+    "stockTracking": "Suivi du stock",
+    "teamDistributions": "Distributions d'équipe",
+    "unitTracking": "Suivi unitaire",
+    "audit": "Audit",
+    "inviteTechnicians": "Inviter des techniciens",
+    "myTechnicians": "Mes techniciens",
+    "myStock": "Mon stock",
+    "incomingDpms": "DPM entrants",
+    "distributeToTech": "Distribuer aux TECH",
+    "usageApprovals": "Approbations d'utilisation",
+    "materialReturns": "Retours de matériel",
+    "retrievedStockCollection": "Collecte du stock récupéré",
+    "retrievedStockTracking": "Suivi du stock récupéré",
+    "retrievedStock": "Stock récupéré",
+    "myFieldTasks": "Mes tâches terrain",
+    "complaintTasks": "Tâches de réclamation",
+    "myEquipment": "Mon équipement",
+    "myPermissions": "Mes permissions",
+    "alertCenter": "Centre d'alertes",
+    "technicianApprovals": "Approbations techniciens",
+    "injectTodos": "Injecter des Todos",
+    "importedTodos": "Todos importés",
+    "myTeam": "Mon équipe",
+    "myDpms": "Mes DPM",
+    "createDpm": "Créer un DPM",
+    "teamStock": "Stock d'équipe",
+    "caseStockAudit": "Audit stock des dossiers",
+    "stockThresholds": "Seuils de stock",
+    "settings": "Paramètres"
+  },
+  "footer": {
+    "poweredBy": "Propulsé par",
+    "allRightsReserved": "Tous droits réservés."
+  },
+  "roles": {
+    "admin": "Administrateur",
+    "crmBoutique": "Boutique CRM",
+    "stt": "STT",
+    "tech": "TECH",
+    "zm": "ZM"
+  },
+  "errors": {
+    "fallback": "Une erreur est survenue. Veuillez réessayer.",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion et réessayer.",
+    "unauthorized": "Vous n'êtes pas autorisé. Veuillez vous reconnecter.",
+    "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+    "notFound": "La ressource demandée est introuvable.",
+    "serverError": "Une erreur serveur est survenue. Veuillez réessayer plus tard.",
+    "validationError": "Veuillez vérifier les champs signalés et réessayer.",
+    "loginFailed": "Échec de la connexion",
+    "accountDisabled": "Malheureusement, vous êtes banni ! Contactez l'administrateur"
+  },
+  "dialogs": {
+    "confirmDelete": {
+      "title": "Êtes-vous sûr ?",
+      "text": "Cette action supprimera définitivement cet élément : {{ entity }}.",
+      "defaultEntity": "élément"
+    },
+    "promptSelect": {
+      "placeholder": "Choisissez une option"
+    },
+    "promptTextarea": {
+      "placeholder": "Écrivez ici...",
+      "fieldRequired": "{{ field }} est obligatoire",
+      "fieldMaxLength": "{{ field }} doit contenir au maximum {{ max }} caractères"
+    },
+    "locationRequired": {
+      "title": "Localisation requise",
+      "text": "La localisation GPS est requise pour soumettre une preuve terrain. Veuillez activer les services de localisation et autoriser l'accès, puis réessayer.",
+      "tryAgain": "Réessayer"
+    },
+    "severity": {
+      "critical": "Critique",
+      "warning": "Alerte",
+      "info": "Info"
+    },
+    "alertCenter": {
+      "title": "Centre dâ€™alertes",
+      "subtitle": "Surveillez en temps rÃ©el les Ã©vÃ©nements urgents, les avertissements opÃ©rationnels et les actions des Ã©quipes.",
+      "refresh": "Actualiser les alertes",
+      "liveMonitoring": "Surveillance en direct",
+      "tabs": {
+        "active": "Alertes actives",
+        "archived": "Alertes archivÃ©es"
+      },
+      "summary": {
+        "critical": {
+          "label": "Critique",
+          "sublabel": "Risque SLA"
+        },
+        "warning": {
+          "label": "Alertes",
+          "sublabel": "Stock faible"
+        },
+        "returns": {
+          "label": "En attente",
+          "sublabel": "Retours de matÃ©riel"
+        },
+        "cases": {
+          "label": "Actif",
+          "sublabel": "Escalades de dossiers"
+        },
+        "team": {
+          "label": "Ã‰quipe",
+          "sublabel": "Suivis"
+        },
+        "urgent": {
+          "label": "Urgent",
+          "sublabel": "Incident de couverture"
+        }
+      },
+      "searchPlaceholder": "Rechercher des alertes, dossiers, utilisateurs...",
+      "fromDate": "Date de dÃ©but",
+      "toDate": "Date de fin",
+      "typeLabel": "Type dâ€™alerte",
+      "severityLabel": "SÃ©vÃ©ritÃ©",
+      "clearFilters": "Effacer les filtres",
+      "loading": "Chargement des alertes...",
+      "filters": {
+        "allTypes": "Tous les types",
+        "allSeverities": "Toutes les sÃ©vÃ©ritÃ©s"
+      },
+      "subtitles": {
+        "caseNumber": "Dossier #{{ ref }}"
+      },
+      "targetRoles": {
+        "tech": "Technicien terrain",
+        "stt": "Ã‰quipe STT",
+        "zm": "Responsable de zone",
+        "system": "SystÃ¨me"
+      },
+      "relativeTime": {
+        "now": "Maintenant",
+        "minutesAgo": "Il y a {{ count }} min",
+        "hoursAgo": "Il y a {{ count }} h",
+        "yesterday": "Hier",
+        "daysAgo": "Il y a {{ count }} j"
+      },
+      "actions": {
+        "dismiss": "Ignorer",
+        "open": "Ouvrir",
+        "viewCases": "Voir les dossiers",
+        "viewCasesCount": "Voir {{ count }} dossiers",
+        "viewCase": "Voir le dossier",
+        "openDpm": "Ouvrir le DPM",
+        "viewStock": "Voir le stock",
+        "reviewRequest": "Examiner la demande",
+        "reviewUser": "Examiner lâ€™utilisateur",
+        "configure": "Configurer",
+        "viewReturn": "Voir le retour"
+      },
+      "empty": {
+        "filtered": {
+          "title": "Aucune alerte ne correspond Ã  vos filtres.",
+          "sub": "Essayez dâ€™Ã©largir la recherche ou dâ€™effacer les filtres."
+        },
+        "archived": {
+          "title": "Aucune alerte archivÃ©e.",
+          "sub": "Les alertes ignorÃ©es apparaÃ®tront ici."
+        },
+        "active": {
+          "title": "Tout est calme.",
+          "sub": "Les nouvelles alertes apparaÃ®tront ici en temps rÃ©el."
+        }
+      },
+      "pager": {
+        "zeroAlerts": "0 alerte",
+        "range": "{{ start }}-{{ end }} sur {{ total }}",
+        "previousPage": "Page prÃ©cÃ©dente",
+        "nextPage": "Page suivante"
+      }
+    }
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "email": "Saisissez une adresse email valide",
+    "minLength": "Minimum {{ length }} caractères requis",
+    "maxLength": "Maximum {{ length }} caractères autorisés",
+    "invalidNumber": "Saisissez un nombre valide",
+    "min": "La valeur doit être au moins {{ min }}",
+    "max": "La valeur doit être au plus {{ max }}",
+    "pattern": "La valeur n'est pas dans le format attendu",
+    "passwordsMismatch": "Les mots de passe ne correspondent pas"
+  },
+  "statuses": {
+    "case": {
+      "created": "Créé",
+      "assignedToZm": "Affecté au ZM",
+      "assignedToStt": "Affecté au STT",
+      "assignedToTech": "Affecté au TECH",
+      "rdvSet": "RDV fixé",
+      "diagnosisStep": "Étape de diagnostic",
+      "escalated": "Escaladé",
+      "resolutionSubmitted": "Résolution soumise",
+      "returnedToStt": "Retourné au STT",
+      "reopened": "Rouvert",
+      "notReachable": "Injoignable",
+      "abandoned": "Abandonné",
+      "workDone": "Travaux terminés",
+      "validatedByZm": "Validé par le ZM",
+      "rejectedByZm": "Rejeté par le ZM",
+      "closed": "Clôturé"
+    },
+    "sla": {
+      "onTrack": "Dans les délais",
+      "warning": "Avertissement",
+      "breached": "Dépassé",
+      "completedOnTime": "Terminé à temps",
+      "completedLate": "Terminé en retard"
+    },
+    "resolutionValidation": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "returnedToStt": "Retourné au STT",
+      "rejected": "Rejeté",
+      "reopened": "Rouvert"
+    },
+    "account": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "rejected": "Rejeté"
+    },
+    "invitation": {
+      "pendingRegistration": "En attente d'inscription",
+      "registeredPendingZmApproval": "Inscrit — en attente d'approbation ZM",
+      "approvedByZm": "Approuvé par le ZM",
+      "rejectedByZm": "Rejeté par le ZM",
+      "expired": "Expiré",
+      "cancelled": "Annulé"
+    },
+    "materialReturn": {
+      "submitted": "Soumis",
+      "awaitingZmReview": "En attente d'examen par le ZM",
+      "scheduleProposed": "Horaire proposé",
+      "awaitingSttConfirmation": "En attente de confirmation STT",
+      "rescheduleRequested": "Report demandé",
+      "approved": "Approuvé",
+      "scheduleConfirmed": "Horaire confirmé",
+      "rejected": "Rejeté",
+      "handedOver": "Remis",
+      "received": "Reçu",
+      "completed": "Terminé",
+      "closed": "Clôturé"
+    },
+    "returnReason": {
+      "damaged": "Matériel endommagé",
+      "broken": "Cassé / hors service",
+      "clientResiliationRecovery": "Récupéré après résiliation",
+      "unused": "Matériel non utilisé",
+      "wrongDistribution": "Distribution erronée",
+      "replacement": "Matériel de remplacement",
+      "other": "Autre"
+    },
+    "returnCondition": {
+      "good": "Bon état",
+      "reconditionable": "Reconditionnable",
+      "damaged": "Endommagé",
+      "broken": "Cassé",
+      "lost": "Perdu",
+      "unknown": "Inconnu / à inspecter"
+    },
+    "recoveryDisposition": {
+      "retrieved": "Récupéré",
+      "damaged": "Endommagé",
+      "missing": "Manquant",
+      "notFound": "Introuvable",
+      "alreadyReturned": "Déjà retourné"
+    },
+    "retrievedStockStatus": {
+      "pendingSttCollection": "En attente de collecte STT",
+      "collectedByStt": "Collecté par STT",
+      "inReturnRequest": "Dans une demande de retour",
+      "returned": "Retourné",
+      "pendingCollection": "En attente de collecte",
+      "collected": "Collecté"
+    },
+    "returnDestination": {
+      "usableStock": "Stock utilisable",
+      "damagedStock": "Stock endommagé",
+      "repairCenter": "Centre de réparation",
+      "reconditioning": "Reconditionnement",
+      "centralWarehouse": "Entrepôt central",
+      "scrap": "Rebut / mise au rebut"
+    },
+    "returnSource": {
+      "sttStock": "Depuis le stock STT",
+      "collectedItemStock": "Stock d'articles collectés",
+      "clientRecovery": "Récupération client",
+      "resiliationRecovery": "Récupération résiliation",
+      "damagedFieldRecovery": "Récupération terrain endommagée",
+      "unusedFieldMaterial": "Matériel terrain non utilisé",
+      "other": "Autre / non classé"
+    },
+    "dpm": {
+      "waitingTeamStockApproval": "En attente d'approbation du stock d'équipe",
+      "teamStockRejected": "Stock d'équipe rejeté",
+      "rdvScheduled": "RDV programmé",
+      "rdvConfirmedByStt": "RDV confirmé par le STT",
+      "materialReceived": "Matériel reçu",
+      "completed": "Terminé",
+      "pendingSttConfirmation": "En attente de confirmation STT",
+      "partiallyConfirmed": "Partiellement confirmé",
+      "fullyConfirmed": "Entièrement confirmé",
+      "rejected": "Rejeté",
+      "cancelled": "Annulé"
+    },
+    "distribution": {
+      "pendingTechConfirmation": "En attente de confirmation TECH",
+      "confirmedByTech": "Confirmé par le TECH",
+      "cancelled": "Annulé"
+    },
+    "teamDistribution": {
+      "pending": "En attente",
+      "confirmed": "Confirmé",
+      "partiallyUsed": "Partiellement utilisé",
+      "fullyUsed": "Entièrement utilisé",
+      "cancelled": "Annulé"
+    },
+    "permission": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "partiallyApproved": "Partiellement approuvé",
+      "rejected": "Rejeté",
+      "cancelled": "Annulé"
+    },
+    "instance": {
+      "inSttStock": "Dans le stock STT",
+      "inTechStock": "Dans le stock TECH",
+      "usedOnCase": "Utilisé sur un dossier",
+      "recoveredFromClient": "Récupéré du client",
+      "returnedToDepot": "Retourné au dépôt"
+    }
+  },
+  "units": {
+    "piece": {
+      "one": "pièce",
+      "other": "pièces"
+    },
+    "meter": {
+      "one": "mètre",
+      "other": "mètres"
+    }
+  },
+  "notifications": {
+    "category": {
+      "dpm": "DPM",
+      "stock": "Stock",
+      "materialReturn": "Retour de matériel",
+      "case": "Dossier",
+      "permission": "Autorisation",
+      "user": "Utilisateur",
+      "sla": "SLA",
+      "system": "Système"
+    },
+    "toastStack": {
+      "ariaLabel": "Notifications",
+      "dismiss": "Fermer la notification",
+      "markAsRead": "Marquer comme lu"
+    },
+    "severity": {
+      "critical": "Critique",
+      "warning": "Alerte",
+      "info": "Info"
+    },
+    "alertCenter": {
+      "title": "Centre dâ€™alertes",
+      "subtitle": "Surveillez en temps rÃ©el les Ã©vÃ©nements urgents, les avertissements opÃ©rationnels et les actions des Ã©quipes.",
+      "refresh": "Actualiser les alertes",
+      "liveMonitoring": "Surveillance en direct",
+      "tabs": {
+        "active": "Alertes actives",
+        "archived": "Alertes archivÃ©es"
+      },
+      "summary": {
+        "critical": {
+          "label": "Critique",
+          "sublabel": "Risque SLA"
+        },
+        "warning": {
+          "label": "Alertes",
+          "sublabel": "Stock faible"
+        },
+        "returns": {
+          "label": "En attente",
+          "sublabel": "Retours de matÃ©riel"
+        },
+        "cases": {
+          "label": "Actif",
+          "sublabel": "Escalades de dossiers"
+        },
+        "team": {
+          "label": "Ã‰quipe",
+          "sublabel": "Suivis"
+        },
+        "urgent": {
+          "label": "Urgent",
+          "sublabel": "Incident de couverture"
+        }
+      },
+      "searchPlaceholder": "Rechercher des alertes, dossiers, utilisateurs...",
+      "fromDate": "Date de dÃ©but",
+      "toDate": "Date de fin",
+      "typeLabel": "Type dâ€™alerte",
+      "severityLabel": "SÃ©vÃ©ritÃ©",
+      "clearFilters": "Effacer les filtres",
+      "loading": "Chargement des alertes...",
+      "filters": {
+        "allTypes": "Tous les types",
+        "allSeverities": "Toutes les sÃ©vÃ©ritÃ©s"
+      },
+      "subtitles": {
+        "caseNumber": "Dossier #{{ ref }}"
+      },
+      "targetRoles": {
+        "tech": "Technicien terrain",
+        "stt": "Ã‰quipe STT",
+        "zm": "Responsable de zone",
+        "system": "SystÃ¨me"
+      },
+      "relativeTime": {
+        "now": "Maintenant",
+        "minutesAgo": "Il y a {{ count }} min",
+        "hoursAgo": "Il y a {{ count }} h",
+        "yesterday": "Hier",
+        "daysAgo": "Il y a {{ count }} j"
+      },
+      "actions": {
+        "dismiss": "Ignorer",
+        "open": "Ouvrir",
+        "viewCases": "Voir les dossiers",
+        "viewCasesCount": "Voir {{ count }} dossiers",
+        "viewCase": "Voir le dossier",
+        "openDpm": "Ouvrir le DPM",
+        "viewStock": "Voir le stock",
+        "reviewRequest": "Examiner la demande",
+        "reviewUser": "Examiner lâ€™utilisateur",
+        "configure": "Configurer",
+        "viewReturn": "Voir le retour"
+      },
+      "empty": {
+        "filtered": {
+          "title": "Aucune alerte ne correspond Ã  vos filtres.",
+          "sub": "Essayez dâ€™Ã©largir la recherche ou dâ€™effacer les filtres."
+        },
+        "archived": {
+          "title": "Aucune alerte archivÃ©e.",
+          "sub": "Les alertes ignorÃ©es apparaÃ®tront ici."
+        },
+        "active": {
+          "title": "Tout est calme.",
+          "sub": "Les nouvelles alertes apparaÃ®tront ici en temps rÃ©el."
+        }
+      },
+      "pager": {
+        "zeroAlerts": "0 alerte",
+        "range": "{{ start }}-{{ end }} sur {{ total }}",
+        "previousPage": "Page prÃ©cÃ©dente",
+        "nextPage": "Page suivante"
+      }
+    }
+  },
+  "shared": {
+    "searchableSelect": {
+      "searchOptions": "Rechercher dans les options",
+      "clearSelection": "Effacer la sélection",
+      "noResults": "Aucun résultat pour \"{{ searchTerm }}\""
+    },
+    "location": {
+      "noValidCoordinates": "Coordonnées non valides",
+      "title": "Emplacement"
+    },
+    "governorateSelector": {
+      "title": "Sélectionner les gouvernorats",
+      "description": "Choisissez les gouvernorats couverts par cet utilisateur ou cette équipe.",
+      "clearSearch": "Effacer la recherche",
+      "selectedCount": "{{ count }} sélectionné(s)",
+      "matchingDelegations": "{{ count }} délégations",
+      "noResultsTitle": "Aucun gouvernorat correspondant",
+      "noResultsText": "Essayez un autre terme de recherche.",
+      "regions": {
+        "north": "Nord",
+        "center": "Centre",
+        "south": "Sud"
+      }
+    }
+  },
+  "stock": {
+    "movement": {
+      "dpmCreated": "DPM créé",
+      "dpmConfirmed": "DPM confirmé",
+      "sttToTechDistribution": "Distribution STT vers TECH",
+      "techReceivedFromStt": "TECH reçu du STT",
+      "caseUsage": "Utilisé sur dossier",
+      "materialReturnSubmitted": "Retour de matériel soumis",
+      "materialReturnApproved": "Retour de matériel approuvé",
+      "materialReturnRejected": "Retour de matériel rejeté",
+      "returnToUsableStock": "Retourné au stock utilisable",
+      "returnToDamagedStock": "Retourné au stock endommagé",
+      "returnToRepair": "Envoyé en réparation",
+      "returnToReconditioning": "Envoyé en reconditionnement",
+      "returnToCentralWarehouse": "Retourné au dépôt central",
+      "returnToScrap": "Envoyé à la casse"
+    }
+  },
+  "admin": {
+    "users": {
+      "create": "Créer un utilisateur",
+      "edit": "Modifier l’utilisateur"
+    },
+    "savedZmPerformance": {
+      "title": "Analyses enregistrées"
+    },
+    "audit": {
+      "users": "Audit utilisateurs",
+      "stock": "Audit stock",
+      "interventions": "Audit interventions"
+    }
+  },
+  "cases": {
+    "types": {
+      "activation": "Activation",
+      "complaint": "Réclamation"
+    },
+    "modules": {
+      "activation": "Activation",
+      "complaint": "Réclamation",
+      "resiliation": "Résiliation"
+    },
+    "execution": {
+      "sttSelfExecution": "Exécution STT",
+      "techExecution": "Exécution technicien",
+      "notSelected": "Mode d’exécution non sélectionné"
+    },
+    "complaintCategory": {
+      "networkCoverage": "Couverture réseau",
+      "serviceQuality": "Qualité de service",
+      "installation": "Installation",
+      "equipment": "Équipement",
+      "billing": "Facturation",
+      "activationFollowUp": "Suivi d’activation",
+      "customerEducation": "Éducation client",
+      "other": "Autre"
+    },
+    "createActivation": {
+      "title": "Créer un dossier d’activation"
+    },
+    "board": {
+      "brandChip": "Workflow CRM Ooredoo",
+      "refreshing": "Actualisation...",
+      "refreshQueue": "Actualiser la file",
+      "newCase": "Nouveau dossier CRM",
+      "queueEyebrow": "File des dossiers",
+      "loadingTitle": "Chargement des dossiers {{ module }}...",
+      "loadingHint": "PrÃ©paration des derniÃ¨res donnÃ©es du workflow CRM.",
+      "unavailableTitle": "Tableau des dossiers indisponible",
+      "modules": {
+        "activation": {
+          "plural": "Dossiers dâ€™activation"
+        },
+        "complaint": {
+          "plural": "RÃ©clamations"
+        },
+        "resiliation": {
+          "plural": "Dossiers de rÃ©siliation"
+        }
+      },
+      "workspace": {
+        "activation": {
+          "admin": {
+            "title": "Centre de pilotage activation Ooredoo",
+            "subtitle": "Surveillez tout le pipeline dâ€™activation CRM, de la prise en charge Ã  la clÃ´ture, dans un espace opÃ©rationnel unifiÃ©."
+          },
+          "zm": {
+            "title": "Supervision activation zone",
+            "subtitle": "Suivez la propriÃ©tÃ© de zone, la pression SLA et les dÃ©cisions de livraison avec une lecture plus rapide."
+          },
+          "stt": {
+            "title": "Pilotage livraison partenaire",
+            "subtitle": "Gardez les affectations STT, lâ€™exÃ©cution des techniciens et le suivi SLA alignÃ©s dans un seul tableau opÃ©rationnel."
+          },
+          "tech": {
+            "title": "File terrain activation",
+            "subtitle": "Consultez les dossiers terrain affectÃ©s, la pression temporelle et lâ€™Ã©tat dâ€™exÃ©cution dans une file plus ciblÃ©e."
+          },
+          "default": {
+            "title": "Gestion des dossiers dâ€™activation",
+            "subtitle": "Workflow terrain tÃ©lÃ©com : affectation, RDV, exÃ©cution, validation et clÃ´ture."
+          }
+        },
+        "complaint": {
+          "admin": {
+            "title": "Centre de pilotage rÃ©clamations Ooredoo",
+            "subtitle": "Transformez les rÃ©clamations CRM importÃ©es en workflow de rÃ©solution contrÃ´lÃ© avec la mÃªme discipline dâ€™affectation et de validation."
+          },
+          "zm": {
+            "title": "Supervision rÃ©clamations zone",
+            "subtitle": "Supervisez la propriÃ©tÃ© des rÃ©clamations, les rÃ©sultats de diagnostic et la validation finale dans votre zone."
+          },
+          "stt": {
+            "title": "ContrÃ´le de rÃ©solution des rÃ©clamations",
+            "subtitle": "GÃ©rez le diagnostic, les dÃ©cisions technicien et la soumission de rÃ©solution sans quitter le tableau opÃ©rationnel."
+          },
+          "tech": {
+            "title": "File terrain rÃ©clamations",
+            "subtitle": "Consultez les interventions, les preuves et lâ€™avancement terrain des rÃ©clamations dans le mÃªme espace mobile."
+          },
+          "default": {
+            "title": "Gestion des rÃ©clamations",
+            "subtitle": "Workflow rÃ©clamation tÃ©lÃ©com : affectation, RDV, diagnostic, travaux, validation et clÃ´ture."
+          }
+        },
+        "resiliation": {
+          "admin": {
+            "title": "Centre de pilotage rÃ©siliation Ooredoo",
+            "subtitle": "Pilotez les ordres RES importÃ©s avec la mÃªme discipline dâ€™affectation, dâ€™exÃ©cution et de validation que les rÃ©clamations."
+          },
+          "zm": {
+            "title": "Supervision rÃ©siliation zone",
+            "subtitle": "Supervisez la propriÃ©tÃ© des rÃ©siliations, lâ€™exÃ©cution STT et la validation finale dans votre zone."
+          },
+          "stt": {
+            "title": "ContrÃ´le dâ€™exÃ©cution rÃ©siliation",
+            "subtitle": "GÃ©rez les dÃ©cisions technicien et la soumission de rÃ©solution des rÃ©siliations depuis un seul tableau opÃ©rationnel."
+          },
+          "tech": {
+            "title": "File terrain rÃ©siliation",
+            "subtitle": "Consultez les interventions de rÃ©siliation, la capture de preuves et lâ€™avancement terrain dans le mÃªme espace mobile."
+          },
+          "default": {
+            "title": "Gestion des dossiers de rÃ©siliation",
+            "subtitle": "Workflow rÃ©siliation tÃ©lÃ©com : affectation, exÃ©cution, travaux, validation et clÃ´ture."
+          }
+        }
+      },
+      "filters": {
+        "allStatuses": "Tous les statuts",
+        "searchPlaceholder": "CRM, client, affectation, offre, localisation",
+        "visibleRangeHint": "dossiers visibles dans la fenÃªtre de revue actuelle",
+        "filteredCases": "{{ count }} dossiers filtrÃ©s"
+      },
+      "alerts": {
+        "eyebrow": "Alertes en direct",
+        "title": "Centre dâ€™alertes opÃ©rationnelles Ooredoo",
+        "hint": "La pression SLA et les changements dâ€™affectation restent au-dessus de la file de travail.",
+        "acknowledged": "Pris en compte",
+        "needsAttention": "NÃ©cessite une attention"
+      },
+      "stats": {
+        "totalCases": "Total dossiers",
+        "totalComplaints": "Total rÃ©clamations",
+        "totalResiliations": "Total rÃ©siliations",
+        "ownedByZm": "Pris en charge par ZM",
+        "assignedToStt": "AffectÃ©s Ã  STT",
+        "assignedToTech": "AffectÃ©s Ã  TECH",
+        "slaWarning": "Alerte SLA",
+        "slaBreached": "SLA dÃ©passÃ©",
+        "resolutionReady": "RÃ©solution prÃªte",
+        "workDone": "Travaux terminÃ©s"
+      },
+      "performance": {
+        "eyebrow": "Performance",
+        "title": "InstantanÃ© de performance",
+        "hint": "Charge en direct, qualitÃ© RDV et contrÃ´le SLA sur le pÃ©rimÃ¨tre courant.",
+        "activeTasks": "TÃ¢ches actives",
+        "rdvOnTime": "RDV Ã  l'heure",
+        "rdvLate": "RDV en retard",
+        "rdvOnTimeRate": "Taux RDV Ã  l'heure",
+        "avgRdvResponse": "RÃ©ponse RDV moy.",
+        "slaWarnings": "Alertes SLA",
+        "slaEscalations": "Escalades SLA",
+        "avgOverdue": "Retard moyen",
+        "completion": "AchÃ¨vement"
+      },
+      "team": {
+        "eyebrow": "Focus exÃ©cution",
+        "title": "Progression des meilleurs techniciens",
+        "completion": "dâ€™achÃ¨vement",
+        "activeTasks": "tÃ¢ches actives"
+      },
+      "alertSummary": {
+        "criticalBreach": "Rupture critique",
+        "escalated": "EscaladÃ©",
+        "slaWarning": "Alerte SLA",
+        "assignments": "Affectations",
+        "unreadAlerts": "Alertes non lues"
+      },
+      "labels": {
+        "executor": "ExÃ©cutant",
+        "ownerZm": "ZM propriÃ©taire",
+        "notAssigned": "Non affectÃ©",
+        "notSet": "Non dÃ©fini",
+        "pending": "En attente",
+        "rdvNotSet": "RDV non dÃ©fini",
+        "workPending": "Travaux en attente",
+        "validationPending": "Validation en attente"
+      },
+      "sla": {
+        "notStarted": "Non dÃ©marrÃ©",
+        "rdvCaptured": "RDV saisi",
+        "respondedIn": "RÃ©pondu en {{ duration }}",
+        "overdueBy": "En retard de {{ duration }}",
+        "overdue": "En retard",
+        "remaining": "{{ duration }} restantes"
+      },
+      "actions": {
+        "diagnosis": "Diagnostic",
+        "work": "Travaux",
+        "rdv": "RDV",
+        "executing": "En cours dâ€™exÃ©cution",
+        "executeMyself": "ExÃ©cuter moi-mÃªme",
+        "assignTechnician": "Affecter un technicien",
+        "assignOrChangeStt": "Affecter ou changer STT",
+        "assignOrChangeTech": "Affecter ou changer TECH",
+        "setRdv": "DÃ©finir le RDV",
+        "saveDiagnosis": "Enregistrer le diagnostic",
+        "updateWork": "Mettre Ã  jour les travaux",
+        "validateCase": "Valider le dossier",
+        "closeCase": "ClÃ´turer le dossier",
+        "reopenComplaint": "Rouvrir la rÃ©clamation"
+      },
+      "assign": {
+        "loadFailedTitle": "Chargement Ã©chouÃ©",
+        "stt": {
+          "title": "Affecter STT - CRM {{ crmCase }}",
+          "descriptionForGovernorate": "Affichage des STT approuvÃ©s couvrant {{ governorate }}.",
+          "descriptionDefault": "Affichage des STT approuvÃ©s disponibles pour ce dossier.",
+          "change": "Changer STT",
+          "assign": "Affecter STT",
+          "loadError": "Impossible de charger la liste STT",
+          "saved": "Affectation STT enregistrÃ©e"
+        },
+        "tech": {
+          "title": "Affecter technicien - CRM {{ crmCase }}",
+          "descriptionDefault": "Affichage des techniciens approuvÃ©s de votre Ã©quipe.",
+          "change": "Changer TECH",
+          "assign": "Affecter TECH",
+          "loadError": "Impossible de charger la liste des techniciens",
+          "saved": "Affectation TECH enregistrÃ©e"
+        }
+      },
+      "table": {
+        "locationOffer": "Localisation / offre"
+      },
+      "empty": {
+        "tech": "Aucun dossier terrain actif ne correspond Ã  vos filtres.",
+        "stt": "Aucun dossier STT ne correspond Ã  vos filtres actuels.",
+        "genericTitle": "Aucun dossier {{ module }} trouvÃ©",
+        "genericHint": "Essayez de modifier la recherche ou les filtres."
+      },
+      "pagination": {
+        "range": "{{ start }}-{{ end }} sur {{ total }}",
+        "pageOf": "Page {{ current }} sur {{ total }}",
+        "firstPage": "PremiÃ¨re page",
+        "lastPage": "DerniÃ¨re page",
+        "goTo": "Aller Ã ",
+        "jumpToPage": "Aller Ã  la page",
+        "go": "Aller"
+      },
+      "errors": {
+        "loadCases": "Impossible de charger les dossiers {{ module }}"
+      },
+      "executeMyself": {
+        "confirmTitle": "Prendre l'ex?cution vous-m?me ? ",
+        "confirmText": "Le CRM {{crmCase}} restera sous votre supervision et passera en mode d'auto-ex?cution STT.",
+        "confirmButton": "Ex?cuter moi-m?me",
+        "kept": "Ex?cution STT conserv?e",
+        "activated": "Auto-ex?cution STT activ?e",
+        "errorTitle": "?chec du changement d'ex?cution",
+        "errorMessage": "Impossible d'activer l'auto-ex?cution STT"
+      },
+      "details": {
+        "errorTitle": "D?tails indisponibles",
+        "errorMessage": "Impossible de charger les d?tails du dossier",
+        "deletedMessage": "Ce dossier n'existe plus ou a ?t? supprim?.",
+        "forbiddenMessage": "Vous n'avez pas acc?s ? ce dossier."
+      },
+      "download": {
+        "errorTitle": "?chec du t?l?chargement",
+        "errorMessage": "Impossible de t?l?charger le rapport du dossier"
+      },
+      "messages": {
+        "operationCompleted": "Op?ration effectu?e avec succ?s.",
+        "operationFailed": "?chec de l'op?ration",
+        "requestFailed": "?chec de la requ?te"
+      },
+      "rdv": {
+        "title": "D?finir le RDV - CRM {{crmCase}}",
+        "confirmButton": "Enregistrer le RDV",
+        "saved": "RDV enregistr?",
+        "fields": {
+          "dateTime": "Date et heure du RDV",
+          "operationalDetail": "D?tail op?rationnel",
+          "comment": "Commentaire RDV"
+        },
+        "placeholders": {
+          "causeInjoignabilite": "Obligatoire si joignable = Non",
+          "operationalDetail": "D?tail client/site pour l'?quipe terrain",
+          "comment": "Notes compl?mentaires de planification",
+          "causeAbandon": "Obligatoire si abandon = Oui"
+        },
+        "validation": {
+          "dateRequired": "La date du RDV est obligatoire",
+          "causeInjoignabiliteRequired": "Le motif d'injoignabilit? est obligatoire quand le client n'est pas joignable",
+          "causeAbandonRequired": "Le motif d'abandon est obligatoire quand le dossier est marqu? abandonn?"
+        }
+      },
+      "work": {
+        "title": "Mettre ? jour le travail - CRM {{crmCase}}",
+        "confirmButton": "Soumettre le travail",
+        "saved": "Travail mis ? jour",
+        "fields": {
+          "result": "R?sultat du travail",
+          "completedAt": "Date de fin du travail",
+          "comment": "Commentaire",
+          "metrageCable": "M?trage c?ble",
+          "nombrePv": "Nombre PV",
+          "debitDl": "D?bit DL",
+          "debitUl": "D?bit UL"
+        },
+        "placeholders": {
+          "comment": "R?sumez le r?sultat de l'intervention et les observations"
+        },
+        "validation": {
+          "requiredFields": "Le r?sultat du travail, la date de fin et le commentaire sont obligatoires"
+        }
+      },
+      "diagnosis": {
+        "title": "Diagnostic - CRM {{crmCase}}",
+        "confirmButton": "Enregistrer le diagnostic",
+        "saved": "Diagnostic enregistr?",
+        "fields": {
+          "category": "Cat?gorie de plainte",
+          "comment": "Commentaire de diagnostic"
+        },
+        "placeholders": {
+          "comment": "R?sumez le probl?me, les v?rifications et la prochaine d?cision"
+        },
+        "validation": {
+          "categoryRequired": "La cat?gorie de plainte est obligatoire",
+          "nextStepConflict": "Choisissez soit l'escalade soit l'intervention TECH pour l'?tape suivante"
+        }
+      },
+      "validation": {
+        "title": "Validation ZM - CRM {{crmCase}}",
+        "confirmButton": "Soumettre la validation",
+        "saved": "Validation enregistr?e",
+        "fields": {
+          "decision": "D?cision",
+          "comment": "Commentaire de validation"
+        },
+        "options": {
+          "approve": "Approuver",
+          "reject": "Rejeter"
+        },
+        "placeholders": {
+          "comment": "Expliquez votre d?cision de validation pour la tra?abilit?"
+        },
+        "validation": {
+          "commentRequired": "Le commentaire est obligatoire"
+        }
+      },
+      "reopen": {
+        "title": "Rouvrir la plainte - CRM {{crmCase}}",
+        "confirmButton": "Rouvrir la plainte",
+        "saved": "Plainte rouverte",
+        "fields": {
+          "comment": "Commentaire de r?ouverture"
+        },
+        "placeholders": {
+          "comment": "Expliquez pourquoi cette plainte n?cessite un nouveau cycle de r?solution"
+        }
+      },
+      "close": {
+        "confirmTitle": "Fermer ce dossier ? ",
+        "confirmText": "Le CRM {{crmCase}} sera ferm? et ne pourra plus avancer.",
+        "confirmButton": "Fermer le dossier",
+        "saved": "Dossier ferm?"
+      },
+      "timeline": {
+        "empty": "Aucun ?v?nement de chronologie pour le moment.",
+        "event": "?v?nement",
+        "actorState": "Acteur : {{actor}} ? ?tat : {{from}} -> {{to}}"
+      },
+      "proof": {
+        "empty": "Aucune image de preuve n'a encore ?t? t?l?vers?e.",
+        "defaultFilename": "Image de preuve",
+        "uploaded": "T?l?vers? : {{value}}",
+        "by": "Par : {{value}}",
+        "source": "Source : {{value}}",
+        "gps": "GPS : {{value}}",
+        "capturedAt": "Captur? le : {{value}}",
+        "accuracy": "Pr?cision : {{value}}",
+        "openImage": "Ouvrir l'image",
+        "openMap": "Ouvrir la carte"
+      },
+      "workLocation": {
+        "empty": "Aucun GPS d'envoi du travail n'a ?t? enregistr?.",
+        "coordinates": "Coordonn?es :",
+        "openMap": "Ouvrir le lieu de travail sur la carte"
+      }
+    }
+  },
+  "caseDetail": {
+    "sections": {
+      "caseIdentity": "Identité du dossier",
+      "clientInformation": "Informations client",
+      "offerDetails": "Détails de l’offre",
+      "complaintDetails": "Détails de la réclamation",
+      "assignmentChain": "Chaîne d’affectation",
+      "rdv": "Rendez-vous (RDV)",
+      "diagnosis": "Diagnostic",
+      "workExecution": "Exécution des travaux",
+      "attachedPhotos": "Photos jointes",
+      "technicalMetrics": "Mesures techniques",
+      "resolution": "Résolution",
+      "zmValidation": "Validation ZM",
+      "stockPermissions": "Autorisations de stock hors limite",
+      "discussion": "Discussion (ZM ↔ STT)",
+      "timeline": "Historique"
+    },
+    "fields": {
+      "crmCase": "Dossier CRM #",
+      "type": "Type",
+      "createdAt": "Créé le",
+      "crmCreationDate": "Date de création CRM",
+      "openingDateTimos": "Date d’ouverture (TIMOS)",
+      "openDateActivation": "Date d’ouverture activation",
+      "fullName": "Nom complet",
+      "phone": "Téléphone",
+      "contactCl2": "Contact CL2",
+      "msisdn": "MSISDN",
+      "governorate": "Gouvernorat",
+      "delegation": "Délégation",
+      "locality": "Localité",
+      "siteSector": "Site / secteur",
+      "gpsCoordinates": "Coordonnées GPS",
+      "offer": "Offre",
+      "pack": "Pack",
+      "offerSpeedType": "Type de débit de l’offre",
+      "clientType": "Type de client",
+      "source": "Source",
+      "ownerZm": "ZM propriétaire",
+      "sttSupervisor": "Superviseur STT",
+      "technician": "Technicien",
+      "executionMode": "Mode d’exécution",
+      "reachable": "Joignable",
+      "rdvDate": "Date RDV",
+      "causeInjoignabilite": "Cause d’injoignabilité",
+      "abandoned": "Abandonné",
+      "causeAbandon": "Cause d’abandon",
+      "category": "Catégorie",
+      "rootCause": "Cause racine",
+      "requiresFieldWork": "Nécessite une intervention terrain",
+      "requiresTech": "Nécessite un TECH",
+      "requiresEscalation": "Nécessite une escalade",
+      "diagnosedAt": "Diagnostiqué le",
+      "diagnosedBy": "Diagnostiqué par",
+      "result": "Résultat",
+      "completionDate": "Date de fin",
+      "workSubmissionGps": "GPS de soumission des travaux",
+      "gpsCapturedAt": "GPS capturé le",
+      "gpsAccuracy": "Précision GPS",
+      "capturedAt": "Capturé le",
+      "accuracy": "Précision",
+      "pvCount": "Nombre de PV",
+      "downloadMbps": "Débit descendant (Mbps)",
+      "uploadMbps": "Débit montant (Mbps)",
+      "resolutionType": "Type de résolution",
+      "validationStatus": "Statut de validation",
+      "submittedAt": "Soumis le",
+      "submittedBy": "Soumis par",
+      "validatedAt": "Validé le",
+      "approved": "Approuvé",
+      "zmResponse": "Réponse ZM",
+      "requestedCable": "Câble demandé",
+      "approvedCable": "Câble approuvé",
+      "requestedItems": "Articles demandés",
+      "sttReviewer": "Examinateur STT",
+      "submitted": "Soumis",
+      "reviewed": "Révisé",
+      "reason": "Motif",
+      "sttNote": "Note STT"
+    },
+    "labels": {
+      "caseSite": "Site du dossier",
+      "workSubmissionLocation": "Emplacement de soumission des travaux",
+      "proofPhotoLocation": "Emplacement de la photo de preuve",
+      "requestedOverLimitUsage": "a demandé un usage hors limite"
+    },
+    "actions": {
+      "openAttachment": "Ouvrir la pièce jointe",
+      "openPhoto": "Ouvrir la photo",
+      "downloadPdf": "Télécharger le PDF",
+      "removeAttachment": "Retirer la pièce jointe",
+      "attachPhoto": "Joindre une photo"
+    },
+    "states": {
+      "noPreviewAvailable": "Aucun aperçu disponible",
+      "loadingPermissions": "Chargement des demandes d’autorisation…",
+      "noOverLimitPermissions": "Aucune demande d’autorisation hors limite pour ce dossier."
+    },
+    "discussion": {
+      "assignSttFirst": "Affectez un STT à ce dossier pour démarrer la discussion.",
+      "loadFailed": "Échec du chargement de la discussion",
+      "sendFailed": "Échec de l’envoi du message",
+      "imageOnly": "Seules les images peuvent être jointes",
+      "loading": "Chargement de la discussion…",
+      "noMessages": "Aucun message pour le moment.",
+      "startConversation": "Commencez la conversation ci-dessous.",
+      "seen": "Vu",
+      "sent": "Envoyé",
+      "writeMessage": "Écrivez un message…"
+    },
+    "proof": {
+      "uploadedMeta": "Téléversé le {{ date }} par {{ user }}"
+    },
+    "proofSource": {
+      "camera": "Photo de preuve des travaux",
+      "gallery": "Photo de la galerie",
+      "speedtestScreenshot": "Capture Speedtest",
+      "signalScreenshot": "Capture du signal",
+      "attachment": "Pièce jointe"
+    }
+  },
+  "invitations": {
+    "eyebrow": "Intégration des techniciens",
+    "title": "Inviter des techniciens",
+    "description": "Envoyez des liens d'inscription, suivez la progression des approbations et gérez facilement le flux d'invitation depuis un téléphone.",
+    "openTeam": "Ouvrir l'équipe",
+    "refreshing": "Actualisation...",
+    "refreshList": "Actualiser la liste",
+    "newInvitation": "Nouvelle invitation",
+    "sendRegistrationLink": "Envoyer le lien d'inscription",
+    "emailLabel": "Email du technicien",
+    "sending": "Envoi en cours...",
+    "sendInvitation": "Envoyer l'invitation",
+    "traceability": "Traçabilité des invitations",
+    "myInvitations": "Mes invitations",
+    "loadingInvitations": "Chargement des invitations...",
+    "noInvitationsTitle": "Aucune invitation trouvée.",
+    "noInvitationsText": "Vos invitations envoyées apparaîtront ici avec leur statut d'inscription et de décision du ZM.",
+    "sent": "Envoyée",
+    "zm": "ZM",
+    "used": "Utilisée",
+    "registered": "Inscrite",
+    "decision": "Décision",
+    "totalInvitations": "Total des invitations",
+    "invalidFormTitle": "Formulaire invalide",
+    "invalidFormText": "Veuillez saisir un email de technicien valide.",
+    "invalidEmailTitle": "Email invalide",
+    "sendConfirmTitle": "Envoyer l'invitation ?",
+    "sendConfirmText": "Une invitation sera envoyée à {{ email }}.",
+    "sendConfirmButton": "Envoyer",
+    "invitationSentTitle": "Invitation envoyée",
+    "invitationSentDefault": "Invitation envoyée avec succès",
+    "refreshFailedTitle": "Échec de l'actualisation",
+    "sendFailedTitle": "Échec de l'envoi",
+    "loadFailedFallback": "Échec du chargement des invitations",
+    "refreshFailedFallback": "Invitation envoyée, mais l'actualisation de la liste a échoué",
+    "sendFailedFallback": "Échec de l'envoi de l'invitation"
+  },
+  "login": {
+    "brandSubtitle": "Plateforme de service terrain",
+    "eyebrow": "Espace des opérations télécoms",
+    "heroTitle": "Connectez-vous pour gérer l'activité de service terrain en toute confiance.",
+    "heroDescription": "Accédez aux approbations, aux dossiers d'activation, aux opérations techniciens et à la visibilité d'audit dans un espace de travail unique conçu pour les équipes Ooredoo.",
+    "highlightOperationalTitle": "Contrôle opérationnel",
+    "highlightOperationalText": "Suivez les dossiers, les indicateurs clés et les escalades en temps réel.",
+    "highlightFieldTitle": "Exécution terrain",
+    "highlightFieldText": "Coordonnez les RDV, les preuves de travail et la progression des techniciens en toute fluidité.",
+    "highlightSecureTitle": "Flux sécurisés",
+    "highlightSecureText": "L'approbation et la validation des rôles restent alignées sur votre processus métier.",
+    "welcomeBack": "Bon retour",
+    "signIn": "Connexion",
+    "subtitle": "Utilisez votre email ou nom d'utilisateur pour accéder à la plateforme.",
+    "identifierPlaceholder": "Email ou nom d'utilisateur",
+    "passwordPlaceholder": "Mot de passe",
+    "loggingIn": "Connexion en cours...",
+    "submit": "Se connecter",
+    "forgotPassword": "Mot de passe oublié ?",
+    "needAccount": "Besoin d'un compte ?",
+    "signupText": "Inscrivez-vous et suivez le processus de validation habituel avant l'activation.",
+    "registerNow": "S'inscrire maintenant"
+  },
+  "register": {
+    "brandSubtitle": "Accès d'intégration",
+    "eyebrow": "Inscription selon le rôle",
+    "heroTitle": "Créez votre compte et entrez dans le processus d'approbation.",
+    "heroDescription": "Inscrivez-vous en tant que STT ou ZM, soumettez vos informations d'identité et laissez la chaîne d'approbation appropriée activer votre accès.",
+    "highlightOnboardingTitle": "Intégration structurée",
+    "highlightOnboardingText": "Inscription rapide avec approbation par le bon responsable selon le rôle.",
+    "highlightSecureTitle": "Activation sécurisée",
+    "highlightSecureText": "Les comptes restent protégés jusqu'à la fin du processus de validation.",
+    "highlightHierarchyTitle": "Hiérarchie opérationnelle",
+    "highlightHierarchyText": "Les accès STT et ZM restent alignés sur les responsabilités terrain télécoms.",
+    "alreadyApproved": "Déjà approuvé ?",
+    "goToSignIn": "Aller à la connexion",
+    "newAccount": "Nouveau compte",
+    "createAccount": "Créer un compte",
+    "subtitle": "Renseignez votre profil, choisissez votre rôle et soumettez votre inscription pour validation.",
+    "step1": "Étape 1",
+    "companyInformation": "Informations de l'entreprise",
+    "personalInformation": "Informations personnelles",
+    "companyNamePlaceholder": "Nom STT / entreprise",
+    "companyNameHint": "Utilisez le nom officiel de la société STT, par exemple THS ou INSCOM.",
+    "firstNamePlaceholder": "Prénom",
+    "lastNamePlaceholder": "Nom",
+    "phonePlaceholder": "Téléphone",
+    "emailPlaceholder": "Email",
+    "profilePhoto": "Photo de profil",
+    "profilePhotoHint": "Optionnel. Formats acceptés : JPG, PNG, WEBP. Taille max : 5 Mo.",
+    "profilePreviewAlt": "Aperçu du profil",
+    "chooseFile": "Choisir un fichier",
+    "noFileSelected": "Aucun fichier choisi",
+    "changeFile": "Changer de fichier",
+    "removeFile": "Supprimer le fichier",
+    "remove": "Retirer",
+    "step2": "Étape 2",
+    "chooseRole": "Choisissez votre rôle",
+    "roleZmDescription": "Accès chef de zone",
+    "roleSttDescription": "Accès superviseur STT",
+    "rolePlatformDescription": "Accès plateforme",
+    "roleApprovalHint": "Les comptes STT sont approuvés par un ZM. Les comptes ZM sont approuvés par l'administrateur.",
+    "step3": "Étape 3",
+    "setPassword": "Définissez votre mot de passe",
+    "passwordPlaceholder": "Mot de passe",
+    "confirmPasswordPlaceholder": "Répéter le mot de passe",
+    "creatingAccount": "Création du compte...",
+    "submit": "Créer un compte",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "signIn": "Se connecter",
+    "errors": {
+      "photoTypeInvalid": "Seules les images JPG, PNG et WEBP sont autorisées",
+      "photoTooLarge": "La taille de la photo ne doit pas dépasser 5 Mo",
+      "companyNameRequired": "Le nom STT/entreprise est obligatoire",
+      "firstNameRequired": "Le prénom est obligatoire",
+      "lastNameRequired": "Le nom est obligatoire",
+      "emailRequired": "L'email est obligatoire",
+      "passwordRequired": "Le mot de passe est obligatoire",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères",
+      "passwordsMismatch": "Les mots de passe ne correspondent pas",
+      "registerFailed": "Échec de l'inscription",
+      "photoUploadFailed": "Compte créé, mais l'envoi de la photo de profil a échoué. Vous pourrez la téléverser plus tard."
+    },
+    "success": {
+      "waitingZmApproval": "Compte créé. En attente d'approbation du ZM.",
+      "waitingAdminApproval": "Compte créé. En attente d'approbation de l'administrateur."
+    }
+  }
+}

@@ -1,0 +1,85 @@
+<div>
+  @if (error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  <c-card>
+    <c-card-header class="d-flex align-items-center justify-content-between">
+      <strong>Retrieved &amp; collected stock — tracking (read-only)</strong>
+      <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
+        <svg cIcon name="cilReload"></svg>
+      </button>
+    </c-card-header>
+    <c-card-body>
+
+      <!-- ── Read-only filters ─────────────────────────────────────────── -->
+      <div class="row g-2 mb-3">
+        <div class="col-12 col-md-4">
+          <input class="form-control form-control-sm" type="search" placeholder="Search serial / IMEI / customer / case…"
+                 [ngModel]="search()" (ngModelChange)="search.set($event)" />
+        </div>
+        <div class="col-6 col-md-4">
+          <select class="form-select form-select-sm" [ngModel]="sttFilter()" (ngModelChange)="sttFilter.set($event)">
+            <option value="">All STTs</option>
+            @for (s of sttOptions(); track s) { <option [value]="s">{{ s }}</option> }
+          </select>
+        </div>
+        <div class="col-6 col-md-4">
+          <select class="form-select form-select-sm" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+            <option value="">All statuses</option>
+            @for (st of statusOptions(); track st) { <option [value]="st">{{ st }}</option> }
+          </select>
+        </div>
+      </div>
+
+      @if (loading) {
+        <div class="text-center py-4">
+          <c-spinner size="sm"></c-spinner>
+          Loading tracking data...
+        </div>
+      } @else if (filtered().length === 0) {
+        <div class="text-center text-muted py-4">
+          <svg cIcon name="cilStorage" size="3xl" class="mb-2 text-secondary"></svg>
+          <p>No retrieved stock matches the current filters.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Equipment</th>
+                <th>Qty</th>
+                <th>Serial / IMEI</th>
+                <th>Technician</th>
+                <th>STT</th>
+                <th>Case ref</th>
+                <th>Customer</th>
+                <th>Condition</th>
+                <th>Status</th>
+                <th>Collected by</th>
+                <th>Retrieved</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filtered(); track item.id) {
+                <tr>
+                  <td>{{ item.equipmentName }}</td>
+                  <td>{{ quantityLabel(item) }}</td>
+                  <td>{{ identifierLabel(item) }}</td>
+                  <td>{{ item.technicianName ?? '-' }}</td>
+                  <td>{{ item.sttName ?? '-' }}</td>
+                  <td>{{ item.crmCase ?? '-' }}</td>
+                  <td>{{ item.clientName ?? '-' }}</td>
+                  <td>{{ item.condition ?? '-' }}</td>
+                  <td><c-badge color="secondary">{{ item.status ?? '-' }}</c-badge></td>
+                  <td>{{ collectorLabel(item) }}</td>
+                  <td>{{ item.retrievedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </c-card-body>
+  </c-card>
+</div>

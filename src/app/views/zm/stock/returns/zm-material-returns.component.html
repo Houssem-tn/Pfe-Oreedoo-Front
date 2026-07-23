@@ -114,6 +114,7 @@
               <th>Return</th>
               <th>Status</th>
               <th>STT</th>
+              <th>Source</th>
               <th>Schedule</th>
               <th>Submitted</th>
               <th class="actions-col">Actions</th>
@@ -131,6 +132,7 @@
                 <span [class]="statusBadgeClass(returnItem)">{{ statusLabel(returnItem) }}</span>
               </td>
               <td>{{ returnItem.sttName || returnItem.sttEmail || 'Unknown STT' }}</td>
+              <td>{{ sourceLabel(returnItem.returnSource) }}</td>
               <td>
                 <div class="schedule-cell" *ngIf="returnItem.proposedHandoverDate; else noSchedule">
                   <strong>{{ returnItem.proposedHandoverDate }}</strong>
@@ -239,17 +241,48 @@
 
       <section class="details-section">
         <h3>Returned Items</h3>
-        <div class="items-table">
-          <div class="items-row items-row--head">
-            <span>Item</span>
-            <span>Quantity</span>
-            <span>Condition</span>
-          </div>
-          <div class="items-row" *ngFor="let item of selectedReturn.items">
-            <span>{{ item.equipmentName || item.equipmentId }}</span>
-            <span>{{ item.quantity }} {{ item.unit || '' }}</span>
-            <span>{{ conditionLabel(item.condition || selectedReturn.condition) }}</span>
-          </div>
+        <div class="returned-items-grid">
+          <article class="returned-item-detail" *ngFor="let item of selectedReturn.items">
+            <div class="returned-item-detail__head">
+              <div>
+                <strong>{{ item.equipmentName || item.equipmentId }}</strong>
+                <span>{{ item.quantity }} {{ item.unit || '' }}</span>
+              </div>
+              <span class="detail-chip">{{ conditionLabel(item.condition || selectedReturn.condition) }}</span>
+            </div>
+
+            <div class="summary-chip-wrap">
+              <span class="detail-chip" *ngIf="item.serialNumber">Serial: {{ item.serialNumber }}</span>
+              <span class="detail-chip" *ngIf="item.imei">IMEI: {{ item.imei }}</span>
+              <span class="detail-chip" *ngIf="item.retrievedStockItemId">Collected ID: {{ item.retrievedStockItemId }}</span>
+              <a class="detail-chip detail-chip--link" *ngIf="proofLink(item)" [href]="proofLink(item)!" target="_blank" rel="noopener">View proof</a>
+            </div>
+
+            <div class="returned-item-detail__grid" *ngIf="item.originalTechnicianName || item.originalCaseReference || item.originalCustomerName || item.originalRecoveryDate || item.sttCollectedAt">
+              <div *ngIf="item.originalTechnicianName">
+                <span class="detail-label">Original Technician</span>
+                <strong>{{ item.originalTechnicianName }}</strong>
+              </div>
+              <div *ngIf="item.originalCaseReference || item.originalCaseId">
+                <span class="detail-label">Original Case</span>
+                <strong>{{ item.originalCaseReference || item.originalCaseId }}</strong>
+                <small *ngIf="item.originalCaseType" class="muted">{{ item.originalCaseType }}</small>
+              </div>
+              <div *ngIf="item.originalCustomerName || item.originalCustomerPhone">
+                <span class="detail-label">Customer</span>
+                <strong>{{ item.originalCustomerName || 'Unknown customer' }}</strong>
+                <small *ngIf="item.originalCustomerPhone" class="muted">{{ item.originalCustomerPhone }}</small>
+              </div>
+              <div *ngIf="item.originalRecoveryDate">
+                <span class="detail-label">Recovery Date</span>
+                <strong>{{ item.originalRecoveryDate | date: 'dd/MM/yyyy HH:mm' }}</strong>
+              </div>
+              <div *ngIf="item.sttCollectedAt">
+                <span class="detail-label">STT Collection Date</span>
+                <strong>{{ item.sttCollectedAt | date: 'dd/MM/yyyy HH:mm' }}</strong>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 

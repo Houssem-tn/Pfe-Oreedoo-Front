@@ -1,0 +1,89 @@
+// ─────────────────────────────────────────────────────────────────────────
+// RTL strategy
+// ─────────────────────────────────────────────────────────────────────────
+// Bootstrap 5 / CoreUI 5 (the base of this app) already ship with logical
+// CSS properties (margin-inline-*, padding-inline-*, text-align: start/end,
+// inset-inline-*, border-inline-*) throughout their compiled CSS, so most
+// framework chrome — sidebar, header, nav, dropdowns, breadcrumbs, modals,
+// forms, tables, pagination, cards — mirrors automatically the moment
+// `dir="rtl"` is set on <html> (done by LanguageService). No Sass config
+// flag or duplicate stylesheet is needed for that part.
+//
+// What's collected here are the small number of *hand-written* app classes
+// (in _custom.scss / _field.scss) that used physical left/right properties
+// instead of logical ones, plus reusable utilities:
+//
+//   - `.ltr-content`   forces LTR + left alignment for values that must
+//                       stay readable regardless of page direction: phone
+//                       numbers, emails, IMEI/serial numbers, coordinates,
+//                       reference codes, raw numeric values. Apply it to
+//                       the specific `<span>`/`<td>` wrapping that value —
+//                       do not apply it to whole rows/cards.
+//   - `.icon-flip-rtl` mirrors a genuinely directional icon (a "back" or
+//                       "next" chevron that encodes reading direction) in
+//                       RTL. Do NOT apply this to non-directional icons
+//                       (expand/collapse carets, status icons) — mirroring
+//                       those would misrepresent their meaning.
+//
+// Remaining known gaps (tracked in the i18n rollout checklist, not fixed
+// here): MapLibre's built-in navigation control (zoom/compass) is not
+// direction-aware and is left as-is; Chart.js legends/tooltips inherit
+// `dir` from their container but per-chart label ordering has not been
+// audited screen-by-screen yet.
+
+[dir='rtl'] {
+  // Field layout — unread badge pinned to the icon's outer corner.
+  .field-icon-button__badge {
+    right: auto;
+    left: -0.35rem;
+  }
+
+  // Field layout — notification item copy should follow reading direction,
+  // not stay hard-left.
+  .field-notification-item {
+    text-align: start;
+  }
+
+  // Severity/accent bar on alert-style cards: the accent lives on the
+  // "leading" edge, which is the right edge in RTL.
+  .op-alert {
+    border-left-width: 1px;
+    border-right-width: 4px;
+  }
+
+  .op-alert--assignment {
+    border-left-color: rgba(148, 163, 184, 0.24);
+    border-right-color: rgba(13, 110, 253, 0.7);
+  }
+
+  .op-alert--warning {
+    border-left-color: rgba(148, 163, 184, 0.24);
+    border-right-color: rgba(255, 193, 7, 0.9);
+  }
+
+  .op-alert--breached {
+    border-left-color: rgba(148, 163, 184, 0.24);
+    border-right-color: rgba(220, 53, 69, 0.92);
+  }
+
+  // Reserve the scrollbar gutter on whichever side it actually renders.
+  .case-timeline {
+    padding-right: 0;
+    padding-left: 0.2rem;
+  }
+}
+
+// Business/technical values that must never mirror or reflow with the
+// surrounding RTL text (phone numbers, emails, IMEI, serials, coordinates).
+.ltr-content {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  text-align: start;
+}
+
+// Directional navigation icon (back/forward chevrons and similar) — opt in
+// per usage, see notes above.
+[dir='rtl'] .icon-flip-rtl {
+  transform: scaleX(-1);
+}

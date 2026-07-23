@@ -3,7 +3,7 @@
     <div class="crm-cases-hero__content">
       <div class="crm-brand-chip">
         <span class="crm-brand-chip__dot"></span>
-        Ooredoo CRM workflow
+        {{ 'cases.board.brandChip' | transloco }}
       </div>
       <h1>{{ workspaceTitle }}</h1>
       <p>{{ workspaceSubtitle }}</p>
@@ -17,7 +17,7 @@
         [disabled]="loading"
       >
         <svg cIcon name="cilCloudDownload"></svg>
-        {{ loading ? 'Refreshing...' : 'Refresh queue' }}
+        {{ loading ? ('cases.board.refreshing' | transloco) : ('cases.board.refreshQueue' | transloco) }}
       </button>
 
       <a
@@ -26,7 +26,7 @@
         [routerLink]="createRoute"
       >
         <svg cIcon name="cilFile"></svg>
-        New CRM case
+        {{ 'cases.board.newCase' | transloco }}
       </a>
     </div>
   </section>
@@ -34,9 +34,9 @@
   <section class="crm-alerts-panel" *ngIf="operationalAlerts.length > 0">
     <div class="crm-panel-header">
       <div>
-        <div class="crm-panel-header__eyebrow">Live alerts</div>
-        <div class="crm-panel-header__title">Ooredoo operational alerts center</div>
-        <div class="crm-panel-header__hint">SLA pressure and assignment changes stay above the working queue.</div>
+        <div class="crm-panel-header__eyebrow">{{ 'cases.board.alerts.eyebrow' | transloco }}</div>
+        <div class="crm-panel-header__title">{{ 'cases.board.alerts.title' | transloco }}</div>
+        <div class="crm-panel-header__hint">{{ 'cases.board.alerts.hint' | transloco }}</div>
       </div>
     </div>
 
@@ -67,12 +67,12 @@
 
         <div class="crm-alert__footer">
           <span class="crm-inline-pill" [ngClass]="alert.read ? 'crm-inline-pill--muted' : 'crm-inline-pill--brand'">
-            {{ alert.read ? 'Acknowledged' : 'Needs attention' }}
+            {{ alert.read ? ('cases.board.alerts.acknowledged' | transloco) : ('cases.board.alerts.needsAttention' | transloco) }}
           </span>
 
           <div class="crm-alert__actions">
-            <button type="button" class="crm-mini-action crm-mini-action--brand" (click)="openAlert(alert)">View</button>
-            <button *ngIf="!alert.read" type="button" class="crm-mini-action crm-mini-action--ghost" (click)="markAlertRead(alert, $event)">Dismiss</button>
+            <button type="button" class="crm-mini-action crm-mini-action--brand" (click)="openAlert(alert)">{{ 'common.viewDetails' | transloco }}</button>
+            <button *ngIf="!alert.read" type="button" class="crm-mini-action crm-mini-action--ghost" (click)="markAlertRead(alert, $event)">{{ 'notifications.alertCenter.actions.dismiss' | transloco }}</button>
           </div>
         </div>
       </article>
@@ -90,9 +90,9 @@
   <section class="crm-performance-panel" *ngIf="myPerformance">
     <div class="crm-panel-header">
       <div>
-        <div class="crm-panel-header__eyebrow">Performance</div>
-        <div class="crm-panel-header__title">My performance snapshot</div>
-        <div class="crm-panel-header__hint">Live workload, RDV quality, and SLA control for the current scope.</div>
+        <div class="crm-panel-header__eyebrow">{{ 'cases.board.performance.eyebrow' | transloco }}</div>
+        <div class="crm-panel-header__title">{{ 'cases.board.performance.title' | transloco }}</div>
+        <div class="crm-panel-header__hint">{{ 'cases.board.performance.hint' | transloco }}</div>
       </div>
     </div>
 
@@ -108,16 +108,16 @@
   <section class="crm-team-panel" *ngIf="topTechs.length > 0">
     <div class="crm-panel-header">
       <div>
-        <div class="crm-panel-header__eyebrow">Execution spotlight</div>
-        <div class="crm-panel-header__title">Top technician progress</div>
+        <div class="crm-panel-header__eyebrow">{{ 'cases.board.team.eyebrow' | transloco }}</div>
+        <div class="crm-panel-header__title">{{ 'cases.board.team.title' | transloco }}</div>
       </div>
     </div>
 
     <div class="crm-team-grid">
       <article class="crm-team-card" *ngFor="let tech of topTechs">
-        <div class="crm-team-card__name">{{ tech.userName || tech.userEmail || 'Technician' }}</div>
-        <div class="crm-team-card__meta">{{ tech.workCompletionProgress }}% completion</div>
-        <div class="crm-team-card__meta">{{ tech.activeTasksCount }} active tasks</div>
+        <div class="crm-team-card__name">{{ tech.userName || tech.userEmail || ('roles.tech' | transloco) }}</div>
+        <div class="crm-team-card__meta">{{ tech.workCompletionProgress }}% {{ 'cases.board.team.completion' | transloco }}</div>
+        <div class="crm-team-card__meta">{{ tech.activeTasksCount }} {{ 'cases.board.team.activeTasks' | transloco }}</div>
       </article>
     </div>
   </section>
@@ -128,54 +128,54 @@
         <span class="crm-search-field__icon"><svg cIcon name="cilMagnifyingGlass"></svg></span>
         <input
           type="text"
-          placeholder="CRM, client, assignment, offer, location"
+          [placeholder]="'cases.board.filters.searchPlaceholder' | transloco"
           [(ngModel)]="searchTerm"
           (ngModelChange)="onFiltersChange()"
         />
       </label>
 
       <label class="crm-select-field">
-        <span>Status</span>
+        <span>{{ 'common.status' | transloco }}</span>
         <select [(ngModel)]="selectedStatus" (ngModelChange)="onFiltersChange()">
           <option *ngFor="let status of statusOptions" [value]="status.value">{{ status.label }}</option>
         </select>
       </label>
 
       <label class="crm-select-field">
-        <span>Gouvernorat</span>
+        <span>{{ 'caseDetail.fields.governorate' | transloco }}</span>
         <select [(ngModel)]="selectedGouvernorat" (ngModelChange)="onFiltersChange()">
-          <option value="">All</option>
+          <option value="">{{ 'common.all' | transloco }}</option>
           <option *ngFor="let g of gouvernoratOptions" [value]="g">{{ g }}</option>
         </select>
       </label>
 
       <label class="crm-select-field">
-        <span>Delegation</span>
+        <span>{{ 'caseDetail.fields.delegation' | transloco }}</span>
         <select [(ngModel)]="selectedDelegation" (ngModelChange)="onFiltersChange()">
-          <option value="">All</option>
+          <option value="">{{ 'common.all' | transloco }}</option>
           <option *ngFor="let d of delegationOptions" [value]="d">{{ d }}</option>
         </select>
       </label>
 
       <label class="crm-select-field crm-select-field--compact">
-        <span>Rows</span>
+        <span>{{ 'common.rowsPerPage' | transloco }}</span>
         <select [(ngModel)]="pageSize" (ngModelChange)="onFiltersChange()">
           <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
         </select>
       </label>
 
-      <button type="button" class="crm-action crm-action--ghost" (click)="resetFilters()">Reset</button>
+      <button type="button" class="crm-action crm-action--ghost" (click)="resetFilters()">{{ 'common.reset' | transloco }}</button>
     </div>
 
     <div class="crm-filter-panel__footer">
       <div class="crm-filter-panel__meta">
         <strong>{{ rangeLabel() }}</strong>
-        <span>cases visible in the current review window</span>
+        <span>{{ 'cases.board.filters.visibleRangeHint' | transloco }}</span>
       </div>
 
       <div class="crm-filter-panel__meta crm-filter-panel__meta--soft">
         <svg cIcon name="cilDescription"></svg>
-        <span>{{ totalElements }} filtered cases</span>
+        <span>{{ 'cases.board.filters.filteredCases' | transloco:{ count: totalElements } }}</span>
       </div>
     </div>
   </section>
@@ -183,15 +183,15 @@
   <div *ngIf="loading && cases.length === 0" class="crm-state crm-state--loading">
     <div class="spinner-border" role="status"></div>
     <div>
-      <strong>Loading {{ caseBoardLabel.toLowerCase() }} cases...</strong>
-      <span>Preparing the latest CRM workflow data.</span>
+      <strong>{{ 'cases.board.loadingTitle' | transloco:{ module: caseBoardLabel.toLowerCase() } }}</strong>
+      <span>{{ 'cases.board.loadingHint' | transloco }}</span>
     </div>
   </div>
 
   <div *ngIf="error" class="crm-state crm-state--error">
     <svg cIcon name="cilWarning"></svg>
     <div>
-      <strong>Case board unavailable</strong>
+      <strong>{{ 'cases.board.unavailableTitle' | transloco }}</strong>
       <span>{{ error }}</span>
     </div>
   </div>
@@ -225,19 +225,19 @@
 
         <div class="tech-mobile-actions">
           <button *ngIf="canSetRdv(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openRdvPopup(item)">
-            <svg cIcon name="cilCalendar"></svg>RDV
+            <svg cIcon name="cilCalendar"></svg>{{ 'cases.board.actions.rdv' | transloco }}
           </button>
           <button *ngIf="canUpdateWork(item)" type="button" class="crm-action crm-action--success" [disabled]="isBusy(item.id)" (click)="openWorkPopup(item)">
-            <svg cIcon name="cilTask"></svg>Work
+            <svg cIcon name="cilTask"></svg>{{ 'cases.board.actions.work' | transloco }}
           </button>
           <button type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id)" (click)="openDetails(item)">
-            <svg cIcon name="cilMagnifyingGlass"></svg>Details
+            <svg cIcon name="cilMagnifyingGlass"></svg>{{ 'common.details' | transloco }}
           </button>
         </div>
       </div>
 
       <div class="crm-empty-state" *ngIf="techMobileCases.length === 0">
-        <div class="crm-empty-state__title">No active field cases match your filters.</div>
+        <div class="crm-empty-state__title">{{ 'cases.board.empty.tech' | transloco }}</div>
       </div>
     </div>
 
@@ -258,9 +258,9 @@
 
         <div class="stt-mobile-card__chain">
           <span class="stt-mobile-chip stt-mobile-chip--mode">{{ executionModeLabel(item) }}</span>
-          <span class="stt-mobile-chip">Executor: {{ executorDisplayName(item) }}</span>
-          <span class="stt-mobile-chip">TECH: {{ techDisplayName(item) === '-' ? 'Not assigned' : techDisplayName(item) }}</span>
-          <span class="stt-mobile-chip">Owner ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
+          <span class="stt-mobile-chip">{{ 'cases.board.labels.executor' | transloco }}: {{ executorDisplayName(item) }}</span>
+          <span class="stt-mobile-chip">{{ 'roles.tech' | transloco }}: {{ techDisplayName(item) === '-' ? ('cases.board.labels.notAssigned' | transloco) : techDisplayName(item) }}</span>
+          <span class="stt-mobile-chip">{{ 'cases.board.labels.ownerZm' | transloco }}: {{ ownerZmCompactLabel(item) || '-' }}</span>
         </div>
 
         <div class="stt-mobile-card__sla">
@@ -273,35 +273,35 @@
         </div>
 
         <div class="stt-mobile-card__summary">
-          <div><strong>RDV</strong><span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'Not set' }}</span></div>
-          <div><strong>{{ item.type === 'PLAINTE' ? 'Resolution' : 'Work' }}</strong><span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Pending' }}</span></div>
+          <div><strong>{{ 'cases.board.actions.rdv' | transloco }}</strong><span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : ('cases.board.labels.notSet' | transloco) }}</span></div>
+          <div><strong>{{ item.type === 'PLAINTE' ? ('caseDetail.sections.resolution' | transloco) : ('cases.board.actions.work' | transloco) }}</strong><span>{{ item.resolution?.resolutionType || item.repTravauxStt || ('cases.board.labels.pending' | transloco) }}</span></div>
         </div>
 
         <div class="stt-mobile-actions">
           <button *ngIf="canExecuteMyself(item)" type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id) || isSttExecutor(item)" (click)="openExecuteMyself(item)">
-            <svg cIcon name="cilUser"></svg>{{ isSttExecutor(item) ? 'Executing' : 'Execute myself' }}
+            <svg cIcon name="cilUser"></svg>{{ isSttExecutor(item) ? ('cases.board.actions.executing' | transloco) : ('cases.board.actions.executeMyself' | transloco) }}
           </button>
           <button *ngIf="canAssignTech(item)" type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openAssignTech(item)">
-            <svg cIcon name="cilUserFollow"></svg>Assign technician
+            <svg cIcon name="cilUserFollow"></svg>{{ 'cases.board.actions.assignTechnician' | transloco }}
           </button>
           <button type="button" class="crm-action crm-action--ghost" [disabled]="isBusy(item.id)" (click)="openSttPrimaryAction(item)">
             <svg cIcon [name]="sttPrimaryActionIcon(item)"></svg>{{ sttPrimaryActionLabel(item) }}
           </button>
           <button type="button" class="crm-action crm-action--primary" [disabled]="isBusy(item.id)" (click)="openDetails(item)">
-            <svg cIcon name="cilMagnifyingGlass"></svg>Details
+            <svg cIcon name="cilMagnifyingGlass"></svg>{{ 'common.details' | transloco }}
           </button>
         </div>
       </article>
 
       <div class="crm-empty-state" *ngIf="sttMobileCases.length === 0">
-        <div class="crm-empty-state__title">No STT cases match your current filters.</div>
+        <div class="crm-empty-state__title">{{ 'cases.board.empty.stt' | transloco }}</div>
       </div>
     </div>
 
     <section class="crm-table-panel" [class.d-none]="currentRole === 'ROLE_TECH' || currentRole === 'ROLE_STT'" [class.d-lg-block]="currentRole === 'ROLE_TECH' || currentRole === 'ROLE_STT'">
       <div class="crm-table-panel__header">
         <div>
-          <div class="crm-panel-header__eyebrow">Case queue</div>
+          <div class="crm-panel-header__eyebrow">{{ 'cases.board.queueEyebrow' | transloco }}</div>
           <div class="crm-panel-header__title">{{ caseBoardLabelPlural }}</div>
         </div>
         <div class="crm-table-panel__meta">{{ rangeLabel() }}</div>
@@ -314,14 +314,14 @@
         <table class="table cases-table align-middle mb-0">
           <thead>
             <tr>
-              <th>Case</th>
-              <th>Client</th>
-              <th>Location / Offer</th>
-              <th>Assignment chain</th>
-              <th>Status</th>
-              <th>SLA</th>
-              <th>Execution</th>
-              <th class="text-end">Actions</th>
+              <th>{{ 'notifications.category.case' | transloco }}</th>
+              <th>{{ 'caseDetail.sections.clientInformation' | transloco }}</th>
+              <th>{{ 'cases.board.table.locationOffer' | transloco }}</th>
+              <th>{{ 'caseDetail.sections.assignmentChain' | transloco }}</th>
+              <th>{{ 'common.status' | transloco }}</th>
+              <th>{{ 'notifications.category.sla' | transloco }}</th>
+              <th>{{ 'caseDetail.fields.executionMode' | transloco }}</th>
+              <th class="text-end">{{ 'common.actions' | transloco }}</th>
             </tr>
           </thead>
           <tbody>
@@ -334,37 +334,37 @@
               <td>
                 <div class="case-client__name">{{ item.clientName }}</div>
                 <div class="case-client__meta">{{ item.clientPhone }}</div>
-                <div class="case-client__meta">MSISDN: {{ item.msisdn }}</div>
+                <div class="case-client__meta">{{ 'caseDetail.fields.msisdn' | transloco }}: {{ item.msisdn }}</div>
               </td>
 
               <td>
                 <div class="case-location__title">{{ item.localite }}, {{ item.delegation }}</div>
                 <div class="case-location__meta">{{ item.gouvernorat }}</div>
-                <div class="case-location__meta">Offer: {{ item.offre || '-' }}</div>
-                <div class="case-location__meta">Pack: {{ item.desPack || '-' }}</div>
+                <div class="case-location__meta">{{ 'caseDetail.fields.offer' | transloco }}: {{ item.offre || '-' }}</div>
+                <div class="case-location__meta">{{ 'caseDetail.fields.pack' | transloco }}: {{ item.desPack || '-' }}</div>
               </td>
 
               <td>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--zm" [title]="'ZM: ' + (ownerZmCompactLabel(item) || '-')">
+                  <div class="assignment-person assignment-person--zm" [title]="('roles.zm' | transloco) + ': ' + (ownerZmCompactLabel(item) || '-')">
                     <span class="assignee-avatar assignee-avatar--zm">{{ initialsFor(item.ownerZmName || item.zmName, item.zmEmail) }}</span>
-                    <span class="assignment-badge">ZM: {{ ownerZmCompactLabel(item) || '-' }}</span>
+                    <span class="assignment-badge">{{ 'roles.zm' | transloco }}: {{ ownerZmCompactLabel(item) || '-' }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--stt" [title]="'STT: ' + sttDisplayName(item)">
+                  <div class="assignment-person assignment-person--stt" [title]="('roles.stt' | transloco) + ': ' + sttDisplayName(item)">
                     <span class="assignee-avatar assignee-avatar--stt">{{ initialsFor(item.sttName, item.sttEmail) }}</span>
-                    <span class="assignment-badge">STT: {{ sttDisplayName(item) }}</span>
+                    <span class="assignment-badge">{{ 'roles.stt' | transloco }}: {{ sttDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--tech" [title]="'TECH: ' + techDisplayName(item)">
+                  <div class="assignment-person assignment-person--tech" [title]="('roles.tech' | transloco) + ': ' + techDisplayName(item)">
                     <span class="assignee-avatar assignee-avatar--tech">{{ initialsFor(item.techName, item.techEmail) }}</span>
-                    <span class="assignment-badge">TECH: {{ techDisplayName(item) }}</span>
+                    <span class="assignment-badge">{{ 'roles.tech' | transloco }}: {{ techDisplayName(item) }}</span>
                   </div>
                 </div>
                 <div class="chain-line">
-                  <div class="assignment-person assignment-person--executor" [title]="'Executor: ' + executorDisplayName(item) + ' · ' + executionModeLabel(item)">
+                  <div class="assignment-person assignment-person--executor" [title]="('cases.board.labels.executor' | transloco) + ': ' + executorDisplayName(item) + ' - ' + executionModeLabel(item)">
                     <span class="assignee-avatar assignee-avatar--executor">{{ initialsFor(executorDisplayName(item), executorDisplayName(item)) }}</span>
                     <span class="assignment-badge">{{ executionModeLabel(item) }}</span>
                   </div>
@@ -393,15 +393,15 @@
               <td>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCalendar"></svg>
-                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : 'RDV not set' }}</span>
+                  <span>{{ item.datePriseRdv ? (item.datePriseRdv | date:'dd/MM HH:mm') : ('cases.board.labels.rdvNotSet' | transloco) }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilTask"></svg>
-                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || 'Work pending' }}</span>
+                  <span>{{ item.resolution?.resolutionType || item.repTravauxStt || ('cases.board.labels.workPending' | transloco) }}</span>
                 </div>
                 <div class="case-execution__item">
                   <svg cIcon name="cilCheckCircle"></svg>
-                  <span>{{ item.repZm || 'Validation pending' }}</span>
+                  <span>{{ item.repZm || ('cases.board.labels.validationPending' | transloco) }}</span>
                 </div>
               </td>
 
@@ -411,7 +411,7 @@
                     *ngIf="canAssignStt(item)"
                     type="button"
                     class="action-btn action-btn--teal"
-                    title="Assign/Change STT"
+                    [title]="'cases.board.actions.assignOrChangeStt' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openAssignStt(item)"
                   >
@@ -422,7 +422,7 @@
                     *ngIf="canExecuteMyself(item)"
                     type="button"
                     class="action-btn action-btn--primary"
-                    title="Execute myself"
+                    [title]="'cases.board.actions.executeMyself' | transloco"
                     [disabled]="isBusy(item.id) || isSttExecutor(item)"
                     (click)="openExecuteMyself(item)"
                   >
@@ -433,7 +433,7 @@
                     *ngIf="canAssignTech(item)"
                     type="button"
                     class="action-btn action-btn--amber"
-                    title="Assign/Change TECH"
+                    [title]="'cases.board.actions.assignOrChangeTech' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openAssignTech(item)"
                   >
@@ -444,7 +444,7 @@
                     *ngIf="canSetRdv(item)"
                     type="button"
                     class="action-btn action-btn--ghost"
-                    title="Set RDV"
+                    [title]="'cases.board.actions.setRdv' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openRdvPopup(item)"
                   >
@@ -455,7 +455,7 @@
                     *ngIf="canDiagnose(item)"
                     type="button"
                     class="action-btn action-btn--teal"
-                    title="Save diagnosis"
+                    [title]="'cases.board.actions.saveDiagnosis' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openDiagnosisPopup(item)"
                   >
@@ -466,7 +466,7 @@
                     *ngIf="canUpdateWork(item)"
                     type="button"
                     class="action-btn action-btn--success"
-                    title="Update Work"
+                    [title]="'cases.board.actions.updateWork' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openWorkPopup(item)"
                   >
@@ -477,7 +477,7 @@
                     *ngIf="canValidateZm(item)"
                     type="button"
                     class="action-btn action-btn--ink"
-                    title="Validate Case"
+                    [title]="'cases.board.actions.validateCase' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openValidatePopup(item)"
                   >
@@ -488,7 +488,7 @@
                     *ngIf="canCloseCase(item)"
                     type="button"
                     class="action-btn action-btn--danger"
-                    title="Close Case"
+                    [title]="'cases.board.actions.closeCase' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openClosePopup(item)"
                   >
@@ -499,7 +499,7 @@
                     *ngIf="canReopenComplaint(item)"
                     type="button"
                     class="action-btn action-btn--amber"
-                    title="Reopen complaint"
+                    [title]="'cases.board.actions.reopenComplaint' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openReopenComplaint(item)"
                   >
@@ -510,7 +510,7 @@
                     *ngIf="canView(item)"
                     type="button"
                     class="action-btn action-btn--soft"
-                    title="View details"
+                    [title]="'common.viewDetails' | transloco"
                     [disabled]="isBusy(item.id)"
                     (click)="openDetails(item)"
                   >
@@ -523,8 +523,8 @@
             <tr *ngIf="paginatedCases.length === 0">
               <td colspan="8">
                 <div class="crm-empty-state">
-                  <div class="crm-empty-state__title">No {{ caseBoardLabel.toLowerCase() }} cases found</div>
-                  <div class="crm-empty-state__hint">Try changing search or filters.</div>
+                  <div class="crm-empty-state__title">{{ 'cases.board.empty.genericTitle' | transloco:{ module: caseBoardLabel.toLowerCase() } }}</div>
+                  <div class="crm-empty-state__hint">{{ 'cases.board.empty.genericHint' | transloco }}</div>
                 </div>
               </td>
             </tr>
@@ -534,11 +534,11 @@
     </section>
 
     <section class="crm-pagination" *ngIf="totalElements > 0">
-      <div class="crm-pagination__meta">Page {{ currentPage }} of {{ totalPages }}</div>
+      <div class="crm-pagination__meta">{{ 'cases.board.pagination.pageOf' | transloco:{ current: currentPage, total: totalPages } }}</div>
 
       <div class="crm-pagination__controls">
-        <button type="button" class="crm-page-btn crm-page-btn--edge" (click)="setPage(1)" [disabled]="currentPage === 1" title="First page" aria-label="First page">«</button>
-        <button type="button" class="crm-page-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">Prev</button>
+        <button type="button" class="crm-page-btn crm-page-btn--edge" (click)="setPage(1)" [disabled]="currentPage === 1" [title]="'cases.board.pagination.firstPage' | transloco" [attr.aria-label]="'cases.board.pagination.firstPage' | transloco">«</button>
+        <button type="button" class="crm-page-btn" (click)="setPage(currentPage - 1)" [disabled]="currentPage === 1">{{ 'common.previous' | transloco }}</button>
 
         <ng-container *ngFor="let page of visiblePages">
           <button
@@ -551,12 +551,12 @@
           <span *ngIf="page === '...'" class="crm-page-ellipsis">…</span>
         </ng-container>
 
-        <button type="button" class="crm-page-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
-        <button type="button" class="crm-page-btn crm-page-btn--edge" (click)="setPage(totalPages)" [disabled]="currentPage === totalPages" title="Last page" aria-label="Last page">»</button>
+        <button type="button" class="crm-page-btn" (click)="setPage(currentPage + 1)" [disabled]="currentPage === totalPages">{{ 'common.next' | transloco }}</button>
+        <button type="button" class="crm-page-btn crm-page-btn--edge" (click)="setPage(totalPages)" [disabled]="currentPage === totalPages" [title]="'cases.board.pagination.lastPage' | transloco" [attr.aria-label]="'cases.board.pagination.lastPage' | transloco">»</button>
       </div>
 
       <div class="crm-pagination__jump">
-        <span>Go to</span>
+        <span>{{ 'cases.board.pagination.goTo' | transloco }}</span>
         <input
           type="number"
           min="1"
@@ -564,9 +564,9 @@
           [(ngModel)]="jumpPageValue"
           (keyup.enter)="onJumpToPage()"
           placeholder="#"
-          aria-label="Jump to page"
+          [attr.aria-label]="'cases.board.pagination.jumpToPage' | transloco"
         />
-        <button type="button" class="crm-page-btn crm-page-btn--go" (click)="onJumpToPage()">Go</button>
+        <button type="button" class="crm-page-btn crm-page-btn--go" (click)="onJumpToPage()">{{ 'cases.board.pagination.go' | transloco }}</button>
       </div>
     </section>
   </ng-container>

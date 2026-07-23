@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 
 import { ButtonModule, CardModule, FormModule, GridModule } from '@coreui/angular';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
+import { TranslocoTestingModule } from '@jsverse/transloco';
 import { iconSubset } from '../../../icons/icon-subset';
 import { RegisterComponent } from './register.component';
 
@@ -13,7 +14,15 @@ describe('RegisterComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-    imports: [CardModule, FormModule, GridModule, ButtonModule, IconModule, RegisterComponent],
+    imports: [
+      CardModule,
+      FormModule,
+      GridModule,
+      ButtonModule,
+      IconModule,
+      RegisterComponent,
+      TranslocoTestingModule.forRoot({ langs: { fr: {}, 'auth/fr': {} }, translocoConfig: { availableLangs: ['fr'], defaultLang: 'fr' } })
+    ],
     providers: [IconSetService, provideRouter([])]
 })
     .compileComponents();

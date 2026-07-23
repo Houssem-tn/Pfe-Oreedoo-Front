@@ -103,7 +103,7 @@
 
                 @if (card.group.preview.length) {
                   <ul class="zm-action__list">
-                    @for (item of card.group.preview; track item.id) {
+                    @for (item of card.group.preview; track trackActionPreview($index, item)) {
                       <li>
                         <span class="zm-action__ref">{{ item.reference || item.label || '—' }}</span>
                         @if (item.meta) { <span class="zm-action__meta">{{ item.meta }}</span> }

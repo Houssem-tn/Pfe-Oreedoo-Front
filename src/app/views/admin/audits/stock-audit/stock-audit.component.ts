@@ -493,6 +493,14 @@ export class StockAuditComponent implements OnInit {
     return reason ? (m[reason] ?? this.prettyEnum(reason)) : '—';
   }
 
+  proofLink(item: StockAuditEntry['items'][number]): string | null {
+    return item.proofViewUrl || null;
+  }
+
+  itemIdentifier(item: StockAuditEntry['items'][number]): string {
+    return [item.serialNumber, item.imei].filter(Boolean).join(' • ') || 'Not tracked';
+  }
+
   prettyEnum(value?: string | null): string {
     if (!value) return '—';
     return value.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());

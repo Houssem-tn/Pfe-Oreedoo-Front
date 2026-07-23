@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, inject } from 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IconDirective } from '@coreui/icons-angular';
+import { TranslocoModule } from '@jsverse/transloco';
 import { Subscription, finalize, firstValueFrom } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/auth.store';
@@ -16,15 +17,17 @@ import {
   CompleteWorkRequest,
   DeclareClientRecoveryRequest,
   EquipmentItemProofPayload,
-  RecoveredEquipmentRequestItem,
   SetRdvRequest
 } from '../../core/cases/models/case.model';
 import {
+  buildRecoveredEquipmentPayload,
   buildUsedEquipmentPayload,
   EquipmentUsageLine,
   extractMetrics,
   extractRdv,
   extractWork,
+  newRecoveryLine,
+  RecoveryLine,
   toDateTimeLocal,
   toIso,
   toMaybeNumber,
@@ -48,11 +51,16 @@ import {
   TechStockItem
 } from '../../core/stock/stock.model';
 import { StockUsagePermissionService } from '../../core/stock/stock-usage-permission.service';
+import { RetrievedStockService } from '../../core/stock/retrieved-stock.service';
 import { SwalService } from '../../core/ui/swal.service';
 import { NotificationItem } from '../../core/notifications/models/notification.model';
 import { NotificationWsService } from '../../core/notifications/notification-ws.service';
+import {
+  EquipmentLabelScanComponent,
+  EquipmentLabelScanResult
+} from '../../shared/equipment-label-scan/equipment-label-scan.component';
 
-type FieldExecutionStep = 'rdv' | 'diagnosis' | 'stock' | 'recovery' | 'work' | 'metrics' | 'completion';
+type FieldExecutionStep = 'rdv' | 'diagnosis' | 'attachments' | 'stock' | 'recovery' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
 type CaseUsageContext = 'ACT' | 'PLT' | 'RES';
 
@@ -105,6 +113,12 @@ interface FieldProofAttachment {
   captureSource: string;
 }
 
+/** A plain Résiliation case file selected by the technician — no OCR, no extraction. */
+interface ResCaseAttachment {
+  file: File;
+  isImage: boolean;
+}
+
 interface EquipmentItemProof {
   file: File;
   previewUrl: string;
@@ -130,18 +144,9 @@ interface OverLimitLine {
   unit: string;
 }
 
-interface RecoveryLine {
-  equipmentId: string;
-  quantity: number | string;
-  serialNumber: string;
-  macAddress: string;
-  imei: string;
-  condition: string;
-}
-
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconDirective],
+  imports: [CommonModule, FormsModule, RouterLink, IconDirective, TranslocoModule, EquipmentLabelScanComponent],
   template: `
     <section class="field-page">
       <a class="field-button field-button--ghost" [routerLink]="caseItem ? basePath + '/tasks/' + caseItem.id : basePath + '/tasks'">
@@ -162,7 +167,7 @@ interface RecoveryLine {
           <div class="field-page__eyebrow">Execution</div>
           <h1 class="field-page__title">{{ item.clientName }}</h1>
           <p class="field-page__subtitle">{{ location(item) }}</p>
-          <span [class]="statusClass(item)">{{ statusLabel(item) }}</span>
+          <span [class]="statusClass(item)">{{ statusLabel(item) | transloco }}</span>
         </div>
 
         <nav class="field-stepper" aria-label="Execution steps">
@@ -302,6 +307,60 @@ interface RecoveryLine {
           </div>
         </form>
 
+        <!-- Résiliation only: attach multiple normal case files (no OCR / no extraction). -->
+        <section class="field-card field-form-grid" *ngIf="activeStep === 'attachments' && isResCase && (isTechRole || isSttSelfExecutionComplaint)">
+          <div class="field-section-title">
+            <h2>Case attachments</h2>
+            <span>Optional supporting files</span>
+          </div>
+
+          <div class="field-alert field-alert--info">
+            <svg cIcon name="cilInfo"></svg>
+            Attach any supporting documents or photos for this résiliation (images or PDF). These are stored
+            as normal case files — they are not scanned or auto-extracted. This step is optional.
+          </div>
+
+          <div class="field-form-grid">
+            <button class="field-button field-button--ghost" type="button" (click)="resAttachmentInput.click()" [disabled]="actionBusy">
+              <svg cIcon name="cilPaperclip"></svg>
+              Add files
+            </button>
+            <input #resAttachmentInput
+                   type="file"
+                   [accept]="resAttachmentAccept"
+                   multiple
+                   hidden
+                   (change)="addResAttachments(resAttachmentInput)" />
+          </div>
+
+          <div class="field-fact" *ngIf="resAttachments.length === 0">
+            <span>No files attached yet. You can continue without attaching any file.</span>
+          </div>
+
+          <ul class="field-attachment-list" *ngIf="resAttachments.length > 0">
+            <li class="field-attachment" *ngFor="let att of resAttachments; let i = index">
+              <svg cIcon [name]="att.isImage ? 'cilImage' : 'cilFile'" class="field-attachment__icon"></svg>
+              <div class="field-attachment__info">
+                <span class="field-attachment__name" [title]="att.file.name">{{ att.file.name }}</span>
+                <span class="field-attachment__size">{{ formatFileSize(att.file.size) }}</span>
+              </div>
+              <button type="button"
+                      class="field-attachment__remove"
+                      (click)="removeResAttachment(i)"
+                      [disabled]="actionBusy"
+                      aria-label="Remove file"
+                      title="Remove file">
+                <svg cIcon name="cilX"></svg>
+              </button>
+            </li>
+          </ul>
+
+          <div class="field-button-row" style="margin-top: 1rem">
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'rdv'">Back</button>
+            <button class="field-button field-button--primary" type="button" (click)="activeStep = 'recovery'">Next: Recovery</button>
+          </div>
+        </section>
+
         <section class="field-card field-form-grid" *ngIf="activeStep === 'stock' && !isResCase && (isTechRole || isSttSelfExecutionComplaint)">
           <div class="field-section-title">
             <h2>Stock step</h2>
@@ -351,6 +410,12 @@ interface RecoveryLine {
                   <ng-template #fsNoUnits>
                     <div class="field-units__empty">No tracked units in your stock for this item.</div>
                   </ng-template>
+                  <!-- Complaint (PLT) only — Activation's consumption screen stays unchanged. -->
+                  <app-equipment-label-scan
+                    *ngIf="caseUsageContext === 'PLT'"
+                    title="Scan installed item to verify"
+                    (scanChange)="onUsageScanChange(line, $event)">
+                  </app-equipment-label-scan>
                 </div>
               </ng-container>
               <button class="field-usage-add" type="button" (click)="addUsageLine()" [disabled]="actionBusy">+ Add item</button>
@@ -466,23 +531,31 @@ interface RecoveryLine {
 
           <div class="field-button-row" style="margin-top: 1.5rem">
             <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : 'rdv'">Back</button>
-            <button class="field-button field-button--primary" type="button" (click)="activeStep = 'work'" [disabled]="stockStepBlocked">
-              {{ stockStepBlocked ? 'Waiting for STT approval' : 'Next: Work' }}
+            <button class="field-button field-button--primary" type="button" (click)="activeStep = showsRetrievalStep ? 'recovery' : 'work'" [disabled]="stockStepBlocked">
+              {{ stockStepBlocked ? 'Waiting for STT approval' : (showsRetrievalStep ? 'Next: Recovery' : 'Next: Work') }}
             </button>
           </div>
         </section>
 
-        <!-- RES: recovered client material declaration (no stock consumption) -->
-        <section class="field-card field-form-grid" *ngIf="activeStep === 'recovery' && isResCase && (isTechRole || isSttSelfExecutionComplaint)">
+        <!-- Complaint (PLT): retrieved from customer, alongside optional consumption above.
+             Résiliation (RES): retrieved from customer only — no consumption/install ever shown. -->
+        <section class="field-card field-form-grid" *ngIf="activeStep === 'recovery' && showsRetrievalStep && (isTechRole || isSttSelfExecutionComplaint)">
           <div class="field-section-title">
             <h2>Recovery step</h2>
-            <span>Recovered client material</span>
+            <span>Equipment retrieved from the customer</span>
           </div>
 
-          <div class="field-alert field-alert--info">
+          <div class="field-alert field-alert--info" *ngIf="isResCase">
             <svg cIcon name="cilInfo"></svg>
-            Résiliation cases do not consume stock. Declare the equipment retrieved from the client below.
-            It is recorded as recovered material and linked to a return so the STT can hand it back to the ZM/depot on a scheduled date.
+            Résiliation cases do not consume stock. Declare the equipment retrieved from the client below,
+            including anything expected but not physically recovered (missing, damaged, not found, already returned).
+            Only physically-retrieved items enter your Retrieved Stock, awaiting ZM collection.
+          </div>
+          <div class="field-alert field-alert--info" *ngIf="!isResCase">
+            <svg cIcon name="cilInfo"></svg>
+            Declare any equipment retrieved from the customer (e.g. the old unit being replaced). This is
+            independent from the equipment consumed above — use one, both, or neither depending on the intervention.
+            Retrieved items enter your Retrieved Stock, awaiting ZM collection — they never go back into Available Stock.
           </div>
 
           <div class="field-fact" *ngIf="currentCaseRecoveredEquipment.length > 0">
@@ -501,18 +574,40 @@ interface RecoveryLine {
           <ng-container *ngIf="catalogLoaded && hasRecoverableCatalog">
             <div class="field-usage-picker">
               <div class="field-recovery-line" *ngFor="let line of recoveryLines; let i = index">
-                <select class="field-input" [(ngModel)]="line.equipmentId" [name]="'frEq_' + i" [disabled]="recoverySaving">
-                  <option value="">Recovered item...</option>
-                  <option *ngFor="let eq of recoverableCatalogItems" [value]="eq.id">{{ eq.name }}</option>
-                </select>
-                <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'frQty_' + i" [disabled]="recoverySaving" placeholder="Qty" />
-                <select class="field-input" [(ngModel)]="line.condition" [name]="'frCond_' + i" [disabled]="recoverySaving">
-                  <option *ngFor="let opt of recoveryConditionOptions" [value]="opt.value">{{ opt.label }}</option>
-                </select>
-                <input class="field-input" type="text" [(ngModel)]="line.serialNumber" [name]="'frSn_' + i" [disabled]="recoverySaving" placeholder="Serial (optional)" />
-                <input class="field-input" type="text" [(ngModel)]="line.imei" [name]="'frImei_' + i" [disabled]="recoverySaving" placeholder="IMEI (optional)" />
-                <input class="field-input" type="text" [(ngModel)]="line.macAddress" [name]="'frMac_' + i" [disabled]="recoverySaving" placeholder="MAC (optional)" />
-                <button class="field-usage-line__remove" type="button" (click)="removeRecoveryLine(i)" [disabled]="recoverySaving" *ngIf="recoveryLines.length > 1">Remove</button>
+                <div class="field-recovery-line__row">
+                  <select class="field-input" [(ngModel)]="line.equipmentId" (ngModelChange)="onRecoveryEquipmentChange(line)" [name]="'frEq_' + i" [disabled]="recoverySaving">
+                    <option value="">Recovered item...</option>
+                    <option *ngFor="let eq of recoverableCatalogItems" [value]="eq.id">{{ eq.name }}</option>
+                  </select>
+                  <input class="field-input field-usage-line__qty" type="number" min="1" step="1" [(ngModel)]="line.quantity" [name]="'frQty_' + i" [disabled]="recoverySaving || isTrackedEquipment(line.equipmentId)" placeholder="Qty" />
+                  <select class="field-input" [(ngModel)]="line.condition" [name]="'frCond_' + i" [disabled]="recoverySaving">
+                    <option *ngFor="let opt of recoveryConditionOptions" [value]="opt.value">{{ opt.label }}</option>
+                  </select>
+                  <select class="field-input" *ngIf="isResCase" [(ngModel)]="line.disposition" [name]="'frDisp_' + i" [disabled]="recoverySaving">
+                    <option *ngFor="let opt of recoveryDispositionOptions" [value]="opt.value">{{ opt.label }}</option>
+                  </select>
+                  <button class="field-usage-line__remove" type="button" (click)="removeRecoveryLine(i)" [disabled]="recoverySaving" *ngIf="recoveryLines.length > 1">Remove</button>
+                </div>
+
+                <ng-container *ngIf="!line.disposition || line.disposition === 'RETRIEVED' || line.disposition === 'DAMAGED'">
+                  <app-equipment-label-scan
+                    *ngIf="isTrackedEquipment(line.equipmentId); else recoveryPlainIdentifiers"
+                    title="Scan retrieved item label"
+                    (scanChange)="onRecoveryScanChange(line, $event)">
+                  </app-equipment-label-scan>
+                  <ng-template #recoveryPlainIdentifiers>
+                    <div class="field-recovery-line__row">
+                      <input class="field-input" type="text" [(ngModel)]="line.serialNumber" [name]="'frSn_' + i" [disabled]="recoverySaving" placeholder="Serial (optional)" />
+                      <input class="field-input" type="text" [(ngModel)]="line.imei" [name]="'frImei_' + i" [disabled]="recoverySaving" placeholder="IMEI (optional)" />
+                      <input class="field-input" type="text" [(ngModel)]="line.macAddress" [name]="'frMac_' + i" [disabled]="recoverySaving" placeholder="MAC (optional)" />
+                    </div>
+                  </ng-template>
+                </ng-container>
+
+                <label class="field-label" *ngIf="line.disposition === 'MISSING' || line.disposition === 'NOT_FOUND' || line.disposition === 'ALREADY_RETURNED'">
+                  Note
+                  <input class="field-input" type="text" [(ngModel)]="line.dispositionNote" [name]="'frDispNote_' + i" [disabled]="recoverySaving" placeholder="Optional note (e.g. reason)" />
+                </label>
               </div>
               <button class="field-usage-add" type="button" (click)="addRecoveryLine()" [disabled]="recoverySaving">+ Add recovered item</button>
             </div>
@@ -531,7 +626,7 @@ interface RecoveryLine {
           </ng-container>
 
           <div class="field-button-row" style="margin-top: 1rem">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : 'rdv'">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = isResCase ? 'attachments' : 'stock'">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = 'work'">Next: Work</button>
           </div>
         </section>
@@ -558,8 +653,8 @@ interface RecoveryLine {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? (isResCase ? 'recovery' : 'stock') : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
-            <button class="field-button field-button--primary" type="button" (click)="activeStep = 'metrics'">Next</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? (showsRetrievalStep ? 'recovery' : 'stock') : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
+            <button class="field-button field-button--primary" type="button" (click)="activeStep = stepAfterWork">Next</button>
           </div>
         </section>
 
@@ -906,14 +1001,32 @@ interface RecoveryLine {
               <span>Comment</span>
               <p>{{ workForm.cmtTrvStt || '-' }}</p>
             </div>
-            <div class="field-fact">
+            <div class="field-fact" *ngIf="!isResCase">
               <span>Equipment photos</span>
               <strong>{{ itemProofs.length }} photo{{ itemProofs.length !== 1 ? 's' : '' }} ready</strong>
+            </div>
+            <div class="field-fact" *ngIf="isResCase">
+              <span>Case attachments</span>
+              <strong>{{ resAttachments.length }} file{{ resAttachments.length !== 1 ? 's' : '' }} attached</strong>
+            </div>
+            <div class="field-fact" *ngIf="caseUsageContext === 'PLT'">
+              <span>Equipment consumed from my stock</span>
+              <ng-container *ngIf="consumedSummaryLines.length > 0; else fecNoConsumed">
+                <p *ngFor="let l of consumedSummaryLines">{{ l.label }} — {{ l.quantity }} {{ stockUnitLabel(l.unit) }}</p>
+              </ng-container>
+              <ng-template #fecNoConsumed><strong>None</strong></ng-template>
+            </div>
+            <div class="field-fact" *ngIf="showsRetrievalStep">
+              <span>Equipment retrieved (awaiting ZM collection)</span>
+              <ng-container *ngIf="retrievedSummaryLines.length > 0; else fecNoRetrieved">
+                <p *ngFor="let l of retrievedSummaryLines">{{ l.label }} — {{ l.quantity }} {{ stockUnitLabel(l.unit) }} ({{ l.disposition }})</p>
+              </ng-container>
+              <ng-template #fecNoRetrieved><strong>None</strong></ng-template>
             </div>
           </div>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'metrics'">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = stepAfterWork === 'completion' ? 'work' : 'metrics'">Back</button>
             <button class="field-button field-button--success" type="button" (click)="finishWork()" [disabled]="actionBusy || completionBlockedByPermission">
               <svg cIcon name="cilCheckCircle"></svg>
               {{ completionBlockedByPermission ? 'Waiting for STT approval' : 'Finish' }}
@@ -1215,15 +1328,24 @@ interface RecoveryLine {
     }
 
     .field-recovery-line {
-      display: grid;
-      grid-template-columns: minmax(0, 1.6fr) 0.7fr 1fr 1fr 1fr auto;
+      display: flex;
+      flex-direction: column;
       gap: 0.5rem;
-      align-items: center;
+      padding: 0.5rem;
+      border: 1px solid var(--cui-border-color, #d8dbe0);
+      border-radius: 0.5rem;
       margin-bottom: 0.5rem;
     }
 
+    .field-recovery-line__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) 0.7fr 1fr 1fr auto;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
     @media (max-width: 640px) {
-      .field-recovery-line {
+      .field-recovery-line__row {
         grid-template-columns: 1fr 1fr;
       }
     }
@@ -1259,6 +1381,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   private readonly ocrService = inject(OcrService);
   private readonly stockService = inject(StockService);
   private readonly stockUsagePermissionService = inject(StockUsagePermissionService);
+  private readonly retrievedStockService = inject(RetrievedStockService);
   private readonly notificationWsService = inject(NotificationWsService);
   private readonly swal = inject(SwalService);
 
@@ -1285,6 +1408,9 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   speedtestProofFile: File | null = null;
   signalProofFile: File | null = null;
   itemProofs: EquipmentItemProof[] = [];
+  /** Résiliation-only plain case files (uploaded as normal attachments, never sent to OCR). */
+  resAttachments: ResCaseAttachment[] = [];
+  readonly resAttachmentAccept = 'image/*,application/pdf';
   ocrSignalBusy = false;
   ocrSpeedtestBusy = false;
   speedtestValidated = true;
@@ -1314,10 +1440,13 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   // Tracked units (IMEI/Serial) available in my stock, grouped by equipmentId, for the usage picker.
   private instancesByEquipment = new Map<string, EquipmentInstance[]>();
 
-  // RES client material recovery declaration
-  recoveryLines: RecoveryLine[] = [{ equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '', condition: 'GOOD' }];
+  // PLT/RES client material recovery declaration
+  recoveryLines: RecoveryLine[] = [newRecoveryLine()];
   recoveryComment = '';
   recoverySaving = false;
+  /** Files captured via the label scanner per recovery line, held for the two-phase proof upload
+   *  after a successful declare (keyed by object reference — survives add/remove of other lines). */
+  private recoveryScanFiles = new Map<RecoveryLine, File>();
   readonly recoveryConditionOptions: { value: string; label: string }[] = [
     { value: 'GOOD', label: 'Good' },
     { value: 'RECONDITIONABLE', label: 'Reconditionable' },
@@ -1325,6 +1454,14 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     { value: 'BROKEN', label: 'Broken' },
     { value: 'LOST', label: 'Lost' },
     { value: 'UNKNOWN', label: 'Unknown' }
+  ];
+  /** Résiliation only — Complaint retrieval lines are always disposition RETRIEVED. */
+  readonly recoveryDispositionOptions: { value: string; label: string }[] = [
+    { value: 'RETRIEVED', label: 'Retrieved' },
+    { value: 'DAMAGED', label: 'Damaged' },
+    { value: 'MISSING', label: 'Missing' },
+    { value: 'NOT_FOUND', label: 'Not found' },
+    { value: 'ALREADY_RETURNED', label: 'Already returned' }
   ];
 
   get steps(): FieldExecutionStepItem[] {
@@ -1337,25 +1474,37 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     }
 
     if (this.isTechRole || this.isSttSelfExecutionComplaint) {
+      // RES: no stock consumption and no diagnosis — the technician attaches optional case files,
+      // then declares/scans recovered equipment. PLT gets consumption first (optional), then retrieval
+      // (also optional). ACT keeps just the stock step, unchanged.
       if (this.isResCase) {
-        // RES has no stock consumption — the executor declares recovered client material instead.
-        steps.push({ key: 'recovery', label: 'Recovery', icon: 'cilReload' });
+        steps.push({ key: 'attachments', label: 'Attachments', icon: 'cilPaperclip' });
       } else {
         steps.push({ key: 'stock', label: 'Stock', icon: 'cilStorage' });
       }
+      if (this.showsRetrievalStep) {
+        steps.push({ key: 'recovery', label: 'Recovery', icon: 'cilReload' });
+      }
     }
 
-    steps.push(
-      { key: 'work', label: 'Work', icon: 'cilTask' },
-      { key: 'metrics', label: 'Metrics', icon: 'cilChart' },
-      { key: 'completion', label: 'Finish', icon: 'cilCheckCircle' }
-    );
+    steps.push({ key: 'work', label: 'Work', icon: 'cilTask' });
+    // Résiliation carries no technician performance / installation metrics.
+    if (!this.isResCase) {
+      steps.push({ key: 'metrics', label: 'Metrics', icon: 'cilChart' });
+    }
+    steps.push({ key: 'completion', label: 'Finish', icon: 'cilCheckCircle' });
 
     return steps;
   }
 
+  // Diagnosis belongs to Complaint (PLT) only — never to Résiliation (which is also stored as PLAINTE).
   get showDiagnosisStep(): boolean {
-    return this.caseItem?.type === 'PLAINTE';
+    return this.caseItem?.type === 'PLAINTE' && !this.isResCase;
+  }
+
+  /** Step after Work: Résiliation skips the Metrics step and goes straight to completion. */
+  get stepAfterWork(): FieldExecutionStep {
+    return this.isResCase ? 'completion' : 'metrics';
   }
 
   stepState(step: FieldExecutionStepItem): 'completed' | 'active' | 'future' {
@@ -1397,6 +1546,11 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
   get isResCase(): boolean {
     return this.caseUsageContext === 'RES';
+  }
+
+  /** Complaint (PLT) also gets the retrieval step now, alongside (not instead of) consumption. */
+  get showsRetrievalStep(): boolean {
+    return this.caseUsageContext === 'RES' || this.caseUsageContext === 'PLT';
   }
 
   get usageContextLabel(): string {
@@ -1769,14 +1923,18 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     this.render();
   }
 
-  // ── RES client material recovery ──────────────────────────────────────────
+  // ── Equipment retrieved from the customer (Complaint + Résiliation) ───────
 
   addRecoveryLine(): void {
-    this.recoveryLines = [...this.recoveryLines, { equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '', condition: 'GOOD' }];
+    this.recoveryLines = [...this.recoveryLines, newRecoveryLine()];
     this.render();
   }
 
   removeRecoveryLine(index: number): void {
+    const removed = this.recoveryLines[index];
+    if (removed) {
+      this.recoveryScanFiles.delete(removed);
+    }
     this.recoveryLines = this.recoveryLines.filter((_, i) => i !== index);
     if (this.recoveryLines.length === 0) {
       this.addRecoveryLine();
@@ -1788,40 +1946,94 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     return this.recoveryLines.some((line) => !!line.equipmentId && Number(line.quantity) > 0);
   }
 
-  submitRecovery(): void {
-    const target = this.caseItem;
-    if (!target || !this.isResCase) {
+  /** Reset the scan/identifier state when the equipment on a recovery line changes. */
+  onRecoveryEquipmentChange(line: RecoveryLine): void {
+    line.serialNumber = '';
+    line.imei = '';
+    line.macAddress = '';
+    this.recoveryScanFiles.delete(line);
+    if (this.isTrackedEquipment(line.equipmentId)) {
+      line.quantity = '';
+    }
+  }
+
+  /** Applies a confirmed OCR label scan onto a retrieval line, holding the file for later upload. */
+  onRecoveryScanChange(line: RecoveryLine, result: EquipmentLabelScanResult): void {
+    line.serialNumber = result.serialNumber;
+    line.imei = result.imei;
+    line.macAddress = result.macAddress;
+    if (result.file) {
+      this.recoveryScanFiles.set(line, result.file);
+    }
+  }
+
+  /**
+   * Cross-checks a scanned label against the technician's own tracked units for a consumption
+   * line: auto-selects the matching unit when found, otherwise warns without blocking manual
+   * selection (the chip list stays the source of truth for what can actually be consumed).
+   */
+  onUsageScanChange(line: EquipmentUsageLine, result: EquipmentLabelScanResult): void {
+    const scannedSerial = result.serialNumber.trim().toUpperCase();
+    const scannedImei = result.imei.trim().toUpperCase();
+    if (!scannedSerial && !scannedImei) {
       return;
     }
 
-    const items: RecoveredEquipmentRequestItem[] = [];
-    for (const line of this.recoveryLines) {
-      const equipmentId = (line.equipmentId ?? '').trim();
-      const quantity = Number(String(line.quantity ?? '').trim());
-      if (!equipmentId) {
-        continue;
+    const match = this.unitsForEquipment(line.equipmentId).find((u) =>
+      (!!scannedSerial && (u.serialNumber ?? '').toUpperCase() === scannedSerial) ||
+      (!!scannedImei && (u.imei ?? '').toUpperCase() === scannedImei)
+    );
+
+    if (match) {
+      if (!this.isUsageUnitSelected(line, match.id)) {
+        this.toggleUsageUnit(line, match.id);
       }
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        this.showBanner('Enter a valid quantity for each recovered item.', 'danger');
-        return;
-      }
-      const eq = this.equipmentById.get(equipmentId);
-      items.push({
-        equipmentId,
-        equipmentName: eq?.name,
-        unit: eq?.unit,
-        quantity,
-        serialNumber: line.serialNumber.trim() || undefined,
-        macAddress: line.macAddress.trim() || undefined,
-        imei: line.imei.trim() || undefined,
-        condition: line.condition || 'GOOD'
+      this.showBanner(`Scanned label matched ${this.unitOptionLabel(match)} — selected.`, 'success');
+    } else {
+      this.showBanner('Scanned label does not match any unit in your stock. Select the unit manually.', 'warning');
+    }
+    this.render();
+  }
+
+  get consumedSummaryLines(): { label: string; quantity: number; unit?: string }[] {
+    return this.usageLines
+      .filter((l) => l.equipmentId && Number(l.quantity) > 0)
+      .map((l) => {
+        const eq = this.equipmentById.get(l.equipmentId);
+        return { label: eq?.name ?? l.equipmentId, quantity: Number(l.quantity), unit: eq?.unit };
       });
-    }
+  }
 
-    if (items.length === 0) {
-      this.showBanner('Select at least one recovered item before declaring.', 'danger');
+  get retrievedSummaryLines(): { label: string; quantity: number; unit?: string; disposition: string }[] {
+    return this.recoveryLines
+      .filter((l) => l.equipmentId && Number(l.quantity) > 0)
+      .map((l) => {
+        const eq = this.equipmentById.get(l.equipmentId);
+        return {
+          label: eq?.name ?? l.equipmentId,
+          quantity: Number(l.quantity),
+          unit: eq?.unit,
+          disposition: l.disposition || 'RETRIEVED'
+        };
+      });
+  }
+
+  async submitRecovery(): Promise<void> {
+    const target = this.caseItem;
+    if (!target || !this.showsRetrievalStep) {
       return;
     }
+
+    const { items, error } = buildRecoveredEquipmentPayload(this.recoveryLines, this.equipmentCatalog);
+    if (error) {
+      this.showBanner(error, 'danger');
+      return;
+    }
+
+    // Keep the scan-file map keyed to submitted lines only, matched positionally to the built
+    // payload above (buildRecoveredEquipmentPayload preserves submission order).
+    const submittedLines = this.recoveryLines.filter((line) => line.equipmentId.trim());
+    const filesByIndex = submittedLines.map((line) => this.recoveryScanFiles.get(line) ?? null);
 
     const payload: DeclareClientRecoveryRequest = {
       items,
@@ -1831,24 +2043,48 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     this.recoverySaving = true;
     this.showBanner('Declaring recovered material...', 'info');
 
-    this.casesService.declareClientRecovery(target.id, payload)
-      .pipe(finalize(() => {
-        this.recoverySaving = false;
-        this.render();
-      }))
-      .subscribe({
-        next: (updated) => {
-          this.caseItem = updated;
-          this.recoveryLines = [{ equipmentId: '', quantity: '', serialNumber: '', macAddress: '', imei: '', condition: 'GOOD' }];
-          this.recoveryComment = '';
-          this.showBanner('Recovered material declared and linked to a return for ZM/depot handover.', 'success');
-          this.activeStep = 'work';
-        },
-        error: (err) => {
-          console.error('Failed to declare client recovery', err);
-          this.showBanner(err?.error?.message ?? 'Unable to declare recovered material.', 'danger');
-        }
-      });
+    try {
+      const updated = await firstValueFrom(this.casesService.declareClientRecovery(target.id, payload));
+      this.caseItem = updated;
+      await this.uploadRecoveryProofs(updated, filesByIndex);
+      this.recoveryLines = [newRecoveryLine()];
+      this.recoveryScanFiles.clear();
+      this.recoveryComment = '';
+      this.showBanner('Recovered material declared. Physically-retrieved items now await ZM collection.', 'success');
+      this.activeStep = 'work';
+    } catch (err: any) {
+      console.error('Failed to declare client recovery', err);
+      this.showBanner(err?.error?.message ?? 'Unable to declare recovered material.', 'danger');
+    } finally {
+      this.recoverySaving = false;
+      this.render();
+    }
+  }
+
+  /**
+   * Second phase of the declare flow: uploads any captured label photos as proof against the
+   * just-created RetrievedStockItem ids, mirroring the existing work/work-proof two-phase pattern.
+   * The newly declared lines are the tail of work.recoveredEquipment (accumulated, not overwritten).
+   */
+  private async uploadRecoveryProofs(updated: CaseResponse, filesByIndex: (File | null)[]): Promise<void> {
+    if (filesByIndex.every((f) => !f)) {
+      return;
+    }
+    const recovered = extractWork(updated).recoveredEquipment ?? [];
+    const newlyDeclared = recovered.slice(recovered.length - filesByIndex.length);
+
+    for (let i = 0; i < filesByIndex.length; i++) {
+      const file = filesByIndex[i];
+      const itemId = newlyDeclared[i]?.retrievedStockItemId;
+      if (!file || !itemId) {
+        continue;
+      }
+      try {
+        await firstValueFrom(this.retrievedStockService.uploadRetrievalProof(itemId, file));
+      } catch (err) {
+        console.error('Failed to upload retrieval proof photo', err);
+      }
+    }
   }
 
   removeUsageLine(index: number): void {
@@ -1924,7 +2160,8 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
           this.rdvForm = this.createRdvForm(updated);
           this.diagnosisForm = this.createDiagnosisForm(updated);
           this.showBanner('RDV saved.', 'success');
-          this.activeStep = updated.type === 'PLAINTE' ? 'diagnosis' : this.firstExecutionStep;
+          // Diagnosis is Complaint-only; RES (also PLAINTE) skips it and starts its own flow.
+          this.activeStep = this.showDiagnosisStep ? 'diagnosis' : this.firstExecutionStep;
         },
         error: (err) => {
           console.error('Failed to save field RDV', err);
@@ -2069,6 +2306,63 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     this.render();
   }
 
+  // ── Résiliation plain attachments (no OCR / no extraction) ─────────────────
+
+  /**
+   * Adds one or more plain case files to the Résiliation attachment list. Multiple files can be
+   * selected together or added one at a time — previously selected files are always preserved.
+   * Files are validated by type but never sent to EasyOCR.
+   */
+  addResAttachments(input: HTMLInputElement): void {
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (files.length === 0) {
+      return;
+    }
+
+    const rejected: string[] = [];
+    for (const file of files) {
+      if (!this.isAcceptedAttachment(file)) {
+        rejected.push(file.name);
+        continue;
+      }
+      // Preserve earlier selections; skip exact duplicates (same name + size).
+      const duplicate = this.resAttachments.some(
+        (a) => a.file.name === file.name && a.file.size === file.size
+      );
+      if (!duplicate) {
+        this.resAttachments.push({ file, isImage: file.type.startsWith('image/') });
+      }
+    }
+
+    if (rejected.length > 0) {
+      this.showBanner(`Unsupported file type skipped: ${rejected.join(', ')}. Use images or PDF.`, 'warning');
+    }
+    this.render();
+  }
+
+  removeResAttachment(index: number): void {
+    this.resAttachments.splice(index, 1);
+    this.render();
+  }
+
+  private isAcceptedAttachment(file: File): boolean {
+    const type = (file.type || '').toLowerCase();
+    if (type.startsWith('image/') || type === 'application/pdf') {
+      return true;
+    }
+    // Some browsers omit the MIME type — fall back to the extension.
+    return /\.(png|jpe?g|gif|webp|heic|heif|pdf)$/i.test(file.name);
+  }
+
+  formatFileSize(bytes: number): string {
+    if (!bytes || bytes <= 0) return '0 KB';
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${Math.round(kb)} KB`;
+    return `${(kb / 1024).toFixed(1)} MB`;
+  }
+
   async finishWork(): Promise<void> {
     const target = this.caseItem;
     if (!target) {
@@ -2083,7 +2377,9 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.itemProofs.length === 0) {
+    // Résiliation carries no metrics/equipment-proof step, so the "at least one photo" rule
+    // does not apply — case-file attachments are entirely optional.
+    if (!this.isResCase && this.itemProofs.length === 0) {
       this.showBanner('Add at least one equipment photo in the Metrics step before finishing.', 'danger');
       return;
     }
@@ -2114,6 +2410,12 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
       for (const proof of this.itemProofs) {
         extraAttachments.push({ file: proof.file, captureSource: 'equipment_item_proof' });
+      }
+
+      // Résiliation plain case files: uploaded as normal proof attachments (reusing the same
+      // MinIO/file-metadata path), tagged with a dedicated capture source, never sent to OCR.
+      for (const att of this.resAttachments) {
+        extraAttachments.push({ file: att.file, captureSource: 'res_attachment' });
       }
 
       const hasNewAttachments = extraAttachments.length > 0;
@@ -2268,7 +2570,10 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
             this.casePermissions = [];
             this.caseLimits = [];
           }
-          if (item.type !== 'PLAINTE' && this.activeStep === 'diagnosis') {
+          // Clamp to a step that actually exists for this case type. This safely handles
+          // in-progress / deep-linked Résiliation cases that would otherwise land on the
+          // now-removed Diagnosis or Metrics step and show a blank screen.
+          if (!this.steps.some((s) => s.key === this.activeStep)) {
             this.activeStep = this.firstExecutionStep;
           }
         },
@@ -2471,6 +2776,8 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         return 'signal screenshot';
       case 'equipment_item_proof':
         return 'equipment item photo';
+      case 'res_attachment':
+        return 'case attachment';
       default:
         return 'attachment';
     }
@@ -2480,6 +2787,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     this.speedtestProofFile = null;
     this.signalProofFile = null;
     this.itemProofs = [];
+    this.resAttachments = [];
   }
 
   private createDiagnosisForm(item: CaseResponse): FieldDiagnosisForm {
@@ -2910,7 +3218,8 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
   get firstExecutionStep(): FieldExecutionStep {
     if (this.isTechRole || this.isSttSelfExecutionComplaint) {
-      return this.isResCase ? 'recovery' : 'stock';
+      // RES starts on the optional multi-file Attachments step, then Recovery.
+      return this.isResCase ? 'attachments' : 'stock';
     }
     return 'work';
   }

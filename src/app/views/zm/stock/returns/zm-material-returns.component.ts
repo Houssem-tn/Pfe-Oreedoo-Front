@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { catchError, finalize, of, tap, timeout } from 'rxjs';
 
 import { MaterialReturnService } from '../../../../core/stock/material-return.service';
@@ -13,6 +14,7 @@ import {
   ReturnDestination,
   ReturnReason,
   ReturnSource,
+  ReturnedItem,
   ReviewMaterialReturnRequest,
   RETURN_CONDITION_LABELS,
   RETURN_DESTINATION_LABELS,
@@ -48,7 +50,7 @@ interface Toast {
 @Component({
   selector: 'app-zm-material-returns',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslocoModule],
   templateUrl: './zm-material-returns.component.html',
   styleUrls: ['./zm-material-returns.component.scss'],
 })
@@ -59,6 +61,7 @@ export class ZmMaterialReturnsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly transloco = inject(TranslocoService);
   private viewDestroyed = false;
 
   loading = true;
@@ -417,7 +420,7 @@ export class ZmMaterialReturnsComponent implements OnInit {
   }
 
   statusLabel(returnItem: MaterialReturn | MaterialReturnStatus): string {
-    return statusLabelForReturn(returnItem);
+    return this.transloco.translate(statusLabelForReturn(returnItem));
   }
 
   statusBadgeClass(returnItem: MaterialReturn | MaterialReturnStatus): string {
@@ -425,19 +428,27 @@ export class ZmMaterialReturnsComponent implements OnInit {
   }
 
   sourceLabel(value?: ReturnSource): string {
-    return value ? RETURN_SOURCE_LABELS[value] ?? value : 'Not specified';
+    return value ? this.transloco.translate(RETURN_SOURCE_LABELS[value] ?? value) : this.transloco.translate('common.notSpecified');
   }
 
   reasonLabel(value?: ReturnReason): string {
-    return value ? RETURN_REASON_LABELS[value] ?? value : 'Not specified';
+    return value ? this.transloco.translate(RETURN_REASON_LABELS[value] ?? value) : this.transloco.translate('common.notSpecified');
   }
 
   conditionLabel(value?: ReturnCondition): string {
-    return value ? RETURN_CONDITION_LABELS[value] ?? value : 'Not specified';
+    return value ? this.transloco.translate(RETURN_CONDITION_LABELS[value] ?? value) : this.transloco.translate('common.notSpecified');
   }
 
   destinationLabel(value?: ReturnDestination): string {
-    return value ? RETURN_DESTINATION_LABELS[value] ?? value : 'Not specified';
+    return value ? this.transloco.translate(RETURN_DESTINATION_LABELS[value] ?? value) : this.transloco.translate('common.notSpecified');
+  }
+
+  proofLink(item: ReturnedItem): string | null {
+    return item.proofViewUrl || item.proofDownloadUrl || null;
+  }
+
+  itemIdentifier(item: ReturnedItem): string {
+    return [item.serialNumber, item.imei].filter(Boolean).join(' • ') || 'Not tracked';
   }
 
   timelineLabel(eventType: string): string {
