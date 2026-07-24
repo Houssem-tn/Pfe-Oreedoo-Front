@@ -26,6 +26,20 @@ export const routes: Routes = [
     data: { titleKey: 'routes.technicianInvitationRegistration' },
   },
   {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./views/pages/forgot-password/forgot-password.component')
+        .then((m) => m.ForgotPasswordComponent),
+    data: { titleKey: 'routes.forgotPassword' },
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./views/pages/reset-password/reset-password.component')
+        .then((m) => m.ResetPasswordComponent),
+    data: { titleKey: 'routes.resetPassword' },
+  },
+  {
     path: '404',
     loadComponent: () =>
       import('./views/pages/page404/page404.component').then((m) => m.Page404Component),

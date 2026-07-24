@@ -137,7 +137,9 @@
     "alertCenter": "Centre d'alertes",
     "myProfile": "Mon profil",
     "dashboard": "Tableau de bord",
-    "resExecution": "Exécution RES"
+    "resExecution": "Exécution RES",
+    "forgotPassword": "Mot de passe oublié",
+    "resetPassword": "Réinitialiser le mot de passe"
   },
   "nav": {
     "sectionAdministration": "Administration",
@@ -1308,5 +1310,44 @@
       "waitingZmApproval": "Compte créé. En attente d'approbation du ZM.",
       "waitingAdminApproval": "Compte créé. En attente d'approbation de l'administrateur."
     }
+  },
+  "forgotPassword": {
+    "kicker": "Récupération du compte",
+    "title": "Mot de passe oublié ?",
+    "subtitle": "Saisissez l'adresse e-mail de votre compte et nous vous enverrons un lien sécurisé pour réinitialiser votre mot de passe.",
+    "emailLabel": "Adresse e-mail",
+    "emailPlaceholder": "vous@exemple.com",
+    "submit": "Envoyer le lien",
+    "loading": "Envoi...",
+    "genericSuccess": "Si un compte existe pour cette adresse e-mail, un lien de réinitialisation a été envoyé. Veuillez vérifier votre boîte de réception.",
+    "backToLogin": "Retour à la connexion",
+    "errorGeneric": "Une erreur s'est produite. Veuillez réessayer plus tard."
+  },
+  "resetPassword": {
+    "kicker": "Sécurité du compte",
+    "title": "Réinitialiser le mot de passe",
+    "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+    "newPasswordLabel": "Nouveau mot de passe",
+    "newPasswordPlaceholder": "Saisissez un nouveau mot de passe",
+    "confirmPasswordLabel": "Confirmer le mot de passe",
+    "confirmPasswordPlaceholder": "Saisissez à nouveau votre mot de passe",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
+    "requirementsTitle": "Exigences du mot de passe",
+    "requirementLength": "Entre {{ min }} et {{ max }} caractères",
+    "requirementMatch": "Les deux mots de passe correspondent",
+    "submit": "Réinitialiser le mot de passe",
+    "loading": "Réinitialisation...",
+    "success": "Votre mot de passe a été réinitialisé avec succès. Redirection vers la page de connexion...",
+    "requestAnother": "Demander un nouveau lien",
+    "backToLogin": "Retour à la connexion",
+    "errorMissingToken": "Ce lien de réinitialisation est invalide ou incomplet. Veuillez en demander un nouveau.",
+    "errorInvalidLink": "Ce lien de réinitialisation est invalide ou a expiré. Veuillez en demander un nouveau.",
+    "errorTooMany": "Trop de tentatives. Veuillez réessayer plus tard.",
+    "errorPasswordPolicy": "Votre mot de passe ne respecte pas les exigences. Veuillez choisir un mot de passe plus fort.",
+    "errorGeneric": "Impossible de réinitialiser votre mot de passe. Veuillez réessayer.",
+    "errorOnlyWhitespace": "Le mot de passe ne peut pas contenir uniquement des espaces."
   }
 }

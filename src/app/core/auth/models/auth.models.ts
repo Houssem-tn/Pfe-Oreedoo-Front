@@ -23,6 +23,21 @@ export interface PublicSttOption {
   email: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Uniform { message } body returned by the password-reset endpoints. */
+export interface GenericMessageResponse {
+  message: string;
+}
+
 export interface AuthResponse {
   accessToken?: string;
   token?: string;

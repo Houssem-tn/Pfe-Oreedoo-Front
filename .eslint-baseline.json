@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-24T09:31:52.468Z",
+  "generatedAt": "2026-07-24T15:02:08.899Z",
   "totals": {
     "errors": 166,
-    "warnings": 692
+    "warnings": 694
   },
   "fingerprints": {
     "src/app/app.config.ts\u0000@typescript-eslint/no-unused-vars\u0000'withHashLocation' is defined but never used. Allowed unused vars must match /^_/u.\u00002": 1,
@@ -175,6 +175,7 @@
     "src/app/views/notifications/toasters/toasters.component.ts\u0000@typescript-eslint/no-unused-expressions\u0000Expected an assignment or function call and instead saw an expression.\u00002": 1,
     "src/app/views/notifications/toasters/toasters.component.ts\u0000@typescript-eslint/no-unused-vars\u0000'position' is assigned a value but never used. Allowed unused vars must match /^_/u.\u00002": 1,
     "src/app/views/notifications/toasters/toasters.component.ts\u0000no-console\u0000Unexpected console statement. Only these console methods are allowed: warn, error.\u00001": 1,
+    "src/app/views/pages/forgot-password/forgot-password.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 1,
     "src/app/views/pages/login/login.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 1,
     "src/app/views/pages/login/login.component.ts\u0000@typescript-eslint/no-floating-promises\u0000Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator.\u00002": 1,
     "src/app/views/pages/register-tech-invitation/register-tech-invitation.component.html\u0000@angular-eslint/template/label-has-associated-control\u0000A label component must be associated with a form element\u00001": 4,
@@ -186,6 +187,7 @@
     "src/app/views/pages/register/register.component.html\u0000@angular-eslint/template/interactive-supports-focus\u0000Elements with interaction handlers must be focusable.\u00001": 1,
     "src/app/views/pages/register/register.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 2,
     "src/app/views/pages/register/register.component.ts\u0000rxjs-x/no-nested-subscribe\u0000Nested subscribe calls are forbidden.\u00002": 1,
+    "src/app/views/pages/reset-password/reset-password.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 1,
     "src/app/views/profile/profile.component.ts\u0000no-useless-escape\u0000Unnecessary escape character: \\-.\u00002": 1,
     "src/app/views/profile/profile.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 3,
     "src/app/views/profile/profile.component.ts\u0000@typescript-eslint/no-explicit-any\u0000Unexpected any. Specify a different type.\u00001": 1,

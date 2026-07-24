@@ -137,7 +137,9 @@
     "alertCenter": "Alert Center",
     "myProfile": "My Profile",
     "dashboard": "Dashboard",
-    "resExecution": "RES Execution"
+    "resExecution": "RES Execution",
+    "forgotPassword": "Forgot Password",
+    "resetPassword": "Reset Password"
   },
   "nav": {
     "sectionAdministration": "Administration",
@@ -1308,5 +1310,44 @@
       "waitingZmApproval": "Account created. Waiting for ZM approval.",
       "waitingAdminApproval": "Account created. Waiting for admin approval."
     }
+  },
+  "forgotPassword": {
+    "kicker": "Account recovery",
+    "title": "Forgot your password?",
+    "subtitle": "Enter your account email and we'll send you a secure link to reset your password.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "submit": "Send reset link",
+    "loading": "Sending...",
+    "genericSuccess": "If an account exists for this email, a password-reset link has been sent. Please check your inbox.",
+    "backToLogin": "Back to login",
+    "errorGeneric": "Something went wrong. Please try again later."
+  },
+  "resetPassword": {
+    "kicker": "Account security",
+    "title": "Reset your password",
+    "subtitle": "Choose a new password for your account.",
+    "newPasswordLabel": "New password",
+    "newPasswordPlaceholder": "Enter a new password",
+    "confirmPasswordLabel": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter your new password",
+    "show": "Show",
+    "hide": "Hide",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "requirementsTitle": "Password requirements",
+    "requirementLength": "Between {{ min }} and {{ max }} characters",
+    "requirementMatch": "Both passwords match",
+    "submit": "Reset password",
+    "loading": "Resetting...",
+    "success": "Your password has been reset successfully. Redirecting you to the login page...",
+    "requestAnother": "Request another link",
+    "backToLogin": "Back to login",
+    "errorMissingToken": "This password-reset link is invalid or incomplete. Please request a new one.",
+    "errorInvalidLink": "This password-reset link is invalid or has expired. Please request a new one.",
+    "errorTooMany": "Too many attempts. Please try again later.",
+    "errorPasswordPolicy": "Your password does not meet the requirements. Please choose a stronger password.",
+    "errorGeneric": "We couldn't reset your password. Please try again.",
+    "errorOnlyWhitespace": "Password cannot consist only of spaces."
   }
 }

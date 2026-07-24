@@ -118,9 +118,14 @@
                       {{ (loading ? 'login.loggingIn' : 'login.submit') | transloco }}
                     </button>
 
-                    <button cButton class="login-form__forgot" color="link" type="button">
+                    <a
+                      cButton
+                      class="login-form__forgot"
+                      color="link"
+                      [routerLink]="['/forgot-password']"
+                    >
                       {{ 'login.forgotPassword' | transloco }}
-                    </button>
+                    </a>
                   </div>
                 </form>
 

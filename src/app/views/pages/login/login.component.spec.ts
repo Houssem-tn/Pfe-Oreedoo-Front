@@ -6,6 +6,7 @@ import { LoginComponent } from './login.component';
 import { IconModule, IconSetService } from '@coreui/icons-angular';
 import { TranslocoTestingModule } from '@jsverse/transloco';
 import { iconSubset } from '../../../icons/icon-subset';
+import { By } from '@angular/platform-browser';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
@@ -39,5 +40,12 @@ describe('LoginComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('has a "Forgot password?" link pointing to /forgot-password', () => {
+    const link = fixture.debugElement.query(By.css('.login-form__forgot'));
+    expect(link).toBeTruthy();
+    // RouterLink on the anchor resolves to the /forgot-password href.
+    expect(link.nativeElement.getAttribute('href')).toBe('/forgot-password');
   });
 });

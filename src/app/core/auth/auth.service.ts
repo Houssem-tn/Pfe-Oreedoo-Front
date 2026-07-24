@@ -10,6 +10,9 @@ import {
   LoginRequest,
   RegisterRequest,
   AuthUser,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  GenericMessageResponse,
 } from './models/auth.models';
 import { Role } from './models/roles.type';
 import { decodeJwt, isJwtExpired } from './jwt.util';
@@ -68,6 +71,29 @@ export class AuthService {
 
   register(body: RegisterRequest): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/api/v1/auth/register`, body);
+  }
+
+  /**
+   * Requests a password-reset email. The backend always answers with the same
+   * generic message regardless of whether the account exists, so the caller must
+   * never branch on the result to reveal account existence.
+   */
+  forgotPassword(body: ForgotPasswordRequest): Observable<GenericMessageResponse> {
+    return this.http.post<GenericMessageResponse>(
+      `${this.baseUrl}/api/v1/auth/forgot-password`,
+      body
+    );
+  }
+
+  /**
+   * Submits a new password for a reset token. Does NOT authenticate the user on
+   * success — the caller sends the user to the login page.
+   */
+  resetPassword(body: ResetPasswordRequest): Observable<GenericMessageResponse> {
+    return this.http.post<GenericMessageResponse>(
+      `${this.baseUrl}/api/v1/auth/reset-password`,
+      body
+    );
   }
 
   validateTechInvitation(token: string): Observable<TechInvitationValidationResponse> {

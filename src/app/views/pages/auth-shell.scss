@@ -1,0 +1,314 @@
+// Shared styling for the standalone auth pages (forgot-password / reset-password).
+// Mirrors the login/register Ooredoo look (red gradient, rounded card) while
+// staying self-contained and RTL-safe (uses logical properties / no hard
+// left/right that would break under dir="rtl").
+
+:host {
+  display: block;
+}
+
+.auth-page {
+  position: relative;
+  background:
+    radial-gradient(circle at top left, rgba(229, 36, 59, 0.18), transparent 24%),
+    radial-gradient(circle at right 18%, rgba(147, 14, 35, 0.14), transparent 24%),
+    linear-gradient(180deg, #fff5f6 0%, #fffafb 42%, #fff2f4 100%);
+  padding: 2rem 1rem;
+  overflow-x: hidden;
+}
+
+.auth-page__lang {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-end: 1rem;
+  z-index: 1060;
+}
+
+.auth-shell {
+  width: 100%;
+  max-width: 30rem;
+  margin-inline: auto;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(199, 28, 50, 0.08);
+  border-radius: 1.5rem;
+  box-shadow: 0 30px 80px rgba(123, 17, 35, 0.16);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-card__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.auth-card__brand-logo {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 0.85rem;
+  box-shadow: 0 10px 24px rgba(98, 8, 24, 0.16);
+  padding: 0.4rem;
+}
+
+.auth-card__brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: #6f1021;
+}
+
+.auth-card__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.auth-card__kicker {
+  color: #b5112d;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.auth-card__title {
+  color: #6f1021;
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.auth-card__subtitle {
+  color: #7b6470;
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.auth-field__label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #51202a;
+}
+
+.auth-field__control {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid #f0d4d8;
+  border-radius: 0.85rem;
+  padding-inline: 0.9rem;
+  font-size: 0.98rem;
+  color: #51202a;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-field__control::placeholder {
+  color: #ab8a94;
+}
+
+.auth-field__control:focus {
+  outline: none;
+  border-color: rgba(198, 17, 44, 0.4);
+  box-shadow: 0 0 0 3px rgba(229, 36, 59, 0.12);
+}
+
+.auth-field__control[aria-invalid='true'] {
+  border-color: #d3204a;
+}
+
+.auth-field__control:disabled {
+  background: #faf3f4;
+  cursor: not-allowed;
+}
+
+.auth-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-group .auth-field__control {
+  padding-inline-end: 3rem;
+}
+
+.auth-toggle {
+  position: absolute;
+  inset-inline-end: 0.4rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: #9e1129;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-toggle:hover,
+.auth-toggle:focus-visible {
+  background: #fff0f3;
+}
+
+.auth-field__error {
+  margin: 0;
+  color: #c01840;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.auth-alert {
+  border-radius: 0.85rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.auth-alert--success {
+  background: #eafaf0;
+  border: 1px solid rgba(25, 135, 84, 0.24);
+  color: #14683c;
+}
+
+.auth-alert--error {
+  background: #fdecef;
+  border: 1px solid rgba(200, 24, 48, 0.2);
+  color: #98122b;
+}
+
+.auth-requirements {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  list-style: none;
+  background: linear-gradient(180deg, #fff7f8 0%, #fff1f3 100%);
+  border: 1px solid rgba(198, 17, 44, 0.08);
+  border-radius: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.auth-requirements__title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f1227;
+  margin-bottom: 0.15rem;
+}
+
+.auth-requirement {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  color: #7b6470;
+}
+
+.auth-requirement__mark {
+  display: inline-flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: #efd9dd;
+  color: #a3536a;
+  flex: 0 0 auto;
+}
+
+.auth-requirement--met {
+  color: #14683c;
+}
+
+.auth-requirement--met .auth-requirement__mark {
+  background: #cdeedd;
+  color: #14683c;
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 3.1rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, #961128 0%, #bf1533 56%, #ea3349 100%);
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 16px 28px rgba(194, 22, 47, 0.2);
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+
+.auth-submit:hover:not(:disabled),
+.auth-submit:focus-visible:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.auth-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-card__footer {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.auth-link {
+  color: #b5112d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-link:hover,
+.auth-link:focus-visible {
+  color: #8f1025;
+  text-decoration: underline;
+}
+
+@media (max-width: 575.98px) {
+  .auth-page {
+    padding: 1rem;
+  }
+
+  .auth-card {
+    border-radius: 1.15rem;
+  }
+}
