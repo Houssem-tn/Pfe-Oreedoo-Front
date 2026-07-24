@@ -106,6 +106,7 @@
   "overrides": {
     "@angular/cli": {
       "@modelcontextprotocol/sdk": "^1.26.0"
-    }
+    },
+    "websocket-driver": "^0.7.5"
   }
 }
