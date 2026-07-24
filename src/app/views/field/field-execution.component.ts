@@ -9,11 +9,8 @@ import { Subscription, finalize, firstValueFrom } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth.store';
 import { CasesService } from '../../core/cases/cases.service';
 import {
-  CaseDiagnosis,
   CaseResponse,
   CaseUsedEquipmentItem,
-  ComplaintCategory,
-  ComplaintDiagnosisRequest,
   CompleteWorkRequest,
   DeclareClientRecoveryRequest,
   EquipmentItemProofPayload,
@@ -60,7 +57,7 @@ import {
   EquipmentLabelScanResult
 } from '../../shared/equipment-label-scan/equipment-label-scan.component';
 
-type FieldExecutionStep = 'rdv' | 'diagnosis' | 'attachments' | 'stock' | 'recovery' | 'work' | 'metrics' | 'completion';
+type FieldExecutionStep = 'rdv' | 'attachments' | 'stock' | 'recovery' | 'work' | 'metrics' | 'completion';
 type BannerTone = 'success' | 'warning' | 'danger' | 'info';
 type CaseUsageContext = 'ACT' | 'PLT' | 'RES';
 
@@ -90,15 +87,6 @@ interface FieldWorkForm {
   rsrp: string;
   rsrq: string;
   sinr: string;
-}
-
-interface FieldDiagnosisForm {
-  complaintCategory: ComplaintCategory;
-  rootCause: string;
-  diagnosisComment: string;
-  requiresFieldWork: boolean;
-  requiresTechIntervention: boolean;
-  requiresEscalation: boolean;
 }
 
 interface FieldGeoSnapshot {
@@ -239,70 +227,10 @@ interface OverLimitLine {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : firstExecutionStep">Next</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = firstExecutionStep">Next</button>
             <button class="field-button field-button--primary" type="submit" [disabled]="actionBusy">
               <svg cIcon name="cilSave"></svg>
               Save RDV
-            </button>
-          </div>
-        </form>
-
-        <form class="field-card field-form-grid" *ngIf="activeStep === 'diagnosis' && showDiagnosisStep" (ngSubmit)="saveDiagnosis()">
-          <div class="field-section-title">
-            <h2>Diagnosis step</h2>
-            <span>Decision</span>
-          </div>
-
-          <label class="field-label">
-            Complaint category
-            <select class="field-input" name="complaintCategory" [(ngModel)]="diagnosisForm.complaintCategory" [disabled]="!canEditDiagnosis">
-              <option *ngFor="let option of complaintCategoryOptions" [ngValue]="option.value">{{ option.label }}</option>
-            </select>
-          </label>
-
-          <label class="field-label">
-            Root cause
-            <input class="field-input" type="text" name="rootCause" [(ngModel)]="diagnosisForm.rootCause" [disabled]="!canEditDiagnosis" />
-          </label>
-
-          <label class="field-label">
-            Diagnosis comment
-            <textarea class="field-textarea" name="diagnosisComment" [(ngModel)]="diagnosisForm.diagnosisComment" [disabled]="!canEditDiagnosis"></textarea>
-          </label>
-
-          <div class="field-toggle-row">
-            <button type="button" class="field-toggle" [class.field-toggle--active]="diagnosisForm.requiresFieldWork" (click)="canEditDiagnosis ? diagnosisForm.requiresFieldWork = true : null">
-              Field work
-            </button>
-            <button type="button" class="field-toggle" [class.field-toggle--active]="!diagnosisForm.requiresFieldWork" (click)="canEditDiagnosis ? diagnosisForm.requiresFieldWork = false : null">
-              No field work
-            </button>
-          </div>
-
-          <div class="field-toggle-row">
-            <button type="button" class="field-toggle" [class.field-toggle--active]="diagnosisForm.requiresTechIntervention" (click)="canEditDiagnosis ? diagnosisForm.requiresTechIntervention = true : null">
-              Assign TECH
-            </button>
-            <button type="button" class="field-toggle" [class.field-toggle--active]="!diagnosisForm.requiresTechIntervention" (click)="canEditDiagnosis ? diagnosisForm.requiresTechIntervention = false : null">
-              STT handles
-            </button>
-          </div>
-
-          <div class="field-toggle-row">
-            <button type="button" class="field-toggle" [class.field-toggle--active]="diagnosisForm.requiresEscalation" (click)="canEditDiagnosis ? diagnosisForm.requiresEscalation = true : null">
-              Escalate
-            </button>
-            <button type="button" class="field-toggle" [class.field-toggle--active]="!diagnosisForm.requiresEscalation" (click)="canEditDiagnosis ? diagnosisForm.requiresEscalation = false : null">
-              No escalation
-            </button>
-          </div>
-
-          <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'rdv'">Back</button>
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = firstExecutionStep">Next</button>
-            <button *ngIf="canEditDiagnosis" class="field-button field-button--primary" type="submit" [disabled]="actionBusy">
-              <svg cIcon name="cilSave"></svg>
-              Save diagnosis
             </button>
           </div>
         </form>
@@ -530,7 +458,7 @@ interface OverLimitLine {
           </section>
 
           <div class="field-button-row" style="margin-top: 1.5rem">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = showDiagnosisStep ? 'diagnosis' : 'rdv'">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = 'rdv'">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = showsRetrievalStep ? 'recovery' : 'work'" [disabled]="stockStepBlocked">
               {{ stockStepBlocked ? 'Waiting for STT approval' : (showsRetrievalStep ? 'Next: Recovery' : 'Next: Work') }}
             </button>
@@ -653,7 +581,7 @@ interface OverLimitLine {
           </label>
 
           <div class="field-button-row">
-            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? (showsRetrievalStep ? 'recovery' : 'stock') : (showDiagnosisStep ? 'diagnosis' : 'rdv')">Back</button>
+            <button class="field-button field-button--ghost" type="button" (click)="activeStep = (isTechRole || isSttSelfExecutionComplaint) ? (showsRetrievalStep ? 'recovery' : 'stock') : 'rdv'">Back</button>
             <button class="field-button field-button--primary" type="button" (click)="activeStep = stepAfterWork">Next</button>
           </div>
         </section>
@@ -804,14 +732,19 @@ interface OverLimitLine {
 
           <div class="field-section-title" style="margin-top: 1.5rem">
             <span>Equipment Proof Photos</span>
-            <span class="field-badge" [class.field-badge--success]="itemProofs.length > 0" [class.field-badge--warning]="itemProofs.length === 0">
+            <span class="field-badge" [class.field-badge--success]="itemProofs.length > 0" [class.field-badge--warning]="requiresEquipmentProofs && itemProofs.length === 0">
               {{ itemProofs.length }} added
             </span>
           </div>
 
           <p class="field-hint">
-            Take a photo of each router, modem, or device label. At least one photo is required.
-            MAC address and serial number are required per item.
+            <ng-container *ngIf="requiresEquipmentProofs; else optionalItemProofHint">
+              Take a photo of each router, modem, or device label. At least one photo is required.
+              MAC address and serial number are required per item.
+            </ng-container>
+            <ng-template #optionalItemProofHint>
+              Add item-label photos when equipment was installed or swapped. If you add a photo, review the OCR result before continuing.
+            </ng-template>
           </p>
 
           <div class="field-form-grid">
@@ -827,7 +760,7 @@ interface OverLimitLine {
                    (change)="addItemProof(itemProofInput)" />
           </div>
 
-          <div class="field-alert field-alert--warning" *ngIf="itemProofs.length === 0">
+          <div class="field-alert field-alert--warning" *ngIf="requiresEquipmentProofs && itemProofs.length === 0">
             <svg cIcon name="cilWarning"></svg>
             At least one equipment photo is required before finishing.
           </div>
@@ -1002,7 +935,7 @@ interface OverLimitLine {
               <p>{{ workForm.cmtTrvStt || '-' }}</p>
             </div>
             <div class="field-fact" *ngIf="!isResCase">
-              <span>Equipment photos</span>
+              <span>{{ requiresEquipmentProofs ? 'Equipment photos' : 'Equipment photos (optional)' }}</span>
               <strong>{{ itemProofs.length }} photo{{ itemProofs.length !== 1 ? 's' : '' }} ready</strong>
             </div>
             <div class="field-fact" *ngIf="isResCase">
@@ -1112,11 +1045,17 @@ interface OverLimitLine {
       border: 1px solid #d1d5db;
       background: #fff;
       border-radius: 8px;
+      box-sizing: border-box;
+      max-width: 100%;
+      min-width: 0;
+      overflow-wrap: anywhere;
       padding: 0.3rem 0.6rem;
+      text-align: left;
       font-size: 0.78rem;
       font-weight: 600;
       color: #374151;
       cursor: pointer;
+      white-space: normal;
     }
     .field-unit-chip:hover { border-color: #818cf8; }
     .field-unit-chip--selected {
@@ -1415,19 +1354,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
   ocrSpeedtestBusy = false;
   speedtestValidated = true;
   signalValidated = true;
-  readonly complaintCategoryOptions: Array<{ value: ComplaintCategory; label: string }> = [
-    { value: 'NETWORK_COVERAGE', label: 'Network coverage' },
-    { value: 'SERVICE_QUALITY', label: 'Service quality' },
-    { value: 'INSTALLATION', label: 'Installation' },
-    { value: 'EQUIPMENT', label: 'Equipment' },
-    { value: 'BILLING', label: 'Billing' },
-    { value: 'ACTIVATION_FOLLOW_UP', label: 'Activation follow-up' },
-    { value: 'CUSTOMER_EDUCATION', label: 'Customer education' },
-    { value: 'OTHER', label: 'Other' }
-  ];
-
   rdvForm: FieldRdvForm = this.emptyRdvForm();
-  diagnosisForm: FieldDiagnosisForm = this.emptyDiagnosisForm();
   workForm: FieldWorkForm = this.emptyWorkForm();
   usageLines: EquipmentUsageLine[] = [];
 
@@ -1468,10 +1395,6 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     const steps: FieldExecutionStepItem[] = [
       { key: 'rdv', label: 'RDV', icon: 'cilCalendar' }
     ];
-
-    if (this.showDiagnosisStep) {
-      steps.push({ key: 'diagnosis', label: 'Diagnosis', icon: 'cilNotes' });
-    }
 
     if (this.isTechRole || this.isSttSelfExecutionComplaint) {
       // RES: no stock consumption and no diagnosis — the technician attaches optional case files,
@@ -1518,6 +1441,10 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
   get canEditDiagnosis(): boolean {
     return this.showDiagnosisStep && this.authStore.role() === 'ROLE_STT';
+  }
+
+  get requiresEquipmentProofs(): boolean {
+    return this.caseUsageContext === 'ACT';
   }
 
   get isTechRole(): boolean {
@@ -2158,10 +2085,8 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         next: (updated) => {
           this.caseItem = updated;
           this.rdvForm = this.createRdvForm(updated);
-          this.diagnosisForm = this.createDiagnosisForm(updated);
           this.showBanner('RDV saved.', 'success');
-          // Diagnosis is Complaint-only; RES (also PLAINTE) skips it and starts its own flow.
-          this.activeStep = this.showDiagnosisStep ? 'diagnosis' : this.firstExecutionStep;
+          this.activeStep = this.firstExecutionStep;
         },
         error: (err) => {
           console.error('Failed to save field RDV', err);
@@ -2170,51 +2095,8 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       });
   }
 
-  saveDiagnosis(): void {
-    const target = this.caseItem;
-    if (!target || target.type !== 'PLAINTE') {
-      return;
-    }
-
-    const payload = this.buildDiagnosisPayload();
-    if (!payload) {
-      return;
-    }
-
-    this.actionBusy = true;
-    this.showBanner('Saving diagnosis...', 'info');
-
-    this.casesService.diagnoseComplaint(target.id, payload)
-      .pipe(finalize(() => {
-        this.actionBusy = false;
-        this.render();
-      }))
-      .subscribe({
-        next: async (updated) => {
-          this.caseItem = updated;
-          this.diagnosisForm = this.createDiagnosisForm(updated);
-          this.showBanner('Diagnosis saved.', 'success');
-
-          if (updated.status === 'DIAGNOSIS_STEP') {
-            this.activeStep = this.firstExecutionStep;
-            if (this.isSttSelfExecutionComplaint) {
-              this.setUsageLinesFromCase(updated);
-              this.loadSttSelfStock();
-            }
-            return;
-          }
-
-          await this.router.navigateByUrl(`${this.basePath}/tasks/${updated.id}`);
-        },
-        error: (err) => {
-          console.error('Failed to save diagnosis', err);
-          this.showBanner(err?.error?.message ?? 'Unable to save diagnosis.', 'danger');
-        }
-      });
-  }
-
   proceedToCompletion(): void {
-    if (this.itemProofs.length === 0) {
+    if (this.requiresEquipmentProofs && this.itemProofs.length === 0) {
       this.showBanner('Add at least one equipment photo before continuing.', 'danger');
       return;
     }
@@ -2379,7 +2261,7 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
 
     // Résiliation carries no metrics/equipment-proof step, so the "at least one photo" rule
     // does not apply — case-file attachments are entirely optional.
-    if (!this.isResCase && this.itemProofs.length === 0) {
+    if (this.requiresEquipmentProofs && this.itemProofs.length === 0) {
       this.showBanner('Add at least one equipment photo in the Metrics step before finishing.', 'danger');
       return;
     }
@@ -2553,7 +2435,6 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
         next: (item) => {
           this.caseItem = item;
           this.rdvForm = this.createRdvForm(item);
-          this.diagnosisForm = this.createDiagnosisForm(item);
           this.workForm = this.createWorkForm(item);
           if (this.isTechRole) {
             this.setUsageLinesFromCase(item);
@@ -2610,27 +2491,6 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       cmtRdv: this.rdvForm.cmtRdv.trim(),
       abandon: this.rdvForm.abandon,
       causeAbandon: this.rdvForm.abandon ? this.toNullable(this.rdvForm.causeAbandon) : null
-    };
-  }
-
-  private buildDiagnosisPayload(): ComplaintDiagnosisRequest | null {
-    if (!this.diagnosisForm.complaintCategory) {
-      this.showBanner('Complaint category is required.', 'danger');
-      return null;
-    }
-
-    if (this.diagnosisForm.requiresEscalation && this.diagnosisForm.requiresTechIntervention) {
-      this.showBanner('Choose either escalation or TECH intervention for the next step.', 'danger');
-      return null;
-    }
-
-    return {
-      complaintCategory: this.diagnosisForm.complaintCategory,
-      rootCause: this.toNullable(this.diagnosisForm.rootCause),
-      diagnosisComment: this.toNullable(this.diagnosisForm.diagnosisComment),
-      requiresFieldWork: this.diagnosisForm.requiresFieldWork,
-      requiresTechIntervention: this.diagnosisForm.requiresTechIntervention,
-      requiresEscalation: this.diagnosisForm.requiresEscalation
     };
   }
 
@@ -2790,19 +2650,6 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
     this.resAttachments = [];
   }
 
-  private createDiagnosisForm(item: CaseResponse): FieldDiagnosisForm {
-    const diagnosis = this.extractDiagnosis(item);
-
-    return {
-      complaintCategory: diagnosis.complaintCategory ?? 'OTHER',
-      rootCause: diagnosis.rootCause ?? '',
-      diagnosisComment: diagnosis.diagnosisComment ?? item.complaintDescription ?? item.complaintDetail ?? '',
-      requiresFieldWork: diagnosis.requiresFieldWork ?? true,
-      requiresTechIntervention: diagnosis.requiresTechIntervention ?? false,
-      requiresEscalation: diagnosis.requiresEscalation ?? false
-    };
-  }
-
   private emptyRdvForm(): FieldRdvForm {
     return {
       joignable: true,
@@ -2812,17 +2659,6 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       cmtRdv: '',
       abandon: false,
       causeAbandon: ''
-    };
-  }
-
-  private emptyDiagnosisForm(): FieldDiagnosisForm {
-    return {
-      complaintCategory: 'OTHER',
-      rootCause: '',
-      diagnosisComment: '',
-      requiresFieldWork: true,
-      requiresTechIntervention: false,
-      requiresEscalation: false
     };
   }
 
@@ -3076,13 +2912,9 @@ export class FieldExecutionComponent implements OnInit, OnDestroy {
       return this.isResCase ? 'recovery' : 'stock';
     }
 
-    return value === 'stock' || value === 'recovery' || value === 'work' || value === 'metrics' || value === 'completion' || value === 'rdv' || value === 'diagnosis'
+    return value === 'stock' || value === 'recovery' || value === 'work' || value === 'metrics' || value === 'completion' || value === 'rdv'
       ? value
       : 'rdv';
-  }
-
-  private extractDiagnosis(item: CaseResponse): CaseDiagnosis {
-    return item.diagnosis ?? {};
   }
 
   private toNullable(value: string): string | null {

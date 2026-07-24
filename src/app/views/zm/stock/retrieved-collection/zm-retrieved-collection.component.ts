@@ -1,19 +1,11 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, NgZone, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IconDirective } from '@coreui/icons-angular';
-import {
-  BadgeComponent,
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  CardHeaderComponent,
-  SpinnerComponent
-} from '@coreui/angular';
+
 import { finalize } from 'rxjs/operators';
 
 import { RetrievedStockService } from '../../../../core/stock/retrieved-stock.service';
-import { RetrievedStockItem } from '../../../../core/stock/retrieved-stock.model';
+import { RetrievedStockItem, RetrievedStockItemStatus } from '../../../../core/stock/retrieved-stock.model';
 import { materialUnitShort } from '../../../../core/stock/material-quantity.util';
 
 /**
@@ -23,12 +15,9 @@ import { materialUnitShort } from '../../../../core/stock/material-quantity.util
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule, DatePipe, FormsModule, IconDirective,
-    CardComponent, CardBodyComponent, CardHeaderComponent,
-    BadgeComponent, SpinnerComponent, ButtonDirective
-  ],
-  templateUrl: './zm-retrieved-collection.component.html'
+  imports: [CommonModule, DatePipe, FormsModule],
+  templateUrl: './zm-retrieved-collection.component.html',
+  styleUrls: ['./zm-retrieved-collection.component.scss']
 })
 export class ZmRetrievedCollectionComponent implements OnInit {
   private readonly retrievedStockSvc = inject(RetrievedStockService);
@@ -67,6 +56,16 @@ export class ZmRetrievedCollectionComponent implements OnInit {
     });
   });
 
+  // ── Stat chips (whole territory, unfiltered) ────────────────────────────────
+  readonly countTotal = computed(() => this.items().length);
+  readonly countPending = computed(() =>
+    this.items().filter(i => i.status === 'PENDING_STT_COLLECTION' || i.status === 'PENDING_COLLECTION').length
+  );
+  readonly countCollected = computed(() =>
+    this.items().filter(i => i.status === 'COLLECTED_BY_STT' || i.status === 'COLLECTED').length
+  );
+  readonly countReturned = computed(() => this.items().filter(i => i.status === 'RETURNED').length);
+
   ngOnInit(): void {
     this.load();
   }
@@ -92,5 +91,38 @@ export class ZmRetrievedCollectionComponent implements OnInit {
 
   collectorLabel(item: RetrievedStockItem): string {
     return item.collectedBySttName ?? item.collectedByZmName ?? '-';
+  }
+
+  // ── Status presentation ─────────────────────────────────────────────────────
+
+  private static readonly STATUS_LABELS: Record<string, string> = {
+    PENDING_STT_COLLECTION: 'Pending collection',
+    COLLECTED_BY_STT: 'Collected by STT',
+    IN_RETURN_REQUEST: 'In return request',
+    RETURNED: 'Returned',
+    PENDING_COLLECTION: 'Pending collection',
+    COLLECTED: 'Collected'
+  };
+
+  statusLabel(status?: RetrievedStockItemStatus | string): string {
+    if (!status) return '-';
+    return ZmRetrievedCollectionComponent.STATUS_LABELS[status] ?? status;
+  }
+
+  statusPillClass(status?: RetrievedStockItemStatus | string): string {
+    switch (status) {
+      case 'PENDING_STT_COLLECTION':
+      case 'PENDING_COLLECTION':
+        return 'zt-pill--pending';
+      case 'COLLECTED_BY_STT':
+      case 'COLLECTED':
+        return 'zt-pill--partial';
+      case 'IN_RETURN_REQUEST':
+        return 'zt-pill--rdv';
+      case 'RETURNED':
+        return 'zt-pill--confirmed';
+      default:
+        return 'zt-pill--cancelled';
+    }
   }
 }

@@ -74,6 +74,7 @@ export function canUpdateFieldRdv(item: CaseResponse): boolean {
   if (item.type === 'PLAINTE') {
     return item.status === 'ASSIGNED_TO_STT'
       || item.status === 'ASSIGNED_TO_TECH'
+      || item.status === 'RDV_SET'
       || item.status === 'NOT_REACHABLE';
   }
 
@@ -87,6 +88,7 @@ export function canFinishFieldWork(item: CaseResponse): boolean {
   if (item.type === 'PLAINTE') {
     return item.status === 'ASSIGNED_TO_TECH'
       || item.status === 'ASSIGNED_TO_STT'
+      || item.status === 'RDV_SET'
       || item.status === 'RETURNED_TO_STT'
       || item.status === 'REOPENED';
   }

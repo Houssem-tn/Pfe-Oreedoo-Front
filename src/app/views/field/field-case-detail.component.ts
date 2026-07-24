@@ -149,7 +149,7 @@ interface FieldGeoSnapshot {
           </div>
         </section>
 
-        <section class="field-card" *ngIf="item.type === 'PLAINTE'">
+        <section class="field-card" *ngIf="showDiagnosis(item)">
           <div class="field-section-title">
             <h2>Diagnosis</h2>
             <span>{{ item.diagnosis?.complaintCategory || 'Pending' }}</span>
@@ -303,6 +303,22 @@ export class FieldCaseDetailComponent implements OnInit {
   /** Metrics section: Activation + Complaint only (never Résiliation). */
   showMetrics(item: CaseResponse): boolean {
     return caseSupportsMetrics(item);
+  }
+
+  showDiagnosis(item: CaseResponse): boolean {
+    const diagnosis = item.diagnosis;
+    if (!diagnosis) {
+      return false;
+    }
+
+    return !!(
+      diagnosis.complaintCategory
+      || diagnosis.rootCause?.trim()
+      || diagnosis.diagnosisComment?.trim()
+      || diagnosis.requiresFieldWork != null
+      || diagnosis.requiresTechIntervention != null
+      || diagnosis.requiresEscalation != null
+    );
   }
 
   rdvComment(item: CaseResponse): string {

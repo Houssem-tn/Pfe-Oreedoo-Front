@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-24T15:02:08.899Z",
+  "generatedAt": "2026-07-24T15:26:53.696Z",
   "totals": {
-    "errors": 166,
-    "warnings": 694
+    "errors": 165,
+    "warnings": 699
   },
   "fingerprints": {
     "src/app/app.config.ts\u0000@typescript-eslint/no-unused-vars\u0000'withHashLocation' is defined but never used. Allowed unused vars must match /^_/u.\u00002": 1,
@@ -145,9 +145,9 @@
     "src/app/views/dashboard/zm-performance-study-view.component.html\u0000@angular-eslint/template/eqeqeq\u0000Expected `!==` but received `!=`\u00002": 2,
     "src/app/views/field/field-case-detail.component.ts\u0000@typescript-eslint/no-explicit-any\u0000Unexpected any. Specify a different type.\u00001": 1,
     "src/app/views/field/field-case-detail.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 1,
-    "src/app/views/field/field-execution.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 10,
+    "src/app/views/field/field-execution.complaint-flow.spec.ts\u0000@typescript-eslint/no-explicit-any\u0000Unexpected any. Specify a different type.\u00001": 6,
+    "src/app/views/field/field-execution.component.ts\u0000rxjs-x/no-ignored-subscription\u0000Ignoring returned subscriptions is forbidden.\u00001": 9,
     "src/app/views/field/field-execution.component.ts\u0000@typescript-eslint/no-explicit-any\u0000Unexpected any. Specify a different type.\u00001": 4,
-    "src/app/views/field/field-execution.component.ts\u0000rxjs-x/no-async-subscribe\u0000Passing async functions to subscribe is forbidden. Use operators like `concatMap` or `switchMap` to avoid race conditions.\u00002": 1,
     "src/app/views/field/field-execution.component.ts\u0000@typescript-eslint/no-non-null-assertion\u0000Forbidden non-null assertion.\u00001": 2,
     "src/app/views/field/field-execution.component.ts\u0000@angular-eslint/template/eqeqeq\u0000Expected `!==` but received `!=`\u00002": 1,
     "src/app/views/field/field-execution.component.ts\u0000@angular-eslint/template/eqeqeq\u0000Expected `===` but received `==`\u00002": 1,

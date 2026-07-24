@@ -595,10 +595,12 @@
   display: grid;
   gap: 0.5rem;
   grid-template-columns: 1fr 5rem auto;
+  min-width: 0;
 
   &__select { min-width: 0; }
 
   &__qty {
+    min-width: 0;
     text-align: center;
     width: 100%;
   }
@@ -664,7 +666,11 @@
 .field-stepper {
   align-items: flex-start;
   display: flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  min-width: 0;
   padding: 0.5rem 0 1rem;
+  width: 100%;
 }
 
 .field-step {
@@ -676,6 +682,7 @@
   flex-direction: column;
   flex-shrink: 0;
   gap: 0.4rem;
+  min-width: 0;
   padding: 0;
   width: 3.75rem;
 }
@@ -719,9 +726,12 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.2;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   text-align: center;
   transition: color 0.2s;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .field-step--done .field-step__label,
@@ -945,6 +955,30 @@
   .field-form-grid--two,
   .field-toggle-row {
     grid-template-columns: 1fr;
+  }
+
+  .field-stepper {
+    column-gap: 0.35rem;
+    flex-wrap: wrap;
+    row-gap: 0.75rem;
+  }
+
+  .field-step {
+    flex: 1 1 calc(33.333% - 0.35rem);
+    width: auto;
+  }
+
+  .field-step__line {
+    display: none;
+  }
+
+  .field-usage-line,
+  .field-recovery-line__row {
+    grid-template-columns: 1fr;
+  }
+
+  .field-usage-line__remove {
+    width: 100%;
   }
 }
 

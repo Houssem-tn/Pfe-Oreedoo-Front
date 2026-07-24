@@ -1,85 +1,128 @@
-<div>
+<div class="zt-shell">
+
+  <!-- Hero -->
+  <div class="zt-hero">
+    <div class="zt-hero__copy">
+      <div class="zt-eyebrow">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+        </svg>
+        Retrieved Stock
+      </div>
+      <h1 class="zt-title">Retrieved &amp; Collected Tracking</h1>
+      <p class="zt-desc">Read-only view of equipment recovered from customers across your territory — from technician retrieval, through STT collection, to material return.</p>
+    </div>
+
+    <div class="zt-stats">
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countTotal() }}</span>
+        <span class="zt-stat__label">Total</span>
+        <span class="zt-stat__dot zt-stat__dot--total"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countPending() }}</span>
+        <span class="zt-stat__label">Pending</span>
+        <span class="zt-stat__dot zt-stat__dot--pending"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countCollected() }}</span>
+        <span class="zt-stat__label">Collected</span>
+        <span class="zt-stat__dot zt-stat__dot--rdv"></span>
+      </div>
+      <div class="zt-stat">
+        <span class="zt-stat__value">{{ countReturned() }}</span>
+        <span class="zt-stat__label">Returned</span>
+        <span class="zt-stat__dot zt-stat__dot--confirmed"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="zt-toolbar">
+    <div class="zt-search-wrap">
+      <svg class="zt-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input class="zt-search" type="search" placeholder="Search serial / IMEI / customer / case…"
+             [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </div>
+
+    <select class="zt-status-select" [ngModel]="sttFilter()" (ngModelChange)="sttFilter.set($event)">
+      <option value="">All STTs</option>
+      @for (s of sttOptions(); track s) { <option [value]="s">{{ s }}</option> }
+    </select>
+
+    <select class="zt-status-select" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+      <option value="">All statuses</option>
+      @for (st of statusOptions(); track st) { <option [value]="st">{{ statusLabel(st) }}</option> }
+    </select>
+
+    <span class="zt-count">{{ filtered().length }} item(s)</span>
+
+    <button type="button" class="zt-refresh-btn" (click)="load()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
   @if (error) {
-    <div class="alert alert-danger">{{ error }}</div>
+    <div class="zt-alert">{{ error }}</div>
   }
 
-  <c-card>
-    <c-card-header class="d-flex align-items-center justify-content-between">
-      <strong>Retrieved &amp; collected stock — tracking (read-only)</strong>
-      <button cButton color="secondary" size="sm" variant="outline" (click)="load()">
-        <svg cIcon name="cilReload"></svg>
-      </button>
-    </c-card-header>
-    <c-card-body>
-
-      <!-- ── Read-only filters ─────────────────────────────────────────── -->
-      <div class="row g-2 mb-3">
-        <div class="col-12 col-md-4">
-          <input class="form-control form-control-sm" type="search" placeholder="Search serial / IMEI / customer / case…"
-                 [ngModel]="search()" (ngModelChange)="search.set($event)" />
-        </div>
-        <div class="col-6 col-md-4">
-          <select class="form-select form-select-sm" [ngModel]="sttFilter()" (ngModelChange)="sttFilter.set($event)">
-            <option value="">All STTs</option>
-            @for (s of sttOptions(); track s) { <option [value]="s">{{ s }}</option> }
-          </select>
-        </div>
-        <div class="col-6 col-md-4">
-          <select class="form-select form-select-sm" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
-            <option value="">All statuses</option>
-            @for (st of statusOptions(); track st) { <option [value]="st">{{ st }}</option> }
-          </select>
-        </div>
+  <!-- Table card -->
+  <div class="zt-card">
+    @if (loading) {
+      <div class="zt-loading">
+        <span class="zt-spinner"></span>
+        Loading tracking data…
       </div>
-
-      @if (loading) {
-        <div class="text-center py-4">
-          <c-spinner size="sm"></c-spinner>
-          Loading tracking data...
-        </div>
-      } @else if (filtered().length === 0) {
-        <div class="text-center text-muted py-4">
-          <svg cIcon name="cilStorage" size="3xl" class="mb-2 text-secondary"></svg>
-          <p>No retrieved stock matches the current filters.</p>
-        </div>
-      } @else {
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th>Equipment</th>
-                <th>Qty</th>
-                <th>Serial / IMEI</th>
-                <th>Technician</th>
-                <th>STT</th>
-                <th>Case ref</th>
-                <th>Customer</th>
-                <th>Condition</th>
-                <th>Status</th>
-                <th>Collected by</th>
-                <th>Retrieved</th>
+    } @else if (filtered().length === 0) {
+      <div class="zt-table-empty">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4;margin-bottom:.6rem">
+          <path d="M21 8v13H3V8"></path><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line>
+        </svg>
+        <p style="margin:0">No retrieved stock matches the current filters.</p>
+      </div>
+    } @else {
+      <div class="zt-table-wrap">
+        <table class="zt-table">
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              <th>Qty</th>
+              <th>Serial / IMEI</th>
+              <th>Technician</th>
+              <th>STT</th>
+              <th>Case ref</th>
+              <th>Customer</th>
+              <th>Condition</th>
+              <th>Status</th>
+              <th>Collected by</th>
+              <th>Retrieved</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filtered(); track item.id) {
+              <tr class="zt-row-main">
+                <td><span class="zt-actor">{{ item.equipmentName }}</span></td>
+                <td>{{ quantityLabel(item) }}</td>
+                <td><span class="zt-dpm-num">{{ identifierLabel(item) }}</span></td>
+                <td>{{ item.technicianName ?? '-' }}</td>
+                <td>{{ item.sttName ?? '-' }}</td>
+                <td>{{ item.crmCase ?? '-' }}</td>
+                <td>{{ item.clientName ?? '-' }}</td>
+                <td>{{ item.condition ?? '-' }}</td>
+                <td><span class="zt-pill" [class]="statusPillClass(item.status)">{{ statusLabel(item.status) }}</span></td>
+                <td>{{ collectorLabel(item) }}</td>
+                <td>{{ item.retrievedAt | date:'dd/MM/yyyy HH:mm' }}</td>
               </tr>
-            </thead>
-            <tbody>
-              @for (item of filtered(); track item.id) {
-                <tr>
-                  <td>{{ item.equipmentName }}</td>
-                  <td>{{ quantityLabel(item) }}</td>
-                  <td>{{ identifierLabel(item) }}</td>
-                  <td>{{ item.technicianName ?? '-' }}</td>
-                  <td>{{ item.sttName ?? '-' }}</td>
-                  <td>{{ item.crmCase ?? '-' }}</td>
-                  <td>{{ item.clientName ?? '-' }}</td>
-                  <td>{{ item.condition ?? '-' }}</td>
-                  <td><c-badge color="secondary">{{ item.status ?? '-' }}</c-badge></td>
-                  <td>{{ collectorLabel(item) }}</td>
-                  <td>{{ item.retrievedAt | date:'dd/MM/yyyy HH:mm' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </c-card-body>
-  </c-card>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
 </div>

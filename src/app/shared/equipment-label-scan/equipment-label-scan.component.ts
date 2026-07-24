@@ -129,6 +129,9 @@ export interface EquipmentLabelScanResult {
     .label-scan__field { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.75rem; min-width: 0; }
     .label-scan__field input { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 0.35rem 0.5rem; border-radius: 0.375rem; border: 1px solid var(--cui-border-color, #d8dbe0); font-size: 0.85rem; }
     @media (max-width: 480px) {
+      .label-scan__actions,
+      .label-scan__toggle-row { display: grid; grid-template-columns: 1fr; }
+      .label-scan__button { justify-content: center; width: 100%; }
       .label-scan__fields { grid-template-columns: 1fr; }
     }
   `]

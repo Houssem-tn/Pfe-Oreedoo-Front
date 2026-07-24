@@ -2,15 +2,6 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { IconDirective } from '@coreui/icons-angular';
-import {
-  BadgeComponent,
-  ButtonDirective,
-  CardBodyComponent,
-  CardComponent,
-  CardHeaderComponent,
-  SpinnerComponent
-} from '@coreui/angular';
 import Swal from 'sweetalert2';
 import { filter, finalize } from 'rxjs/operators';
 
@@ -29,12 +20,9 @@ type SttRetrievedTab = 'pending' | 'collected';
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule, DatePipe, FormsModule, IconDirective,
-    CardComponent, CardBodyComponent, CardHeaderComponent,
-    BadgeComponent, SpinnerComponent, ButtonDirective
-  ],
-  templateUrl: './stt-retrieved-collection.component.html'
+  imports: [CommonModule, DatePipe, FormsModule],
+  templateUrl: './stt-retrieved-collection.component.html',
+  styleUrls: ['./stt-retrieved-collection.component.scss']
 })
 export class SttRetrievedCollectionComponent implements OnInit {
   private readonly retrievedStockSvc = inject(RetrievedStockService);
@@ -211,5 +199,36 @@ export class SttRetrievedCollectionComponent implements OnInit {
 
   identifierLabel(item: RetrievedStockItem): string {
     return [item.serialNumber, item.imei].filter(Boolean).join(' · ') || '-';
+  }
+
+  private static readonly STATUS_LABELS: Record<string, string> = {
+    PENDING_STT_COLLECTION: 'Pending collection',
+    COLLECTED_BY_STT: 'Collected by STT',
+    IN_RETURN_REQUEST: 'In return request',
+    RETURNED: 'Returned',
+    PENDING_COLLECTION: 'Pending collection',
+    COLLECTED: 'Collected'
+  };
+
+  statusLabel(status?: string): string {
+    if (!status) return '-';
+    return SttRetrievedCollectionComponent.STATUS_LABELS[status] ?? status;
+  }
+
+  statusPillClass(status?: string): string {
+    switch (status) {
+      case 'PENDING_STT_COLLECTION':
+      case 'PENDING_COLLECTION':
+        return 'pill--pending';
+      case 'COLLECTED_BY_STT':
+      case 'COLLECTED':
+        return 'pill--collected';
+      case 'IN_RETURN_REQUEST':
+        return 'pill--return';
+      case 'RETURNED':
+        return 'pill--returned';
+      default:
+        return 'pill--neutral';
+    }
   }
 }
